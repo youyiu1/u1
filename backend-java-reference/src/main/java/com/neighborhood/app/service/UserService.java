@@ -11,18 +11,16 @@ import com.neighborhood.app.entity.Follow;
 import com.neighborhood.app.entity.User;
 import com.neighborhood.app.mapper.FollowMapper;
 import com.neighborhood.app.mapper.UserMapper;
+import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 @Service
+@RequiredArgsConstructor
 public class UserService extends ServiceImpl<UserMapper, User> {
 
     private final FollowMapper followMapper;
-
-    public UserService(FollowMapper followMapper) {
-        super();
-        this.followMapper = followMapper;
-    }
+    private final CacheService cacheService;
 
     public User register(String name, String email, String password) {
         User user = new User();
@@ -35,6 +33,7 @@ public class UserService extends ServiceImpl<UserMapper, User> {
         user.setFollowersCount(0);
         user.setFollowingCount(0);
         save(user);
+        cacheService.cacheUser(user.getId(), user);
         return user;
     }
 
@@ -42,13 +41,31 @@ public class UserService extends ServiceImpl<UserMapper, User> {
         return getOne(new QueryWrapper<User>().eq("email", email).eq("password", password));
     }
 
+    public User getById(String id) {
+        // 先查缓存
+        User cached = (User) cacheService.getCachedUser(id);
+        if (cached != null) {
+            return cached;
+        }
+        // 缓存未命中，查数据库
+        User user = super.getById(id);
+        if (user != null) {
+            cacheService.cacheUser(id, user);
+        }
+        return user;
+    }
+
     @Transactional
     public boolean follow(String followerId, String followingId) {
         if (isFollowing(followerId, followingId)) {
             return false;
         }
-        followMapper.insert(new Follow(followerId, followingId));
+        Follow follow = new Follow(followerId, followingId);
+        followMapper.insert(follow);
         updateUserCounts(followerId, followingId, 1, 1);
+        // 清除缓存
+        cacheService.evictUser(followerId);
+        cacheService.evictUser(followingId);
         return true;
     }
 
@@ -61,6 +78,9 @@ public class UserService extends ServiceImpl<UserMapper, User> {
             return false;
         }
         updateUserCounts(followerId, followingId, -1, -1);
+        // 清除缓存
+        cacheService.evictUser(followerId);
+        cacheService.evictUser(followingId);
         return true;
     }
 
@@ -83,5 +103,14 @@ public class UserService extends ServiceImpl<UserMapper, User> {
             following.setFollowersCount(Math.max(0, following.getFollowersCount() + followerDelta));
             updateById(following);
         }
+    }
+
+    @Override
+    public boolean updateById(User user) {
+        boolean result = super.updateById(user);
+        if (result) {
+            cacheService.evictUser(user.getId());
+        }
+        return result;
     }
 }

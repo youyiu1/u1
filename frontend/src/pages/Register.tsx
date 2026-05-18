@@ -10,7 +10,7 @@ import { useAuth } from '../context/AuthContext';
 
 export default function Register() {
   const navigate = useNavigate();
-  const { login } = useAuth();
+  const { register } = useAuth();
   const [formData, setFormData] = useState({
     username: '',
     email: '',
@@ -19,20 +19,29 @@ export default function Register() {
     confirmPassword: ''
   });
   const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState('');
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (formData.password !== formData.confirmPassword) {
+      setError('两次密码输入不一致');
+      return;
+    }
     setIsLoading(true);
-    setTimeout(() => {
-      login(formData.email, formData.username);
-      setIsLoading(false);
+    setError('');
+    try {
+      await register(formData.username, formData.email, formData.password);
       navigate('/');
-    }, 1500);
+    } catch (err: any) {
+      setError(err.message || '注册失败');
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   return (
     <div className="min-h-[90vh] flex items-center justify-center py-12 px-6">
-      <motion.div 
+      <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         className="w-full max-w-md bg-white p-10 rounded-3xl border border-hairline shadow-2xl"
@@ -42,11 +51,17 @@ export default function Register() {
           <p className="text-sm text-secondary">欢迎来到同城生活，开启您的优质社区旅程。</p>
         </div>
 
+        {error && (
+          <div className="mb-4 p-3 bg-red-50 text-red-600 text-sm rounded-xl">
+            {error}
+          </div>
+        )}
+
         <form onSubmit={handleSubmit} className="space-y-6">
           <div className="space-y-1.5">
             <label className="text-sm font-bold text-ink">昵称</label>
-            <input 
-              type="text" 
+            <input
+              type="text"
               required
               value={formData.username}
               onChange={(e) => setFormData({ ...formData, username: e.target.value })}
@@ -57,8 +72,8 @@ export default function Register() {
 
           <div className="space-y-1.5">
             <label className="text-sm font-bold text-ink">电子邮箱</label>
-            <input 
-              type="email" 
+            <input
+              type="email"
               required
               value={formData.email}
               onChange={(e) => setFormData({ ...formData, email: e.target.value })}
@@ -70,15 +85,15 @@ export default function Register() {
           <div className="space-y-1.5">
             <label className="text-sm font-bold text-ink">验证码</label>
             <div className="flex gap-2">
-              <input 
-                type="text" 
+              <input
+                type="text"
                 required
                 value={formData.code}
                 onChange={(e) => setFormData({ ...formData, code: e.target.value })}
                 placeholder="输入6位验证码"
                 className="flex-1 px-4 py-3 rounded-xl border border-hairline focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all outline-none"
               />
-              <button 
+              <button
                 type="button"
                 className="px-6 py-2 border border-hairline rounded-xl font-bold text-sm hover:bg-surface-soft transition-colors"
               >
@@ -89,8 +104,8 @@ export default function Register() {
 
           <div className="space-y-1.5">
             <label className="text-sm font-bold text-ink">设置密码</label>
-            <input 
-              type="password" 
+            <input
+              type="password"
               required
               value={formData.password}
               onChange={(e) => setFormData({ ...formData, password: e.target.value })}
@@ -108,8 +123,8 @@ export default function Register() {
 
           <div className="space-y-1.5">
             <label className="text-sm font-bold text-ink">确认密码</label>
-            <input 
-              type="password" 
+            <input
+              type="password"
               required
               value={formData.confirmPassword}
               onChange={(e) => setFormData({ ...formData, confirmPassword: e.target.value })}
@@ -125,7 +140,7 @@ export default function Register() {
              </label>
           </div>
 
-          <button 
+          <button
             type="submit"
             disabled={isLoading}
             className="w-full h-12 bg-primary hover:bg-primary-hover text-white rounded-xl font-bold shadow-lg shadow-primary/20 transition-all flex items-center justify-center gap-2 disabled:opacity-70"

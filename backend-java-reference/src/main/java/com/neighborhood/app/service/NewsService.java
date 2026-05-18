@@ -11,22 +11,74 @@ import com.neighborhood.app.entity.News;
 import com.neighborhood.app.entity.Comment;
 import com.neighborhood.app.mapper.NewsMapper;
 import com.neighborhood.app.mapper.CommentMapper;
+import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import java.util.List;
 
 @Service
+@RequiredArgsConstructor
 public class NewsService extends ServiceImpl<NewsMapper, News> {
 
     private final CommentMapper commentMapper;
-
-    public NewsService(CommentMapper commentMapper) {
-        super();
-        this.commentMapper = commentMapper;
-    }
+    private final CacheService cacheService;
 
     public List<News> listDesc() {
-        return lambdaQuery().orderByDesc(News::getCreateTime).list();
+        // 先查缓存
+        List<News> cached = cacheService.getCachedNewsList();
+        if (cached != null) {
+            return cached;
+        }
+        // 缓存未命中，查数据库
+        List<News> list = lambdaQuery().orderByDesc(News::getCreateTime).list();
+        cacheService.cacheNewsList(list);
+        return list;
+    }
+
+    public News getById(Long id) {
+        // 先查缓存
+        News cached = (News) cacheService.getCachedNews(id);
+        if (cached != null) {
+            return cached;
+        }
+        // 缓存未命中，查数据库
+        News news = super.getById(id);
+        if (news != null) {
+            cacheService.cacheNews(id, news);
+        }
+        return news;
+    }
+
+    @Override
+    public boolean save(News news) {
+        boolean result = super.save(news);
+        if (result) {
+            cacheService.evictNewsList();
+        }
+        return result;
+    }
+
+    @Transactional
+    public void addComment(Long newsId, Comment comment) {
+        comment.setNewsId(newsId);
+        comment.setCreateTime(java.time.LocalDateTime.now());
+        commentMapper.insert(comment);
+        lambdaUpdate().eq(News::getId, newsId)
+            .setSql("comments_count = comments_count + 1")
+            .update();
+        // 清除缓存
+        cacheService.evictNews(newsId);
+    }
+
+    @Transactional
+    public boolean like(Long newsId) {
+        boolean result = lambdaUpdate().eq(News::getId, newsId)
+            .setSql("likes = likes + 1")
+            .update();
+        if (result) {
+            cacheService.evictNews(newsId);
+        }
+        return result;
     }
 
     public List<Comment> getCommentsByNewsId(Long newsId, int limit, int offset) {
@@ -38,22 +90,12 @@ public class NewsService extends ServiceImpl<NewsMapper, News> {
         );
     }
 
-    @Transactional
-    public void addComment(Long newsId, Comment comment) {
-        comment.setNewsId(newsId);
-        comment.setCreateTime(java.time.LocalDateTime.now());
-        commentMapper.insert(comment);
-        lambdaUpdate().eq(News::getId, newsId)
-            .set(News::getCommentsCount, getById(newsId).getCommentsCount() + 1)
-            .update();
-    }
-
-    @Transactional
-    public boolean like(Long newsId) {
-        News news = getById(newsId);
-        if (news == null) return false;
-        return lambdaUpdate().eq(News::getId, newsId)
-            .set(News::getLikes, news.getLikes() + 1)
-            .update();
+    @Override
+    public boolean updateById(News news) {
+        boolean result = super.updateById(news);
+        if (result) {
+            cacheService.evictNews(news.getId());
+        }
+        return result;
     }
 }

@@ -9,8 +9,11 @@ interface HomePostCardProps {
 }
 
 export const HomePostCard: React.FC<HomePostCardProps> = ({ post, idx }) => {
+  const author = post.author || { name: '匿名用户', avatar: '', verified: false };
+  const avatarSrc = author.avatar || null;
+
   return (
-    <motion.div 
+    <motion.div
       initial={{ opacity: 0, scale: 0.95, y: 20 }}
       whileInView={{ opacity: 1, scale: 1, y: 0 }}
       viewport={{ once: true }}
@@ -19,11 +22,13 @@ export const HomePostCard: React.FC<HomePostCardProps> = ({ post, idx }) => {
     >
       <div className="flex items-center gap-6 mb-10">
         <div className="relative">
-          <img src={post.author.avatar} alt={post.author.name} className="w-16 h-16 rounded-full object-cover ring-2 ring-hairline ring-offset-4 group-hover:ring-primary/30 transition-all duration-700" />
-          {post.author.verified && <div className="absolute -bottom-1 -right-1 w-6 h-6 bg-primary border-4 border-white rounded-full shadow-sm" />}
+          {avatarSrc && (
+            <img src={avatarSrc} alt={author.name} className="w-16 h-16 rounded-full object-cover ring-2 ring-hairline ring-offset-4 group-hover:ring-primary/30 transition-all duration-700" />
+          )}
+          {author.verified && <div className="absolute -bottom-1 -right-1 w-6 h-6 bg-primary border-4 border-white rounded-full shadow-sm" />}
         </div>
         <div>
-          <h4 className="text-lg font-black text-ink group-hover:text-primary transition-colors">{post.author.name}</h4>
+          <h4 className="text-lg font-black text-ink group-hover:text-primary transition-colors">{author.name}</h4>
           <p className="text-[10px] font-black text-secondary tracking-widest uppercase opacity-40">{post.time} • {post.location}</p>
         </div>
       </div>
@@ -32,7 +37,7 @@ export const HomePostCard: React.FC<HomePostCardProps> = ({ post, idx }) => {
         {post.content}
       </p>
 
-      {post.images.length > 0 && (
+      {(post.images?.length ?? 0) > 0 && (
         <div className="aspect-[16/9] rounded-[32px] overflow-hidden mb-10 shadow-inner bg-stone-100">
           <img src={post.images[0]} alt="Post content" className="w-full h-full object-cover grayscale-[0.2] group-hover:grayscale-0 group-hover:scale-105 transition-all duration-1000 ease-[0.16,1,0.3,1]" />
         </div>

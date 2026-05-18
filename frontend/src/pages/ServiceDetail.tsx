@@ -3,16 +3,14 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
-import { 
-  Star, 
-  ChevronRight, 
-  Share, 
-  Heart, 
-  ShieldCheck, 
-  Clock, 
-  Settings, 
+import {
+  Star,
+  ChevronRight,
+  Heart,
+  ShieldCheck,
+  Clock,
   CheckCircle2,
   ChevronDown,
   ChevronLeft,
@@ -25,34 +23,122 @@ import {
   Info,
   Send,
   User,
-  ThumbsUp
+  ThumbsUp,
+  UserPlus
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { useChat } from '../context/ChatContext';
-import { SERVICES } from '../constants';
+import { serviceApi } from '../services/api';
 import { FollowButton } from '../components/common/FollowButton';
+import { Service } from '../types';
+
+const categoryMap: Record<string, string> = {
+  'domestic': '家政服务',
+  'repair': '家庭维修',
+  'sports': '运动健身',
+  'pets': '宠物生活',
+  'market': '闲置交易'
+};
+
+interface Review {
+  id: string;
+  userName: string;
+  userAvatar?: string;
+  rating: number;
+  comment: string;
+  time: string;
+  likes: number;
+}
+
+function ReviewSection({ serviceId }: { serviceId: number }) {
+  const [reviews, setReviews] = useState<Review[]>([]);
+
+  return (
+    <div className="space-y-12">
+      <header className="flex items-center justify-between">
+        <h2 className="text-3xl font-black text-ink tracking-tight">邻友评价</h2>
+        <div className="flex items-center gap-2 text-primary font-black">
+          <Star className="w-5 h-5 fill-current" />
+          <span className="text-xl">4.8</span>
+          <span className="text-sm text-muted">/ 5.0</span>
+        </div>
+      </header>
+
+      <div className="space-y-8">
+        {reviews.length === 0 ? (
+          <div className="text-center py-12 text-muted">暂无评价</div>
+        ) : (
+          reviews.map((review) => (
+            <div key={review.id} className="bg-white p-8 rounded-[32px] border border-hairline shadow-sm space-y-6">
+              <div className="flex items-start justify-between">
+                <div className="flex items-center gap-4">
+                  <div className="w-14 h-14 bg-surface-soft rounded-2xl flex items-center justify-center overflow-hidden border-2 border-white shadow-sm">
+                    {review.userAvatar ? (
+                      <img src={review.userAvatar} alt={review.userName} className="w-full h-full object-cover" />
+                    ) : (
+                      <User className="w-6 h-6 text-muted" />
+                    )}
+                  </div>
+                  <div>
+                    <h4 className="font-black text-ink">{review.userName}</h4>
+                    <div className="flex items-center gap-2 mt-1">
+                      <div className="flex">
+                        {[1, 2, 3, 4, 5].map((star) => (
+                          <Star
+                            key={star}
+                            className={`w-3.5 h-3.5 ${star <= review.rating ? 'text-yellow-400 fill-current' : 'text-muted/20'}`}
+                          />
+                        ))}
+                      </div>
+                      <span className="text-[10px] font-bold text-muted uppercase tracking-widest">{review.time}</span>
+                    </div>
+                  </div>
+                </div>
+                <button className="flex items-center gap-2 text-xs font-black text-muted hover:text-primary transition-colors group">
+                  <ThumbsUp className="w-4 h-4 group-hover:-translate-y-0.5 transition-transform" />
+                  <span>{review.likes}</span>
+                </button>
+              </div>
+
+              <p className="text-secondary font-medium leading-relaxed">
+                {review.comment}
+              </p>
+            </div>
+          ))
+        )}
+      </div>
+    </div>
+  );
+}
 
 export default function ServiceDetail() {
   const { id } = useParams();
   const navigate = useNavigate();
   const { openChat } = useChat();
-  const categoryMap: Record<string, string> = {
-    'domestic': '家政服务',
-    'repair': '家庭维修',
-    'sports': '运动健身',
-    'pets': '宠物生活',
-    'market': '闲置交易'
-  };
 
-  const service = SERVICES.find(s => s.id === id) || SERVICES[0];
-  const categoryName = categoryMap[service.category] || service.category;
-  
-  const [bookingDate, setBookingDate] = useState('2024-05-24');
-  const [bookingTime, setBookingTime] = useState('09:00');
-  const [duration, setDuration] = useState(4);
+  const [service, setService] = useState<Service | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const [isLiked, setIsLiked] = useState(false);
   const [isBooking, setIsBooking] = useState(false);
   const [bookingSuccess, setBookingSuccess] = useState(false);
+  const [bookingDate, setBookingDate] = useState('2024-05-24');
+  const [bookingTime, setBookingTime] = useState('09:00');
+  const [duration, setDuration] = useState(4);
+
+  useEffect(() => {
+    const fetchService = async () => {
+      try {
+        const data = await serviceApi.get(Number(id));
+        setService(data);
+      } catch (err: any) {
+        setError(err.message || '加载失败');
+      } finally {
+        setLoading(false);
+      }
+    };
+    if (id) fetchService();
+  }, [id]);
 
   const handleBooking = () => {
     setIsBooking(true);
@@ -62,15 +148,36 @@ export default function ServiceDetail() {
     }, 1500);
   };
 
+  if (loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="w-8 h-8 border-4 border-primary border-t-transparent rounded-full animate-spin" />
+      </div>
+    );
+  }
+
+  if (error || !service) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="text-center">
+          <p className="text-muted mb-4 font-bold">{error || '服务不存在'}</p>
+          <button onClick={() => navigate('/service')} className="px-8 py-3 bg-primary text-white rounded-2xl font-black">
+            返回服务列表
+          </button>
+        </div>
+      </div>
+    );
+  }
+
+  const categoryName = categoryMap[service.category] || service.category;
   const totalPrice = (service.price * (duration / 4)) + 20;
 
   return (
     <div className="bg-[#fcfdff] min-h-screen pb-20">
-      {/* Booking Success Modal */}
       <AnimatePresence>
         {bookingSuccess && (
           <div className="fixed inset-0 z-[100] flex items-center justify-center px-6">
-            <motion.div 
+            <motion.div
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
@@ -88,9 +195,9 @@ export default function ServiceDetail() {
               </div>
               <h3 className="text-3xl font-black text-ink mb-4">预约发送成功</h3>
               <p className="text-secondary font-medium mb-10 leading-relaxed">
-                您的预约需求已发往 <span className="text-primary font-black">{service.seller.name}</span>。卖家将通过系统消息与您确认具体时间。
+                您的预约需求已发往 <span className="text-primary font-black">{service.seller?.name}</span>。卖家将通过系统消息与您确认具体时间。
               </p>
-              <button 
+              <button
                 onClick={() => setBookingSuccess(false)}
                 className="w-full py-4 bg-ink text-white rounded-[24px] font-black shadow-xl shadow-ink/20 hover:scale-[1.02] active:scale-[0.98] transition-all"
               >
@@ -101,7 +208,6 @@ export default function ServiceDetail() {
         )}
       </AnimatePresence>
 
-      {/* Header Info Desktop */}
       <div className="bg-white border-b border-hairline py-6 hidden md:block">
         <div className="max-w-[1200px] mx-auto px-6 flex items-center justify-between">
           <div className="flex items-center gap-3">
@@ -120,7 +226,7 @@ export default function ServiceDetail() {
              <button className="flex items-center gap-2 px-4 py-2 hover:bg-surface-soft rounded-xl transition-all text-xs font-black">
                <Share2 className="w-4 h-4" /> 分享服务
              </button>
-             <button 
+             <button
                onClick={() => setIsLiked(!isLiked)}
                className={`flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-black transition-all ${isLiked ? 'bg-primary/5 text-primary' : 'hover:bg-surface-soft'}`}
              >
@@ -132,8 +238,7 @@ export default function ServiceDetail() {
 
       <div className="max-w-[1200px] mx-auto px-6 py-10 md:py-16">
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-12 lg:gap-16 items-start">
-          
-          {/* Left Column */}
+
           <div className="lg:col-span-8 space-y-12">
             <div className="space-y-6">
               <div className="flex items-center gap-3">
@@ -155,22 +260,21 @@ export default function ServiceDetail() {
                 </div>
                 <div className="flex items-center gap-1.5">
                   <MapPin className="w-4 h-4 text-primary" />
-                  <span>滨江区 · 2.5km内</span>
+                  <span>滨江区 · {service.distance}</span>
                 </div>
               </div>
             </div>
 
-            {/* Gallery Optimized */}
             <div className="grid grid-cols-1 md:grid-cols-12 gap-4 h-[400px] md:h-[540px]">
               <div className="md:col-span-8 h-full rounded-[48px] overflow-hidden shadow-2xl shadow-ink/5 border border-hairline group">
                 <img src={service.image} className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110" alt="Main" />
               </div>
               <div className="md:col-span-4 grid grid-rows-2 gap-4 h-full">
                 <div className="rounded-[32px] overflow-hidden border border-hairline group">
-                  <img src="https://images.unsplash.com/photo-1584622650111-993a426fbf0a?auto=format&fit=crop&q=80&w=800" className="w-full h-full object-cover group-hover:scale-110 transition-transform" alt="Detail 1" />
+                  <img src={service.image} className="w-full h-full object-cover group-hover:scale-110 transition-transform" alt="Detail 1" />
                 </div>
                 <div className="relative rounded-[32px] overflow-hidden border border-hairline group cursor-pointer">
-                  <img src="https://images.unsplash.com/photo-1527515637462-cff94eecc1ac?auto=format&fit=crop&q=80&w=800" className="w-full h-full object-cover group-hover:scale-110 transition-transform" alt="Detail 2" />
+                  <img src={service.image} className="w-full h-full object-cover group-hover:scale-110 transition-transform" alt="Detail 2" />
                   <div className="absolute inset-x-4 bottom-4 px-4 py-3 bg-white/90 backdrop-blur-md rounded-2xl flex items-center justify-center gap-2 font-black text-xs shadow-xl">
                     <Sparkles className="w-4 h-4" /> 查看全景
                   </div>
@@ -178,38 +282,37 @@ export default function ServiceDetail() {
               </div>
             </div>
 
-            {/* Provider Spotlight */}
             <div className="p-8 bg-white border border-hairline rounded-[40px] shadow-sm flex flex-col md:flex-row items-center gap-8 group">
               <div className="relative shrink-0">
-                <img src={service.seller.avatar} alt="Seller" className="w-24 h-24 rounded-[32px] object-cover border-4 border-white shadow-xl group-hover:rotate-6 transition-transform" />
+                <img src={service.seller?.avatar || ''} alt="Seller" className="w-24 h-24 rounded-[32px] object-cover border-4 border-white shadow-xl group-hover:rotate-6 transition-transform" />
                 <div className="absolute -bottom-2 -right-2 bg-blue-500 text-white p-1.5 rounded-xl border-4 border-white shadow-lg">
                   <CheckCircle2 className="w-4 h-4" />
                 </div>
               </div>
               <div className="flex-1 text-center md:text-left">
                  <div className="flex flex-col md:flex-row md:items-center gap-3 mb-3">
-                   <h3 className="text-2xl font-black text-ink">{service.seller.name}</h3>
+                   <h3 className="text-2xl font-black text-ink">{service.seller?.name}</h3>
                    <span className="px-3 py-1 bg-green-50 text-green-600 rounded-lg text-[10px] font-black uppercase tracking-widest">
                      极好口碑商家
                    </span>
-                   <FollowButton 
-                    isFollowingInitial={service.seller.isFollowing} 
+                   <FollowButton
+                    isFollowingInitial={service.seller?.isFollowing}
                     size="sm"
                     variant="outline"
                     className="md:ml-auto"
                    />
                  </div>
                  <p className="text-secondary font-medium leading-relaxed max-w-lg mb-4">
-                   “致力于为邻居提供五星级的管家式服务，细节决定品质。每一次服务都是我诚信的积累。”
+                   "致力于为邻居提供五星级的管家式服务，细节决定品质。每一次服务都是我诚信的积累。"
                  </p>
                  <div className="flex items-center justify-center md:justify-start gap-8">
                    <div>
                      <p className="text-xs font-black text-muted uppercase tracking-widest mb-1">成交记录</p>
-                     <p className="text-lg font-black text-ink">450+</p>
+                     <p className="text-lg font-black text-ink">{service.seller?.soldCount || 0}+</p>
                    </div>
                    <div>
                      <p className="text-xs font-black text-muted uppercase tracking-widest mb-1">粉丝</p>
-                     <p className="text-lg font-black text-ink">{service.seller.followersCount || 0}</p>
+                     <p className="text-lg font-black text-ink">{service.seller?.followersCount || 0}</p>
                    </div>
                    <div>
                      <p className="text-xs font-black text-muted uppercase tracking-widest mb-1">平均响应</p>
@@ -217,11 +320,11 @@ export default function ServiceDetail() {
                    </div>
                  </div>
               </div>
-              <button 
+              <button
                 onClick={() => openChat({
-                  id: service.seller.name,
-                  name: service.seller.name,
-                  avatar: service.seller.avatar,
+                  id: service.seller?.name || '',
+                  name: service.seller?.name || '',
+                  avatar: service.seller?.avatar || '',
                   isOnline: true
                 })}
                 className="px-6 py-3 bg-surface-soft hover:bg-hairline rounded-2xl font-black text-xs transition-all"
@@ -230,7 +333,6 @@ export default function ServiceDetail() {
               </button>
             </div>
 
-            {/* Detailed Content */}
             <div className="space-y-16 px-2">
               <div>
                 <h2 className="text-3xl font-black text-ink mb-6">服务内容描述</h2>
@@ -256,12 +358,10 @@ export default function ServiceDetail() {
                 ))}
               </div>
 
-              {/* Review Section */}
-              <ReviewSection serviceId={service.id} />
+              <ReviewSection serviceId={Number(id)} />
             </div>
           </div>
 
-          {/* Right Column: Sticky Booking Card */}
           <aside className="lg:col-span-4 sticky top-28">
             <div className="bg-white border border-hairline rounded-[48px] p-8 md:p-10 shadow-2xl shadow-ink/5 space-y-8">
               <div className="flex justify-between items-end">
@@ -269,7 +369,7 @@ export default function ServiceDetail() {
                   <span className="text-xs font-black text-muted uppercase tracking-widest mb-2 block">预约起步价</span>
                   <div className="flex items-baseline gap-1">
                     <span className="text-5xl font-black text-ink tracking-tighter">¥{service.price}</span>
-                    <span className="text-sm font-bold text-muted">/次</span>
+                    <span className="text-sm font-bold text-muted">/{service.unit}</span>
                   </div>
                 </div>
                 <div className="flex flex-col items-end">
@@ -286,11 +386,11 @@ export default function ServiceDetail() {
                     <label className="text-[10px] font-black text-muted uppercase tracking-widest ml-1">选择日期</label>
                     <div className="relative">
                        <Calendar className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted pointer-events-none" />
-                       <input 
-                        type="date" 
+                       <input
+                        type="date"
                         value={bookingDate}
                         onChange={(e) => setBookingDate(e.target.value)}
-                        className="w-full pl-9 pr-3 py-3 bg-white border border-white rounded-xl text-xs font-black focus:ring-4 focus:ring-primary/5 focus:border-primary/20 transition-all outline-none" 
+                        className="w-full pl-9 pr-3 py-3 bg-white border border-white rounded-xl text-xs font-black focus:ring-4 focus:ring-primary/5 focus:border-primary/20 transition-all outline-none"
                        />
                     </div>
                   </div>
@@ -298,11 +398,11 @@ export default function ServiceDetail() {
                     <label className="text-[10px] font-black text-muted uppercase tracking-widest ml-1">开始时间</label>
                     <div className="relative">
                        <Clock className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted pointer-events-none" />
-                       <input 
-                        type="time" 
+                       <input
+                        type="time"
                         value={bookingTime}
                         onChange={(e) => setBookingTime(e.target.value)}
-                        className="w-full pl-9 pr-3 py-3 bg-white border border-white rounded-xl text-xs font-black focus:ring-4 focus:ring-primary/5 focus:border-primary/20 transition-all outline-none" 
+                        className="w-full pl-9 pr-3 py-3 bg-white border border-white rounded-xl text-xs font-black focus:ring-4 focus:ring-primary/5 focus:border-primary/20 transition-all outline-none"
                        />
                     </div>
                   </div>
@@ -311,7 +411,7 @@ export default function ServiceDetail() {
                 <div className="space-y-1.5">
                   <label className="text-[10px] font-black text-muted uppercase tracking-widest ml-1">时长/份数</label>
                   <div className="relative">
-                    <select 
+                    <select
                       value={duration}
                       onChange={(e) => setDuration(Number(e.target.value))}
                       className="w-full px-4 py-3 bg-white border border-white rounded-xl text-xs font-black focus:ring-4 focus:ring-primary/5 focus:border-primary/20 transition-all outline-none appearance-none cursor-pointer"
@@ -326,7 +426,7 @@ export default function ServiceDetail() {
               </div>
 
               <div className="space-y-4">
-                <motion.button 
+                <motion.button
                   whileHover={{ scale: 1.02 }}
                   whileTap={{ scale: 0.98 }}
                   onClick={handleBooking}
@@ -342,7 +442,7 @@ export default function ServiceDetail() {
                     </>
                   )}
                 </motion.button>
-                
+
                 <p className="text-center text-[10px] font-black text-muted uppercase tracking-widest py-2">
                   邻里生活担保 · 服务完成前平台代管资金
                 </p>
@@ -380,173 +480,6 @@ export default function ServiceDetail() {
           </aside>
         </div>
       </div>
-    </div>
-  );
-}
-
-interface Review {
-  id: string;
-  userName: string;
-  userAvatar?: string;
-  rating: number;
-  comment: string;
-  time: string;
-  likes: number;
-}
-
-function ReviewSection({ serviceId }: { serviceId: string }) {
-  const [reviews, setReviews] = useState<Review[]>([
-    {
-      id: 'r1',
-      userName: '邻居小王',
-      userAvatar: 'https://images.unsplash.com/photo-1599566150163-29194dcaad36?auto=format&fit=crop&q=80&w=100',
-      rating: 5,
-      comment: '阿姨干活非常细致，窗户擦得跟新的一样。以后还会预约！',
-      time: '2天前',
-      likes: 12
-    },
-    {
-      id: 'r2',
-      userName: '李女士',
-      rating: 4,
-      comment: '准时到达，工具齐全，整体效果不错。',
-      time: '1周前',
-      likes: 5
-    }
-  ]);
-
-  const [newRating, setNewRating] = useState(5);
-  const [newComment, setNewComment] = useState('');
-  const [isSubmitting, setIsSubmitting] = useState(false);
-
-  const handleSubmitReview = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!newComment.trim()) return;
-
-    setIsSubmitting(true);
-    // Simulate API call
-    setTimeout(() => {
-      const newReview: Review = {
-        id: Math.random().toString(36).substr(2, 9),
-        userName: '我 (访客)',
-        rating: newRating,
-        comment: newComment,
-        time: '刚刚',
-        likes: 0
-      };
-      setReviews([newReview, ...reviews]);
-      setNewComment('');
-      setNewRating(5);
-      setIsSubmitting(false);
-    }, 800);
-  };
-
-  return (
-    <div className="space-y-12">
-      <header className="flex items-center justify-between">
-        <h2 className="text-3xl font-black text-ink tracking-tight">邻友评价</h2>
-        <div className="flex items-center gap-2 text-primary font-black">
-          <Star className="w-5 h-5 fill-current" />
-          <span className="text-xl">4.8</span>
-          <span className="text-sm text-muted">/ 5.0</span>
-        </div>
-      </header>
-
-      {/* Review Form */}
-      <div className="bg-surface-soft rounded-[32px] p-8 border border-hairline">
-        <h3 className="text-lg font-black text-ink mb-6">发表你的评价</h3>
-        <form onSubmit={handleSubmitReview} className="space-y-6">
-          <div className="flex flex-col gap-2">
-            <span className="text-xs font-black text-muted uppercase tracking-widest">总体评价</span>
-            <div className="flex gap-1.5">
-              {[1, 2, 3, 4, 5].map((star) => (
-                <button
-                  key={star}
-                  type="button"
-                  onClick={() => setNewRating(star)}
-                  className="transition-transform active:scale-90"
-                >
-                  <Star 
-                    className={`w-8 h-8 ${star <= newRating ? 'text-yellow-400 fill-current' : 'text-muted/20'}`} 
-                  />
-                </button>
-              ))}
-            </div>
-          </div>
-
-          <div className="flex flex-col gap-2">
-            <span className="text-xs font-black text-muted uppercase tracking-widest">服务感受</span>
-            <textarea
-              value={newComment}
-              onChange={(e) => setNewComment(e.target.value)}
-              placeholder="分享你的真实服务体验，帮助更多邻居..."
-              className="w-full min-h-[120px] p-5 bg-white border border-hairline rounded-2xl text-sm font-medium focus:ring-4 focus:ring-primary/5 focus:border-primary/20 outline-none transition-all resize-none"
-            />
-          </div>
-
-          <div className="flex justify-end">
-            <button
-              type="submit"
-              disabled={isSubmitting || !newComment.trim()}
-              className="flex items-center gap-3 px-10 py-4 bg-ink text-white rounded-2xl font-black text-sm uppercase tracking-widest hover:bg-primary transition-all disabled:opacity-50 disabled:cursor-not-allowed group"
-            >
-              {isSubmitting ? (
-                <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-              ) : (
-                <>
-                  发布评价
-                  <Send className="w-4 h-4 group-hover:translate-x-1 group-hover:-translate-y-1 transition-transform" />
-                </>
-              )}
-            </button>
-          </div>
-        </form>
-      </div>
-
-      {/* Review List */}
-      <div className="space-y-8">
-        {reviews.map((review) => (
-          <div key={review.id} className="bg-white p-8 rounded-[32px] border border-hairline shadow-sm space-y-6">
-            <div className="flex items-start justify-between">
-              <div className="flex items-center gap-4">
-                <div className="w-14 h-14 bg-surface-soft rounded-2xl flex items-center justify-center overflow-hidden border-2 border-white shadow-sm">
-                  {review.userAvatar ? (
-                    <img src={review.userAvatar} alt={review.userName} className="w-full h-full object-cover" />
-                  ) : (
-                    <User className="w-6 h-6 text-muted" />
-                  )}
-                </div>
-                <div>
-                  <h4 className="font-black text-ink">{review.userName}</h4>
-                  <div className="flex items-center gap-2 mt-1">
-                    <div className="flex">
-                      {[1, 2, 3, 4, 5].map((star) => (
-                        <Star 
-                          key={star} 
-                          className={`w-3.5 h-3.5 ${star <= review.rating ? 'text-yellow-400 fill-current' : 'text-muted/20'}`} 
-                        />
-                      ))}
-                    </div>
-                    <span className="text-[10px] font-bold text-muted uppercase tracking-widest">{review.time}</span>
-                  </div>
-                </div>
-              </div>
-              <button className="flex items-center gap-2 text-xs font-black text-muted hover:text-primary transition-colors group">
-                <ThumbsUp className="w-4 h-4 group-hover:-translate-y-0.5 transition-transform" />
-                <span>{review.likes}</span>
-              </button>
-            </div>
-
-            <p className="text-secondary font-medium leading-relaxed">
-              {review.comment}
-            </p>
-          </div>
-        ))}
-      </div>
-
-      <button className="w-full py-5 border border-hairline rounded-2xl text-xs font-black text-muted uppercase tracking-[0.2em] hover:bg-surface-soft hover:text-ink transition-all">
-        查看全部 128 条评价
-      </button>
     </div>
   );
 }

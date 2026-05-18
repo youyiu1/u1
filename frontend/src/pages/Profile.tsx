@@ -3,87 +3,138 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate, useSearchParams } from 'react-router-dom';
-import { 
-  ChevronLeft, 
-  MapPin, 
-  Calendar, 
-  MessageCircle, 
-  Heart, 
-  Share2, 
-  Grid, 
-  Bookmark, 
-  Star, 
-  Settings, 
-  ShieldCheck,
+import {
+  ChevronLeft,
+  MapPin,
+  Grid,
+  Bookmark,
+  Settings,
   Bell,
   Lock,
   Eye,
   LogOut,
   ShoppingBag,
   Users,
-  Search,
-  ExternalLink
+  Heart,
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
-import { POSTS, ITEMS, SERVICES, SUGGESTED_USERS } from '../constants';
+import { userApi, newsApi, marketApi, serviceApi } from '../services/api';
 import { FollowButton } from '../components/common/FollowButton';
 import { useAuth } from '../context/AuthContext';
-import { useChat } from '../context/ChatContext';
 import { ProfileInfoCard } from '../components/profile/ProfileInfoCard';
 import { ProfilePostCard } from '../components/profile/ProfilePostCard';
 import { ProfileMarketItem } from '../components/profile/ProfileMarketItem';
+import { Post, Item, Service, User } from '../types';
 
 export default function Profile() {
   const { username: paramUsername } = useParams();
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const { user: currentUser, logout } = useAuth();
-  const { openChat } = useChat();
-  
+
+  const [profileUser, setProfileUser] = useState<User | null>(null);
+  const [posts, setPosts] = useState<Post[]>([]);
+  const [items, setItems] = useState<Item[]>([]);
+  const [services, setServices] = useState<Service[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
   const initialTab = searchParams.get('tab') || 'posts';
   const [activeTab, setActiveTab] = useState(initialTab);
 
-  const username = paramUsername || currentUser?.name || '爱生活的李阿姨';
+  const username = paramUsername || currentUser?.name;
   const isOwnProfile = !paramUsername || paramUsername === currentUser?.name;
-  
-  // Mock user data
-  const userPost = POSTS.find(p => p.author.name === username);
-  const userData = userPost ? userPost.author : {
-    name: username,
-    avatar: `https://ui-avatars.com/api/?name=${username}&background=random&size=200`,
-    tag: '新晋邻居',
-    verified: false,
-    followersCount: 0,
-    followingCount: 0,
-    isFollowing: false
-  };
 
-  const userPosts = POSTS.filter(p => p.author.name === username);
-  const userItems = ITEMS.filter(i => i.seller.name === username || (isOwnProfile && i.id === 'i1')); 
-  const userServices = SERVICES.filter(s => s.seller.name === username);
-  const followingUsers = SUGGESTED_USERS.slice(0, 3);
-  
   const [stats, setStats] = useState({
-    followers: userData.followersCount || 0,
-    isFollowing: userData.isFollowing || false
+    followers: profileUser?.followersCount || 0,
+    isFollowing: profileUser?.isFollowing || false
   });
 
-  const handleFollowChange = (isFollowing: boolean) => {
-    setStats(prev => ({
-      ...prev,
-      isFollowing,
-      followers: isFollowing ? prev.followers + 1 : prev.followers - 1
-    }));
+  useEffect(() => {
+    const fetchProfileData = async () => {
+      if (!username) return;
+      try {
+        if (currentUser && username === currentUser.name) {
+          setProfileUser(currentUser);
+        } else {
+          setProfileUser({
+            id: username,
+            name: username,
+            avatar: `https://ui-avatars.com/api/?name=${username}&background=random&size=200`,
+            tag: '新晋邻居',
+            isVerified: false,
+            followersCount: 0,
+            followingCount: 0,
+          });
+        }
+        const [newsData, marketData, serviceData] = await Promise.all([
+          newsApi.list().catch(() => []),
+          marketApi.list().catch(() => []),
+          serviceApi.list().catch(() => []),
+        ]);
+        setPosts(newsData.filter((p: Post) => p.author.name === username));
+        setItems(marketData.filter((i: Item) => i.seller?.name === username));
+        setServices(serviceData.filter((s: Service) => s.seller?.name === username));
+      } catch (err: any) {
+        setError(err.message || '加载失败');
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchProfileData();
+  }, [username, currentUser]);
+
+  useEffect(() => {
+    if (profileUser) {
+      setStats({
+        followers: profileUser.followersCount || 0,
+        isFollowing: profileUser.isFollowing || false
+      });
+    }
+  }, [profileUser]);
+
+  const handleFollowChange = async (isFollowing: boolean) => {
+    if (!currentUser || !profileUser) return;
+    try {
+      if (isFollowing) {
+        await userApi.follow(currentUser.id, profileUser.id || profileUser.name);
+      } else {
+        await userApi.unfollow(currentUser.id, profileUser.id || profileUser.name);
+      }
+      setStats(prev => ({
+        ...prev,
+        isFollowing,
+        followers: isFollowing ? prev.followers + 1 : Math.max(0, prev.followers - 1)
+      }));
+    } catch (err) {
+      console.error('关注操作失败', err);
+    }
+  };
+
+  if (loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="w-8 h-8 border-4 border-primary border-t-transparent rounded-full animate-spin" />
+      </div>
+    );
+  }
+
+  const userData = profileUser || {
+    name: username || '未知用户',
+    avatar: `https://ui-avatars.com/api/?name=${username}&background=random&size=200`,
+    tag: '新晋邻居',
+    isVerified: false,
+    followersCount: 0,
+    followingCount: 0,
   };
 
   return (
     <div className="bg-white min-h-screen pb-12">
-      {/* Cover Header */}
       <div className="h-48 md:h-64 bg-surface-soft relative overflow-hidden">
         <div className="absolute inset-0 bg-gradient-to-b from-primary/5 to-transparent" />
-        <button 
+        <button
           onClick={() => navigate(-1)}
           className="absolute top-6 left-6 p-2 bg-white/80 backdrop-blur-md rounded-full shadow-sm hover:bg-white transition-colors z-10"
         >
@@ -93,14 +144,13 @@ export default function Profile() {
 
       <div className="max-w-[1280px] mx-auto px-6 md:px-20">
         <div className="flex flex-col md:flex-row gap-8 -mt-16 relative z-10">
-          <ProfileInfoCard 
+          <ProfileInfoCard
             userData={userData}
-            username={username}
+            username={username || ''}
             stats={stats}
             handleFollowChange={handleFollowChange}
           />
 
-          {/* Activity Tabs */}
           <div className="flex-1 space-y-6 pb-0">
             <div className="bg-white md:border md:border-hairline md:rounded-2xl p-0 md:p-4 md:shadow-sm">
                 <div className="flex items-center gap-6 md:gap-8 px-4 md:px-4 border-b border-hairline overflow-x-auto no-scrollbar scroll-smooth">
@@ -127,17 +177,17 @@ export default function Profile() {
                         {tab.icon}
                         {tab.name}
                       </span>
-                      
+
                       {activeTab === tab.id && (
-                        <motion.div 
-                          layoutId="profileTabBottom" 
+                        <motion.div
+                          layoutId="profileTabBottom"
                           transition={{
                             type: 'spring',
                             stiffness: 400,
                             damping: 30,
                             mass: 1
                           }}
-                          className="absolute bottom-0 left-0 right-0 h-0.5 bg-primary z-20 shadow-[0_2px_8px_rgba(255,54,92,0.3)]" 
+                          className="absolute bottom-0 left-0 right-0 h-0.5 bg-primary z-20 shadow-[0_2px_8px_rgba(255,54,92,0.3)]"
                         />
                       )}
                     </button>
@@ -154,8 +204,8 @@ export default function Profile() {
                       className="grid md:grid-cols-2 gap-4"
                     >
                        {activeTab === 'posts' && (
-                         userPosts.length > 0 ? (
-                           userPosts.map(post => <ProfilePostCard key={post.id} post={post} />)
+                         posts.length > 0 ? (
+                           posts.map(post => <ProfilePostCard key={post.id} post={post} />)
                          ) : (
                             <div className="col-span-2 py-20 text-center">
                               <p className="text-sm text-muted font-bold">还没有发布过动态呢</p>
@@ -165,9 +215,9 @@ export default function Profile() {
 
                        {activeTab === 'market' && (
                          <div className="col-span-2">
-                           {userItems.length > 0 || userServices.length > 0 ? (
+                           {items.length > 0 || services.length > 0 ? (
                              <div className="grid sm:grid-cols-2 gap-6">
-                               {[...userItems, ...userServices].map((item) => (
+                               {[...items, ...services].map((item: any) => (
                                  <ProfileMarketItem key={item.id} item={item} />
                                ))}
                              </div>
@@ -175,7 +225,7 @@ export default function Profile() {
                              <div className="py-20 text-center bg-stone-50 rounded-[40px] border border-dashed border-hairline">
                                 <ShoppingBag className="w-12 h-12 text-hairline mx-auto mb-4" />
                                 <p className="text-sm font-bold text-muted">还没有发布过宝贝或服务呢</p>
-                                <button 
+                                <button
                                   onClick={() => navigate('/')}
                                   className="mt-6 px-8 py-3 bg-primary text-white rounded-2xl font-black text-[10px] uppercase tracking-widest"
                                 >
@@ -187,26 +237,8 @@ export default function Profile() {
                        )}
 
                        {activeTab === 'following' && (
-                         <div className="col-span-2 space-y-4">
-                            {followingUsers.map(u => (
-                              <div key={u.id} className="flex items-center justify-between p-6 bg-white border border-hairline rounded-3xl hover:shadow-md transition-all">
-                                 <div 
-                                   className="flex items-center gap-4 cursor-pointer"
-                                   onClick={() => navigate(`/profile/${u.name}`)}
-                                 >
-                                    <img src={u.avatar} className="w-14 h-14 rounded-2xl border border-hairline object-cover" alt="" />
-                                    <div>
-                                       <h4 className="text-sm font-black text-ink">{u.name}</h4>
-                                       <p className="text-xs text-muted font-medium mt-1">{u.desc}</p>
-                                    </div>
-                                 </div>
-                                 <FollowButton 
-                                   isFollowingInitial={true} 
-                                   size="sm"
-                                   variant="ghost"
-                                 />
-                              </div>
-                            ))}
+                         <div className="col-span-2 py-20 text-center">
+                            <p className="text-sm text-muted font-bold">暂无关注</p>
                          </div>
                        )}
 
@@ -238,7 +270,7 @@ export default function Profile() {
 
                             <div className="bg-red-50/30 rounded-[32px] p-8 border border-red-100">
                                <h4 className="text-sm font-black text-red-600 uppercase tracking-widest mb-6">危险区域</h4>
-                               <button 
+                               <button
                                  onClick={() => logout()}
                                  className="w-full flex items-center justify-center gap-3 p-5 bg-red-500 text-white rounded-3xl font-black text-[10px] uppercase tracking-[0.3em] hover:bg-red-600 transition-all shadow-xl shadow-red-500/20 active:scale-95"
                                >

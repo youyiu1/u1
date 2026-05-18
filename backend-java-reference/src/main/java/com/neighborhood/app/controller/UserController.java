@@ -6,10 +6,15 @@
 package com.neighborhood.app.controller;
 
 import com.neighborhood.app.entity.User;
+import com.neighborhood.app.entity.UserVO;
+import com.neighborhood.app.entity.AuthResponse;
 import com.neighborhood.app.service.UserService;
 import com.neighborhood.app.common.Result;
+import com.neighborhood.app.util.JwtUtil;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.web.bind.annotation.*;
+import java.util.concurrent.TimeUnit;
 
 @RestController
 @RequestMapping("/api/user")
@@ -17,22 +22,36 @@ public class UserController {
 
     @Autowired
     private UserService userService;
+    @Autowired
+    private JwtUtil jwtUtil;
+    @Autowired
+    private RedisTemplate<String, Object> redisTemplate;
+
+    private static final String TOKEN_PREFIX = "token:";
 
     @GetMapping("/{id}")
-    public Result<User> getById(@PathVariable String id) {
-        return Result.ok(userService.getById(id));
+    public Result<UserVO> getById(@PathVariable String id) {
+        User user = userService.getById(id);
+        return Result.ok(UserVO.fromUser(user));
     }
 
     @PostMapping("/register")
-    public Result<User> register(@RequestBody User user) {
+    public Result<AuthResponse> register(@RequestBody User user) {
         User registered = userService.register(user.getName(), user.getEmail(), user.getPassword());
-        return Result.ok(registered);
+        String token = jwtUtil.generateToken(registered.getId());
+        redisTemplate.opsForValue().set(TOKEN_PREFIX + registered.getId(), token, jwtUtil.getExpiration(), TimeUnit.MILLISECONDS);
+        return Result.ok(new AuthResponse(UserVO.fromUser(registered), token));
     }
 
     @PostMapping("/login")
-    public Result<User> login(@RequestBody User user) {
+    public Result<AuthResponse> login(@RequestBody User user) {
         User loggedIn = userService.login(user.getEmail(), user.getPassword());
-        return loggedIn != null ? Result.ok(loggedIn) : Result.fail("Invalid email or password");
+        if (loggedIn == null) {
+            return Result.fail("Invalid email or password");
+        }
+        String token = jwtUtil.generateToken(loggedIn.getId());
+        redisTemplate.opsForValue().set(TOKEN_PREFIX + loggedIn.getId(), token, jwtUtil.getExpiration(), TimeUnit.MILLISECONDS);
+        return Result.ok(new AuthResponse(UserVO.fromUser(loggedIn), token));
     }
 
     @PostMapping("/follow")

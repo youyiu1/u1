@@ -6,6 +6,7 @@
 package com.neighborhood.app.entity;
 
 import com.baomidou.mybatisplus.annotation.IdType;
+import com.baomidou.mybatisplus.annotation.TableField;
 import com.baomidou.mybatisplus.annotation.TableId;
 import com.baomidou.mybatisplus.annotation.TableName;
 import lombok.Data;
@@ -20,7 +21,7 @@ public class MarketItem {
     private String title;
     private String description;
     private BigDecimal price;
-    private String condition;
+    private String itemStat;
     private String image;
     private List<String> images;
     private String sellerId;

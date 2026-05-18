@@ -31,7 +31,7 @@ export const GlobalCard: React.FC<CardProps> = ({ type, data }) => {
       <Link to={`/${isService ? 'service' : 'item'}/${data.id}`}>
         <div className="aspect-[4/5] overflow-hidden mb-6 relative rounded-[32px] bg-stone-100 shadow-inner group-hover:shadow-premium transition-all duration-700 ease-[0.16,1,0.3,1]">
           <img
-            src={data.image}
+            src={data.image || null}
             alt={data.title}
             className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-1000 ease-[0.16,1,0.3,1]"
           />

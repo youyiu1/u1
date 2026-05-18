@@ -14,22 +14,27 @@ export default function Login() {
   const { login } = useAuth();
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
-    setTimeout(() => {
-      login(email, email.split('@')[0]);
-      setIsLoading(false);
+    setError('');
+    try {
+      await login(email, password);
       navigate('/');
-    }, 1000);
+    } catch (err: any) {
+      setError(err.message || '登录失败');
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   return (
     <div className="min-h-[80vh] flex items-center justify-center py-12 px-6">
-      <motion.div 
+      <motion.div
         initial={{ opacity: 0, scale: 0.95 }}
         animate={{ opacity: 1, scale: 1 }}
         className="w-full max-w-md bg-white p-10 rounded-3xl border border-hairline shadow-2xl"
@@ -39,12 +44,18 @@ export default function Login() {
           <p className="text-sm text-muted">发现身边精彩，连接社区每一刻</p>
         </div>
 
+        {error && (
+          <div className="mb-4 p-3 bg-red-50 text-red-600 text-sm rounded-xl">
+            {error}
+          </div>
+        )}
+
         <form onSubmit={handleSubmit} className="space-y-6">
           <div className="space-y-1.5">
             <label className="text-xs font-bold uppercase text-muted ml-1">账号/邮箱</label>
             <div className="relative">
-              <input 
-                type="text" 
+              <input
+                type="text"
                 required
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
@@ -57,15 +68,15 @@ export default function Login() {
           <div className="space-y-1.5">
             <label className="text-xs font-bold uppercase text-muted ml-1">密码</label>
             <div className="relative">
-              <input 
-                type={showPassword ? 'text' : 'password'} 
+              <input
+                type={showPassword ? 'text' : 'password'}
                 required
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 placeholder="输入您的密码"
                 className="w-full pl-4 pr-12 py-3 rounded-xl border border-hairline focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all outline-none"
               />
-              <button 
+              <button
                 type="button"
                 onClick={() => setShowPassword(!showPassword)}
                 className="absolute right-3 top-1/2 -translate-y-1/2 p-1.5 text-muted hover:text-ink transition-colors"
@@ -82,7 +93,7 @@ export default function Login() {
              </div>
           </div>
 
-          <button 
+          <button
             type="submit"
             disabled={isLoading}
             className="w-full h-12 bg-primary hover:bg-primary-hover text-white rounded-xl font-bold shadow-lg shadow-primary/20 transition-all flex items-center justify-center gap-2 disabled:opacity-70"
