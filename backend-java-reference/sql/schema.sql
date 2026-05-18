@@ -1,0 +1,53 @@
+-- 数据库初始化脚本 (MySQL 8.0)
+-- 字符集推荐使用 mb4 以支持 Emoji 表情
+
+CREATE DATABASE IF NOT EXISTS neighborhood_db DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci;
+USE neighborhood_db;
+
+-- 1. 用户表
+CREATE TABLE `t_user` (
+  `id` varchar(64) NOT NULL COMMENT '用户ID',
+  `name` varchar(100) NOT NULL COMMENT '用户名',
+  `email` varchar(255) DEFAULT NULL COMMENT '邮箱',
+  `avatar` varchar(500) DEFAULT NULL COMMENT '头像URL',
+  `tag` varchar(50) DEFAULT NULL COMMENT '标签',
+  `is_verified` tinyint(1) DEFAULT '0' COMMENT '是否认证',
+  PRIMARY KEY (`id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='用户基本信息表';
+
+-- 2. 动态表
+CREATE TABLE `t_news` (
+  `id` bigint NOT NULL COMMENT '主键ID',
+  `author_id` varchar(64) NOT NULL COMMENT '作者ID',
+  `content` text NOT NULL COMMENT '动态内容',
+  `location` varchar(255) DEFAULT NULL COMMENT '地点',
+  `likes` int DEFAULT '0' COMMENT '点赞数',
+  `comments_count` int DEFAULT '0' COMMENT '评论数',
+  `create_time` datetime DEFAULT CURRENT_TIMESTAMP,
+  `update_time` datetime DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  PRIMARY KEY (`id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='社区动态表';
+
+-- 3. 闲置交易表
+CREATE TABLE `t_market_item` (
+  `id` bigint NOT NULL,
+  `title` varchar(255) NOT NULL,
+  `description` text,
+  `price` decimal(10,2) NOT NULL,
+  `condition` varchar(50) DEFAULT NULL COMMENT '成色',
+  `image` varchar(500) DEFAULT NULL,
+  `seller_id` varchar(64) DEFAULT NULL,
+  PRIMARY KEY (`id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='闲置宝贝表';
+
+-- 4. 服务表
+CREATE TABLE `t_service` (
+  `id` bigint NOT NULL,
+  `title` varchar(255) NOT NULL,
+  `description` text,
+  `category` varchar(50) DEFAULT NULL,
+  `price` decimal(10,2) DEFAULT NULL,
+  `image` varchar(500) DEFAULT NULL,
+  `seller_id` varchar(64) DEFAULT NULL,
+  PRIMARY KEY (`id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='生活服务表';

@@ -1,0 +1,8 @@
+{
+  "name": "邻里生活 - 同城社区服务平台",
+  "description": "提供发现身边美好生活、生活服务、闲置交易与同城动态的社区服务平台。",
+  "requestFramePermissions": [],
+  "majorCapabilities": [
+    "MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"
+  ]
+}
