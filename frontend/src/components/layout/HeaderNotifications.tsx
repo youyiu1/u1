@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useContext } from 'react';
+import React, { useState, useEffect, useContext, useRef } from 'react';
 import { Bell } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { notificationApi } from '../../services/api';
@@ -24,6 +24,18 @@ export const HeaderNotifications: React.FC = () => {
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [loading, setLoading] = useState(false);
   const [showConfirm, setShowConfirm] = useState(false);
+  const containerRef = useRef<HTMLDivElement>(null);
+
+  // 点击外部关闭
+  useEffect(() => {
+    const handleClickOutside = (e: MouseEvent) => {
+      if (showNotifications && containerRef.current && !containerRef.current.contains(e.target as Node)) {
+        setShowNotifications(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, [showNotifications]);
 
   // 计算未读数
   const unreadCount = notifications.filter(n => !n.isRead).length;
@@ -73,7 +85,7 @@ export const HeaderNotifications: React.FC = () => {
   };
 
   return (
-    <div className="relative">
+    <div className="relative" ref={containerRef}>
       <button
         onClick={() => setShowNotifications(!showNotifications)}
         className={`p-2.5 rounded-2xl transition-all relative ${showNotifications ? 'bg-primary/5 text-primary' : 'text-secondary hover:bg-surface-soft'}`}
@@ -93,8 +105,11 @@ export const HeaderNotifications: React.FC = () => {
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
-              onClick={() => setShowNotifications(false)}
-              className="fixed inset-0 z-10 bg-black/10"
+              onClick={() => {
+                setShowNotifications(false);
+              }}
+              className="fixed inset-0 z-10 bg-black/20"
+              style={{ pointerEvents: 'auto' }}
             />
             <motion.div
               initial={{ opacity: 0, y: 10, scale: 0.95 }}
@@ -102,6 +117,7 @@ export const HeaderNotifications: React.FC = () => {
               exit={{ opacity: 0, y: 10, scale: 0.95 }}
               onClick={(e) => e.stopPropagation()}
               className="absolute right-0 top-full mt-3 w-80 bg-white border border-hairline rounded-[32px] shadow-premium z-20 overflow-hidden"
+              style={{ pointerEvents: 'auto' }}
             >
               <div className="p-6 border-b border-hairline flex items-center justify-between">
                 <h3 className="font-black text-ink uppercase tracking-widest text-[10px]">通知中心</h3>
