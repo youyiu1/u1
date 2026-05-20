@@ -372,6 +372,22 @@ export const PublishOverlay: React.FC<PublishOverlayProps> = ({ isOpen, onClose,
                             </div>
                           </div>
 
+                          {images.length > 0 && (
+                            <div className="flex gap-2 overflow-x-auto pb-2">
+                              {images.map((img, idx) => (
+                                <div key={idx} className="relative shrink-0 w-16 h-16 rounded-xl overflow-hidden border border-hairline">
+                                  <img src={img} className="w-full h-full object-cover" alt="" />
+                                  <button
+                                    onClick={() => setImages(prev => prev.filter((_, i) => i !== idx))}
+                                    className="absolute -top-1 -right-1 w-4 h-4 bg-red-500 text-white rounded-full text-[10px] flex items-center justify-center"
+                                  >
+                                    ×
+                                  </button>
+                                </div>
+                              ))}
+                            </div>
+                          )}
+
                           <motion.button 
                             whileHover={{ scale: 1.02 }}
                             whileTap={{ scale: 0.98 }}
