@@ -4,11 +4,41 @@ server:
 spring:
   application:
     name: neighborhood-app
+
+  # MySQL 数据源配置
   datasource:
     driver-class-name: com.mysql.cj.jdbc.Driver
-    url: jdbc:mysql://localhost:3306/neighborhood_db?useUnicode=true&characterEncoding=utf8&useSSL=false&serverTimezone=Asia/Shanghai
+    url: jdbc:mysql://localhost:3306/neighborhood_db?useUnicode=true&characterEncoding=utf8&useSSL=false&serverTimezone=Asia/Shanghai&allowPublicKeyRetrieval=true
     username: root
     password: root
+    hikari:
+      minimum-idle: 5
+      maximum-pool-size: 20
+      idle-timeout: 30000
+      pool-name: NeighborhoodHikariCP
+      max-lifetime: 1800000
+      connection-timeout: 30000
+
+  # Redis 配置
+  data:
+    redis:
+      host: localhost
+      port: 6379
+      database: 0
+      timeout: 3000ms
+      lettuce:
+        pool:
+          max-active: 8
+          max-idle: 8
+          min-idle: 0
+          max-wait: -1ms
+
+  # QQ邮箱SMTP配置
+  mail:
+    host: smtp.qq.com
+    port: 587
+    username: 1668820870@qq.com
+    password: mkfxxjnwxjzacbih
 
 mybatis-plus:
   mapper-locations: classpath:mapper/*.xml
@@ -16,3 +46,23 @@ mybatis-plus:
   configuration:
     map-underscore-to-camel-case: true
     log-impl: org.apache.ibatis.logging.stdout.StdOutImpl
+
+# 缓存配置
+cache:
+  # 用户缓存 - 频繁查询，过期时间30分钟
+  user:
+    ttl: 1800
+  # 列表缓存 - 适中过期时间，过期时间10分钟
+  list:
+    ttl: 600
+  # 详情缓存 - 过期时间15分钟
+  detail:
+    ttl: 900
+  # 热点数据缓存 - 过期时间5分钟
+  hot:
+    ttl: 300
+
+# JWT配置
+jwt:
+  secret: neighborhood-app-secret-key-2024-very-long-key-for-hs256
+  expiration: 86400000

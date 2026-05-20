@@ -136,6 +136,42 @@ CREATE TABLE t_service (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='生活服务表';
 
 -- ================================================
+-- 预约表
+-- ================================================
+CREATE TABLE IF NOT EXISTS t_booking (
+    id BIGINT PRIMARY KEY COMMENT '预约ID',
+    service_id BIGINT NOT NULL COMMENT '服务ID',
+    buyer_id VARCHAR(64) NOT NULL COMMENT '买家ID',
+    seller_id VARCHAR(64) NOT NULL COMMENT '卖家ID',
+    booking_date DATETIME NOT NULL COMMENT '预约日期',
+    booking_time VARCHAR(50) NOT NULL COMMENT '预约时间',
+    duration INT DEFAULT 1 COMMENT '服务时长(小时)',
+    status VARCHAR(20) DEFAULT 'pending' COMMENT '状态:pending confirmed completed cancelled',
+    create_time DATETIME DEFAULT CURRENT_TIMESTAMP,
+    update_time DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    INDEX idx_service_id (service_id),
+    INDEX idx_buyer_id (buyer_id),
+    INDEX idx_seller_id (seller_id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='预约表';
+
+-- ================================================
+-- 消息表
+-- ================================================
+DROP TABLE IF EXISTS t_message;
+CREATE TABLE t_message (
+    id BIGINT PRIMARY KEY AUTO_INCREMENT COMMENT '消息ID',
+    sender_id VARCHAR(64) NOT NULL COMMENT '发送者ID',
+    receiver_id VARCHAR(64) NOT NULL COMMENT '接收者ID',
+    content TEXT NOT NULL COMMENT '消息内容',
+    is_read TINYINT(1) DEFAULT 0 COMMENT '是否已读',
+    create_time DATETIME DEFAULT CURRENT_TIMESTAMP,
+    INDEX idx_sender (sender_id),
+    INDEX idx_receiver (receiver_id),
+    INDEX idx_conversation (sender_id, receiver_id),
+    INDEX idx_create_time (create_time DESC)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='消息表';
+
+-- ================================================
 -- 初始化测试数据
 -- ================================================
 
@@ -156,6 +192,6 @@ INSERT INTO t_service (title, description, category, price, image, seller_id, ra
 ('上门宠物洗护 - 狗狗SPA与深度清洁', '专业宠物洗护师，3年大厂经验。', 'pet', 88.00, 'https://images.unsplash.com/photo-1516734212186-a967f81ad0d7?auto=format&fit=crop&q=80&w=800', 'u001', 5.0, 86, '0.8km', '次', '["自带设备", "温和沐浴"]');
 
 -- 插入测试闲置
-INSERT INTO t_market_item (title, description, price, condition, image, images, seller_id, category, original_price, location, verified, free_shipping) VALUES
+INSERT INTO t_market_item (title, description, price, item_condition, image, images, seller_id, category, original_price, location, verified, free_shipping) VALUES
 ('德龙 (De''Longhi) 意式半自动咖啡机 - 95成新', '成色很好，用了不到半年。', 3200.00, '95成新', 'https://images.unsplash.com/photo-1580915411954-282cb1b0d780?auto=format&fit=crop&q=80&w=800', '["https://images.unsplash.com/photo-1580915411954-282cb1b0d780?auto=format&fit=crop&q=80&w=800"]', 'u002', 'market', 5480.00, '浦东新区', 1, 1),
 ('Nintendo Switch 日版蓝红 - 带健身环', '吃灰半年，全套包装齐全。', 1800.00, '99新', 'https://images.unsplash.com/photo-1578303512597-81e6cc155b3e?auto=format&fit=crop&q=80&w=800', '["https://images.unsplash.com/photo-1578303512597-81e6cc155b3e?auto=format&fit=crop&q=80&w=800"]', 'u003', 'market', 2400.00, '徐汇区', 1, 1);

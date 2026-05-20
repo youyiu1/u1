@@ -55,10 +55,11 @@ const PUBLISH_OPTIONS = [
 interface PublishOverlayProps {
   isOpen: boolean;
   onClose: () => void;
+  defaultSelectedId?: string;
 }
 
-export const PublishOverlay: React.FC<PublishOverlayProps> = ({ isOpen, onClose }) => {
-  const [selectedId, setSelectedId] = useState<string | null>(null);
+export const PublishOverlay: React.FC<PublishOverlayProps> = ({ isOpen, onClose, defaultSelectedId }) => {
+  const [selectedId, setSelectedId] = useState<string | null>(defaultSelectedId || null);
   const [title, setTitle] = useState('');
   const [price, setPrice] = useState('');
   const [urgency, setUrgency] = useState<'normal' | 'urgent'>('normal');

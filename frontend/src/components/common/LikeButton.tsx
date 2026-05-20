@@ -6,6 +6,7 @@
 import React, { useState } from 'react';
 import { motion } from 'motion/react';
 import { Heart } from 'lucide-react';
+import { useAuthCheck } from '../../context/useAuthCheck';
 
 interface LikeButtonProps {
   initialLikes?: number;
@@ -36,8 +37,8 @@ const ParticleBurst = ({ active }: { active: boolean }) => {
   );
 };
 
-export const LikeButton: React.FC<LikeButtonProps> = ({ 
-  initialLikes = 0, 
+export const LikeButton: React.FC<LikeButtonProps> = ({
+  initialLikes = 0,
   isLikedInitial = false,
   size = 'md',
   showCount = true,
@@ -46,20 +47,23 @@ export const LikeButton: React.FC<LikeButtonProps> = ({
   const [liked, setLiked] = useState(isLikedInitial);
   const [likes, setLikes] = useState(initialLikes);
   const [burst, setBurst] = useState(false);
+  const { requireAuth } = useAuthCheck();
 
   const effectiveSize = lg ? 'lg' : size;
 
   const toggleLike = (e: React.MouseEvent) => {
     e.preventDefault();
     e.stopPropagation();
-    const nextLiked = !liked;
-    setLiked(nextLiked);
-    setLikes(prev => nextLiked ? prev + 1 : prev - 1);
-    
-    if (nextLiked) {
-      setBurst(true);
-      setTimeout(() => setBurst(false), 900);
-    }
+    requireAuth(() => {
+      const nextLiked = !liked;
+      setLiked(nextLiked);
+      setLikes(prev => nextLiked ? prev + 1 : prev - 1);
+
+      if (nextLiked) {
+        setBurst(true);
+        setTimeout(() => setBurst(false), 900);
+      }
+    });
   };
 
   const iconSizes = {

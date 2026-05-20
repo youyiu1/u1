@@ -5,9 +5,9 @@
 
 import React, { useState } from 'react';
 import { Link, useLocation } from 'react-router-dom';
-import { 
-  Store, 
-  Plus, 
+import {
+  Store,
+  Plus,
   ChevronRight,
   X,
   MessageSquare,
@@ -19,6 +19,7 @@ import { PublishOverlay } from '../publish/PublishOverlay';
 import { HeaderSearch } from './HeaderSearch';
 import { HeaderNotifications } from './HeaderNotifications';
 import { HeaderUserMenu } from './HeaderUserMenu';
+import { useAuthCheck } from '../../context/useAuthCheck';
 
 const NAV_ITEMS = [
   { name: '首页', path: '/' },
@@ -29,9 +30,14 @@ const NAV_ITEMS = [
 
 export default function Header() {
   const location = useLocation();
-  const { openChat } = useChat();
+  const { openChat, unreadCount } = useChat();
   const [isPublishModalOpen, setIsPublishModalOpen] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const { requireAuth } = useAuthCheck();
+
+  const handlePublish = () => {
+    requireAuth(() => setIsPublishModalOpen(true));
+  };
 
   return (
     <>
@@ -47,7 +53,7 @@ export default function Header() {
             </Link>
 
             {/* Nav: Progressive disclosure */}
-            <nav className="hidden xl:flex items-center gap-1 transition-all duration-300">
+            <nav className="hidden lg:flex items-center gap-1 transition-all duration-300">
               {NAV_ITEMS.map((item) => {
                 const isActive = location.pathname === item.path;
                 return (
@@ -88,8 +94,8 @@ export default function Header() {
           <div className="flex flex-1 items-center justify-end gap-2 md:gap-4 h-full min-w-0">
             <HeaderSearch />
 
-            <button 
-              onClick={() => setIsPublishModalOpen(true)}
+            <button
+              onClick={handlePublish}
               className="shrink-0 flex items-center gap-1.5 px-4 md:px-5 py-2 md:py-2.5 bg-primary text-white rounded-xl md:rounded-2xl text-[11px] md:text-xs font-bold hover:bg-primary-hover shadow-lg shadow-primary/20 transition-all active:scale-95"
             >
               <Plus className="w-4 h-4" />
@@ -99,11 +105,16 @@ export default function Header() {
             <div className="h-6 w-px bg-hairline hidden sm:block" />
 
             <div className="flex items-center gap-1.5 md:gap-2 shrink-0">
-              <button 
+              <button
                 onClick={() => openChat()}
                 className="hidden sm:flex p-2.5 rounded-2xl text-secondary hover:bg-surface-soft hover:text-primary transition-all relative"
               >
                 <MessageSquare className="w-5 h-5" />
+                {unreadCount > 0 && (
+                  <span className="absolute top-2 right-2 w-4 h-4 bg-accent-green text-white text-[10px] flex items-center justify-center rounded-full border-2 border-white font-bold">
+                    {unreadCount}
+                  </span>
+                )}
               </button>
 
               <div className="hidden sm:block">
@@ -114,7 +125,7 @@ export default function Header() {
               {/* Mobile menu toggle */}
               <button 
                 onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
-                className="xl:hidden p-2.5 rounded-2xl text-secondary hover:bg-surface-soft transition-all active:scale-90"
+                className="lg:hidden p-2.5 rounded-2xl text-secondary hover:bg-surface-soft transition-all active:scale-90"
               >
                 <AnimatePresence mode="wait">
                   <motion.div
@@ -142,7 +153,7 @@ export default function Header() {
                 animate={{ opacity: 1 }}
                 exit={{ opacity: 0 }}
                 onClick={() => setIsMobileMenuOpen(false)}
-                className="fixed inset-0 top-[64px] md:top-[80px] bg-ink/20 backdrop-blur-sm z-40 xl:hidden"
+                className="fixed inset-0 top-[64px] md:top-[80px] bg-ink/20 backdrop-blur-sm z-40 lg:hidden"
               />
               
               <motion.div
@@ -150,7 +161,7 @@ export default function Header() {
                 animate={{ opacity: 1, y: 0 }}
                 exit={{ opacity: 0, y: -20 }}
                 transition={{ type: 'spring', stiffness: 300, damping: 30 }}
-                className="absolute top-full left-0 right-0 bg-white border-t border-hairline shadow-2xl z-50 xl:hidden"
+                className="absolute top-full left-0 right-0 bg-white border-t border-hairline shadow-2xl z-50 lg:hidden"
               >
                 <nav className="p-4 md:p-6 space-y-1">
                   {NAV_ITEMS.map((item, idx) => {

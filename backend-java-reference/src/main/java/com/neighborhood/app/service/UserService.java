@@ -5,112 +5,16 @@
 
 package com.neighborhood.app.service;
 
-import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
-import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
-import com.neighborhood.app.entity.Follow;
+import com.baomidou.mybatisplus.extension.service.IService;
 import com.neighborhood.app.entity.User;
-import com.neighborhood.app.mapper.FollowMapper;
-import com.neighborhood.app.mapper.UserMapper;
-import lombok.RequiredArgsConstructor;
-import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
 
-@Service
-@RequiredArgsConstructor
-public class UserService extends ServiceImpl<UserMapper, User> {
-
-    private final FollowMapper followMapper;
-    private final CacheService cacheService;
-
-    public User register(String name, String email, String password) {
-        User user = new User();
-        user.setName(name);
-        user.setEmail(email);
-        user.setPassword(password);
-        user.setAvatar("https://api.dicebear.com/7.x/avataaars/svg?seed=" + email);
-        user.setTag("新晋邻居");
-        user.setIsVerified(false);
-        user.setFollowersCount(0);
-        user.setFollowingCount(0);
-        save(user);
-        cacheService.cacheUser(user.getId(), user);
-        return user;
-    }
-
-    public User login(String email, String password) {
-        return getOne(new QueryWrapper<User>().eq("email", email).eq("password", password));
-    }
-
-    public User getById(String id) {
-        // 先查缓存
-        User cached = (User) cacheService.getCachedUser(id);
-        if (cached != null) {
-            return cached;
-        }
-        // 缓存未命中，查数据库
-        User user = super.getById(id);
-        if (user != null) {
-            cacheService.cacheUser(id, user);
-        }
-        return user;
-    }
-
-    @Transactional
-    public boolean follow(String followerId, String followingId) {
-        if (isFollowing(followerId, followingId)) {
-            return false;
-        }
-        Follow follow = new Follow(followerId, followingId);
-        followMapper.insert(follow);
-        updateUserCounts(followerId, followingId, 1, 1);
-        // 清除缓存
-        cacheService.evictUser(followerId);
-        cacheService.evictUser(followingId);
-        return true;
-    }
-
-    @Transactional
-    public boolean unfollow(String followerId, String followingId) {
-        QueryWrapper<Follow> wrapper = new QueryWrapper<Follow>()
-            .eq("follower_id", followerId)
-            .eq("following_id", followingId);
-        if (followMapper.delete(wrapper) == 0) {
-            return false;
-        }
-        updateUserCounts(followerId, followingId, -1, -1);
-        // 清除缓存
-        cacheService.evictUser(followerId);
-        cacheService.evictUser(followingId);
-        return true;
-    }
-
-    public boolean isFollowing(String followerId, String followingId) {
-        return followMapper.selectCount(
-            new QueryWrapper<Follow>()
-                .eq("follower_id", followerId)
-                .eq("following_id", followingId)
-        ) > 0;
-    }
-
-    private void updateUserCounts(String followerId, String followingId, int followerDelta, int followingDelta) {
-        User follower = getById(followerId);
-        User following = getById(followingId);
-        if (follower != null && follower.getFollowingCount() != null) {
-            follower.setFollowingCount(Math.max(0, follower.getFollowingCount() + followingDelta));
-            updateById(follower);
-        }
-        if (following != null && following.getFollowersCount() != null) {
-            following.setFollowersCount(Math.max(0, following.getFollowersCount() + followerDelta));
-            updateById(following);
-        }
-    }
-
-    @Override
-    public boolean updateById(User user) {
-        boolean result = super.updateById(user);
-        if (result) {
-            cacheService.evictUser(user.getId());
-        }
-        return result;
-    }
+public interface UserService extends IService<User> {
+    User register(String name, String email, String password);
+    User login(String email, String password);
+    User getById(String id);
+    User getByName(String name);
+    boolean follow(String followerId, String followingId);
+    boolean unfollow(String followerId, String followingId);
+    boolean isFollowing(String followerId, String followingId);
+    boolean updateById(User user);
 }

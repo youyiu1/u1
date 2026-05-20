@@ -27,12 +27,12 @@ export const ProfileInfoCard: React.FC<ProfileInfoCardProps> = ({
       <div className="bg-white rounded-[32px] md:rounded-3xl p-6 md:p-8 shadow-xl border border-hairline relative">
         <div className="text-center">
           <div className="relative inline-block mb-4 md:mb-6">
-            <motion.img 
+            <motion.img
               initial={{ scale: 0.8, opacity: 0 }}
               animate={{ scale: 1, opacity: 1 }}
-              src={userData.avatar} 
-              className="w-24 h-24 md:w-32 md:h-32 rounded-full border-4 border-white shadow-lg mx-auto object-cover" 
-              alt="" 
+              src={userData.avatar || undefined}
+              className="w-24 h-24 md:w-32 md:h-32 rounded-full border-4 border-white shadow-lg mx-auto object-cover"
+              alt=""
             />
             {(userData.verified || userData.isVerified) && (
               <div className="absolute bottom-1 right-1 bg-primary text-white rounded-full p-1.5 border-2 border-white shadow-sm">

@@ -132,7 +132,7 @@ export default function NewsDetail() {
               >
                 <div className="relative">
                   <div className="absolute inset-0 bg-primary/20 blur-xl opacity-0 group-hover:opacity-100 transition-opacity rounded-full" />
-                  <img src={post.author.avatar} className="w-16 h-16 rounded-2xl border border-hairline object-cover relative z-10 group-hover:scale-105 transition-transform duration-500" alt="Avatar" />
+                  <img src={post.author.avatar || undefined} className="w-16 h-16 rounded-2xl border border-hairline object-cover relative z-10 group-hover:scale-105 transition-transform duration-500" alt="Avatar" />
                   {post.author.verified && (
                     <div className="absolute -bottom-1 -right-1 bg-primary text-white rounded-lg p-1 border-2 border-white shadow-lg z-20">
                       <Plus className="w-3 h-3 rotate-45" />
@@ -178,7 +178,7 @@ export default function NewsDetail() {
                       className="rounded-[32px] overflow-hidden border border-hairline shadow-sm relative group cursor-zoom-in"
                     >
                       <div className="absolute inset-0 bg-ink/20 opacity-0 group-hover:opacity-100 transition-opacity z-10" />
-                      <img src={img} className="w-full h-full object-cover aspect-video md:aspect-[4/3]" alt="Post content" />
+                      <img src={img || undefined} className="w-full h-full object-cover aspect-video md:aspect-[4/3]" alt="Post content" />
                     </motion.div>
                   ))}
                 </div>

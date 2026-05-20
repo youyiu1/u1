@@ -21,7 +21,8 @@ public class MarketItem {
     private String title;
     private String description;
     private BigDecimal price;
-    private String itemStat;
+    @TableField("item_condition")
+    private String itemCondition;
     private String image;
     private List<String> images;
     private String sellerId;

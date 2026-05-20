@@ -3,12 +3,16 @@ import { Link } from 'react-router-dom';
 import { User as UserIcon, Settings, LogOut } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { useAuth } from '../../context/AuthContext';
+import { getToken } from '../../services/api';
 
 export const HeaderUserMenu: React.FC = () => {
   const { user, isAuthenticated, logout } = useAuth();
   const [showUserMenu, setShowUserMenu] = useState(false);
 
-  if (!isAuthenticated) {
+  // 同时检查 user 和 token
+  const isLoggedIn = isAuthenticated && !!getToken();
+
+  if (!isLoggedIn) {
     return (
       <div className="flex items-center gap-2">
         <Link to="/login">
@@ -32,10 +36,11 @@ export const HeaderUserMenu: React.FC = () => {
         className="flex items-center gap-3 p-1 pr-3 rounded-2xl hover:bg-surface-soft transition-all cursor-pointer group border border-transparent hover:border-hairline"
       >
         <div className="w-10 h-10 rounded-xl bg-surface-soft border border-hairline overflow-hidden shadow-sm">
-          <img 
-            src={user?.avatar || `https://ui-avatars.com/api/?name=${user?.name}&background=random`} 
-            className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-300" 
-            alt="Profile" 
+          <img
+            src={user?.avatar || ''}
+            onError={(e) => e.currentTarget.src = `https://ui-avatars.com/api/?name=${user?.name}&background=random`}
+            className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-300"
+            alt="Profile"
           />
         </div>
         <div className="hidden sm:flex flex-col text-left">

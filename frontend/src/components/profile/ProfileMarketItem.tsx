@@ -20,7 +20,7 @@ export const ProfileMarketItem: React.FC<ProfileMarketItemProps> = ({ item }) =>
       className="bg-white border border-hairline rounded-[32px] overflow-hidden shadow-sm hover:shadow-xl transition-all cursor-pointer group"
     >
       <div className="aspect-[4/3] relative">
-        <img src={item.image} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700" alt="" />
+        <img src={item.image || undefined} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700" alt="" />
         <div className="absolute top-4 left-4 px-3 py-1 bg-white/90 backdrop-blur text-[10px] font-black rounded-lg border border-hairline shadow-sm uppercase tracking-widest text-primary">
           {item.category === 'market' ? '闲置' : '服务'}
         </div>

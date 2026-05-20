@@ -33,6 +33,13 @@ spring:
           min-idle: 0
           max-wait: -1ms
 
+  # QQ邮箱SMTP配置
+  mail:
+    host: smtp.qq.com
+    port: 587
+    username: 1668820870@qq.com
+    password: mkfxxjnwxjzacbih
+
 mybatis-plus:
   mapper-locations: classpath:mapper/*.xml
   type-aliases-package: com.neighborhood.app.entity

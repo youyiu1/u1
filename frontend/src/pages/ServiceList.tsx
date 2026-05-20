@@ -9,6 +9,7 @@ import { motion } from 'motion/react';
 import { serviceApi } from '../services/api';
 import { useNavigate } from 'react-router-dom';
 import { Service } from '../types';
+import { FavoriteButton } from '../components/common/FavoriteButton';
 
 const CATEGORIES = [
   { id: 'all', name: '全部分类', icon: <Sparkles className="w-4 h-4" /> },
@@ -112,15 +113,17 @@ export default function ServiceList() {
                 onClick={() => navigate(`/service/${service.id}`)}
               >
                 <div className="relative h-48 overflow-hidden">
-                  <img src={service.image} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" alt={service.title} />
+                  {service.image && service.image.trim() ? (
+                    <img src={service.image} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" alt={service.title} />
+                  ) : (
+                    <div className="w-full h-full bg-stone-200 flex items-center justify-center text-stone-400 text-xs">暂无图片</div>
+                  )}
                   <div className="absolute top-4 left-4 px-3 py-1 bg-white/90 backdrop-blur-md rounded-lg flex items-center gap-1.5 shadow-sm">
                     <Star className="w-3 h-3 text-yellow-400 fill-current" />
                     <span className="text-xs font-bold text-ink">{service.rating}</span>
                     <span className="text-[10px] text-muted font-medium">({service.reviews} 评价)</span>
                   </div>
-                  <button className="absolute top-4 right-4 p-2 bg-white/80 backdrop-blur-md rounded-full text-secondary hover:text-red-500 transition-colors shadow-sm">
-                     <Heart className="w-4 h-4" />
-                  </button>
+                  <FavoriteButton />
                 </div>
 
                 <div className="p-6">

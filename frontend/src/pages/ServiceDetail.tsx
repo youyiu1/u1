@@ -4,7 +4,7 @@
  */
 
 import React, { useState, useEffect } from 'react';
-import { useParams, Link, useNavigate } from 'react-router-dom';
+import { useParams, useNavigate } from 'react-router-dom';
 import {
   Star,
   ChevronRight,
@@ -17,14 +17,11 @@ import {
   Share2,
   Sparkles,
   MapPin,
-  MessageCircle,
   Calendar,
   Zap,
   Info,
-  Send,
   User,
-  ThumbsUp,
-  UserPlus
+  ThumbsUp
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { useChat } from '../context/ChatContext';
@@ -87,7 +84,7 @@ function ReviewSection({ serviceId, rating }: { serviceId: number; rating: numbe
                           />
                         ))}
                       </div>
-                      <span className="text-[10px] font-bold text-muted uppercase tracking-widest">{review.time}</span>
+                      <span className="text-[10px] font-bold text-muted uppercase tracking-widest">{review.createTime}</span>
                     </div>
                   </div>
                 </div>

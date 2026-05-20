@@ -96,7 +96,7 @@ export interface Review {
   userAvatar?: string;
   rating: number;
   content: string;
-  time: string;
+  createTime: string;
   likes: number;
 }
 

@@ -6,6 +6,7 @@
 import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { motion } from 'motion/react';
+import { userApi } from '../services/api';
 import { useAuth } from '../context/AuthContext';
 
 export default function Register() {
@@ -20,6 +21,45 @@ export default function Register() {
   });
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
+  const [codeLoading, setCodeLoading] = useState(false);
+  const [countdown, setCountdown] = useState(0);
+
+  const handleSendCode = async () => {
+    if (!formData.email || countdown > 0) return;
+    setCodeLoading(true);
+    try {
+      await userApi.sendCode(formData.email);
+      setCountdown(60);
+      const timer = setInterval(() => {
+        setCountdown(prev => {
+          if (prev <= 1) {
+            clearInterval(timer);
+            return 0;
+          }
+          return prev - 1;
+        });
+      }, 1000);
+    } catch (err) {
+      setError('发送验证码失败');
+    } finally {
+      setCodeLoading(false);
+    }
+  };
+
+  const getPasswordStrength = (password: string): { score: number; label: string; color: string } => {
+    let score = 0;
+    if (!password) return { score: 0, label: '', color: 'bg-hairline' };
+    if (password.length >= 8) score++;
+    if (/[A-Z]/.test(password)) score++;
+    if (/[0-9]/.test(password)) score++;
+    if (/[^A-Za-z0-9]/.test(password)) score++;
+
+    if (score <= 1) return { score: 1, label: '弱', color: 'bg-red-400' };
+    if (score <= 2) return { score: 2, label: '中', color: 'bg-yellow-400' };
+    return { score: 3, label: '强', color: 'bg-green-400' };
+  };
+
+  const strength = getPasswordStrength(formData.password);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -30,7 +70,7 @@ export default function Register() {
     setIsLoading(true);
     setError('');
     try {
-      await register(formData.username, formData.email, formData.password);
+      await register(formData.username, formData.email, formData.password, formData.code);
       navigate('/');
     } catch (err: any) {
       setError(err.message || '注册失败');
@@ -95,9 +135,11 @@ export default function Register() {
               />
               <button
                 type="button"
-                className="px-6 py-2 border border-hairline rounded-xl font-bold text-sm hover:bg-surface-soft transition-colors"
+                onClick={handleSendCode}
+                disabled={codeLoading || countdown > 0 || !formData.email}
+                className="px-6 py-2 border border-hairline rounded-xl font-bold text-sm hover:bg-surface-soft transition-colors disabled:opacity-50"
               >
-                获取验证码
+                {countdown > 0 ? `${countdown}s` : codeLoading ? '发送中...' : '获取验证码'}
               </button>
             </div>
           </div>
@@ -113,11 +155,13 @@ export default function Register() {
               className="w-full px-4 py-3 rounded-xl border border-hairline focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all outline-none"
             />
             <div className="flex gap-1 mt-2">
-              <div className="h-1 flex-1 bg-primary rounded-full"></div>
-              <div className="h-1 flex-1 bg-primary rounded-full"></div>
-              <div className="h-1 flex-1 bg-hairline rounded-full"></div>
-              <div className="h-1 flex-1 bg-hairline rounded-full"></div>
-              <span className="text-[10px] text-primary font-bold ml-2">强度：中</span>
+              <div className={`h-1 flex-1 ${strength.score >= 1 ? strength.color : 'bg-hairline'} rounded-full transition-colors`}></div>
+              <div className={`h-1 flex-1 ${strength.score >= 2 ? strength.color : 'bg-hairline'} rounded-full transition-colors`}></div>
+              <div className={`h-1 flex-1 ${strength.score >= 3 ? strength.color : 'bg-hairline'} rounded-full transition-colors`}></div>
+              <div className={`h-1 flex-1 ${strength.score >= 4 ? strength.color : 'bg-hairline'} rounded-full transition-colors`}></div>
+              {strength.label && <span className={`text-[10px] font-bold ml-2 ${
+                strength.score === 1 ? 'text-red-400' : strength.score === 2 ? 'text-yellow-500' : 'text-green-500'
+              }`}>强度：{strength.label}</span>}
             </div>
           </div>
 

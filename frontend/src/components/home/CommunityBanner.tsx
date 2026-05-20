@@ -16,7 +16,7 @@ export const CommunityBanner: React.FC = () => {
     <section className="max-w-[1440px] mx-auto px-6 md:px-12 py-12">
       <div className="bg-ink rounded-[48px] p-10 md:p-16 relative overflow-hidden flex flex-col md:flex-row gap-16 items-center shadow-2xl">
         <div className="absolute top-0 right-0 w-[400px] h-[400px] bg-primary/20 blur-[120px] rounded-full" />
-        
+
         <div className="flex-1 space-y-8 relative z-10">
           <div className="inline-flex items-center gap-2 px-4 py-2 bg-white/10 rounded-full text-primary">
             <MessageCircle className="w-4 h-4" />

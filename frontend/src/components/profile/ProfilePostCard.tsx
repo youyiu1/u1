@@ -24,7 +24,7 @@ export const ProfilePostCard: React.FC<ProfilePostCardProps> = ({ post }) => {
       <p className="text-sm text-secondary line-clamp-3 mb-6 group-hover:text-ink transition-colors leading-relaxed font-medium">
         {post.content}
       </p>
-      {post.images.length > 0 && (
+      {post.images.length > 0 && post.images[0] && (
         <div className="aspect-[16/10] rounded-2xl overflow-hidden mb-6 border border-hairline/50">
           <img src={post.images[0]} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700" alt="" />
         </div>

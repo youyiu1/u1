@@ -27,6 +27,7 @@ import { ProfileInfoCard } from '../components/profile/ProfileInfoCard';
 import { ProfilePostCard } from '../components/profile/ProfilePostCard';
 import { ProfileMarketItem } from '../components/profile/ProfileMarketItem';
 import { Post, Item, Service, User } from '../types';
+import { getToken } from '../services/api';
 
 export default function Profile() {
   const { username: paramUsername } = useParams();
@@ -45,7 +46,18 @@ export default function Profile() {
   const [activeTab, setActiveTab] = useState(initialTab);
 
   const username = paramUsername || currentUser?.name;
+  // 无 token 时访问个人中心（无 username 参数）跳转登录
   const isOwnProfile = !paramUsername || paramUsername === currentUser?.name;
+
+  // 未登录访问个人主页（自己的），跳转登录
+  useEffect(() => {
+    if (!getToken()) {
+      const isOwnProfile = !paramUsername || paramUsername === currentUser?.name;
+      if (isOwnProfile) {
+        navigate('/login');
+      }
+    }
+  }, [paramUsername, currentUser, navigate]);
 
   const [stats, setStats] = useState({
     followers: profileUser?.followersCount || 0,
@@ -56,19 +68,16 @@ export default function Profile() {
     const fetchProfileData = async () => {
       if (!username) return;
       try {
-        if (currentUser && username === currentUser.name) {
-          setProfileUser(currentUser);
+        let user;
+        if (!paramUsername && getToken()) {
+          // 自己的个人中心 - 调用 /api/user/me（需登录）
+          user = await userApi.getCurrentUser();
         } else {
-          setProfileUser({
-            id: username,
-            name: username,
-            avatar: `https://ui-avatars.com/api/?name=${username}&background=random&size=200`,
-            tag: '新晋邻居',
-            isVerified: false,
-            followersCount: 0,
-            followingCount: 0,
-          });
+          // 他人的主页 - 调用 /api/user/name/{name}（公开）
+          user = await userApi.getUserByName(username);
         }
+        setProfileUser(user);
+
         const [newsData, marketData, serviceData] = await Promise.all([
           newsApi.list().catch(() => []),
           marketApi.list().catch(() => []),
@@ -84,7 +93,7 @@ export default function Profile() {
       }
     };
     fetchProfileData();
-  }, [username, currentUser]);
+  }, [username, currentUser, paramUsername]);
 
   useEffect(() => {
     if (profileUser) {

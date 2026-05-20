@@ -7,8 +7,11 @@ import React, { useState, useEffect } from 'react';
 import { Search, Heart, MapPin, CheckCircle2, Plus, Sparkles, Smartphone, Sofa, Shirt, Bike, MoreHorizontal } from 'lucide-react';
 import { motion } from 'motion/react';
 import { marketApi } from '../services/api';
-import { useNavigate, Link } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 import { Item } from '../types';
+import { PublishOverlay } from '../components/publish/PublishOverlay';
+import { useAuthCheck } from '../context/useAuthCheck';
+import { FavoriteButton } from '../components/common/FavoriteButton';
 
 const CATEGORIES = [
   { id: 'all', name: '全部', icon: <Sparkles className="w-4 h-4" /> },
@@ -27,6 +30,8 @@ export default function MarketList() {
   const [error, setError] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
   const [activeCategory, setActiveCategory] = useState('all');
+  const [isPublishOpen, setIsPublishOpen] = useState(false);
+  const { requireAuth } = useAuthCheck();
 
   useEffect(() => {
     const fetchItems = async () => {
@@ -67,11 +72,9 @@ export default function MarketList() {
                  />
                </div>
             </div>
-            <Link to="/publish">
-              <button className="px-8 py-4 bg-primary text-white rounded-2xl font-bold shadow-lg shadow-primary/10 hover:bg-primary-hover transition-all flex items-center gap-2">
+            <button onClick={() => requireAuth(() => setIsPublishOpen(true))} className="px-8 py-4 bg-primary text-white rounded-2xl font-bold shadow-lg shadow-primary/10 hover:bg-primary-hover transition-all flex items-center gap-2">
                 <Plus className="w-5 h-5" /> 发布闲置
               </button>
-            </Link>
           </div>
 
           <div className="flex items-center gap-4 mt-8 overflow-x-auto no-scrollbar pb-2">
@@ -119,13 +122,15 @@ export default function MarketList() {
                 onClick={() => navigate(`/item/${item.id}`)}
               >
                 <div className="relative aspect-square rounded-2xl overflow-hidden mb-3 bg-surface-soft">
-                  <img src={item.image} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" alt={item.title} />
+                  {item.image && item.image.trim() ? (
+                    <img src={item.image} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" alt={item.title} />
+                  ) : (
+                    <div className="w-full h-full bg-stone-200 flex items-center justify-center text-stone-400 text-xs">暂无图片</div>
+                  )}
                   <div className="absolute top-3 left-3 px-2 py-1 bg-ink/70 backdrop-blur-md text-white text-[10px] font-bold rounded">
                     {item.condition}
                   </div>
-                  <button className="absolute top-3 right-3 p-2 bg-white/80 backdrop-blur-md rounded-full text-secondary hover:text-red-500 hover:bg-white transition-all shadow-sm">
-                    <Heart className="w-4 h-4" />
-                  </button>
+                  <FavoriteButton />
                 </div>
                 <h3 className="text-sm font-bold text-ink mb-1 line-clamp-1 group-hover:text-primary transition-colors">{item.title}</h3>
                 <div className="flex items-center gap-2 mb-2">
@@ -140,7 +145,7 @@ export default function MarketList() {
                     )}
                   </div>
                   <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                    <img src={item.seller?.avatar || ''} className="w-4 h-4 rounded-full border border-hairline" alt="" />
+                    <img src={item.seller?.avatar || undefined} className="w-4 h-4 rounded-full border border-hairline" alt="" />
                     <span className="text-[9px] font-medium text-secondary">{item.seller?.name}</span>
                   </div>
                 </div>
@@ -149,6 +154,7 @@ export default function MarketList() {
           )}
         </div>
       </main>
+      <PublishOverlay isOpen={isPublishOpen} onClose={() => setIsPublishOpen(false)} defaultSelectedId="market" />
     </div>
   );
 }

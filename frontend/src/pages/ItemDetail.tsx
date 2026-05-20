@@ -119,7 +119,7 @@ export default function ItemDetail() {
                     animate={{ opacity: 1, scale: 1 }}
                     exit={{ opacity: 0, scale: 0.95 }}
                     transition={{ duration: 0.4 }}
-                    src={images[activeImg % images.length]}
+                    src={images[activeImg % images.length] || undefined}
                     className="w-full h-full object-cover"
                     alt="Main"
                   />
@@ -139,7 +139,7 @@ export default function ItemDetail() {
                       activeImg === idx ? 'border-primary scale-105 shadow-lg shadow-primary/20' : 'border-transparent opacity-60 hover:opacity-100'
                     }`}
                   >
-                    <img src={img} className="w-full h-full object-cover" alt={`Thumb ${idx}`} />
+                    <img src={img || undefined} className="w-full h-full object-cover" alt={`Thumb ${idx}`} />
                   </button>
                 ))}
               </div>
@@ -226,7 +226,7 @@ export default function ItemDetail() {
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-4">
                     <div className="relative group cursor-pointer" onClick={() => navigate(`/profile/${item.seller?.name}`)}>
-                      <img src={item.seller?.avatar || ''} className="w-14 h-14 rounded-2xl object-cover border-2 border-white shadow-md group-hover:scale-105 transition-transform" alt="Seller" />
+                      <img src={item.seller?.avatar || undefined} className="w-14 h-14 rounded-2xl object-cover border-2 border-white shadow-md group-hover:scale-105 transition-transform" alt="Seller" />
                       {item.verified && (
                         <div className="absolute -bottom-1 -right-1 bg-blue-500 text-white rounded-lg p-0.5 border-2 border-white">
                           <Verified className="w-3 h-3" />

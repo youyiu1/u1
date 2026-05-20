@@ -152,7 +152,7 @@ export default function News() {
                         <div className={`grid gap-2 overflow-hidden rounded-2xl border border-hairline ${post.images.length >= 2 ? 'grid-cols-2' : 'grid-cols-1'}`}>
                           {post.images.map((img, i) => (
                             <div key={i} className="aspect-[16/9]">
-                              <img src={img} className="w-full h-full object-cover" alt="Post content" />
+                              <img src={img || undefined} className="w-full h-full object-cover" alt="Post content" />
                             </div>
                           ))}
                         </div>
@@ -208,7 +208,7 @@ export default function News() {
                  {SUGGESTED_USERS.map((user) => (
                    <div key={user.id} className="flex items-center justify-between group">
                      <div className="flex items-center gap-3 cursor-pointer" onClick={() => navigate(`/profile/${user.name}`)}>
-                       <img src={user.avatar} className="w-10 h-10 rounded-xl object-cover border border-hairline group-hover:scale-105 transition-all" alt={user.name} />
+                       <img src={user.avatar || undefined} className="w-10 h-10 rounded-xl object-cover border border-hairline group-hover:scale-105 transition-all" alt={user.name} />
                        <div className="min-w-0">
                          <p className="text-xs font-black text-ink group-hover:text-primary transition-colors truncate">{user.name}</p>
                          <p className="text-[10px] text-muted font-bold truncate">{user.desc}</p>
