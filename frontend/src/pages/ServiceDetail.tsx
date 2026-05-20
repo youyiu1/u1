@@ -127,7 +127,7 @@ export default function ServiceDetail() {
   useEffect(() => {
     const fetchService = async () => {
       try {
-        const data = await serviceApi.get(Number(id));
+        const data = await serviceApi.get(id);
         setService(data);
       } catch (err: any) {
         setError(err.message || '加载失败');

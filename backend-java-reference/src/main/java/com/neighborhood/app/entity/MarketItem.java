@@ -25,8 +25,10 @@ public class MarketItem {
     private String itemCondition;
     private String image;
     private List<String> images;
+    @TableField("seller_id")
     private String sellerId;
     private String category;
+    @TableField("original_price")
     private BigDecimal originalPrice;
     private String location;
     private Boolean verified;

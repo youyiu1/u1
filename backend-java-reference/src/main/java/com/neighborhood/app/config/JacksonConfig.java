@@ -22,7 +22,7 @@ import java.util.List;
 public class JacksonConfig implements WebMvcConfigurer {
 
     @Override
-    public void configureMessageConverters(List<HttpMessageConverter<?>> converters) {
+    public void extendMessageConverters(List<HttpMessageConverter<?>> converters) {
         ObjectMapper objectMapper = Jackson2ObjectMapperBuilder.json()
                 .modules(new JavaTimeModule())
                 .dateFormat(new SimpleDateFormat("yyyy-MM-dd HH:mm:ss"))
@@ -31,6 +31,6 @@ public class JacksonConfig implements WebMvcConfigurer {
 
         MappingJackson2HttpMessageConverter converter = new MappingJackson2HttpMessageConverter();
         converter.setObjectMapper(objectMapper);
-        converters.add(0, converter);
+        converters.add(converter);
     }
 }

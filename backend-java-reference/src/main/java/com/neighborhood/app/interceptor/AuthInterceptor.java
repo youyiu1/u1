@@ -36,6 +36,7 @@ public class AuthInterceptor implements HandlerInterceptor {
         }
 
         String path = request.getRequestURI();
+        System.out.println("=== AuthInterceptor.preHandle === path=" + path + ", method=" + request.getMethod());
 
         // 公开接口无需认证
         if (path.startsWith("/api/service/") && path.contains("/reviews")) {
@@ -43,6 +44,7 @@ public class AuthInterceptor implements HandlerInterceptor {
         }
 
         String authHeader = request.getHeader(HEADER_AUTH);
+        System.out.println("=== AuthInterceptor === authHeader=" + authHeader);
         if (authHeader == null || !authHeader.startsWith(BEARER_PREFIX)) {
             response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
             response.setContentType("application/json;charset=UTF-8");
@@ -54,6 +56,7 @@ public class AuthInterceptor implements HandlerInterceptor {
 
         // 验证JWT格式和签名
         if (!jwtUtil.validateToken(token)) {
+            System.out.println("=== AuthInterceptor === token validation failed");
             response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
             response.setContentType("application/json;charset=UTF-8");
             response.getWriter().write("{\"success\":false,\"message\":\"Token无效\"}");
@@ -62,9 +65,11 @@ public class AuthInterceptor implements HandlerInterceptor {
 
         // 检查Redis中Token是否存在（已登录状态）
         String userId = jwtUtil.getUserIdFromToken(token);
+        System.out.println("=== AuthInterceptor === userId from token=" + userId);
         Object redisToken = redisTemplate.opsForValue().get(TOKEN_PREFIX + userId);
 
         if (redisToken == null || !token.equals(redisToken.toString())) {
+            System.out.println("=== AuthInterceptor === redis token mismatch or expired");
             response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
             response.setContentType("application/json;charset=UTF-8");
             response.getWriter().write("{\"success\":false,\"message\":\"Token已过期\"}");
@@ -76,6 +81,7 @@ public class AuthInterceptor implements HandlerInterceptor {
 
         // 将userId存入request供后续使用
         request.setAttribute("userId", userId);
+        System.out.println("=== AuthInterceptor === set userId=" + userId + " into request");
         return true;
     }
 }

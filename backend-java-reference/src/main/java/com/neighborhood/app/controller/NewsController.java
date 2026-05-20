@@ -37,9 +37,10 @@ public class NewsController {
     public Result<Boolean> create(@RequestBody News news, HttpServletRequest request) {
         // 从request属性获取登录用户ID（AuthInterceptor设置）
         String userId = (String) request.getAttribute("userId");
-        if (userId != null) {
-            news.setAuthorId(userId);
+        if (userId == null || userId.isEmpty()) {
+            return Result.fail("用户未登录或登录已过期");
         }
+        news.setAuthorId(userId);
         // 设置默认分类
         if (news.getCategory() == null || news.getCategory().isEmpty()) {
             news.setCategory("生活记录");
