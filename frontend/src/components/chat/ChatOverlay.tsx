@@ -20,11 +20,12 @@ export const ChatOverlay: React.FC = () => {
   const [showContacts, setShowContacts] = useState(true);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
+  // 每次打开聊天面板时重置为会话列表
   useEffect(() => {
     if (isChatOpen) {
-      setShowContacts(!activePartner);
+      setShowContacts(true);
     }
-  }, [isChatOpen, activePartner]);
+  }, [isChatOpen]);
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
