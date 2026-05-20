@@ -28,18 +28,29 @@ export const HeaderNotifications: React.FC = () => {
   // 计算未读数
   const unreadCount = notifications.filter(n => !n.isRead).length;
 
-  // 每次打开通知面板时刷新
+  // 页面加载时获取通知
   useEffect(() => {
-    if (!showNotifications || !user?.id) return;
-    setLoading(true);
+    if (!user?.id) return;
     const fetchNotifications = async () => {
       try {
         const data = await notificationApi.list(user.id);
         setNotifications(data);
       } catch (err) {
         console.error('Failed to fetch notifications:', err);
-      } finally {
-        setLoading(false);
+      }
+    };
+    fetchNotifications();
+  }, [user?.id]);
+
+  // 每次打开通知面板时刷新
+  useEffect(() => {
+    if (!showNotifications || !user?.id) return;
+    const fetchNotifications = async () => {
+      try {
+        const data = await notificationApi.list(user.id);
+        setNotifications(data);
+      } catch (err) {
+        console.error('Failed to fetch notifications:', err);
       }
     };
     fetchNotifications();
