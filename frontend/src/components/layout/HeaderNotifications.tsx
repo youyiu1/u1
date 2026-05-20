@@ -89,13 +89,19 @@ export const HeaderNotifications: React.FC = () => {
       <AnimatePresence>
         {showNotifications && (
           <>
-            <div className="fixed inset-0 z-10" onClick={() => setShowNotifications(false)} />
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              onClick={() => setShowNotifications(false)}
+              className="fixed inset-0 z-10 bg-black/10"
+            />
             <motion.div
               initial={{ opacity: 0, y: 10, scale: 0.95 }}
               animate={{ opacity: 1, y: 0, scale: 1 }}
               exit={{ opacity: 0, y: 10, scale: 0.95 }}
               onClick={(e) => e.stopPropagation()}
-              className="absolute right-0 mt-3 w-80 bg-white border border-hairline rounded-[32px] shadow-premium z-20 overflow-hidden"
+              className="absolute right-0 top-full mt-3 w-80 bg-white border border-hairline rounded-[32px] shadow-premium z-20 overflow-hidden"
             >
               <div className="p-6 border-b border-hairline flex items-center justify-between">
                 <h3 className="font-black text-ink uppercase tracking-widest text-[10px]">通知中心</h3>
