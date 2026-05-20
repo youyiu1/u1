@@ -19,14 +19,18 @@ const formatTime = (time: string) => {
 
 export const HeaderNotifications: React.FC = () => {
   const { user } = useContext(AuthContext);
-  const { unreadCount, clearUnread } = useNotification();
+  const { clearUnread } = useNotification();
   const [showNotifications, setShowNotifications] = useState(false);
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [loading, setLoading] = useState(false);
   const [showConfirm, setShowConfirm] = useState(false);
 
+  // 计算未读数
+  const unreadCount = notifications.filter(n => !n.isRead).length;
+
+  // 每次打开通知面板时刷新
   useEffect(() => {
-    if (!user?.id) return;
+    if (!showNotifications || !user?.id) return;
     setLoading(true);
     const fetchNotifications = async () => {
       try {
@@ -39,16 +43,21 @@ export const HeaderNotifications: React.FC = () => {
       }
     };
     fetchNotifications();
-  }, [user?.id]);
+  }, [showNotifications, user?.id]);
 
   const handleMarkAllRead = () => {
     setShowConfirm(true);
   };
 
-  const confirmMarkAllRead = () => {
+  const confirmMarkAllRead = async () => {
     if (!user?.id) return;
     setShowConfirm(false);
-    setNotifications(notifications.map(n => ({ ...n, isRead: true })));
+    try {
+      await notificationApi.markAllRead(user.id);
+    } catch (err) {
+      console.error('Failed to mark all read:', err);
+    }
+    setNotifications(prev => prev.map(n => ({ ...n, isRead: true })));
     clearUnread();
   };
 
@@ -101,7 +110,6 @@ export const HeaderNotifications: React.FC = () => {
                             setNotifications(prev => prev.map(n =>
                               n.id === notification.id ? { ...n, isRead: true } : n
                             ));
-                            clearUnread();
                           } catch (err) {
                             console.error('Failed to mark read:', err);
                           }
