@@ -108,7 +108,7 @@ export default function NewsDetail() {
             </button>
             <div className="flex flex-col">
               <span className="text-[10px] font-black text-muted uppercase tracking-widest leading-none mb-1">Local Moments</span>
-              <span className="text-sm font-black text-ink">详情详情</span>
+              <span className="text-sm font-black text-ink">同城动态</span>
             </div>
           </div>
           <button className="p-2.5 hover:bg-surface-soft rounded-2xl transition-all">
@@ -241,7 +241,7 @@ export default function NewsDetail() {
             <div className="mt-12">
               <div className="flex items-center justify-between mb-8">
                 <h3 className="text-2xl font-black text-ink tracking-tight">
-                  精彩集论
+                  精彩评论
                   <span className="ml-3 text-sm font-bold text-muted/60 tracking-normal uppercase">({comments.length})</span>
                 </h3>
                 <div className="flex items-center gap-4 bg-surface-soft p-1 rounded-xl">
