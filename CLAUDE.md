@@ -2,62 +2,72 @@
 
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
-## 椤圭洰姒傝堪
+## 项目概述
 
-鍚屽煄鐢熸椿绀惧尯骞冲彴锛?- **鍓嶇**: React 19 + Vite + TypeScript + Tailwind CSS v4 + React Router v7
-- **鍚庣**: Spring Boot 3.2 + MyBatis-Plus + MySQL + Redis
+同城生活社区平台：
+- **前端**: React 19 + Vite + TypeScript + Tailwind CSS v4 + React Router v7
+- **后端**: Spring Boot 3.2 + MyBatis-Plus + MySQL + Redis
 
-## 寮€鍙戝懡浠?
-### 鍓嶇
+## 开发命令
+
+### 前端
 ```bash
 cd frontend && npm install && npm run dev
 ```
 
-### 鍚庣
+### 后端
 ```bash
 cd backend-java-reference && mvn spring-boot:run
 ```
 
-### 鏁版嵁搴?```bash
+### 数据库
+```bash
 mysql -u root -proot neighborhood_db < sql/init.sql
 ```
 
-## 鏋舵瀯璇存槑
+## 架构说明
 
-### 鍓嶇
-- `src/App.tsx` - 涓昏矾鐢遍厤缃?- `src/pages/` - 椤甸潰缁勪欢
-- `src/components/` - 鎸夋ā鍧楃粍缁囷細chat銆乧ommon銆乭ome銆乴ayout銆乸rofile銆乸ublish
-- `src/context/` - AuthContext銆丆hatContext銆丯otificationContext銆乀oastContext銆乽seAuthCheck
-- `src/services/api.ts` - 缁熶竴 API 鍏ュ彛
-- `src/types.ts` - 绫诲瀷瀹氫箟
+### 前端
+- `src/App.tsx` - 主路由配置
+- `src/pages/` - 页面组件
+- `src/components/` - 按模块组织：chat、common、home、layout、profile、publish
+- `src/context/` - AuthContext、ChatContext、NotificationContext、ToastContext、useAuthCheck
+- `src/services/api.ts` - 统一 API 入口
+- `src/types.ts` - 类型定义
 
-### 鍚庣
-`src/main/java/com/neighborhood/app/` 涓嬬殑鍒嗗眰鏋舵瀯锛?- `controller/` - REST 鎺у埗鍣?- `service/` - 涓氬姟閫昏緫锛坕mpl 瀹炵幇绫伙級
-- `mapper/` - MyBatis 鏁版嵁璁块棶
-- `entity/` - 鏁版嵁搴撴ā鍨?- `common/` - `Result<T>` 缁熶竴鍝嶅簲灏佽
-- `config/` - RedisConfig銆乄ebConfig銆丣acksonConfig
-- `interceptor/` - AuthInterceptor锛圝WT 璁よ瘉锛?
-### 瀹炰綋 ID 璁捐
-- String 绫诲瀷 ID锛歚@TableId(type = IdType.ASSIGN_ID)`
-- Long 绫诲瀷 ID锛氶渶娣诲姞 `@JsonSerialize(using = ToStringSerializer.class)` 闃叉绮惧害涓㈠け
+### 后端
+`src/main/java/com/neighborhood/app/` 下的分层架构：
+- `controller/` - REST 控制器
+- `service/` - 业务逻辑（impl 实现类）
+- `mapper/` - MyBatis 数据访问
+- `entity/` - 数据库模型
+- `common/` - `Result<T>` 统一响应封装
+- `config/` - RedisConfig、WebConfig、JacksonConfig
+- `interceptor/` - AuthInterceptor（JWT 认证）
 
-### 缂撳瓨绛栫暐
-鐢ㄦ埛 30鍒嗛挓锛屽垪琛?10鍒嗛挓锛岃鎯?15鍒嗛挓锛岀儹鐐?5鍒嗛挓
+### 实体 ID 设计
+- String 类型 ID：`@TableId(type = IdType.ASSIGN_ID)`
+- Long 类型 ID：需添加 `@JsonSerialize(using = ToStringSerializer.class)` 防止精度丢失
 
-## API 璁捐
+### 缓存策略
+用户 30分钟，列表 10分钟，详情 15分钟，热点 5分钟
 
-鍚庣杩愯鍦?8080 绔彛銆傜粺涓€鍝嶅簲鏍煎紡锛?```json
+## API 设计
+
+后端运行在 8080 端口。统一响应格式：
+```json
 {"success": true, "message": "success", "data": {...}}
 ```
 
-### 璁よ瘉鏈哄埗
-JWT + Redis 鍙岄獙璇侊紝AuthInterceptor 鎷︽埅 `/api/**`锛堢櫥褰?娉ㄥ唽闄ゅ锛?
-## 閲嶈瑙勫垯
+### 认证机制
+JWT + Redis 双验证，AuthInterceptor 拦截 `/api/**`（登录/注册除外）
 
-**姣忔瀹屾垚浠诲姟鐢ㄤ腑鏂囨彁浜ゅ埌git**
-**姣忔娣诲姞鎺ュ彛锛屾帴鍙ｆ坊鍔犱腑鏂囨敞閲?*
+## 重要规则
 
-## 閰嶇疆
+**每次完成任务用中文提交到git**
+**每次添加接口，接口添加中文注释**
 
-- 鍓嶇锛歚.env.local` 閰嶇疆 `GEMINI_API_KEY`
-- 鍚庣锛歚application.yml` 涓?`jdbc:mysql://localhost:3306/neighborhood_db`锛岀敤鎴峰悕/瀵嗙爜 `root/root`
+## 配置
+
+- 前端：`.env.local` 配置 `GEMINI_API_KEY`
+- 后端：`application.yml` 中 `jdbc:mysql://localhost:3306/neighborhood_db`，用户名/密码 `root/root`

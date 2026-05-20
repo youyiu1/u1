@@ -44,6 +44,15 @@ export default function ItemDetail() {
   const [isLiked, setIsLiked] = useState(false);
   const [activeImg, setActiveImg] = useState(0);
 
+  // 兼容扁平化的卖家信息
+  const sellerName = item?.seller?.name || item?.sellerName || '';
+  const sellerAvatar = item?.seller?.avatar || item?.sellerAvatar || '';
+  const sellerVerified = item?.seller?.verified ?? item?.sellerVerified ?? false;
+  const itemCondition = item?.itemCondition || item?.condition || '';
+  const sellerOnSaleCount = item?.seller?.onSaleCount ?? item?.sellerOnSaleCount ?? 0;
+  const sellerSoldCount = item?.seller?.soldCount ?? item?.sellerSoldCount ?? 0;
+  const sellerFollowersCount = item?.seller?.followersCount ?? item?.sellerFollowersCount ?? 0;
+
   useEffect(() => {
     const fetchItem = async () => {
       try {
@@ -126,7 +135,7 @@ export default function ItemDetail() {
                 </AnimatePresence>
                 <div className="absolute top-6 left-6 flex flex-col gap-2">
                    <span className="px-4 py-2 bg-black/60 backdrop-blur-md text-white rounded-2xl text-[10px] font-black tracking-widest uppercase">
-                     {item.condition}
+                     {itemCondition}
                    </span>
                 </div>
               </div>
@@ -175,7 +184,7 @@ export default function ItemDetail() {
               <div className="grid grid-cols-2 md:grid-cols-3 gap-6 mt-12 pt-12 border-t border-hairline">
                 <div>
                   <p className="text-xs font-bold text-muted mb-2 uppercase tracking-widest">成色</p>
-                  <p className="font-black text-ink">{item.condition}</p>
+                  <p className="font-black text-ink">{itemCondition}</p>
                 </div>
                 <div>
                   <p className="text-xs font-bold text-muted mb-2 uppercase tracking-widest">运费</p>
@@ -225,18 +234,18 @@ export default function ItemDetail() {
               <div className="p-6 bg-surface-soft rounded-3xl space-y-6">
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-4">
-                    <div className="relative group cursor-pointer" onClick={() => navigate(`/profile/${item.seller?.name}`)}>
-                      <img src={item.seller?.avatar || undefined} className="w-14 h-14 rounded-2xl object-cover border-2 border-white shadow-md group-hover:scale-105 transition-transform" alt="Seller" />
-                      {item.verified && (
+                    <div className="relative group cursor-pointer" onClick={() => navigate(`/profile/${sellerName}`)}>
+                      <img src={sellerAvatar || undefined} className="w-14 h-14 rounded-2xl object-cover border-2 border-white shadow-md group-hover:scale-105 transition-transform" alt="Seller" />
+                      {sellerVerified && (
                         <div className="absolute -bottom-1 -right-1 bg-blue-500 text-white rounded-lg p-0.5 border-2 border-white">
                           <Verified className="w-3 h-3" />
                         </div>
                       )}
                     </div>
                     <div>
-                      <h3 className="font-black text-ink group cursor-pointer hover:text-primary transition-colors" onClick={() => navigate(`/profile/${item.seller?.name}`)}>{item.seller?.name}</h3>
+                      <h3 className="font-black text-ink group cursor-pointer hover:text-primary transition-colors" onClick={() => navigate(`/profile/${sellerName}`)}>{sellerName}</h3>
                       <div className="flex items-center gap-1.5 mt-0.5">
-                        <span className="text-[10px] font-black text-primary bg-primary/10 px-2 py-0.5 rounded-md">芝麻信用 {item.seller?.rating}</span>
+                        <span className="text-[10px] font-black text-primary bg-primary/10 px-2 py-0.5 rounded-md">芝麻信用 {item.seller?.rating || '优秀'}</span>
                       </div>
                     </div>
                   </div>
@@ -249,15 +258,15 @@ export default function ItemDetail() {
 
                 <div className="grid grid-cols-3 gap-3">
                   <div className="bg-white/80 p-3 rounded-2xl text-center border border-white/50">
-                    <p className="text-sm font-black text-ink">{item.seller?.followersCount || 0}</p>
+                    <p className="text-sm font-black text-ink">{sellerFollowersCount}</p>
                     <p className="text-[10px] font-black text-muted uppercase tracking-wider">粉丝</p>
                   </div>
                   <div className="bg-white/80 p-3 rounded-2xl text-center border border-white/50">
-                    <p className="text-sm font-black text-ink">{item.seller?.onSaleCount || 0}</p>
+                    <p className="text-sm font-black text-ink">{sellerOnSaleCount}</p>
                     <p className="text-[10px] font-black text-muted uppercase tracking-wider">在售</p>
                   </div>
                   <div className="bg-white/80 p-3 rounded-2xl text-center border border-white/50">
-                    <p className="text-sm font-black text-ink">{item.seller?.soldCount || 0}</p>
+                    <p className="text-sm font-black text-ink">{sellerSoldCount}</p>
                     <p className="text-[10px] font-black text-muted uppercase tracking-wider">成交</p>
                   </div>
                 </div>
@@ -268,9 +277,9 @@ export default function ItemDetail() {
                   whileHover={{ scale: 1.02 }}
                   whileTap={{ scale: 0.98 }}
                   onClick={() => openChat({
-                    id: item.seller?.name || '',
-                    name: item.seller?.name || '',
-                    avatar: item.seller?.avatar || '',
+                    id: sellerName,
+                    name: sellerName,
+                    avatar: sellerAvatar,
                     isOnline: true
                   })}
                   className="w-full h-16 bg-ink text-white rounded-2xl font-black shadow-xl shadow-ink/20 flex items-center justify-center gap-3 group"

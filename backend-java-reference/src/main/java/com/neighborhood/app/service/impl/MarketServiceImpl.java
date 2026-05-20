@@ -7,18 +7,24 @@ package com.neighborhood.app.service.impl;
 
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.neighborhood.app.entity.MarketItem;
+import com.neighborhood.app.entity.MarketItemVO;
+import com.neighborhood.app.entity.User;
 import com.neighborhood.app.mapper.MarketMapper;
+import com.neighborhood.app.mapper.UserMapper;
 import com.neighborhood.app.service.CacheService;
 import com.neighborhood.app.service.MarketService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import java.util.List;
+import java.util.Map;
+import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
 public class MarketServiceImpl extends ServiceImpl<MarketMapper, MarketItem> implements MarketService {
 
     private final CacheService cacheService;
+    private final UserMapper userMapper;
 
     @Override
     public List<MarketItem> list() {
@@ -45,10 +51,38 @@ public class MarketServiceImpl extends ServiceImpl<MarketMapper, MarketItem> imp
     }
 
     @Override
+    public MarketItemVO getMarketItemVOById(Long id) {
+        MarketItem item = getById(id);
+        if (item == null) {
+            return null;
+        }
+        User seller = userMapper.selectById(item.getSellerId());
+        return MarketItemVO.fromMarketItem(item, seller);
+    }
+
+    @Override
+    public List<MarketItemVO> listVO() {
+        List<MarketItem> items = list();
+        if (items.isEmpty()) {
+            return List.of();
+        }
+        // 批量获取卖家信息
+        List<String> sellerIds = items.stream()
+                .map(MarketItem::getSellerId)
+                .distinct()
+                .collect(Collectors.toList());
+        Map<String, User> userMap = userMapper.selectBatchIds(sellerIds).stream()
+                .collect(Collectors.toMap(User::getId, u -> u));
+        return items.stream()
+                .map(item -> MarketItemVO.fromMarketItem(item, userMap.get(item.getSellerId())))
+                .collect(Collectors.toList());
+    }
+
+    @Override
     public boolean save(MarketItem item) {
         boolean result = super.save(item);
         if (result) {
-            cacheService.evictMarketItem(item.getId());
+            cacheService.evictMarketList();
         }
         return result;
     }

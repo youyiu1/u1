@@ -89,9 +89,13 @@ export const PublishOverlay: React.FC<PublishOverlayProps> = ({ isOpen, onClose,
         await marketApi.create({
           title,
           price: Number(price),
-          condition,
+          itemCondition: condition,
           description: content,
         } as any);
+      } else if (selectedId === 'help') {
+        // 寻求帮助暂时模拟成功
+      } else if (selectedId === 'snap') {
+        // 随手拍暂时模拟成功
       }
       // 其他类型暂时模拟成功
       setIsSuccess(true);

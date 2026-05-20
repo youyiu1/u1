@@ -52,14 +52,23 @@ export interface Item {
   id: string;
   title: string;
   category: string;
-  condition: string;
+  itemCondition: string;
   price: number;
   originalPrice: number;
   location: string;
   image: string;
   images: string[];
   description: string;
-  seller: Seller;
+  // 卖家信息（扁平化，后端MarketItemVO返回）
+  sellerId?: string;
+  sellerName?: string;
+  sellerAvatar?: string;
+  sellerVerified?: boolean;
+  sellerFollowersCount?: number;
+  sellerOnSaleCount?: number;
+  sellerSoldCount?: number;
+  // 兼容旧结构
+  seller?: Seller;
   verified: boolean;
   freeShipping: boolean;
 }
