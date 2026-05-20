@@ -35,6 +35,13 @@ public class AuthInterceptor implements HandlerInterceptor {
             return true;
         }
 
+        String path = request.getRequestURI();
+
+        // 公开接口无需认证
+        if (path.startsWith("/api/service/") && path.contains("/reviews")) {
+            return true;
+        }
+
         String authHeader = request.getHeader(HEADER_AUTH);
         if (authHeader == null || !authHeader.startsWith(BEARER_PREFIX)) {
             response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);

@@ -25,6 +25,8 @@ public class WebConfig implements WebMvcConfigurer {
                 .excludePathPatterns(
                         "/api/user/register",
                         "/api/user/login",
+                        "/api/user/send-code",
+                        "/api/user/name/**",
                         "/api/home/**",
                         "/api/news/list",
                         "/api/news/{id}",
@@ -32,7 +34,12 @@ public class WebConfig implements WebMvcConfigurer {
                         "/api/market/list",
                         "/api/market/{id}",
                         "/api/service/list",
-                        "/api/service/{id}"
+                        "/api/service/{id}",
+                        "/api/service/*/reviews",
+                        "/api/category/**",
+                        "/api/search",
+                        "/api/notification/**",
+                        "/api/user/{id}"
                 );
     }
 

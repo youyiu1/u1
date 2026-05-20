@@ -23,4 +23,6 @@ public class User {
     private Boolean isVerified;
     private Integer followersCount;
     private Integer followingCount;
+    private Double rating;
+    private Integer soldCount;
 }
