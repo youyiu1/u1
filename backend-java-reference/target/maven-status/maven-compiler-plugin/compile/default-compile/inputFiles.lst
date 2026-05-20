@@ -2,8 +2,10 @@ D:\下载文件\同城生活\backend-java-reference\src\main\java\com\neighborhood\app\s
 D:\下载文件\同城生活\backend-java-reference\src\main\java\com\neighborhood\app\config\JacksonConfig.java
 D:\下载文件\同城生活\backend-java-reference\src\main\java\com\neighborhood\app\controller\SearchController.java
 D:\下载文件\同城生活\backend-java-reference\src\main\java\com\neighborhood\app\entity\ServiceReview.java
+D:\下载文件\同城生活\backend-java-reference\src\main\java\com\neighborhood\app\entity\NewsVO.java
 D:\下载文件\同城生活\backend-java-reference\src\main\java\com\neighborhood\app\controller\MarketController.java
 D:\下载文件\同城生活\backend-java-reference\src\main\java\com\neighborhood\app\common\Result.java
+D:\下载文件\同城生活\backend-java-reference\src\main\java\com\neighborhood\app\entity\MarketItemVO.java
 D:\下载文件\同城生活\backend-java-reference\src\main\java\com\neighborhood\app\config\WebConfig.java
 D:\下载文件\同城生活\backend-java-reference\src\main\java\com\neighborhood\app\mapper\CategoryMapper.java
 D:\下载文件\同城生活\backend-java-reference\src\main\java\com\neighborhood\app\service\ServiceModuleService.java

@@ -119,7 +119,10 @@ export const ChatProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     }
   }, [partners, markChatRead, loadConversation]);
 
-  const closeChat = () => setIsChatOpen(false);
+  const closeChat = () => {
+    setIsChatOpen(false);
+    setActivePartner(null);
+  };
 
   // 初始加载会话列表（仅当用户已登录且有token时）
   useEffect(() => {

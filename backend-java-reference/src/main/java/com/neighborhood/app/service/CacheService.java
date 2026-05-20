@@ -25,6 +25,7 @@ public interface CacheService {
     <T> T getCachedMarketList();
     void cacheMarketList(Object list);
     void evictMarketItem(Long itemId);
+    void evictMarketList();
     void cacheHomeIndex(Object data);
     <T> T getCachedHomeIndex();
     void evictHomeIndex();

@@ -8,6 +8,7 @@ com\neighborhood\app\controller\SearchController.class
 com\neighborhood\app\service\MarketService.class
 com\neighborhood\app\config\RedisConfig.class
 com\neighborhood\app\entity\Booking.class
+com\neighborhood\app\entity\NewsVO.class
 com\neighborhood\app\interceptor\AuthInterceptor.class
 com\neighborhood\app\service\UserService.class
 com\neighborhood\app\controller\MarketController.class
@@ -54,6 +55,7 @@ com\neighborhood\app\service\impl\MessageServiceImpl.class
 com\neighborhood\app\mapper\MessageMapper.class
 com\neighborhood\app\service\impl\MarketServiceImpl.class
 com\neighborhood\app\service\impl\NewsServiceImpl.class
+com\neighborhood\app\entity\MarketItemVO.class
 com\neighborhood\app\service\impl\ServiceReviewServiceImpl.class
 com\neighborhood\app\service\NotificationService.class
 com\neighborhood\app\mapper\ServiceReviewMapper.class

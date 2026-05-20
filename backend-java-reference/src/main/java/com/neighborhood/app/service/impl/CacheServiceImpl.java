@@ -231,6 +231,15 @@ public class CacheServiceImpl implements CacheService {
     }
 
     @Override
+    public void evictMarketList() {
+        try {
+            redisTemplate.delete(MARKET_LIST_KEY);
+        } catch (Exception e) {
+            log.error("删除闲置列表缓存失败", e);
+        }
+    }
+
+    @Override
     public void cacheHomeIndex(Object data) {
         try {
             redisTemplate.opsForValue().set(HOME_INDEX_KEY, data, HOME_INDEX_TTL, TimeUnit.MINUTES);
