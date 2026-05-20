@@ -28,30 +28,27 @@ import {
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { useChat } from '../context/ChatContext';
+import { useAuth } from '../context/AuthContext';
+import { useNotification } from '../context/NotificationContext';
 import { serviceApi } from '../services/api';
 import { FollowButton } from '../components/common/FollowButton';
-import { Service } from '../types';
+import { ConfirmDialog } from '../components/common/ConfirmDialog';
+import { ServiceDetail as ServiceDetailType, Review } from '../types';
 
-const categoryMap: Record<string, string> = {
-  'domestic': '家政服务',
-  'repair': '家庭维修',
-  'sports': '运动健身',
-  'pets': '宠物生活',
-  'market': '闲置交易'
-};
-
-interface Review {
-  id: string;
-  userName: string;
-  userAvatar?: string;
-  rating: number;
-  comment: string;
-  time: string;
-  likes: number;
-}
-
-function ReviewSection({ serviceId }: { serviceId: number }) {
+function ReviewSection({ serviceId, rating }: { serviceId: number; rating: number }) {
   const [reviews, setReviews] = useState<Review[]>([]);
+
+  useEffect(() => {
+    const fetchReviews = async () => {
+      try {
+        const data = await serviceApi.getReviews(serviceId);
+        setReviews(data);
+      } catch (err) {
+        console.error('获取评价失败', err);
+      }
+    };
+    fetchReviews();
+  }, [serviceId]);
 
   return (
     <div className="space-y-12">
@@ -59,7 +56,7 @@ function ReviewSection({ serviceId }: { serviceId: number }) {
         <h2 className="text-3xl font-black text-ink tracking-tight">邻友评价</h2>
         <div className="flex items-center gap-2 text-primary font-black">
           <Star className="w-5 h-5 fill-current" />
-          <span className="text-xl">4.8</span>
+          <span className="text-xl">{rating.toFixed(1)}</span>
           <span className="text-sm text-muted">/ 5.0</span>
         </div>
       </header>
@@ -101,7 +98,7 @@ function ReviewSection({ serviceId }: { serviceId: number }) {
               </div>
 
               <p className="text-secondary font-medium leading-relaxed">
-                {review.comment}
+                {review.content}
               </p>
             </div>
           ))
@@ -116,14 +113,18 @@ export default function ServiceDetail() {
   const navigate = useNavigate();
   const { openChat } = useChat();
 
-  const [service, setService] = useState<Service | null>(null);
+  const [service, setService] = useState<ServiceDetailType | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [isLiked, setIsLiked] = useState(false);
   const [isBooking, setIsBooking] = useState(false);
+  const [showConfirm, setShowConfirm] = useState(false);
   const [bookingSuccess, setBookingSuccess] = useState(false);
-  const [bookingDate, setBookingDate] = useState('2024-05-24');
-  const [bookingTime, setBookingTime] = useState('09:00');
+  const now = new Date();
+  const formatDate = (d: Date) => d.toISOString().split('T')[0];
+  const formatTime = (d: Date) => `${String(d.getHours()).padStart(2, '0')}:00`;
+  const [bookingDate, setBookingDate] = useState(formatDate(now));
+  const [bookingTime, setBookingTime] = useState(formatTime(now));
   const [duration, setDuration] = useState(4);
 
   useEffect(() => {
@@ -140,12 +141,34 @@ export default function ServiceDetail() {
     if (id) fetchService();
   }, [id]);
 
-  const handleBooking = () => {
+  const { user } = useAuth();
+  const { increaseUnread } = useNotification();
+
+  const handleBooking = async () => {
+    if (!service) return;
+    const sellerId = service.seller?.id || (service as any).sellerId;
+    if (!sellerId) return;
+    if (!user) {
+      navigate('/login');
+      return;
+    }
     setIsBooking(true);
-    setTimeout(() => {
-      setIsBooking(false);
+    try {
+      await serviceApi.book({
+        serviceId: Number(id),
+        buyerId: user.id,
+        sellerId,
+        bookingDate,
+        bookingTime,
+        duration,
+      });
       setBookingSuccess(true);
-    }, 1500);
+      increaseUnread();
+    } catch (err: any) {
+      alert(err.message || '预约失败');
+    } finally {
+      setIsBooking(false);
+    }
   };
 
   if (loading) {
@@ -169,7 +192,20 @@ export default function ServiceDetail() {
     );
   }
 
-  const categoryName = categoryMap[service.category] || service.category;
+  const getCategoryName = (category: string) => {
+    const map: Record<string, string> = {
+      'domestic': '家政服务',
+      'repair': '家庭维修',
+      'sports': '运动健身',
+      'pets': '宠物生活',
+      'beauty': '美容美发',
+      'education': '教育培训',
+      'medical': '医疗健康'
+    };
+    return map[category] || category;
+  };
+
+  const categoryName = getCategoryName(service.category);
   const totalPrice = (service.price * (duration / 4)) + 20;
 
   return (
@@ -267,14 +303,14 @@ export default function ServiceDetail() {
 
             <div className="grid grid-cols-1 md:grid-cols-12 gap-4 h-[400px] md:h-[540px]">
               <div className="md:col-span-8 h-full rounded-[48px] overflow-hidden shadow-2xl shadow-ink/5 border border-hairline group">
-                <img src={service.image} className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110" alt="Main" />
+                <img src={service.image || undefined} className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110" alt="Main" />
               </div>
               <div className="md:col-span-4 grid grid-rows-2 gap-4 h-full">
                 <div className="rounded-[32px] overflow-hidden border border-hairline group">
-                  <img src={service.image} className="w-full h-full object-cover group-hover:scale-110 transition-transform" alt="Detail 1" />
+                  <img src={service.image || undefined} className="w-full h-full object-cover group-hover:scale-110 transition-transform" alt="Detail 1" />
                 </div>
                 <div className="relative rounded-[32px] overflow-hidden border border-hairline group cursor-pointer">
-                  <img src={service.image} className="w-full h-full object-cover group-hover:scale-110 transition-transform" alt="Detail 2" />
+                  <img src={service.image || undefined} className="w-full h-full object-cover group-hover:scale-110 transition-transform" alt="Detail 2" />
                   <div className="absolute inset-x-4 bottom-4 px-4 py-3 bg-white/90 backdrop-blur-md rounded-2xl flex items-center justify-center gap-2 font-black text-xs shadow-xl">
                     <Sparkles className="w-4 h-4" /> 查看全景
                   </div>
@@ -284,7 +320,7 @@ export default function ServiceDetail() {
 
             <div className="p-8 bg-white border border-hairline rounded-[40px] shadow-sm flex flex-col md:flex-row items-center gap-8 group">
               <div className="relative shrink-0">
-                <img src={service.seller?.avatar || ''} alt="Seller" className="w-24 h-24 rounded-[32px] object-cover border-4 border-white shadow-xl group-hover:rotate-6 transition-transform" />
+                <img src={service.seller?.avatar || undefined} alt="Seller" className="w-24 h-24 rounded-[32px] object-cover border-4 border-white shadow-xl group-hover:rotate-6 transition-transform" />
                 <div className="absolute -bottom-2 -right-2 bg-blue-500 text-white p-1.5 rounded-xl border-4 border-white shadow-lg">
                   <CheckCircle2 className="w-4 h-4" />
                 </div>
@@ -322,7 +358,7 @@ export default function ServiceDetail() {
               </div>
               <button
                 onClick={() => openChat({
-                  id: service.seller?.name || '',
+                  id: service.seller?.id || '',
                   name: service.seller?.name || '',
                   avatar: service.seller?.avatar || '',
                   isOnline: true
@@ -358,7 +394,7 @@ export default function ServiceDetail() {
                 ))}
               </div>
 
-              <ReviewSection serviceId={Number(id)} />
+              <ReviewSection serviceId={Number(id)} rating={service.rating} />
             </div>
           </div>
 
@@ -429,7 +465,7 @@ export default function ServiceDetail() {
                 <motion.button
                   whileHover={{ scale: 1.02 }}
                   whileTap={{ scale: 0.98 }}
-                  onClick={handleBooking}
+                  onClick={() => setShowConfirm(true)}
                   disabled={isBooking}
                   className="w-full h-16 bg-ink text-white rounded-[24px] font-black shadow-xl shadow-ink/20 flex items-center justify-center gap-3 group transition-all"
                 >
@@ -480,6 +516,16 @@ export default function ServiceDetail() {
           </aside>
         </div>
       </div>
+
+      <ConfirmDialog
+        isOpen={showConfirm}
+        title="确认预约"
+        message={`确定预约 ${service.title} 吗？`}
+        confirmText="确认预约"
+        cancelText="取消"
+        onConfirm={handleBooking}
+        onCancel={() => setShowConfirm(false)}
+      />
     </div>
   );
 }

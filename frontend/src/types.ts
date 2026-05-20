@@ -24,8 +24,12 @@ export interface ChatPartner {
 export interface Message {
   id: string;
   senderId: string;
-  text: string;
-  timestamp: string;
+  receiverId?: string;
+  text?: string;        // 前端使用
+  content?: string;     // 后端返回
+  timestamp?: string;   // 前端使用
+  createTime?: string;  // 后端返回
+  isRead?: boolean;
 }
 
 export interface Service {
@@ -40,7 +44,8 @@ export interface Service {
   image: string;
   highlights: string[];
   description: string;
-  seller: Seller;
+  sellerId: string;
+  seller?: Seller;
 }
 
 export interface Item {
@@ -63,7 +68,7 @@ export interface Seller {
   id: string;
   name: string;
   avatar: string;
-  rating: string;
+  rating: string | number;
   onSaleCount: number;
   soldCount: number;
   followersCount?: number;
@@ -71,12 +76,43 @@ export interface Seller {
   isFollowing?: boolean;
 }
 
+export interface ServiceDetail extends Service {
+  seller: ServiceSeller;
+}
+
+export interface ServiceSeller {
+  id: string;
+  name: string;
+  avatar: string;
+  rating: number;
+  soldCount: number;
+  followersCount: number;
+  isFollowing: boolean;
+}
+
+export interface Review {
+  id: string;
+  userName: string;
+  userAvatar?: string;
+  rating: number;
+  content: string;
+  time: string;
+  likes: number;
+}
+
 export interface Notification {
   id: string;
   title: string;
   content: string;
   time: string;
-  read: boolean;
+  isRead: boolean;
+  serviceName?: string;
+}
+
+export interface Category {
+  id: string;
+  name: string;
+  icon?: string;
 }
 
 export interface Comment {
