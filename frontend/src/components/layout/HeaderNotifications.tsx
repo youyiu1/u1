@@ -167,6 +167,7 @@ export const HeaderNotifications: React.FC = () => {
         cancelText="取消"
         onConfirm={confirmMarkAllRead}
         onCancel={() => setShowConfirm(false)}
+        position="button"
       />
     </div>
   );

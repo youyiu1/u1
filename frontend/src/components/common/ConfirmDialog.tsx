@@ -10,6 +10,7 @@ interface ConfirmDialogProps {
   cancelText?: string;
   onConfirm: () => void;
   onCancel: () => void;
+  position?: 'center' | 'button';
 }
 
 export const ConfirmDialog: React.FC<ConfirmDialogProps> = ({
@@ -20,6 +21,7 @@ export const ConfirmDialog: React.FC<ConfirmDialogProps> = ({
   cancelText = '取消',
   onConfirm,
   onCancel,
+  position = 'center',
 }) => {
   return (
     <AnimatePresence>
@@ -33,10 +35,14 @@ export const ConfirmDialog: React.FC<ConfirmDialogProps> = ({
             className="absolute inset-0 bg-ink/40 backdrop-blur-sm"
           />
           <motion.div
-            initial={{ opacity: 0, scale: 0.9, y: 20 }}
+            initial={{ opacity: 0, scale: 0.9, y: position === 'button' ? -10 : 20 }}
             animate={{ opacity: 1, scale: 1, y: 0 }}
-            exit={{ opacity: 0, scale: 0.9, y: 20 }}
-            className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 bg-white rounded-[32px] shadow-2xl p-8 w-full max-w-sm z-[301]"
+            exit={{ opacity: 0, scale: 0.9, y: position === 'button' ? -10 : 20 }}
+            className={`absolute bg-white rounded-[32px] shadow-2xl p-8 w-full max-w-sm z-[201] ${
+              position === 'button'
+                ? 'right-0 top-full mt-2 -translate-x-0'
+                : 'left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2'
+            }`}
           >
             <button
               onClick={onCancel}
