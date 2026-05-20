@@ -9,14 +9,19 @@ import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.neighborhood.app.entity.Comment;
 import com.neighborhood.app.entity.News;
+import com.neighborhood.app.entity.NewsVO;
+import com.neighborhood.app.entity.User;
 import com.neighborhood.app.mapper.CommentMapper;
 import com.neighborhood.app.mapper.NewsMapper;
+import com.neighborhood.app.mapper.UserMapper;
 import com.neighborhood.app.service.CacheService;
 import com.neighborhood.app.service.NewsService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import java.util.List;
+import java.util.Map;
+import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
@@ -24,6 +29,7 @@ public class NewsServiceImpl extends ServiceImpl<NewsMapper, News> implements Ne
 
     private final CommentMapper commentMapper;
     private final CacheService cacheService;
+    private final UserMapper userMapper;
 
     @Override
     public List<News> listDesc() {
@@ -41,6 +47,34 @@ public class NewsServiceImpl extends ServiceImpl<NewsMapper, News> implements Ne
             cacheService.cacheNews(id, news);
         }
         return news;
+    }
+
+    @Override
+    public NewsVO getNewsVOById(Long id) {
+        News news = getById(id);
+        if (news == null) {
+            return null;
+        }
+        User author = userMapper.selectById(news.getAuthorId());
+        return NewsVO.fromNews(news, author);
+    }
+
+    @Override
+    public List<NewsVO> listDescVO() {
+        List<News> newsList = listDesc();
+        if (newsList.isEmpty()) {
+            return List.of();
+        }
+        // 批量获取作者信息
+        List<String> authorIds = newsList.stream()
+                .map(News::getAuthorId)
+                .distinct()
+                .collect(Collectors.toList());
+        Map<String, User> userMap = userMapper.selectBatchIds(authorIds).stream()
+                .collect(Collectors.toMap(User::getId, u -> u));
+        return newsList.stream()
+                .map(news -> NewsVO.fromNews(news, userMap.get(news.getAuthorId())))
+                .collect(Collectors.toList());
     }
 
     @Override

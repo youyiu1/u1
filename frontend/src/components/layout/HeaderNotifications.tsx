@@ -19,7 +19,7 @@ const formatTime = (time: string) => {
 
 export const HeaderNotifications: React.FC = () => {
   const { user } = useContext(AuthContext);
-  const { clearUnread } = useNotification();
+  const { clearUnread, refreshTrigger } = useNotification();
   const [showNotifications, setShowNotifications] = useState(false);
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [loading, setLoading] = useState(false);
@@ -28,7 +28,7 @@ export const HeaderNotifications: React.FC = () => {
   // 计算未读数
   const unreadCount = notifications.filter(n => !n.isRead).length;
 
-  // 页面加载时获取通知
+  // 页面加载时或触发刷新时获取通知
   useEffect(() => {
     if (!user?.id) return;
     const fetchNotifications = async () => {
@@ -40,7 +40,7 @@ export const HeaderNotifications: React.FC = () => {
       }
     };
     fetchNotifications();
-  }, [user?.id]);
+  }, [user?.id, refreshTrigger]);
 
   // 每次打开通知面板时刷新
   useEffect(() => {
@@ -94,6 +94,7 @@ export const HeaderNotifications: React.FC = () => {
               initial={{ opacity: 0, y: 10, scale: 0.95 }}
               animate={{ opacity: 1, y: 0, scale: 1 }}
               exit={{ opacity: 0, y: 10, scale: 0.95 }}
+              onClick={(e) => e.stopPropagation()}
               className="absolute right-0 mt-3 w-80 bg-white border border-hairline rounded-[32px] shadow-premium z-20 overflow-hidden"
             >
               <div className="p-6 border-b border-hairline flex items-center justify-between">

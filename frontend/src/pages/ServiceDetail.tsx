@@ -161,6 +161,7 @@ export default function ServiceDetail() {
       });
       setBookingSuccess(true);
       increaseUnread();
+      window.dispatchEvent(new Event('notification-created'));
     } catch (err: any) {
       alert(err.message || '预约失败');
     } finally {

@@ -6,6 +6,7 @@
 package com.neighborhood.app.controller;
 
 import com.neighborhood.app.entity.News;
+import com.neighborhood.app.entity.NewsVO;
 import com.neighborhood.app.entity.Comment;
 import com.neighborhood.app.service.NewsService;
 import com.neighborhood.app.common.Result;
@@ -20,11 +21,17 @@ public class NewsController {
     @Autowired
     private NewsService newsService;
 
+    /**
+     * 获取动态列表（带作者信息）
+     */
     @GetMapping("/list")
-    public Result<List<News>> list() {
-        return Result.ok(newsService.listDesc());
+    public Result<List<NewsVO>> list() {
+        return Result.ok(newsService.listDescVO());
     }
 
+    /**
+     * 创建动态
+     */
     @PostMapping("/create")
     public Result<Boolean> create(@RequestBody News news) {
         // 设置默认分类
@@ -34,9 +41,12 @@ public class NewsController {
         return Result.ok(newsService.save(news));
     }
 
+    /**
+     * 获取动态详情（带作者信息）
+     */
     @GetMapping("/{id}")
-    public Result<News> getById(@PathVariable Long id) {
-        return Result.ok(newsService.getById(id));
+    public Result<NewsVO> getById(@PathVariable Long id) {
+        return Result.ok(newsService.getNewsVOById(id));
     }
 
     @PostMapping("/{id}/like")

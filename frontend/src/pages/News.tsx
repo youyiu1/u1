@@ -112,7 +112,10 @@ export default function News() {
                 <div className="text-center py-16 text-muted">暂无动态</div>
               ) : (
                 posts.map((post) => {
-                  const author = post.author || { name: '匿名用户', avatar: '' };
+                  // 兼容后端 NewsVO 扁平结构和旧 author 对象结构
+                  const authorName = post.author?.name || post.authorName || '匿名用户';
+                  const authorAvatar = post.author?.avatar || post.authorAvatar || '';
+                  const postTime = post.time || post.createTime || '';
                   return (
                   <article
                     key={post.id}
@@ -124,15 +127,15 @@ export default function News() {
                         className="flex items-center gap-3 cursor-pointer group"
                         onClick={(e) => {
                           e.stopPropagation();
-                          navigate(`/profile/${author.name}`);
+                          navigate(`/profile/${authorName}`);
                         }}
                       >
-                        {author.avatar && (
-                        <img src={author.avatar} className="w-10 h-10 rounded-xl object-cover border border-hairline group-hover:border-primary transition-all" alt={author.name} />
+                        {authorAvatar && (
+                        <img src={authorAvatar} className="w-10 h-10 rounded-xl object-cover border border-hairline group-hover:border-primary transition-all" alt={authorName} />
                         )}
                         <div>
-                          <h4 className="text-sm font-bold text-ink group-hover:text-primary transition-colors">{author.name}</h4>
-                          <span className="text-[10px] text-muted font-bold block">{post.time} · {post.location}</span>
+                          <h4 className="text-sm font-bold text-ink group-hover:text-primary transition-colors">{authorName}</h4>
+                          <span className="text-[10px] text-muted font-bold block">{postTime} · {post.location}</span>
                         </div>
                       </div>
                       <div className="flex items-center gap-2" onClick={e => e.stopPropagation()}>

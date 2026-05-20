@@ -18,6 +18,7 @@ public class News {
     @TableId(type = IdType.ASSIGN_ID)
     private Long id;
     private String authorId;
+    private String title;      // 标题（可选，详情页显示）
     private String content;
     private String location;
     private String category;  // 分类：生活记录、同城发现、探店动态、邻里闲情、物业反馈

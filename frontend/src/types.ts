@@ -125,8 +125,16 @@ export interface Comment {
 
 export interface Post {
   id: string;
-  category?: string;  // 分类：生活记录、同城发现、探店动态、邻里闲情、物业反馈
-  author: {
+  title?: string;  // 标题
+  // 作者信息（后端 NewsVO 扁平返回）
+  authorId?: string;
+  authorName?: string;
+  authorAvatar?: string;
+  authorTag?: string;
+  authorVerified?: boolean;
+  authorFollowersCount?: number;
+  // 兼容旧结构：如果 author 对象存在则优先使用
+  author?: {
     id?: string;
     name: string;
     avatar: string;
@@ -136,9 +144,11 @@ export interface Post {
     followingCount?: number;
     isFollowing?: boolean;
   };
+  category?: string;
   content: string;
   images: string[];
-  time: string;
+  time?: string;
+  createTime?: string;  // 后端返回的创建时间
   location: string;
   likes: number;
   commentsCount: number;

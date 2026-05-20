@@ -17,6 +17,7 @@ import {
   CheckCircle2
 } from 'lucide-react';
 import { newsApi, marketApi } from '../../services/api';
+import { useAuth } from '../../context/AuthContext';
 
 const PUBLISH_OPTIONS = [
   {
@@ -60,6 +61,7 @@ interface PublishOverlayProps {
 }
 
 export const PublishOverlay: React.FC<PublishOverlayProps> = ({ isOpen, onClose, defaultSelectedId }) => {
+  const { user } = useAuth();
   const [selectedId, setSelectedId] = useState<string | null>(defaultSelectedId || null);
   const [title, setTitle] = useState('');
   const [price, setPrice] = useState('');
@@ -73,13 +75,13 @@ export const PublishOverlay: React.FC<PublishOverlayProps> = ({ isOpen, onClose,
   const selectedOption = PUBLISH_OPTIONS.find(o => o.id === selectedId);
 
   const handlePublish = async () => {
-    if (!selectedId || !canSubmit) return;
+    if (!selectedId || !canSubmit || !user) return;
 
     setIsSubmitting(true);
     try {
       if (selectedId === 'news') {
         await newsApi.create({
-          title: title,
+          title: title || content.substring(0, 30),  // 如果没填标题，用内容前30字
           content: content,
           category: newsType,
         });

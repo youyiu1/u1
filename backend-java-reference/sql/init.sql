@@ -53,6 +53,7 @@ DROP TABLE IF EXISTS t_news;
 CREATE TABLE t_news (
     id BIGINT PRIMARY KEY AUTO_INCREMENT COMMENT '动态ID',
     author_id VARCHAR(64) NOT NULL COMMENT '作者ID',
+    title VARCHAR(200) DEFAULT '' COMMENT '标题',
     content TEXT NOT NULL COMMENT '动态内容',
     location VARCHAR(100) DEFAULT '' COMMENT '位置',
     category VARCHAR(50) DEFAULT '生活记录' COMMENT '分类：生活记录、同城发现、探店动态、邻里闲情、物业反馈',

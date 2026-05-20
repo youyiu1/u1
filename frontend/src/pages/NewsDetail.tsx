@@ -28,6 +28,14 @@ export default function NewsDetail() {
   const [isBookmarked, setIsBookmarked] = useState(false);
   const [isLoadingMore, setIsLoadingMore] = useState(false);
 
+  // 兼容后端 NewsVO 扁平结构和旧 author 对象结构
+  const authorName = post?.author?.name || post?.authorName || '';
+  const authorAvatar = post?.author?.avatar || post?.authorAvatar || '';
+  const authorVerified = post?.author?.verified ?? post?.authorVerified ?? false;
+  const authorTag = post?.author?.tag || post?.authorTag || '';
+  const authorFollowersCount = post?.author?.followersCount ?? post?.authorFollowersCount;
+  const postTime = post?.time || post?.createTime || '';
+
   useEffect(() => {
     const fetchPost = async () => {
       try {
@@ -128,12 +136,12 @@ export default function NewsDetail() {
             <div className="flex items-center justify-between mb-10">
               <div
                 className="flex items-center gap-5 cursor-pointer group"
-                onClick={() => navigate(`/profile/${post.author.name}`)}
+                onClick={() => navigate(`/profile/${authorName}`)}
               >
                 <div className="relative">
                   <div className="absolute inset-0 bg-primary/20 blur-xl opacity-0 group-hover:opacity-100 transition-opacity rounded-full" />
-                  <img src={post.author.avatar || undefined} className="w-16 h-16 rounded-2xl border border-hairline object-cover relative z-10 group-hover:scale-105 transition-transform duration-500" alt="Avatar" />
-                  {post.author.verified && (
+                  <img src={authorAvatar || undefined} className="w-16 h-16 rounded-2xl border border-hairline object-cover relative z-10 group-hover:scale-105 transition-transform duration-500" alt="Avatar" />
+                  {authorVerified && (
                     <div className="absolute -bottom-1 -right-1 bg-primary text-white rounded-lg p-1 border-2 border-white shadow-lg z-20">
                       <Plus className="w-3 h-3 rotate-45" />
                     </div>
@@ -141,11 +149,13 @@ export default function NewsDetail() {
                 </div>
                 <div>
                   <div className="flex items-center gap-3">
-                    <span className="text-xl font-black text-ink group-hover:text-primary transition-colors tracking-tight">{post.author.name}</span>
-                    <span className="px-2.5 py-1 bg-primary/5 text-primary text-[10px] font-black rounded-lg border border-primary/10 uppercase tracking-widest">{post.author.tag}</span>
+                    <span className="text-xl font-black text-ink group-hover:text-primary transition-colors tracking-tight">{authorName}</span>
+                    {authorTag && (
+                      <span className="px-2.5 py-1 bg-primary/5 text-primary text-[10px] font-black rounded-lg border border-primary/10 uppercase tracking-widest">{authorTag}</span>
+                    )}
                   </div>
                   <div className="flex items-center gap-3 mt-1.5">
-                    <span className="text-xs text-muted font-bold">{post.time}</span>
+                    <span className="text-xs text-muted font-bold">{postTime}</span>
                     <div className="w-1 h-1 bg-hairline rounded-full" />
                     <div className="flex items-center gap-1.5 text-primary/80">
                       <MapPin className="w-3 h-3" />
@@ -162,6 +172,11 @@ export default function NewsDetail() {
             </div>
 
             <div className="space-y-10 mb-10">
+              {post.title && (
+                <h1 className="text-2xl md:text-3xl font-black text-ink tracking-tight leading-tight">
+                  {post.title}
+                </h1>
+              )}
               <div className="relative">
                 <div className="absolute -left-6 top-0 bottom-0 w-1 bg-primary/20 rounded-full opacity-50" />
                 <p className="text-ink text-xl md:text-2xl leading-[1.6] font-medium tracking-tight">
