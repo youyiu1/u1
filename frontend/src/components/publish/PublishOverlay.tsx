@@ -69,6 +69,7 @@ export const PublishOverlay: React.FC<PublishOverlayProps> = ({ isOpen, onClose,
   const [condition, setCondition] = useState('全新');
   const [newsType, setNewsType] = useState('生活记录');
   const [content, setContent] = useState('');
+  const [images, setImages] = useState<string[]>([]);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isSuccess, setIsSuccess] = useState(false);
 
@@ -126,6 +127,7 @@ export const PublishOverlay: React.FC<PublishOverlayProps> = ({ isOpen, onClose,
     setCondition('全新');
     setNewsType('生活记录');
     setContent('');
+    setImages([]);
     setIsSuccess(false);
   };
 
@@ -346,13 +348,28 @@ export const PublishOverlay: React.FC<PublishOverlayProps> = ({ isOpen, onClose,
 
                        <div className="flex items-center justify-between gap-4">
                           <div className="flex items-center gap-2">
-                             <button className="p-4 bg-stone-50 rounded-2xl border border-hairline hover:bg-stone-100 transition-colors text-secondary">
-                                <Camera className="w-5 h-5" />
-                             </button>
-                             <div className="flex flex-col">
-                               <span className="text-[10px] font-black text-muted uppercase tracking-widest">添加图片</span>
-                               <span className="text-[9px] text-muted opacity-50 font-bold">最多 9 张</span>
-                             </div>
+                            <input
+                              type="file"
+                              accept="image/*"
+                              multiple
+                              className="hidden"
+                              id="image-upload"
+                              onChange={(e) => {
+                                const files = e.target.files;
+                                if (files) {
+                                  const newImages = Array.from(files).map((f: File) => URL.createObjectURL(f));
+                                  setImages(prev => [...prev, ...newImages].slice(0, 9));
+                                }
+                                e.target.value = '';
+                              }}
+                            />
+                            <label htmlFor="image-upload" className="p-4 bg-stone-50 rounded-2xl border border-hairline hover:bg-stone-100 transition-colors text-secondary cursor-pointer">
+                               <Camera className="w-5 h-5" />
+                            </label>
+                            <div className="flex flex-col">
+                              <span className="text-[10px] font-black text-muted uppercase tracking-widest">添加图片</span>
+                              <span className="text-[9px] text-muted opacity-50 font-bold">{images.length}/9 张</span>
+                            </div>
                           </div>
 
                           <motion.button 
