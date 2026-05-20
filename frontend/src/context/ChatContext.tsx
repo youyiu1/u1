@@ -1,6 +1,6 @@
 import React, { createContext, useContext, useState, useCallback, useEffect, ReactNode } from 'react';
 import { Message, ChatPartner } from '../types';
-import { chatApi } from '../services/api';
+import { chatApi, userApi } from '../services/api';
 import { useAuth } from './AuthContext';
 import { getToken } from '../services/api';
 
@@ -57,11 +57,12 @@ export const ChatProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   const refreshConversations = useCallback(async () => {
     if (!user?.id) return;
     try {
-      const partners = await chatApi.getConversations();
+      const allMessages = await chatApi.getConversations();
       const conversationMap = new Map<string, { partner: ChatPartner; lastMsg: Message; unread: number }>();
 
-      partners.forEach((msg: Message) => {
+      allMessages.forEach((msg: Message) => {
         const partnerId = msg.senderId === user.id ? msg.receiverId : msg.senderId;
+        if (!partnerId) return;
         const existing = conversationMap.get(partnerId);
         if (!existing || new Date(msg.createTime) > new Date(existing.lastMsg.createTime)) {
           const isUnread = msg.receiverId === user.id && !msg.isRead;
@@ -75,12 +76,21 @@ export const ChatProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         }
       });
 
+      // 获取每个伙伴的用户信息
       const partnerList: ChatPartner[] = [];
       const unreadMap: Record<string, number> = {};
-      conversationMap.forEach((conv, pid) => {
+      for (const conv of conversationMap.values()) {
+        try {
+          const partnerUser = await userApi.getUser(conv.partner.id);
+          conv.partner.name = partnerUser.name;
+          conv.partner.avatar = partnerUser.avatar;
+          conv.partner.lastMessage = conv.lastMsg.content;
+        } catch (e) {
+          console.error('Failed to get partner info:', e);
+        }
         partnerList.push(conv.partner);
-        unreadMap[pid] = conv.unread;
-      });
+        unreadMap[conv.partner.id] = conv.unread;
+      }
 
       setPartners(partnerList);
       setUnreadMessages(unreadMap);
