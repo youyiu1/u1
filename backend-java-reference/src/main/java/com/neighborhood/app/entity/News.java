@@ -20,6 +20,7 @@ public class News {
     private String authorId;
     private String content;
     private String location;
+    private String category;  // 分类：生活记录、同城发现、探店动态、邻里闲情、物业反馈
     private Integer likes;
     private Integer commentsCount;
     private List<String> images;

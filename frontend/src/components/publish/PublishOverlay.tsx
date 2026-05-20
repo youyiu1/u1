@@ -5,17 +5,18 @@
 
 import React, { useState, useMemo } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { 
-  ShoppingBag, 
-  MessageSquare, 
-  HandHelping, 
-  Camera, 
+import {
+  ShoppingBag,
+  MessageSquare,
+  HandHelping,
+  Camera,
   X,
   ArrowRight,
   ChevronLeft,
   Send,
   CheckCircle2
 } from 'lucide-react';
+import { newsApi, marketApi } from '../../services/api';
 
 const PUBLISH_OPTIONS = [
   {
@@ -71,17 +72,35 @@ export const PublishOverlay: React.FC<PublishOverlayProps> = ({ isOpen, onClose,
 
   const selectedOption = PUBLISH_OPTIONS.find(o => o.id === selectedId);
 
-  const handlePublish = () => {
+  const handlePublish = async () => {
+    if (!selectedId || !canSubmit) return;
+
     setIsSubmitting(true);
-    // Simulate API call
-    setTimeout(() => {
-      setIsSubmitting(false);
+    try {
+      if (selectedId === 'news') {
+        await newsApi.create({
+          title: title,
+          content: content,
+          category: newsType,
+        });
+      } else if (selectedId === 'market') {
+        await marketApi.create({
+          title,
+          price: Number(price),
+          condition,
+          description: content,
+        } as any);
+      }
+      // 其他类型暂时模拟成功
       setIsSuccess(true);
       setTimeout(() => {
         handleReset();
         onClose();
       }, 2000);
-    }, 1500);
+    } catch (err) {
+      console.error('发布失败', err);
+      setIsSubmitting(false);
+    }
   };
 
   const handleReset = () => {

@@ -27,6 +27,10 @@ public class NewsController {
 
     @PostMapping("/create")
     public Result<Boolean> create(@RequestBody News news) {
+        // 设置默认分类
+        if (news.getCategory() == null || news.getCategory().isEmpty()) {
+            news.setCategory("生活记录");
+        }
         return Result.ok(newsService.save(news));
     }
 

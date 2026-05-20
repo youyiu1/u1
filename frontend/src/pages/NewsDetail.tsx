@@ -186,7 +186,12 @@ export default function NewsDetail() {
             </div>
 
             <div className="flex flex-wrap gap-2 mb-10">
-               {['生活记录', '同城发现', '探店记录'].map(tag => (
+               {post.category && (
+                 <span className="px-4 py-2 bg-primary/5 border border-primary/10 rounded-xl text-[10px] font-bold text-primary uppercase tracking-widest">
+                    # {post.category}
+                 </span>
+               )}
+               {['生活记录', '同城发现', '探店动态', '邻里闲情', '物业反馈'].filter(tag => tag !== post.category).map(tag => (
                  <span key={tag} className="px-4 py-2 bg-stone-50 border border-hairline rounded-xl text-[10px] font-bold text-secondary hover:bg-white hover:border-primary/30 cursor-pointer transition-all">
                     # {tag}
                  </span>

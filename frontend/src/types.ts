@@ -125,6 +125,7 @@ export interface Comment {
 
 export interface Post {
   id: string;
+  category?: string;  // 分类：生活记录、同城发现、探店动态、邻里闲情、物业反馈
   author: {
     id?: string;
     name: string;

@@ -55,6 +55,7 @@ CREATE TABLE t_news (
     author_id VARCHAR(64) NOT NULL COMMENT '作者ID',
     content TEXT NOT NULL COMMENT '动态内容',
     location VARCHAR(100) DEFAULT '' COMMENT '位置',
+    category VARCHAR(50) DEFAULT '生活记录' COMMENT '分类：生活记录、同城发现、探店动态、邻里闲情、物业反馈',
     likes INT DEFAULT 0 COMMENT '点赞数',
     comments_count INT DEFAULT 0 COMMENT '评论数',
     images JSON COMMENT '图片列表(JSON)',
@@ -64,7 +65,8 @@ CREATE TABLE t_news (
     update_time DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
     INDEX idx_author (author_id),
     INDEX idx_create_time (create_time DESC),
-    INDEX idx_likes (likes DESC)
+    INDEX idx_likes (likes DESC),
+    INDEX idx_category (category)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='社区动态表';
 
 -- ================================================
@@ -182,9 +184,9 @@ INSERT INTO t_user (id, name, email, password, avatar, tag, is_verified, followe
 ('u003', '小林', 'photo_xiaolin@example.com', '123456', 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?auto=format&fit=crop&q=80&w=200', '摄影达人', 0, 850, 412);
 
 -- 插入测试动态
-INSERT INTO t_news (author_id, content, location, likes, comments_count, images, shares, collections) VALUES
-('u001', '今天在小区门口发现了一家新开的花店，品种好齐全，老板人也特别好！强烈推荐给各位邻居~ 🌸🌷', '金地格林世界', 24, 6, '["https://images.unsplash.com/photo-1526047932273-341f2a7631f9?auto=format&fit=crop&q=80&w=800"]', 2, 5),
-('u002', '有人在公园看到一只走失的柯基吗？邻居家的狗跑丢了，大家帮忙关注下，特征是背部有一块深色花纹。', '滨江公园', 86, 15, '[]', 12, 8);
+INSERT INTO t_news (author_id, content, location, category, likes, comments_count, images, shares, collections) VALUES
+('u001', '今天在小区门口发现了一家新开的花店，品种好齐全，老板人也特别好！强烈推荐给各位邻居~ 🌸🌷', '金地格林世界', '同城发现', 24, 6, '["https://images.unsplash.com/photo-1526047932273-341f2a7631f9?auto=format&fit=crop&q=80&w=800"]', 2, 5),
+('u002', '有人在公园看到一只走失的柯基吗？邻居家的狗跑丢了，大家帮忙关注下，特征是背部有一块深色花纹。', '滨江公园', '邻里闲情', 86, 15, '[]', 12, 8);
 
 -- 插入测试服务
 INSERT INTO t_service (title, description, category, price, image, seller_id, rating, reviews, distance, unit, highlights) VALUES

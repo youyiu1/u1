@@ -109,7 +109,7 @@ export const newsApi = {
 
   get: (id: number) => request<Post>(`/news/${id}`),
 
-  create: (post: Partial<Post>) =>
+  create: (post: { title: string; content: string; category: string; images?: string[]; location?: string }) =>
     request<boolean>('/news/create', {
       method: 'POST',
       body: JSON.stringify(post),
