@@ -32,7 +32,8 @@
       "Bash(git *)",
       "Bash(npx tsc *)",
       "Bash(powershell *)",
-      "Bash(mvn spring-boot:run)"
+      "Bash(mvn spring-boot:run)",
+      "Bash(findstr :8080)"
     ]
   }
 }
