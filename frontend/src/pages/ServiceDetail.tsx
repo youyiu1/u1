@@ -149,6 +149,7 @@ export default function ServiceDetail() {
       navigate('/login');
       return;
     }
+    setShowConfirm(false);
     setIsBooking(true);
     try {
       await serviceApi.book({
