@@ -206,7 +206,7 @@ export default function NewsDetail() {
                     # {post.category}
                  </span>
                )}
-               {['生活记录', '同城发现', '探店动态', '邻里闲情', '物业反馈'].filter(tag => tag !== post.category).map(tag => (
+               {['生活记录', '同城发现', '探店动态', '邻里闲情', '物业反馈', '寻求帮助', '随手拍'].filter(tag => tag !== post.category).map(tag => (
                  <span key={tag} className="px-4 py-2 bg-stone-50 border border-hairline rounded-xl text-[10px] font-bold text-secondary hover:bg-white hover:border-primary/30 cursor-pointer transition-all">
                     # {tag}
                  </span>

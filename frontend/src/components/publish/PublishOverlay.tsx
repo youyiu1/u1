@@ -81,7 +81,7 @@ export const PublishOverlay: React.FC<PublishOverlayProps> = ({ isOpen, onClose,
     try {
       if (selectedId === 'news') {
         await newsApi.create({
-          title: title || content.substring(0, 30),  // 如果没填标题，用内容前30字
+          title: title || content.substring(0, 30),
           content: content,
           category: newsType,
         });
@@ -93,11 +93,20 @@ export const PublishOverlay: React.FC<PublishOverlayProps> = ({ isOpen, onClose,
           description: content,
         } as any);
       } else if (selectedId === 'help') {
-        // 寻求帮助暂时模拟成功
+        // 寻求帮助 - 作为同城动态发布
+        await newsApi.create({
+          title: title || content.substring(0, 30),
+          content: content,
+          category: '寻求帮助',
+        });
       } else if (selectedId === 'snap') {
-        // 随手拍暂时模拟成功
+        // 随手拍 - 作为同城动态发布
+        await newsApi.create({
+          title: title || content.substring(0, 30),
+          content: content,
+          category: '随手拍',
+        });
       }
-      // 其他类型暂时模拟成功
       setIsSuccess(true);
       setTimeout(() => {
         handleReset();
