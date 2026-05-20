@@ -28,7 +28,9 @@
       "Bash(tasklist)",
       "Bash(mvn clean *)",
       "Bash(git -C \"D:\\\\下载文件\\\\同城生活\" add -A)",
-      "Bash(git -C \"D:\\\\下载文件\\\\同城生活\" status)"
+      "Bash(git -C \"D:\\\\下载文件\\\\同城生活\" status)",
+      "Bash(git *)",
+      "Bash(npx tsc *)"
     ]
   }
 }
