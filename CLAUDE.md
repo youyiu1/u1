@@ -39,21 +39,27 @@ mvn spring-boot:run  # 本地运行
 
 ### 后端结构
 标准 Spring Boot 分层架构，位于 `src/main/java/com/neighborhood/app/`：
-- `controller/` - REST 控制器（Home、Market、News、Service、User）
-- `service/` - 业务逻辑层
+- `controller/` - REST 控制器（Home、Market、News、Service、User、Notification、Category、Search、Message）
+- `service/` - 业务逻辑层（包含 impl 实现类）
 - `mapper/` - MyBatis 数据访问接口
-- `entity/` - 数据库表模型（Comment、Follow、MarketItem、News、ServiceEntity、User）
-- `common/` - 通用响应封装（Result/ResultCode）
+- `entity/` - 数据库表模型（User、MarketItem、News、ServiceEntity、Comment、Follow、Notification、Booking、Message、Category、SearchResult、UserVO、AuthResponse）
+- `common/` - 通用响应封装（Result/ResultCode/ResultUtils）
+- `config/` - 配置类（RedisConfig、WebConfig、JacksonConfig）
+- `interceptor/` - 拦截器（AuthInterceptor）
+- `util/` - 工具类（JwtUtil、StringUtils）
 
 ### API 设计
 后端运行在 8080 端口。响应数据统一使用 `Result<T>` 封装，包含状态码。
 
 ### 数据库
-使用 MySQL + MyBatis-Plus ORM。SQL 脚本位于 `backend-java-reference/sql/schema.sql`。
+使用 MySQL + MyBatis-Plus ORM。SQL 脚本位于 `backend-java-reference/sql/`：
+- `schema.sql` - 表结构定义
+- `init.sql` - 初始化数据
 
-## 代码修改
+## 重要规则
 
-所有代码修改后必须提交到 Git 仓库。
+**每次完成任务用中文提交到git**
+**每次添加接口，接口添加中文注释**
 
 ## 配置说明
 
