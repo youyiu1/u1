@@ -10,6 +10,7 @@ import com.neighborhood.app.entity.NewsVO;
 import com.neighborhood.app.entity.Comment;
 import com.neighborhood.app.service.NewsService;
 import com.neighborhood.app.common.Result;
+import jakarta.servlet.http.HttpServletRequest;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
 import java.util.List;
@@ -30,10 +31,15 @@ public class NewsController {
     }
 
     /**
-     * 创建动态
+     * 创建动态 - 需要登录，自动设置authorId
      */
     @PostMapping("/create")
-    public Result<Boolean> create(@RequestBody News news) {
+    public Result<Boolean> create(@RequestBody News news, HttpServletRequest request) {
+        // 从request属性获取登录用户ID（AuthInterceptor设置）
+        String userId = (String) request.getAttribute("userId");
+        if (userId != null) {
+            news.setAuthorId(userId);
+        }
         // 设置默认分类
         if (news.getCategory() == null || news.getCategory().isEmpty()) {
             news.setCategory("生活记录");
