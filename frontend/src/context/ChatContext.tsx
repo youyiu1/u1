@@ -1,5 +1,8 @@
-import React, { createContext, useContext, useState, ReactNode } from 'react';
+import React, { createContext, useContext, useState, useCallback, useEffect, ReactNode } from 'react';
 import { Message, ChatPartner } from '../types';
+import { chatApi } from '../services/api';
+import { useAuth } from './AuthContext';
+import { getToken } from '../services/api';
 
 interface ChatContextType {
   isChatOpen: boolean;
@@ -7,67 +10,133 @@ interface ChatContextType {
   closeChat: () => void;
   activePartner: ChatPartner | null;
   partners: ChatPartner[];
-  messages: Record<string, Message[]>; // Key is partner ID
+  messages: Record<string, Message[]>;
   sendMessage: (partnerId: string, text: string) => void;
+  unreadCount: number;
+  unreadMessages: Record<string, number>;
+  markChatRead: (partnerId: string) => void;
+  refreshConversations: () => void;
 }
 
 const ChatContext = createContext<ChatContextType | undefined>(undefined);
 
 export const ChatProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
+  const { user } = useAuth();
   const [isChatOpen, setIsChatOpen] = useState(false);
   const [activePartner, setActivePartner] = useState<ChatPartner | null>(null);
-  
-  // Mock partners data
-  const [partners] = useState<ChatPartner[]>([
-    { id: '1', name: '王阿姨', avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=wang', lastMessage: '那件衣服还有吗？', isOnline: true },
-    { id: '2', name: '小李', avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=li', lastMessage: '谢谢你的帮助！', isOnline: false },
-    { id: '3', name: '装修张师傅', avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=zhang', lastMessage: '明天上门可以吗？', isOnline: true },
-  ]);
+  const [partners, setPartners] = useState<ChatPartner[]>([]);
+  const [messages, setMessages] = useState<Record<string, Message[]>>({});
+  const [unreadMessages, setUnreadMessages] = useState<Record<string, number>>({});
 
-  const [messages, setMessages] = useState<Record<string, Message[]>>({
-    '1': [
-      { id: 'm1', senderId: '1', text: '你好，请问那件自拍相机还在吗？', timestamp: '10:30' },
-      { id: 'm2', senderId: 'me', text: '你好，还在的。', timestamp: '10:32' },
-    ]
-  });
+  // 计算总未读数
+  const unreadCount = Object.values(unreadMessages).reduce((a: number, b: number) => a + b, 0);
 
-  const openChat = (partner?: ChatPartner) => {
+  // 加载指定对话
+  const loadConversation = useCallback(async (partnerId: string) => {
+    if (!user?.id) return;
+    try {
+      const msgs = await chatApi.getConversation(partnerId);
+      setMessages(prev => ({ ...prev, [partnerId]: msgs }));
+    } catch (err) {
+      console.error('Failed to load conversation:', err);
+    }
+  }, [user?.id]);
+
+  // 标记会话已读
+  const markChatRead = useCallback(async (partnerId: string) => {
+    if (!user?.id) return;
+    try {
+      await chatApi.markConversationRead(partnerId);
+      setUnreadMessages(prev => ({ ...prev, [partnerId]: 0 }));
+    } catch (err) {
+      console.error('Failed to mark read:', err);
+    }
+  }, [user?.id]);
+
+  // 加载会话列表
+  const refreshConversations = useCallback(async () => {
+    if (!user?.id) return;
+    try {
+      const partners = await chatApi.getConversations();
+      const conversationMap = new Map<string, { partner: ChatPartner; lastMsg: Message; unread: number }>();
+
+      partners.forEach((msg: Message) => {
+        const partnerId = msg.senderId === user.id ? msg.receiverId : msg.senderId;
+        const existing = conversationMap.get(partnerId);
+        if (!existing || new Date(msg.createTime) > new Date(existing.lastMsg.createTime)) {
+          const isUnread = msg.receiverId === user.id && !msg.isRead;
+          conversationMap.set(partnerId, {
+            partner: { id: partnerId, name: '', avatar: '' },
+            lastMsg: msg,
+            unread: isUnread ? 1 : 0,
+          });
+        } else if (msg.receiverId === user.id && !msg.isRead) {
+          existing.unread += 1;
+        }
+      });
+
+      const partnerList: ChatPartner[] = [];
+      const unreadMap: Record<string, number> = {};
+      conversationMap.forEach((conv, pid) => {
+        partnerList.push(conv.partner);
+        unreadMap[pid] = conv.unread;
+      });
+
+      setPartners(partnerList);
+      setUnreadMessages(unreadMap);
+    } catch (err) {
+      console.error('Failed to load conversations:', err);
+    }
+  }, [user?.id]);
+
+  // 打开聊天
+  const openChat = useCallback((partner?: ChatPartner) => {
+    if (!getToken()) return; // 未登录不打开聊天
     if (partner) {
       setActivePartner(partner);
-    } else if (!activePartner && partners.length > 0) {
-      setActivePartner(partners[0]);
+      markChatRead(partner.id);
+      setIsChatOpen(true);
+      loadConversation(partner.id);
+    } else if (partners.length > 0) {
+      // 无参数时自动选择第一个会话
+      const firstPartner = partners[0];
+      setActivePartner(firstPartner);
+      markChatRead(firstPartner.id);
+      setIsChatOpen(true);
+      loadConversation(firstPartner.id);
+    } else {
+      setIsChatOpen(true);
     }
-    setIsChatOpen(true);
-  };
+  }, [partners, markChatRead, loadConversation]);
 
   const closeChat = () => setIsChatOpen(false);
 
-  const sendMessage = (partnerId: string, text: string) => {
-    const newMessage: Message = {
-      id: Date.now().toString(),
-      senderId: 'me',
-      text,
-      timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-    };
+  // 初始加载会话列表（仅当用户已登录且有token时）
+  useEffect(() => {
+    if (user?.id && getToken()) {
+      refreshConversations();
+    }
+  }, [user?.id, refreshConversations]);
 
-    setMessages(prev => ({
-      ...prev,
-      [partnerId]: [...(prev[partnerId] || []), newMessage]
-    }));
+  // 当 activePartner 改变时加载对话
+  useEffect(() => {
+    if (activePartner && isChatOpen && getToken()) {
+      loadConversation(activePartner.id);
+    }
+  }, [activePartner, isChatOpen, loadConversation]);
 
-    // Mock auto-reply
-    setTimeout(() => {
-      const reply: Message = {
-        id: (Date.now() + 1).toString(),
-        senderId: partnerId,
-        text: '收到，由于是演示环境，我会假装在回复你。😉',
-        timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-      };
+  const sendMessage = async (partnerId: string, text: string) => {
+    if (!user?.id) return;
+    try {
+      const newMsg = await chatApi.sendMessage(partnerId, text);
       setMessages(prev => ({
         ...prev,
-        [partnerId]: [...(prev[partnerId] || []), reply]
+        [partnerId]: [...(prev[partnerId] || []), newMsg]
       }));
-    }, 1500);
+      refreshConversations();
+    } catch (err) {
+      console.error('Failed to send message:', err);
+    }
   };
 
   return (
@@ -78,7 +147,11 @@ export const ChatProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       activePartner,
       partners,
       messages,
-      sendMessage
+      sendMessage,
+      unreadCount,
+      unreadMessages,
+      markChatRead,
+      refreshConversations,
     }}>
       {children}
     </ChatContext.Provider>

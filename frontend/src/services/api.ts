@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import { User, Service, ServiceDetail, Item, Post, Comment, Notification, Category, Review } from '../types';
+import { User, Service, ServiceDetail, Item, Post, Comment, Notification, Category, Review, Message } from '../types';
 
 const BASE_URL = '/api';
 
@@ -183,7 +183,7 @@ export const notificationApi = {
 
 // 消息相关
 export const chatApi = {
-  getConversations: () => request<ChatPartner[]>('/message/conversations'),
+  getConversations: () => request<Message[]>('/message/conversations'),
   getConversation: (partnerId: string) => request<Message[]>(`/message/conversation/${partnerId}`),
   sendMessage: (receiverId: string, content: string) =>
     request<Message>('/message/send', {

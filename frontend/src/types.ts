@@ -76,7 +76,7 @@ export interface Seller {
   isFollowing?: boolean;
 }
 
-export interface ServiceDetail extends Service {
+export interface ServiceDetail extends Omit<Service, 'seller'> {
   seller: ServiceSeller;
 }
 
