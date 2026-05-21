@@ -117,31 +117,41 @@ export const ChatOverlay: React.FC = () => {
 
             {/* Contact List */}
             <div className="flex-1 overflow-y-auto no-scrollbar p-2 space-y-1">
-              {partners.map(p => (
-                <button
-                  key={p.id}
-                  onClick={() => handleSelectContact(p)}
-                  className="w-full flex items-center gap-4 p-4 rounded-3xl transition-all hover:bg-stone-50"
-                >
-                  <div className="relative">
-                    <img src={p.avatar || undefined} className="w-12 h-12 rounded-2xl object-cover border border-hairline" alt="" />
-                    {p.isOnline && (
-                      <div className="absolute -bottom-1 -right-1 w-4 h-4 bg-green-500 border-2 border-white rounded-full" />
+              {partners.length === 0 ? (
+                <div className="flex flex-col items-center justify-center h-full text-center px-6 py-12">
+                  <div className="w-16 h-16 bg-surface-soft rounded-full flex items-center justify-center mb-4">
+                    <MessageSquare className="w-8 h-8 text-muted" />
+                  </div>
+                  <p className="text-sm font-black text-ink mb-1">暂无消息</p>
+                  <p className="text-[11px] text-muted font-medium">点击沟通按钮即可开始对话</p>
+                </div>
+              ) : (
+                partners.map(p => (
+                  <button
+                    key={p.id}
+                    onClick={() => handleSelectContact(p)}
+                    className="w-full flex items-center gap-4 p-4 rounded-3xl transition-all hover:bg-stone-50"
+                  >
+                    <div className="relative">
+                      <img src={p.avatar || undefined} className="w-12 h-12 rounded-2xl object-cover border border-hairline" alt="" />
+                      {p.isOnline && (
+                        <div className="absolute -bottom-1 -right-1 w-4 h-4 bg-green-500 border-2 border-white rounded-full" />
+                      )}
+                    </div>
+                    <div className="text-left flex-1 min-w-0">
+                      <p className="text-sm font-black truncate">{p.name}</p>
+                      <p className="text-[10px] text-muted font-medium truncate mt-0.5">
+                        {p.lastMessage}
+                      </p>
+                    </div>
+                    {unreadMessages[p.id] > 0 && (
+                      <span className="w-5 h-5 bg-accent-green text-white text-[10px] flex items-center justify-center rounded-full font-bold">
+                        {unreadMessages[p.id]}
+                      </span>
                     )}
-                  </div>
-                  <div className="text-left flex-1 min-w-0">
-                    <p className="text-sm font-black truncate">{p.name}</p>
-                    <p className="text-[10px] text-muted font-medium truncate mt-0.5">
-                      {p.lastMessage}
-                    </p>
-                  </div>
-                  {unreadMessages[p.id] > 0 && (
-                    <span className="w-5 h-5 bg-accent-green text-white text-[10px] flex items-center justify-center rounded-full font-bold">
-                      {unreadMessages[p.id]}
-                    </span>
-                  )}
-                </button>
-              ))}
+                  </button>
+                ))
+              )}
             </div>
           </>
         ) : (
