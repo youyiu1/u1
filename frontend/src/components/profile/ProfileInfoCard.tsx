@@ -12,13 +12,15 @@ interface ProfileInfoCardProps {
     isFollowing: boolean;
   };
   handleFollowChange: (isFollowing: boolean) => void;
+  isOwnProfile?: boolean;
 }
 
-export const ProfileInfoCard: React.FC<ProfileInfoCardProps> = ({ 
-  userData, 
-  username, 
-  stats, 
-  handleFollowChange 
+export const ProfileInfoCard: React.FC<ProfileInfoCardProps> = ({
+  userData,
+  username,
+  stats,
+  handleFollowChange,
+  isOwnProfile = false
 }) => {
   const { openChat } = useChat();
 
@@ -46,24 +48,36 @@ export const ProfileInfoCard: React.FC<ProfileInfoCardProps> = ({
           </p>
 
           <div className="grid grid-cols-2 gap-3 mb-2 md:mb-6">
-            <FollowButton 
-              isFollowingInitial={stats.isFollowing} 
-              onFollowChange={handleFollowChange}
-              variant="primary"
-              className="w-full text-[11px] h-11 rounded-xl"
-            />
-            <button
-              onClick={() => openChat({
-                id: userData.id,
-                name: userData.name,
-                avatar: userData.avatar,
-                isOnline: true
-              })}
-              className="h-11 bg-surface-soft text-ink rounded-xl text-[11px] font-black border border-hairline hover:bg-hairline transition-colors flex items-center justify-center gap-1.5 uppercase tracking-widest"
-            >
-              <MessageCircle className="w-4 h-4" />
-              发消息
-            </button>
+            {!isOwnProfile && (
+              <>
+                <FollowButton
+                  isFollowingInitial={stats.isFollowing}
+                  onFollowChange={handleFollowChange}
+                  variant="primary"
+                  className="w-full text-[11px] h-11 rounded-xl"
+                />
+                <button
+                  onClick={() => openChat({
+                    id: userData.id,
+                    name: userData.name,
+                    avatar: userData.avatar,
+                    isOnline: true
+                  })}
+                  className="h-11 bg-surface-soft text-ink rounded-xl text-[11px] font-black border border-hairline hover:bg-hairline transition-colors flex items-center justify-center gap-1.5 uppercase tracking-widest"
+                >
+                  <MessageCircle className="w-4 h-4" />
+                  发消息
+                </button>
+              </>
+            )}
+            {isOwnProfile && (
+              <button
+                onClick={() => {}}
+                className="col-span-2 h-11 bg-primary text-white rounded-xl text-[11px] font-black hover:bg-primary-hover transition-colors flex items-center justify-center gap-1.5 uppercase tracking-widest"
+              >
+                编辑个人资料
+              </button>
+            )}
           </div>
         </div>
       </div>

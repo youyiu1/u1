@@ -70,11 +70,21 @@ export default function Profile() {
       try {
         let user;
         if (!paramUsername && getToken()) {
-          // 自己的个人中心 - 调用 /api/user/me（需登录）
           user = await userApi.getCurrentUser();
+          setStats({ followers: user.followersCount || 0, isFollowing: false });
         } else {
-          // 他人的主页 - 调用 /api/user/name/{name}（公开）
           user = await userApi.getUserByName(username);
+          // 检查关注状态
+          if (currentUser && user?.id) {
+            try {
+              const following = await userApi.isFollowing(currentUser.id, user.id);
+              setStats({ followers: user.followersCount || 0, isFollowing: following });
+            } catch {
+              setStats({ followers: user.followersCount || 0, isFollowing: false });
+            }
+          } else {
+            setStats({ followers: user.followersCount || 0, isFollowing: false });
+          }
         }
         setProfileUser(user);
 
@@ -94,15 +104,6 @@ export default function Profile() {
     };
     fetchProfileData();
   }, [username, currentUser, paramUsername]);
-
-  useEffect(() => {
-    if (profileUser) {
-      setStats({
-        followers: profileUser.followersCount || 0,
-        isFollowing: profileUser.isFollowing || false
-      });
-    }
-  }, [profileUser]);
 
   const handleFollowChange = async (isFollowing: boolean) => {
     if (!currentUser || !profileUser) return;
@@ -158,6 +159,7 @@ export default function Profile() {
             username={username || ''}
             stats={stats}
             handleFollowChange={handleFollowChange}
+            isOwnProfile={isOwnProfile}
           />
 
           <div className="flex-1 space-y-6 pb-0">
