@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { UserPlus, UserMinus, Check } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { useAuthCheck } from '../../context/useAuthCheck';
@@ -20,6 +20,11 @@ export const FollowButton: React.FC<FollowButtonProps> = ({
 }) => {
   const [isFollowing, setIsFollowing] = useState(isFollowingInitial);
   const { requireAuth } = useAuthCheck();
+
+  // 同步props变化
+  useEffect(() => {
+    setIsFollowing(isFollowingInitial);
+  }, [isFollowingInitial]);
 
   const handleToggle = (e: React.MouseEvent) => {
     e.preventDefault();
