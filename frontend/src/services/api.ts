@@ -120,6 +120,8 @@ export const userApi = {
 
   isFollowing: (followerId: string, followingId: string) =>
     request<boolean>(`/user/isfollowing?followerId=${followerId}&followingId=${followingId}`),
+
+  getFollowingList: (userId: string) => request<User[]>(`/user/${userId}/following`),
 };
 
 // 动态/帖子相关
@@ -217,12 +219,6 @@ export const chatApi = {
     }),
   markRead: (messageId: string) => request<boolean>(`/message/read/${messageId}`, { method: 'POST' }),
   markConversationRead: (partnerId: string) => request<boolean>(`/message/read-conversation/${partnerId}`, { method: 'POST' }),
-};
-
-// 用户相关
-export const userApi = {
-  // ... 已有方法
-  getFollowingList: (userId: string) => request<User[]>(`/user/${userId}/following`),
 };
 
 // 收藏相关
