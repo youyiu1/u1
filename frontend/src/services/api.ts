@@ -222,3 +222,20 @@ export const categoryApi = {
 export const searchApi = {
   all: (keyword: string) => request<{ services: Service[]; items: Item[]; posts: Post[] }>(`/search?keyword=${encodeURIComponent(keyword)}`),
 };
+
+// 文件上传
+export const fileApi = {
+  upload: (file: File) => {
+    const token = getToken();
+    const formData = new FormData();
+    formData.append('file', file);
+    return fetch(BASE_URL + '/file/upload', {
+      method: 'POST',
+      headers: token ? { 'Authorization': `Bearer ${token}` } : {},
+      body: formData,
+    }).then(res => res.json()).then(json => {
+      if (!json.success) throw new Error(json.message);
+      return json.data as string;
+    });
+  },
+};

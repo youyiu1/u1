@@ -16,7 +16,7 @@ import {
   Send,
   CheckCircle2
 } from 'lucide-react';
-import { newsApi, marketApi, serviceApi } from '../../services/api';
+import { newsApi, marketApi, serviceApi, fileApi } from '../../services/api';
 import { useAuth } from '../../context/AuthContext';
 
 const PUBLISH_OPTIONS = [
@@ -81,11 +81,26 @@ export const PublishOverlay: React.FC<PublishOverlayProps> = ({ isOpen, onClose,
 
     setIsSubmitting(true);
     try {
+      // 上传图片获取URLs
+      const uploadedUrls: string[] = [];
+      for (const img of images) {
+        if (img.startsWith('blob:')) {
+          const response = await fetch(img);
+          const blob = await response.blob();
+          const file = new File([blob], 'image.jpg', { type: blob.type });
+          const url = await fileApi.upload(file);
+          uploadedUrls.push(url);
+        } else {
+          uploadedUrls.push(img);
+        }
+      }
+
       if (selectedId === 'news') {
         await newsApi.create({
           title: title || content.substring(0, 30),
           content: content,
           category: newsType,
+          images: uploadedUrls,
         });
       } else if (selectedId === 'market') {
         await marketApi.create({
@@ -93,6 +108,8 @@ export const PublishOverlay: React.FC<PublishOverlayProps> = ({ isOpen, onClose,
           price: Number(price),
           itemCondition: condition,
           description: content,
+          image: uploadedUrls[0] || '',
+          images: uploadedUrls,
         } as any);
       } else if (selectedId === 'service') {
         // 个人互助 - 作为服务发布
@@ -102,6 +119,7 @@ export const PublishOverlay: React.FC<PublishOverlayProps> = ({ isOpen, onClose,
           description: content,
           category: serviceCategory,
           unit: serviceUnit,
+          image: uploadedUrls[0] || '',
         } as any);
       } else if (selectedId === 'snap') {
         // 随手拍 - 作为同城动态发布
@@ -109,6 +127,7 @@ export const PublishOverlay: React.FC<PublishOverlayProps> = ({ isOpen, onClose,
           title: title || content.substring(0, 30),
           content: content,
           category: '随手拍',
+          images: uploadedUrls,
         });
       }
       setIsSuccess(true);

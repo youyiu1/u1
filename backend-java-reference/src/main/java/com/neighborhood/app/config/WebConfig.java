@@ -1,16 +1,12 @@
-/**
- * @license
- * SPDX-License-Identifier: Apache-2.0
- */
-
 package com.neighborhood.app.config;
-
 import com.neighborhood.app.interceptor.AuthInterceptor;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.web.servlet.config.annotation.CorsRegistry;
 import org.springframework.web.servlet.config.annotation.InterceptorRegistry;
+import org.springframework.web.servlet.config.annotation.ResourceHandlerRegistry;
 import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
 
 @Slf4j
@@ -20,29 +16,20 @@ public class WebConfig implements WebMvcConfigurer {
 
     private final AuthInterceptor authInterceptor;
 
+    @Value("${file.upload-dir:uploads}")
+    private String uploadDir;
+
     @Override
     public void addInterceptors(InterceptorRegistry registry) {
         registry.addInterceptor(authInterceptor)
                 .addPathPatterns("/api/**")
-                .excludePathPatterns(
-                        "/api/user/register",
-                        "/api/user/login",
-                        "/api/user/send-code",
-                        "/api/user/name/**",
-                        "/api/home/**",
-                        "/api/news/list",
-                        "/api/news/{id}",
-                        "/api/news/{id}/comments",
-                        "/api/market/list",
-                        "/api/market/{id}",
-                        "/api/service/list",
-                        "/api/service/{id}",
-                        "/api/service/*/reviews",
-                        "/api/category/**",
-                        "/api/search",
-                        "/api/notification/**",
-                        "/api/user/{id}"
-                );
+                .order(0);
+    }
+
+    @Override
+    public void addResourceHandlers(ResourceHandlerRegistry registry) {
+        registry.addResourceHandler("/api/file/**")
+                .addResourceLocations("file:" + uploadDir + "/");
     }
 
     @Override
