@@ -4,7 +4,7 @@
  */
 
 import React from 'react';
-import { Link } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 import { Star } from 'lucide-react';
 import { motion } from 'motion/react';
 import { Service, Item } from '../../types';
@@ -17,6 +17,7 @@ interface CardProps {
 }
 
 export const GlobalCard: React.FC<CardProps> = ({ type, data }) => {
+  const navigate = useNavigate();
   const isService = type === 'service';
   const service = data as Service;
   const item = data as Item;
@@ -28,7 +29,7 @@ export const GlobalCard: React.FC<CardProps> = ({ type, data }) => {
       viewport={{ once: true }}
       className="group cursor-pointer"
     >
-      <Link to={`/${isService ? 'service' : 'item'}/${data.id}`}>
+      <div onClick={() => navigate(`/${isService ? 'service' : 'item'}/${data.id}`, { state: { from: '/' } })}>
         <div className="aspect-[4/5] overflow-hidden mb-6 relative rounded-[32px] bg-stone-100 shadow-inner group-hover:shadow-premium transition-all duration-700 ease-[0.16,1,0.3,1]">
           <img
             src={data.image || null}
@@ -73,7 +74,7 @@ export const GlobalCard: React.FC<CardProps> = ({ type, data }) => {
             )}
           </div>
         </div>
-      </Link>
+      </div>
     </motion.div>
   );
 };
