@@ -61,6 +61,7 @@ const SERVICE_CATEGORIES = [
   { value: 'repair', label: '家庭维修' },
   { value: 'pet', label: '宠物生活' },
   { value: 'sports', label: '运动私教' },
+  { value: 'other', label: '其他服务' },
 ];
 
 const MARKET_CATEGORIES = [
@@ -69,6 +70,7 @@ const MARKET_CATEGORIES = [
   { value: 'sports', label: '运动健身' },
   { value: 'pets', label: '宠物生活' },
   { value: 'market', label: '闲置交易' },
+  { value: 'other', label: '其他闲置' },
 ];
 
 interface PublishOverlayProps {
