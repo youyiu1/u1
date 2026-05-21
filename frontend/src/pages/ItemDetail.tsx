@@ -122,9 +122,10 @@ export default function ItemDetail() {
 
       <div className="max-w-[1280px] mx-auto px-6 md:px-12 py-8">
         <div className="hidden md:flex items-center gap-2 text-xs font-black text-muted mb-8 uppercase tracking-widest">
-          <Link to="/" className="hover:text-primary transition-colors">首页</Link>
-          <ChevronRight className="w-3 h-3" />
-          <Link to="/market" className="hover:text-primary transition-colors">闲置交易</Link>
+          <button onClick={() => navigate(fromProfile ? -1 : '/market')} className="hover:text-primary transition-colors">
+            <ChevronLeft className="w-4 h-4 inline mr-1" />
+            {fromProfile ? '返回' : '闲置交易'}
+          </button>
           <ChevronRight className="w-3 h-3" />
           <span className="text-ink">{item.title}</span>
         </div>

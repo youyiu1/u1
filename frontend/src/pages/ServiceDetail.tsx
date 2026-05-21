@@ -248,7 +248,7 @@ export default function ServiceDetail() {
       <div className="bg-white border-b border-hairline py-6 hidden md:block">
         <div className="max-w-[1200px] mx-auto px-6 flex items-center justify-between">
           <div className="flex items-center gap-3">
-             <button onClick={() => navigate(-1)} className="p-2 hover:bg-surface-soft rounded-xl transition-colors">
+             <button onClick={() => navigate(fromProfile ? -1 : '/service')} className="p-2 hover:bg-surface-soft rounded-xl transition-colors">
                <ChevronLeft className="w-6 h-6" />
              </button>
              <div className="flex items-center gap-2 text-xs font-black text-muted uppercase tracking-widest">
