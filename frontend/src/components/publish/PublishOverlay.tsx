@@ -16,7 +16,7 @@ import {
   Send,
   CheckCircle2
 } from 'lucide-react';
-import { newsApi, marketApi } from '../../services/api';
+import { newsApi, marketApi, serviceApi } from '../../services/api';
 import { useAuth } from '../../context/AuthContext';
 
 const PUBLISH_OPTIONS = [
@@ -37,9 +37,9 @@ const PUBLISH_OPTIONS = [
     lightColor: 'bg-accent-blue/10',
   },
   {
-    id: 'help',
-    title: '寻求帮助',
-    desc: '互助邻里，共同解决',
+    id: 'service',
+    title: '个人互助',
+    desc: '邻里互助，让服务流动',
     icon: <HandHelping className="w-8 h-8" />,
     color: 'bg-accent-green',
     lightColor: 'bg-accent-green/10',
@@ -65,7 +65,6 @@ export const PublishOverlay: React.FC<PublishOverlayProps> = ({ isOpen, onClose,
   const [selectedId, setSelectedId] = useState<string | null>(defaultSelectedId || null);
   const [title, setTitle] = useState('');
   const [price, setPrice] = useState('');
-  const [urgency, setUrgency] = useState<'normal' | 'urgent'>('normal');
   const [condition, setCondition] = useState('全新');
   const [newsType, setNewsType] = useState('生活记录');
   const [content, setContent] = useState('');
@@ -93,13 +92,14 @@ export const PublishOverlay: React.FC<PublishOverlayProps> = ({ isOpen, onClose,
           itemCondition: condition,
           description: content,
         } as any);
-      } else if (selectedId === 'help') {
-        // 寻求帮助 - 作为同城动态发布
-        await newsApi.create({
-          title: title || content.substring(0, 30),
-          content: content,
-          category: '寻求帮助',
-        });
+      } else if (selectedId === 'service') {
+        // 个人互助 - 作为服务发布
+        await serviceApi.create({
+          title,
+          price: Number(price),
+          description: content,
+          category: '个人互助',
+        } as any);
       } else if (selectedId === 'snap') {
         // 随手拍 - 作为同城动态发布
         await newsApi.create({
@@ -123,7 +123,6 @@ export const PublishOverlay: React.FC<PublishOverlayProps> = ({ isOpen, onClose,
     setSelectedId(null);
     setTitle('');
     setPrice('');
-    setUrgency('normal');
     setCondition('全新');
     setNewsType('生活记录');
     setContent('');
@@ -133,11 +132,12 @@ export const PublishOverlay: React.FC<PublishOverlayProps> = ({ isOpen, onClose,
 
   const canSubmit = useMemo(() => {
     if (!selectedId) return false;
-    if (selectedId === 'market') return title.trim() && price.trim() && content.trim();
-    if (selectedId === 'help') return title.trim() && content.trim();
-    if (selectedId === 'news') return title.trim() && content.trim();
-    return content.trim();
-  }, [selectedId, title, price, content]);
+    if (selectedId === 'market') return title.trim() && price.trim() && content.trim() && images.length > 0;
+    if (selectedId === 'service') return title.trim() && price.trim() && content.trim();
+    if (selectedId === 'news') return title.trim() && content.trim() && images.length > 0;
+    if (selectedId === 'snap') return content.trim() && images.length > 0;
+    return false;
+  }, [selectedId, title, price, content, images.length]);
 
   return (
     <AnimatePresence>
@@ -251,7 +251,7 @@ export const PublishOverlay: React.FC<PublishOverlayProps> = ({ isOpen, onClose,
                     <div className="space-y-6">
                        {/* Contextual Fields */}
                        <div className="bg-stone-50 rounded-[32px] p-8 border border-hairline focus-within:bg-white focus-within:shadow-premium focus-within:border-primary/20 transition-all space-y-6">
-                          {(selectedId === 'market' || selectedId === 'help' || selectedId === 'news') && (
+                          {(selectedId === 'market' || selectedId === 'service' || selectedId === 'news') && (
                             <div className="border-b border-hairline pb-4">
                               <input 
                                 type="text"
@@ -313,33 +313,13 @@ export const PublishOverlay: React.FC<PublishOverlayProps> = ({ isOpen, onClose,
                             </div>
                           )}
 
-                          {selectedId === 'help' && (
-                            <div className="flex items-center gap-4">
-                               <span className="text-[10px] font-black text-muted uppercase tracking-widest">紧急程度:</span>
-                               <div className="flex gap-2">
-                                  {['normal', 'urgent'].map(t => (
-                                    <button 
-                                      key={t}
-                                      onClick={() => setUrgency(t as any)}
-                                      className={`px-6 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all ${
-                                        urgency === t 
-                                          ? 'bg-red-500 text-white shadow-lg shadow-red-500/20' 
-                                          : 'bg-white text-muted border border-hairline'
-                                      }`}
-                                    >
-                                      {t === 'normal' ? '普通' : '紧急 🔥'}
-                                    </button>
-                                  ))}
-                               </div>
-                            </div>
-                          )}
-
+                          
                           <textarea 
                             value={content}
                             onChange={(e) => setContent(e.target.value)}
                             placeholder={
                               selectedId === 'market' ? '详细描述物品的新旧程度、转让原因等...' :
-                              selectedId === 'help' ? '简单描述你遇到的问题，或需要的帮助...' :
+                              selectedId === 'service' ? '描述你的服务内容和范围...' :
                               '写点什么，让邻里感受到你的温度...'
                             }
                             className={`w-full bg-transparent border-none p-0 focus:ring-0 text-lg font-medium placeholder:text-muted/40 resize-none ${selectedId === 'snap' ? 'min-h-[150px]' : 'min-h-[120px]'}`}
@@ -367,8 +347,8 @@ export const PublishOverlay: React.FC<PublishOverlayProps> = ({ isOpen, onClose,
                                <Camera className="w-5 h-5" />
                             </label>
                             <div className="flex flex-col">
-                              <span className="text-[10px] font-black text-muted uppercase tracking-widest">添加图片</span>
-                              <span className="text-[9px] text-muted opacity-50 font-bold">{images.length}/9 张</span>
+                              <span className={`text-[10px] font-black uppercase tracking-widest ${images.length === 0 ? 'text-red-400' : 'text-muted'}`}>添加图片</span>
+                              <span className="text-[9px] text-muted opacity-50 font-bold">{images.length}/9 张 {images.length === 0 && '至少1张'}</span>
                             </div>
                           </div>
 
