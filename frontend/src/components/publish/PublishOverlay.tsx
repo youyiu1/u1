@@ -14,7 +14,8 @@ import {
   ArrowRight,
   ChevronLeft,
   Send,
-  CheckCircle2
+  CheckCircle2,
+  ChevronDown
 } from 'lucide-react';
 import { newsApi, marketApi, serviceApi, fileApi } from '../../services/api';
 import { useAuth } from '../../context/AuthContext';
@@ -54,6 +55,22 @@ const PUBLISH_OPTIONS = [
   }
 ];
 
+// 与服务页面类别保持一致
+const SERVICE_CATEGORIES = [
+  { value: 'domestic', label: '家政保洁' },
+  { value: 'repair', label: '家庭维修' },
+  { value: 'pet', label: '宠物生活' },
+  { value: 'sports', label: '运动私教' },
+];
+
+const MARKET_CATEGORIES = [
+  { value: 'domestic', label: '家政服务' },
+  { value: 'repair', label: '家庭维修' },
+  { value: 'sports', label: '运动健身' },
+  { value: 'pets', label: '宠物生活' },
+  { value: 'market', label: '闲置交易' },
+];
+
 interface PublishOverlayProps {
   isOpen: boolean;
   onClose: () => void;
@@ -69,10 +86,13 @@ export const PublishOverlay: React.FC<PublishOverlayProps> = ({ isOpen, onClose,
   const [newsType, setNewsType] = useState('生活记录');
   const [serviceCategory, setServiceCategory] = useState('domestic');
   const [serviceUnit, setServiceUnit] = useState('次');
+  const [marketCategory, setMarketCategory] = useState('market');
   const [content, setContent] = useState('');
   const [images, setImages] = useState<string[]>([]);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isSuccess, setIsSuccess] = useState(false);
+  const [serviceCategoryOpen, setServiceCategoryOpen] = useState(false);
+  const [marketCategoryOpen, setMarketCategoryOpen] = useState(false);
 
   const selectedOption = PUBLISH_OPTIONS.find(o => o.id === selectedId);
 
@@ -108,6 +128,7 @@ export const PublishOverlay: React.FC<PublishOverlayProps> = ({ isOpen, onClose,
           price: Number(price),
           itemCondition: condition,
           description: content,
+          category: marketCategory,
           image: uploadedUrls[0] || '',
           images: uploadedUrls,
         } as any);
@@ -149,9 +170,12 @@ export const PublishOverlay: React.FC<PublishOverlayProps> = ({ isOpen, onClose,
     setNewsType('生活记录');
     setServiceCategory('domestic');
     setServiceUnit('次');
+    setMarketCategory('market');
     setContent('');
     setImages([]);
     setIsSuccess(false);
+    setServiceCategoryOpen(false);
+    setMarketCategoryOpen(false);
   };
 
   const canSubmit = useMemo(() => {
@@ -303,7 +327,7 @@ export const PublishOverlay: React.FC<PublishOverlayProps> = ({ isOpen, onClose,
                                   <span className="text-[10px] font-black text-muted uppercase tracking-widest">成色:</span>
                                   <div className="flex gap-2">
                                      {['全新', '几乎全新', '九成新', '七成新', '坏件/拆解'].map(c => (
-                                       <button 
+                                       <button
                                          key={c}
                                          onClick={() => setCondition(c)}
                                          className={`px-3 py-1 rounded-lg text-[10px] font-bold transition-all ${
@@ -313,6 +337,31 @@ export const PublishOverlay: React.FC<PublishOverlayProps> = ({ isOpen, onClose,
                                          {c}
                                        </button>
                                      ))}
+                                  </div>
+                               </div>
+                               <div className="flex items-center gap-2">
+                                  <span className="text-[10px] font-black text-muted uppercase tracking-widest">类别:</span>
+                                  <div className="relative">
+                                    <button
+                                      onClick={() => setMarketCategoryOpen(!marketCategoryOpen)}
+                                      className="flex items-center gap-2 px-3 py-1 rounded-lg text-[10px] font-bold bg-white border border-hairline hover:border-primary/30 transition-all"
+                                    >
+                                      {MARKET_CATEGORIES.find(c => c.value === marketCategory)?.label || '选择类别'}
+                                      <ChevronDown className="w-3 h-3" />
+                                    </button>
+                                    {marketCategoryOpen && (
+                                      <div className="absolute top-full left-0 mt-1 bg-white rounded-xl shadow-lg border border-hairline z-10 overflow-hidden">
+                                        {MARKET_CATEGORIES.map(c => (
+                                          <button
+                                            key={c.value}
+                                            onClick={() => { setMarketCategory(c.value); setMarketCategoryOpen(false); }}
+                                            className={`block w-full px-4 py-2 text-[10px] font-bold text-left hover:bg-surface-soft transition-all ${marketCategory === c.value ? 'text-primary bg-primary/5' : 'text-ink'}`}
+                                          >
+                                            {c.label}
+                                          </button>
+                                        ))}
+                                      </div>
+                                    )}
                                   </div>
                                </div>
                             </div>
@@ -331,24 +380,28 @@ export const PublishOverlay: React.FC<PublishOverlayProps> = ({ isOpen, onClose,
                                  />
                                </div>
                                <div className="flex items-center gap-2 pr-4 border-r border-hairline">
-                                  <span className="text-[10px] font-black text-muted uppercase tracking-widest">类型:</span>
-                                  <div className="flex gap-2">
-                                     {[
-                                       { value: 'domestic', label: '家政' },
-                                       { value: 'pet', label: '宠物' },
-                                       { value: 'repair', label: '维修' },
-                                       { value: 'other', label: '其他' },
-                                     ].map(c => (
-                                       <button
-                                         key={c.value}
-                                         onClick={() => setServiceCategory(c.value)}
-                                         className={`px-3 py-1 rounded-lg text-[10px] font-bold transition-all ${
-                                           serviceCategory === c.value ? 'bg-accent-green text-white shadow-md' : 'bg-white text-muted border border-hairline'
-                                         }`}
-                                       >
-                                         {c.label}
-                                       </button>
-                                     ))}
+                                  <span className="text-[10px] font-black text-muted uppercase tracking-widest">类别:</span>
+                                  <div className="relative">
+                                    <button
+                                      onClick={() => setServiceCategoryOpen(!serviceCategoryOpen)}
+                                      className="flex items-center gap-2 px-3 py-1 rounded-lg text-[10px] font-bold bg-white border border-hairline hover:border-primary/30 transition-all"
+                                    >
+                                      {SERVICE_CATEGORIES.find(c => c.value === serviceCategory)?.label || '选择类别'}
+                                      <ChevronDown className="w-3 h-3" />
+                                    </button>
+                                    {serviceCategoryOpen && (
+                                      <div className="absolute top-full left-0 mt-1 bg-white rounded-xl shadow-lg border border-hairline z-10 overflow-hidden">
+                                        {SERVICE_CATEGORIES.map(c => (
+                                          <button
+                                            key={c.value}
+                                            onClick={() => { setServiceCategory(c.value); setServiceCategoryOpen(false); }}
+                                            className={`block w-full px-4 py-2 text-[10px] font-bold text-left hover:bg-surface-soft transition-all ${serviceCategory === c.value ? 'text-primary bg-primary/5' : 'text-ink'}`}
+                                          >
+                                            {c.label}
+                                          </button>
+                                        ))}
+                                      </div>
+                                    )}
                                   </div>
                                </div>
                                <div className="flex items-center gap-2">
