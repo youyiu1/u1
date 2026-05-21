@@ -18,7 +18,7 @@ export const ProfileMarketItem: React.FC<ProfileMarketItemProps> = ({ item }) =>
   return (
     <div
       key={item.id}
-      onClick={() => navigate(itemType ? `/item/${item.id}` : `/service/${item.id}`)}
+      onClick={() => navigate(itemType ? `/item/${item.id}` : `/service/${item.id}`, { state: { from: '/profile' } })}
       className="bg-white border border-hairline rounded-2xl overflow-hidden hover:shadow-lg hover:border-primary/20 transition-all cursor-pointer group"
     >
       <div className="relative aspect-square bg-surface-soft">

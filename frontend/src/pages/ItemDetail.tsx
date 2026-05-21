@@ -4,7 +4,7 @@
  */
 
 import React, { useState, useEffect } from 'react';
-import { useParams, Link, useNavigate } from 'react-router-dom';
+import { useParams, Link, useNavigate, useLocation } from 'react-router-dom';
 import {
   ChevronRight,
   Share,
@@ -36,7 +36,9 @@ const categoryMap: Record<string, string> = {
 export default function ItemDetail() {
   const { id } = useParams();
   const navigate = useNavigate();
+  const location = useLocation();
   const { openChat } = useChat();
+  const fromProfile = location.state?.from === '/profile';
 
   const [item, setItem] = useState<Item | null>(null);
   const [loading, setLoading] = useState(true);
@@ -90,7 +92,7 @@ export default function ItemDetail() {
       <div className="min-h-screen flex items-center justify-center">
         <div className="text-center">
           <p className="text-muted mb-4 font-bold">{error || '商品不存在'}</p>
-          <button onClick={() => navigate('/market')} className="px-8 py-3 bg-primary text-white rounded-2xl font-black">
+          <button onClick={() => navigate(fromProfile ? -1 : '/market')} className="px-8 py-3 bg-primary text-white rounded-2xl font-black">
             返回闲置市场
           </button>
         </div>

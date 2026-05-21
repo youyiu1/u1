@@ -4,7 +4,7 @@
  */
 
 import React, { useState, useEffect } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
+import { useParams, useNavigate, useLocation } from 'react-router-dom';
 import {
   Star,
   ChevronRight,
@@ -108,7 +108,9 @@ function ReviewSection({ serviceId, rating }: { serviceId: string; rating: numbe
 export default function ServiceDetail() {
   const { id } = useParams();
   const navigate = useNavigate();
+  const location = useLocation();
   const { openChat } = useChat();
+  const fromProfile = location.state?.from === '/profile';
 
   const [service, setService] = useState<ServiceDetailType | null>(null);
   const [loading, setLoading] = useState(true);
@@ -183,7 +185,7 @@ export default function ServiceDetail() {
       <div className="min-h-screen flex items-center justify-center">
         <div className="text-center">
           <p className="text-muted mb-4 font-bold">{error || '服务不存在'}</p>
-          <button onClick={() => navigate('/service')} className="px-8 py-3 bg-primary text-white rounded-2xl font-black">
+          <button onClick={() => navigate(fromProfile ? -1 : '/service')} className="px-8 py-3 bg-primary text-white rounded-2xl font-black">
             返回服务列表
           </button>
         </div>
