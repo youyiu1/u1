@@ -47,7 +47,11 @@ export default function News() {
   const handleCreatePost = async () => {
     if (!postText.trim()) return;
     try {
-      await newsApi.create({ content: postText });
+      await newsApi.create({
+        title: postText.slice(0, 50),
+        content: postText,
+        category: '生活记录',
+      });
       setPostText('');
       const data = await newsApi.list();
       setPosts(data);

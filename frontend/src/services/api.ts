@@ -33,6 +33,17 @@ export function removeToken(): void {
   localStorage.removeItem(TOKEN_KEY);
 }
 
+// 401错误区分处理
+const AUTH_ERROR_MESSAGES: Record<string, string> = {
+  '未登录': '请先登录',
+  'Token无效': '登录信息无效，请重新登录',
+  'Token已过期': '登录已过期，请重新登录'
+};
+
+function isAuthError(message: string): message is keyof typeof AUTH_ERROR_MESSAGES {
+  return message in AUTH_ERROR_MESSAGES;
+}
+
 async function request<T>(url: string, options?: RequestInit): Promise<T> {
   const token = getToken();
   const res = await fetch(BASE_URL + url, {
@@ -44,10 +55,19 @@ async function request<T>(url: string, options?: RequestInit): Promise<T> {
     },
   });
 
-  // 401 不自动退出，只抛出错误由调用方处理
+  // 401错误根据消息内容区分处理
   if (res.status === 401) {
     const json = await res.json();
-    throw new Error(json.message || '登录已过期，请重新登录');
+    const message = json.message || '';
+    if (isAuthError(message)) {
+      // Token无效或已过期时自动登出
+      if (message !== '未登录') {
+        removeToken();
+        localStorage.removeItem('auth_user');
+      }
+      throw new Error(AUTH_ERROR_MESSAGES[message]);
+    }
+    throw new Error(message || '认证失败');
   }
 
   const json: Result<T> = await res.json();
@@ -106,7 +126,7 @@ export const userApi = {
 export const newsApi = {
   list: () => request<Post[]>('/news/list'),
 
-  get: (id: number) => request<Post>(`/news/${id}`),
+  get: (id: string) => request<Post>(`/news/${id}`),
 
   create: (post: { title: string; content: string; category: string; images?: string[]; location?: string }) =>
     request<boolean>('/news/create', {
@@ -114,13 +134,13 @@ export const newsApi = {
       body: JSON.stringify(post),
     }),
 
-  like: (id: number) =>
+  like: (id: string) =>
     request<boolean>(`/news/${id}/like`, { method: 'POST' }),
 
-  getComments: (id: number, limit = 20, offset = 0) =>
+  getComments: (id: string, limit = 20, offset = 0) =>
     request<Comment[]>(`/news/${id}/comments?limit=${limit}&offset=${offset}`),
 
-  addComment: (id: number, comment: { content: string; userId: string; userName: string; userAvatar: string }) =>
+  addComment: (id: string, comment: { content: string; userId: string; userName: string; userAvatar: string }) =>
     request<boolean>(`/news/${id}/comment`, {
       method: 'POST',
       body: JSON.stringify(comment),
@@ -131,7 +151,7 @@ export const newsApi = {
 export const marketApi = {
   list: () => request<Item[]>('/market/list'),
 
-  get: (id: number) => request<Item>(`/market/${id}`),
+  get: (id: string) => request<Item>(`/market/${id}`),
 
   create: (item: Partial<Item>) =>
     request<boolean>('/market/create', {
@@ -144,9 +164,9 @@ export const marketApi = {
 export const serviceApi = {
   list: () => request<Service[]>('/service/list'),
 
-  get: (id: number) => request<ServiceDetail>(`/service/${id}`),
+  get: (id: string) => request<ServiceDetail>(`/service/${id}`),
 
-  getReviews: (id: number) => request<Review[]>(`/service/${id}/reviews`),
+  getReviews: (id: string) => request<Review[]>(`/service/${id}/reviews`),
 
   create: (service: Partial<Service>) =>
     request<boolean>('/service/create', {
@@ -155,7 +175,7 @@ export const serviceApi = {
     }),
 
   book: (booking: {
-    serviceId: number;
+    serviceId: string;
     buyerId: string;
     sellerId: string;
     bookingDate: string;

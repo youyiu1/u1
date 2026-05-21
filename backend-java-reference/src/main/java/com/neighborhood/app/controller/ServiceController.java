@@ -52,8 +52,9 @@ public class ServiceController {
 
     @PostMapping("/book")
     public Result<Boolean> book(@RequestBody BookingRequest request) {
+        Long serviceId = Long.parseLong(request.getServiceId());
         boolean success = serviceModuleService.book(
-            request.getServiceId(),
+            serviceId,
             request.getBuyerId(),
             request.getSellerId(),
             request.getBookingDate(),
@@ -61,7 +62,7 @@ public class ServiceController {
             request.getDuration()
         );
         if (success) {
-            ServiceEntity service = serviceModuleService.getById(request.getServiceId());
+            ServiceEntity service = serviceModuleService.getById(serviceId);
             String serviceName = service != null ? service.getTitle() : "";
             // 通知买家
             notificationService.saveNotification(
@@ -82,15 +83,15 @@ public class ServiceController {
     }
 
     public static class BookingRequest {
-        private Long serviceId;
+        private String serviceId;
         private String buyerId;
         private String sellerId;
         private String bookingDate;
         private String bookingTime;
         private Integer duration;
 
-        public Long getServiceId() { return serviceId; }
-        public void setServiceId(Long serviceId) { this.serviceId = serviceId; }
+        public String getServiceId() { return serviceId; }
+        public void setServiceId(String serviceId) { this.serviceId = serviceId; }
         public String getBuyerId() { return buyerId; }
         public void setBuyerId(String buyerId) { this.buyerId = buyerId; }
         public String getSellerId() { return sellerId; }
