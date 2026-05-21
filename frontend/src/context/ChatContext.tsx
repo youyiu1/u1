@@ -99,56 +99,62 @@ export const ChatProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     }
   }, [user?.id]);
 
-  // 创建或获取对话
-  const getOrCreateConversation = useCallback(async (partnerId: string): Promise<ChatPartner | null> => {
+  // 创建或获取对话（不发初始消息，只创建会话条目）
+  const getOrCreateConversation = useCallback(async (partner: ChatPartner): Promise<ChatPartner | null> => {
     if (!user?.id) return null;
     try {
       // 先刷新会话列表，检查是否已存在对话
       const allMessages = await chatApi.getConversations();
       const existingConv = allMessages.find((msg: Message) => {
         const pid = msg.senderId === user.id ? msg.receiverId : msg.senderId;
-        return pid === partnerId;
+        return pid === partner.id;
       });
 
-      if (existingConv) {
-        // 已有对话，获取用户信息
-        try {
-          const partnerUser = await userApi.getUser(partnerId);
-          return { id: partnerId, name: partnerUser.name, avatar: partnerUser.avatar };
-        } catch {
-          return { id: partnerId, name: '', avatar: '' };
-        }
-      }
-
-      // 不存在对话，发送初始消息创建
-      const newMsg = await chatApi.sendMessage(partnerId, '你好，我想了解一下');
-      const partnerMsgId = newMsg.senderId === user.id ? newMsg.receiverId : newMsg.senderId;
-
-      // 获取用户信息
+      // 获取完整的用户信息（包含在线状态等）
       try {
-        const partnerUser = await userApi.getUser(partnerMsgId);
-        return { id: partnerMsgId, name: partnerUser.name, avatar: partnerUser.avatar };
-      } catch {
-        return { id: partnerMsgId, name: '', avatar: '' };
+        const partnerUser = await userApi.getUser(partner.id);
+        const fullPartner: ChatPartner = {
+          id: partner.id,
+          name: partnerUser.name || partner.name,
+          avatar: partnerUser.avatar || partner.avatar,
+          isOnline: partnerUser.isOnline || false,
+          lastMessage: existingConv?.content || ''
+        };
+
+        if (existingConv) {
+          // 已有对话，直接返回
+          return fullPartner;
+        }
+
+        // 不存在对话，发送初始消息创建
+        await chatApi.sendMessage(partner.id, '你好，我想了解一下');
+        fullPartner.lastMessage = '你好，我想了解一下';
+
+        // 刷新会话列表确保新对话显示
+        await refreshConversations();
+
+        return fullPartner;
+      } catch (e) {
+        console.error('Failed to get partner info:', e);
+        return partner;
       }
     } catch (err) {
       console.error('Failed to get or create conversation:', err);
       return null;
     }
-  }, [user?.id]);
+  }, [user?.id, refreshConversations]);
 
   // 打开聊天
   const openChat = useCallback(async (partner?: ChatPartner) => {
     if (!getToken()) return; // 未登录不打开聊天
     if (partner) {
       // 立即创建对话（如果不存在）
-      const convPartner = await getOrCreateConversation(partner.id);
+      const convPartner = await getOrCreateConversation(partner);
       if (convPartner) {
         setActivePartner(convPartner);
         markChatRead(convPartner.id);
         setIsChatOpen(true);
         loadConversation(convPartner.id);
-        refreshConversations();
       }
     } else if (partners.length > 0) {
       // 无参数时自动选择第一个会话
