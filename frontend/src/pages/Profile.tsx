@@ -233,7 +233,7 @@ export default function Profile() {
                        {activeTab === 'market' && (
                          <div className="col-span-2">
                            {items.length > 0 || services.length > 0 ? (
-                             <div className="grid sm:grid-cols-2 gap-6">
+                             <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
                                {[...items, ...services].map((item: any) => (
                                  <ProfileMarketItem key={item.id} item={item} />
                                ))}
