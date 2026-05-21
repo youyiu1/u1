@@ -81,7 +81,13 @@ export const ChatProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       const unreadMap: Record<string, number> = {};
       for (const conv of conversationMap.values()) {
         try {
-          const partnerUser = await userApi.getUser(conv.partner.id);
+          let partnerUser;
+          try {
+            partnerUser = await userApi.getUser(conv.partner.id);
+          } catch {
+            // 如果用ID查不到，尝试用ID当用户名查（兼容旧数据）
+            partnerUser = await userApi.getUserByName(conv.partner.id);
+          }
           conv.partner.name = partnerUser.name;
           conv.partner.avatar = partnerUser.avatar;
           conv.partner.lastMessage = conv.lastMsg.content;
@@ -112,7 +118,12 @@ export const ChatProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
 
       // 获取完整的用户信息（包含在线状态等）
       try {
-        const partnerUser = await userApi.getUser(partner.id);
+        let partnerUser;
+        try {
+          partnerUser = await userApi.getUser(partner.id);
+        } catch {
+          partnerUser = await userApi.getUserByName(partner.id);
+        }
         const fullPartner: ChatPartner = {
           id: partner.id,
           name: partnerUser.name || partner.name,
