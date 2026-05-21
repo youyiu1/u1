@@ -38,7 +38,7 @@ export default function ItemDetail() {
   const navigate = useNavigate();
   const location = useLocation();
   const { openChat } = useChat();
-  const fromProfile = location.state?.from === '/profile';
+  const fromProfile = location.state?.from;
 
   const [item, setItem] = useState<Item | null>(null);
   const [loading, setLoading] = useState(true);

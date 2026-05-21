@@ -73,7 +73,7 @@ public class AuthInterceptor implements HandlerInterceptor {
                 || path.equals("/api/user/login")
                 || path.equals("/api/user/send-code")
                 || path.startsWith("/api/user/name")
-                || path.startsWith("/api/user/") && path.length() > "/api/user/".length()
+                || path.matches("/api/user/\\d+")  // 公开：用户ID获取
                 || path.startsWith("/api/home")
                 || path.equals("/api/search")
                 || path.startsWith("/api/category")

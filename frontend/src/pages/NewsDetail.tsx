@@ -18,7 +18,7 @@ export default function NewsDetail() {
   const navigate = useNavigate();
   const location = useLocation();
   const { user } = useAuth();
-  const fromProfile = location.state?.from === '/profile';
+  const fromProfile = location.state?.from;
 
   const [post, setPost] = useState<Post | null>(null);
   const [comments, setComments] = useState<Comment[]>([]);

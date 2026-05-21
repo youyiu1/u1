@@ -110,7 +110,7 @@ export default function ServiceDetail() {
   const navigate = useNavigate();
   const location = useLocation();
   const { openChat } = useChat();
-  const fromProfile = location.state?.from === '/profile';
+  const fromProfile = location.state?.from;
 
   const [service, setService] = useState<ServiceDetailType | null>(null);
   const [loading, setLoading] = useState(true);
@@ -244,6 +244,21 @@ export default function ServiceDetail() {
           </div>
         )}
       </AnimatePresence>
+
+      <div className="sticky top-0 z-30 flex items-center justify-between px-6 py-4 bg-white/80 backdrop-blur-md border-b border-hairline md:hidden">
+        <button onClick={() => navigate(fromProfile ? -1 : -1)} className="p-2 bg-surface-soft rounded-xl">
+          <ChevronLeft className="w-5 h-5 text-ink" />
+        </button>
+        <div className="flex items-center gap-2">
+          <button className="p-2 bg-surface-soft rounded-xl"><Share2 className="w-5 h-5 text-ink" /></button>
+          <button
+            onClick={() => setIsLiked(!isLiked)}
+            className="p-2 bg-surface-soft rounded-xl"
+          >
+            <Heart className={`w-5 h-5 ${isLiked ? 'fill-primary text-primary' : 'text-ink'}`} />
+          </button>
+        </div>
+      </div>
 
       <div className="bg-white border-b border-hairline py-6 hidden md:block">
         <div className="max-w-[1200px] mx-auto px-6 flex items-center justify-between">
