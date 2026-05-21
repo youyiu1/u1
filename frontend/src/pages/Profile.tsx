@@ -70,8 +70,14 @@ export default function Profile() {
       try {
         let user;
         if (!paramUsername && getToken()) {
-          user = await userApi.getCurrentUser();
-          setStats({ followers: user.followersCount || 0, isFollowing: false });
+          try {
+            user = await userApi.getCurrentUser();
+            setStats({ followers: user.followersCount || 0, isFollowing: false });
+          } catch (err: any) {
+            // token无效，跳转登录
+            navigate('/login');
+            return;
+          }
         } else {
           user = await userApi.getUserByName(username);
           // 检查关注状态
