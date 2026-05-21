@@ -12,7 +12,7 @@ export const ProfilePostCard: React.FC<ProfilePostCardProps> = ({ post }) => {
 
   return (
     <div
-      onClick={() => navigate(`/news/${post.id}`)}
+      onClick={() => navigate(`/news/${post.id}`, { state: { from: '/profile' } })}
       className="bg-white border border-hairline rounded-2xl p-4 hover:shadow-md hover:border-primary/20 transition-all cursor-pointer group"
     >
       <div className="flex items-center gap-4">

@@ -4,7 +4,7 @@
  */
 
 import React, { useState, useEffect } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
+import { useParams, useNavigate, useLocation } from 'react-router-dom';
 import { ChevronLeft, MessageSquare, Heart, Share2, Bookmark, MapPin, MoreHorizontal, Plus, Send, Smile, Image as ImageIcon } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { newsApi, userApi } from '../services/api';
@@ -16,7 +16,9 @@ import { useAuth } from '../context/AuthContext';
 export default function NewsDetail() {
   const { id } = useParams();
   const navigate = useNavigate();
+  const location = useLocation();
   const { user } = useAuth();
+  const fromProfile = location.state?.from === '/profile';
 
   const [post, setPost] = useState<Post | null>(null);
   const [comments, setComments] = useState<Comment[]>([]);
@@ -102,7 +104,7 @@ export default function NewsDetail() {
         <div className="text-center">
           <p className="text-muted mb-4 font-bold">{error || '抱歉，未找到该动态'}</p>
           <button
-            onClick={() => navigate('/news')}
+            onClick={() => navigate(fromProfile ? -1 : '/news')}
             className="px-8 py-3 bg-primary text-white rounded-2xl font-black uppercase tracking-widest text-[10px] shadow-lg shadow-primary/20"
           >
             返回动态列表
@@ -118,7 +120,7 @@ export default function NewsDetail() {
         <div className="max-w-[720px] mx-auto px-6 h-20 flex items-center justify-between gap-4">
           <div className="flex items-center gap-4">
             <button
-              onClick={() => navigate('/news')}
+              onClick={() => navigate(fromProfile ? -1 : '/news')}
               className="p-2.5 hover:bg-surface-soft rounded-2xl transition-all group"
             >
               <ChevronLeft className="w-6 h-6 text-ink group-hover:-translate-x-0.5 transition-transform" />
