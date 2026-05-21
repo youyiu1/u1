@@ -20,7 +20,7 @@ import {
   Share2
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
-import { marketApi } from '../services/api';
+import { marketApi, userApi } from '../services/api';
 import { useChat } from '../context/ChatContext';
 import { FollowButton } from '../components/common/FollowButton';
 import { Item } from '../types';
@@ -42,9 +42,11 @@ export default function ItemDetail() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [isLiked, setIsLiked] = useState(false);
+  const [isFollowing, setIsFollowing] = useState(false);
   const [activeImg, setActiveImg] = useState(0);
 
   // 兼容扁平化的卖家信息
+  const sellerId = item?.seller?.id || (item as any)?.sellerId || '';
   const sellerName = item?.seller?.name || item?.sellerName || '';
   const sellerAvatar = item?.seller?.avatar || item?.sellerAvatar || '';
   const sellerVerified = item?.seller?.verified ?? item?.sellerVerified ?? false;
@@ -56,8 +58,16 @@ export default function ItemDetail() {
   useEffect(() => {
     const fetchItem = async () => {
       try {
-        const data = await marketApi.get(Number(id));
+        const data = await marketApi.get(id as string);
         setItem(data);
+        // 获取关注状态
+        const currentUser = JSON.parse(localStorage.getItem('neighborhood_user') || '{}');
+        if (currentUser.id && sellerId) {
+          try {
+            const following = await userApi.isFollowing(currentUser.id, sellerId);
+            setIsFollowing(following);
+          } catch {}
+        }
       } catch (err: any) {
         setError(err.message || '加载失败');
       } finally {
@@ -65,7 +75,7 @@ export default function ItemDetail() {
       }
     };
     if (id) fetchItem();
-  }, [id]);
+  }, [id, sellerId]);
 
   if (loading) {
     return (
@@ -250,7 +260,7 @@ export default function ItemDetail() {
                     </div>
                   </div>
                   <FollowButton
-                    isFollowingInitial={item.seller?.isFollowing}
+                    isFollowingInitial={isFollowing}
                     size="sm"
                     variant="ghost"
                   />
@@ -277,7 +287,7 @@ export default function ItemDetail() {
                   whileHover={{ scale: 1.02 }}
                   whileTap={{ scale: 0.98 }}
                   onClick={() => openChat({
-                    id: sellerName,
+                    id: sellerId,
                     name: sellerName,
                     avatar: sellerAvatar,
                     isOnline: true

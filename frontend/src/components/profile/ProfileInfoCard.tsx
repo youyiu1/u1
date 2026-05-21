@@ -52,10 +52,10 @@ export const ProfileInfoCard: React.FC<ProfileInfoCardProps> = ({
               variant="primary"
               className="w-full text-[11px] h-11 rounded-xl"
             />
-            <button 
+            <button
               onClick={() => openChat({
-                id: username,
-                name: username,
+                id: userData.id,
+                name: userData.name,
                 avatar: userData.avatar,
                 isOnline: true
               })}
