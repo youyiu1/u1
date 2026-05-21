@@ -88,14 +88,18 @@ export default function Profile() {
         }
         setProfileUser(user);
 
-        const [newsData, marketData, serviceData] = await Promise.all([
-          newsApi.list().catch(() => []),
-          marketApi.list().catch(() => []),
-          serviceApi.list().catch(() => []),
-        ]);
-        setPosts(newsData.filter((p: Post) => p.author.name === username));
-        setItems(marketData.filter((i: Item) => i.seller?.name === username));
-        setServices(serviceData.filter((s: Service) => s.seller?.name === username));
+        // 使用用户ID获取该用户的发布内容
+        const userId = user.id;
+        if (userId) {
+          const [newsData, marketData, serviceData] = await Promise.all([
+            newsApi.getByUserId(userId).catch(() => []),
+            marketApi.getByUserId(userId).catch(() => []),
+            serviceApi.getByUserId(userId).catch(() => []),
+          ]);
+          setPosts(newsData);
+          setItems(marketData);
+          setServices(serviceData);
+        }
       } catch (err: any) {
         setError(err.message || '加载失败');
       } finally {

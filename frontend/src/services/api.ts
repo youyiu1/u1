@@ -128,6 +128,8 @@ export const newsApi = {
 
   get: (id: string) => request<Post>(`/news/${id}`),
 
+  getByUserId: (userId: string) => request<Post[]>(`/news/user/${userId}`),
+
   create: (post: { title: string; content: string; category: string; images?: string[]; location?: string }) =>
     request<boolean>('/news/create', {
       method: 'POST',
@@ -153,6 +155,8 @@ export const marketApi = {
 
   get: (id: string) => request<Item>(`/market/${id}`),
 
+  getByUserId: (userId: string) => request<Item[]>(`/market/user/${userId}`),
+
   create: (item: Partial<Item>) =>
     request<boolean>('/market/create', {
       method: 'POST',
@@ -165,6 +169,8 @@ export const serviceApi = {
   list: () => request<Service[]>('/service/list'),
 
   get: (id: string) => request<ServiceDetail>(`/service/${id}`),
+
+  getByUserId: (userId: string) => request<Service[]>(`/service/user/${userId}`),
 
   getReviews: (id: string) => request<Review[]>(`/service/${id}/reviews`),
 
@@ -211,6 +217,29 @@ export const chatApi = {
     }),
   markRead: (messageId: string) => request<boolean>(`/message/read/${messageId}`, { method: 'POST' }),
   markConversationRead: (partnerId: string) => request<boolean>(`/message/read-conversation/${partnerId}`, { method: 'POST' }),
+};
+
+// 用户相关
+export const userApi = {
+  // ... 已有方法
+  getFollowingList: (userId: string) => request<User[]>(`/user/${userId}/following`),
+};
+
+// 收藏相关
+export const favoriteApi = {
+  list: (userId: string) => request<any[]>(`/favorite/list?userId=${userId}`),
+  add: (userId: string, targetType: string, targetId: string) =>
+    request<boolean>('/favorite/add', {
+      method: 'POST',
+      body: JSON.stringify({ userId, targetType, targetId }),
+    }),
+  remove: (userId: string, targetType: string, targetId: string) =>
+    request<boolean>('/favorite/remove', {
+      method: 'POST',
+      body: JSON.stringify({ userId, targetType, targetId }),
+    }),
+  check: (userId: string, targetType: string, targetId: string) =>
+    request<boolean>(`/favorite/check?userId=${userId}&targetType=${targetType}&targetId=${targetId}`),
 };
 
 // 分类相关
