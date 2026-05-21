@@ -33,11 +33,11 @@ public class MarketController {
 
     @PostMapping("/create")
     public Result<Boolean> create(@RequestBody MarketItem item, HttpServletRequest request) {
-        // 从request属性获取登录用户ID（AuthInterceptor设置）
         String userId = (String) request.getAttribute("userId");
-        if (userId != null) {
-            item.setSellerId(userId);
+        if (userId == null || userId.isEmpty()) {
+            return Result.fail("用户未登录或登录已过期");
         }
+        item.setSellerId(userId);
         return Result.ok(marketService.save(item));
     }
 }

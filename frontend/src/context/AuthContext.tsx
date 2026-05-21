@@ -30,17 +30,6 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     }
   }, []);
 
-  // 监听 token 失效事件
-  useEffect(() => {
-    const handleTokenInvalid = () => {
-      setUser(null);
-      removeToken();
-      localStorage.removeItem(USER_KEY);
-    };
-    window.addEventListener('token-invalid', handleTokenInvalid);
-    return () => window.removeEventListener('token-invalid', handleTokenInvalid);
-  }, []);
-
   const login = async (email: string, password: string) => {
     const res = await userApi.login(email, password);
     setToken(res.token);

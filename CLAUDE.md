@@ -24,7 +24,6 @@ cd backend-java-reference && mvn spring-boot:run
 ```bash
 mysql -u root -proot neighborhood_db < sql/init.sql
 ```
-
 ## 架构说明
 
 ### 前端

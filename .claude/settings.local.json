@@ -35,7 +35,9 @@
       "Bash(mvn spring-boot:run)",
       "Bash(findstr :8080)",
       "Bash(awk '{print $7}')",
-      "Bash(xargs -I {} taskkill //F //PID {})"
+      "Bash(xargs -I {} taskkill //F //PID {})",
+      "Bash(findstr \"8080 5000 8081\")",
+      "Bash(wget *)"
     ]
   }
 }

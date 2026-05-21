@@ -5,6 +5,8 @@
 
 package com.neighborhood.app.entity;
 
+import com.fasterxml.jackson.databind.annotation.JsonSerialize;
+import com.fasterxml.jackson.databind.ser.std.ToStringSerializer;
 import lombok.Data;
 import lombok.experimental.Accessors;
 import java.math.BigDecimal;
@@ -13,6 +15,7 @@ import java.util.List;
 @Data
 @Accessors(chain = true)
 public class MarketItemVO {
+    @JsonSerialize(using = ToStringSerializer.class)
     private Long id;
     private String title;
     private String description;

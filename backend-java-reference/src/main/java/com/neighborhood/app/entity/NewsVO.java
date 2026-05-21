@@ -5,6 +5,8 @@
 
 package com.neighborhood.app.entity;
 
+import com.fasterxml.jackson.databind.annotation.JsonSerialize;
+import com.fasterxml.jackson.databind.ser.std.ToStringSerializer;
 import lombok.Data;
 import lombok.experimental.Accessors;
 import java.time.LocalDateTime;
@@ -13,6 +15,7 @@ import java.util.List;
 @Data
 @Accessors(chain = true)
 public class NewsVO {
+    @JsonSerialize(using = ToStringSerializer.class)
     private Long id;
     private String title;      // 标题
     private String authorId;

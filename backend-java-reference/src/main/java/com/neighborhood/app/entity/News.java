@@ -8,6 +8,8 @@ package com.neighborhood.app.entity;
 import com.baomidou.mybatisplus.annotation.IdType;
 import com.baomidou.mybatisplus.annotation.TableId;
 import com.baomidou.mybatisplus.annotation.TableName;
+import com.fasterxml.jackson.databind.annotation.JsonSerialize;
+import com.fasterxml.jackson.databind.ser.std.ToStringSerializer;
 import lombok.Data;
 import java.time.LocalDateTime;
 import java.util.List;
@@ -16,6 +18,7 @@ import java.util.List;
 @TableName("t_news")
 public class News {
     @TableId(type = IdType.ASSIGN_ID)
+    @JsonSerialize(using = ToStringSerializer.class)
     private Long id;
     private String authorId;
     private String title;      // 标题（可选，详情页显示）

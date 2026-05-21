@@ -32,7 +32,6 @@ public class WebConfig implements WebMvcConfigurer {
                         "/api/news/{id}",
                         "/api/news/{id}/comments",
                         "/api/market/list",
-                        "/api/market/{id}",
                         "/api/service/list",
                         "/api/service/{id}",
                         "/api/service/*/reviews",

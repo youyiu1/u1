@@ -44,11 +44,10 @@ async function request<T>(url: string, options?: RequestInit): Promise<T> {
     },
   });
 
-  // Token无效或过期，清除并跳转登录
+  // 401 不自动退出，只抛出错误由调用方处理
   if (res.status === 401) {
-    window.dispatchEvent(new Event('token-invalid'));
-    window.location.href = '/login';
-    throw new Error('Token无效，请重新登录');
+    const json = await res.json();
+    throw new Error(json.message || '登录已过期，请重新登录');
   }
 
   const json: Result<T> = await res.json();
