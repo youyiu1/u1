@@ -220,9 +220,11 @@ export default function Profile() {
                     >
                        {activeTab === 'posts' && (
                          posts.length > 0 ? (
-                           posts.map(post => <ProfilePostCard key={post.id} post={post} />)
+                           <div className="space-y-3">
+                             {posts.map(post => <ProfilePostCard key={post.id} post={post} />)}
+                           </div>
                          ) : (
-                            <div className="col-span-2 py-20 text-center">
+                            <div className="py-20 text-center">
                               <p className="text-sm text-muted font-bold">还没有发布过动态呢</p>
                             </div>
                          )
