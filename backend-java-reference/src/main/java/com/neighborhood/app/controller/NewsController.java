@@ -10,17 +10,28 @@ import com.neighborhood.app.entity.NewsVO;
 import com.neighborhood.app.entity.Comment;
 import com.neighborhood.app.service.NewsService;
 import com.neighborhood.app.common.Result;
+import com.neighborhood.app.util.JwtUtil;
 import jakarta.servlet.http.HttpServletRequest;
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.web.bind.annotation.*;
 import java.util.List;
 
+@Slf4j
 @RestController
 @RequestMapping("/api/news")
 public class NewsController {
 
     @Autowired
     private NewsService newsService;
+
+    @Autowired
+    private JwtUtil jwtUtil;
+
+    @Autowired
+    private RedisTemplate<String, Object> redisTemplate;
 
     /**
      * 获取动态列表（带作者信息）
@@ -35,13 +46,20 @@ public class NewsController {
      */
     @PostMapping("/create")
     public Result<Boolean> create(@RequestBody News news, HttpServletRequest request) {
-        // 从request属性获取登录用户ID（AuthInterceptor设置）
-        String userId = (String) request.getAttribute("userId");
-        if (userId == null || userId.isEmpty()) {
-            return Result.fail("用户未登录或登录已过期");
+        String authHeader = request.getHeader("Authorization");
+        if (authHeader == null || !authHeader.startsWith("Bearer ")) {
+            return Result.fail("未登录");
+        }
+        String token = authHeader.substring(7);
+        if (!jwtUtil.validateToken(token)) {
+            return Result.fail("Token无效");
+        }
+        String userId = jwtUtil.getUserIdFromToken(token);
+        Object redisToken = redisTemplate.opsForValue().get("token:" + userId);
+        if (redisToken == null || !token.equals(redisToken.toString())) {
+            return Result.fail("Token已过期");
         }
         news.setAuthorId(userId);
-        // 设置默认分类
         if (news.getCategory() == null || news.getCategory().isEmpty()) {
             news.setCategory("生活记录");
         }
