@@ -65,12 +65,12 @@ const SERVICE_CATEGORIES = [
 ];
 
 const MARKET_CATEGORIES = [
-  { value: 'domestic', label: '家政服务' },
-  { value: 'repair', label: '家庭维修' },
-  { value: 'sports', label: '运动健身' },
-  { value: 'pets', label: '宠物生活' },
-  { value: 'market', label: '闲置交易' },
-  { value: 'other', label: '其他闲置' },
+  { value: 'tech', label: '数码' },
+  { value: 'home', label: '家居' },
+  { value: 'fashion', label: '美妆' },
+  { value: 'clothing', label: '穿搭' },
+  { value: 'sports', label: '户外' },
+  { value: 'others', label: '其它' },
 ];
 
 interface PublishOverlayProps {
@@ -172,7 +172,7 @@ export const PublishOverlay: React.FC<PublishOverlayProps> = ({ isOpen, onClose,
     setNewsType('生活记录');
     setServiceCategory('domestic');
     setServiceUnit('次');
-    setMarketCategory('market');
+    setMarketCategory('tech');
     setContent('');
     setImages([]);
     setIsSuccess(false);
