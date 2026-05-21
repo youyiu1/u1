@@ -10,12 +10,9 @@ import com.neighborhood.app.entity.NewsVO;
 import com.neighborhood.app.entity.Comment;
 import com.neighborhood.app.service.NewsService;
 import com.neighborhood.app.common.Result;
-import com.neighborhood.app.util.JwtUtil;
 import jakarta.servlet.http.HttpServletRequest;
-import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.web.bind.annotation.*;
 import java.util.List;
 
@@ -27,12 +24,6 @@ public class NewsController {
     @Autowired
     private NewsService newsService;
 
-    @Autowired
-    private JwtUtil jwtUtil;
-
-    @Autowired
-    private RedisTemplate<String, Object> redisTemplate;
-
     /**
      * 获取动态列表（带作者信息）
      */
@@ -42,23 +33,19 @@ public class NewsController {
     }
 
     /**
+     * 获取用户动态列表
+     */
+    @GetMapping("/user/{userId}")
+    public Result<List<NewsVO>> listByUserId(@PathVariable String userId) {
+        return Result.ok(newsService.listByUserId(userId));
+    }
+
+    /**
      * 创建动态 - 需要登录，自动设置authorId
      */
     @PostMapping("/create")
     public Result<Boolean> create(@RequestBody News news, HttpServletRequest request) {
-        String authHeader = request.getHeader("Authorization");
-        if (authHeader == null || !authHeader.startsWith("Bearer ")) {
-            return Result.fail("未登录");
-        }
-        String token = authHeader.substring(7);
-        if (!jwtUtil.validateToken(token)) {
-            return Result.fail("Token无效");
-        }
-        String userId = jwtUtil.getUserIdFromToken(token);
-        Object redisToken = redisTemplate.opsForValue().get("token:" + userId);
-        if (redisToken == null || !token.equals(redisToken.toString())) {
-            return Result.fail("Token已过期");
-        }
+        String userId = (String) request.getAttribute("userId");
         news.setAuthorId(userId);
         if (news.getCategory() == null || news.getCategory().isEmpty()) {
             news.setCategory("生活记录");

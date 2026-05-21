@@ -127,8 +127,8 @@ export default function MarketList() {
                   ) : (
                     <div className="w-full h-full bg-stone-200 flex items-center justify-center text-stone-400 text-xs">暂无图片</div>
                   )}
-                  <div className="absolute top-3 left-3 px-2 py-1 bg-ink/70 backdrop-blur-md text-white text-[10px] font-bold rounded">
-                    {item.condition}
+                  <div className="absolute top-3 left-3 px-2 py-1 bg-red-400/90 backdrop-blur-md text-white text-[10px] font-bold rounded">
+                    {item.itemCondition || item.condition || '全新'}
                   </div>
                   <FavoriteButton />
                 </div>

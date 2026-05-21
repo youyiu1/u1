@@ -16,6 +16,8 @@ import com.neighborhood.app.service.CacheService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import java.util.List;
+import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
@@ -121,5 +123,20 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements Us
             following.setFollowersCount(Math.max(0, following.getFollowersCount() + followerDelta));
             super.updateById(following);
         }
+    }
+
+    @Override
+    public List<User> getFollowingList(String userId) {
+        // 获取该用户关注的所有用户ID
+        List<Follow> follows = followMapper.selectList(
+                new QueryWrapper<Follow>().eq("follower_id", userId)
+        );
+        if (follows.isEmpty()) {
+            return List.of();
+        }
+        List<String> followingIds = follows.stream()
+                .map(Follow::getFollowingId)
+                .collect(Collectors.toList());
+        return getBaseMapper().selectBatchIds(followingIds);
     }
 }

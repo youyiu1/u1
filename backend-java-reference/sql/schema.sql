@@ -51,3 +51,15 @@ CREATE TABLE `t_service` (
   `seller_id` varchar(64) DEFAULT NULL,
   PRIMARY KEY (`id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='生活服务表';
+
+-- 5. 收藏表
+CREATE TABLE `t_favorite` (
+  `id` bigint NOT NULL COMMENT '主键ID',
+  `user_id` varchar(64) NOT NULL COMMENT '用户ID',
+  `target_type` varchar(20) NOT NULL COMMENT '类型：news/market/service',
+  `target_id` bigint NOT NULL COMMENT '目标ID',
+  `create_time` datetime DEFAULT CURRENT_TIMESTAMP,
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `uk_user_target` (`user_id`, `target_type`, `target_id`),
+  INDEX `idx_user_id` (`user_id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='收藏表';

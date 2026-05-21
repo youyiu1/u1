@@ -32,7 +32,7 @@ import { FollowButton } from '../components/common/FollowButton';
 import { ConfirmDialog } from '../components/common/ConfirmDialog';
 import { ServiceDetail as ServiceDetailType, Review } from '../types';
 
-function ReviewSection({ serviceId, rating }: { serviceId: number; rating: number }) {
+function ReviewSection({ serviceId, rating }: { serviceId: string; rating: number }) {
   const [reviews, setReviews] = useState<Review[]>([]);
 
   useEffect(() => {
@@ -153,7 +153,7 @@ export default function ServiceDetail() {
     setIsBooking(true);
     try {
       await serviceApi.book({
-        serviceId: Number(id),
+        serviceId: id as string,
         buyerId: user.id,
         sellerId,
         bookingDate,
@@ -393,7 +393,7 @@ export default function ServiceDetail() {
                 ))}
               </div>
 
-              <ReviewSection serviceId={Number(id)} rating={service.rating} />
+              <ReviewSection serviceId={id as string} rating={service.rating} />
             </div>
           </div>
 

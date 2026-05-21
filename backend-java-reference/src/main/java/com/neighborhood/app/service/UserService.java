@@ -7,6 +7,7 @@ package com.neighborhood.app.service;
 
 import com.baomidou.mybatisplus.extension.service.IService;
 import com.neighborhood.app.entity.User;
+import java.util.List;
 
 public interface UserService extends IService<User> {
     User register(String name, String email, String password);
@@ -16,5 +17,6 @@ public interface UserService extends IService<User> {
     boolean follow(String followerId, String followingId);
     boolean unfollow(String followerId, String followingId);
     boolean isFollowing(String followerId, String followingId);
+    List<User> getFollowingList(String userId);  // 获取用户关注列表
     boolean updateById(User user);
 }

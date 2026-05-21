@@ -14,6 +14,7 @@ import com.neighborhood.app.service.NotificationService;
 import com.neighborhood.app.common.Result;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
+import jakarta.servlet.http.HttpServletRequest;
 import java.util.List;
 
 @RestController
@@ -30,6 +31,14 @@ public class ServiceController {
     @GetMapping("/list")
     public Result<List<ServiceEntity>> list() {
         return Result.ok(serviceModuleService.list());
+    }
+
+    /**
+     * 获取用户服务列表
+     */
+    @GetMapping("/user/{userId}")
+    public Result<List<ServiceEntity>> listByUserId(@PathVariable String userId) {
+        return Result.ok(serviceModuleService.listByUserId(userId));
     }
 
     @GetMapping("/{id}")

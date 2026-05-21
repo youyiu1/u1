@@ -95,4 +95,19 @@ public class MarketServiceImpl extends ServiceImpl<MarketMapper, MarketItem> imp
         }
         return result;
     }
+
+    @Override
+    public List<MarketItemVO> listByUserId(String userId) {
+        List<MarketItem> items = lambdaQuery()
+                .eq(MarketItem::getSellerId, userId)
+                .orderByDesc(MarketItem::getId)
+                .list();
+        if (items.isEmpty()) {
+            return List.of();
+        }
+        User seller = userMapper.selectById(userId);
+        return items.stream()
+                .map(item -> MarketItemVO.fromMarketItem(item, seller))
+                .collect(Collectors.toList());
+    }
 }

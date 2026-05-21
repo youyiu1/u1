@@ -1,7 +1,9 @@
+com\neighborhood\app\mapper\FavoriteMapper.class
 com\neighborhood\app\service\EmailService.class
 com\neighborhood\app\config\JacksonConfig.class
 com\neighborhood\app\service\impl\NotificationServiceImpl.class
 com\neighborhood\app\controller\HomeController.class
+com\neighborhood\app\entity\Favorite.class
 com\neighborhood\app\controller\ServiceController.class
 com\neighborhood\app\controller\UserController.class
 com\neighborhood\app\controller\SearchController.class
@@ -12,6 +14,8 @@ com\neighborhood\app\entity\NewsVO.class
 com\neighborhood\app\interceptor\AuthInterceptor.class
 com\neighborhood\app\service\UserService.class
 com\neighborhood\app\controller\MarketController.class
+com\neighborhood\app\service\impl\FavoriteServiceImpl.class
+com\neighborhood\app\controller\FavoriteController.class
 com\neighborhood\app\controller\MessageController$SendMessageRequest.class
 com\neighborhood\app\entity\Category.class
 com\neighborhood\app\service\impl\CategoryServiceImpl.class
@@ -25,6 +29,7 @@ com\neighborhood\app\controller\UserController$FollowRequest.class
 com\neighborhood\app\config\WebConfig.class
 com\neighborhood\app\mapper\CategoryMapper.class
 com\neighborhood\app\controller\UserController$RegisterRequest.class
+com\neighborhood\app\controller\FileController.class
 com\neighborhood\app\mapper\MarketMapper.class
 com\neighborhood\app\entity\Message.class
 com\neighborhood\app\Application.class
@@ -45,7 +50,9 @@ com\neighborhood\app\service\impl\EmailServiceImpl$1.class
 com\neighborhood\app\service\MessageService.class
 com\neighborhood\app\controller\MessageController.class
 com\neighborhood\app\entity\ServiceDetailVO$SellerInfo.class
+com\neighborhood\app\service\FileService.class
 com\neighborhood\app\service\ServiceReviewService.class
+com\neighborhood\app\controller\FavoriteController$AddFavoriteRequest.class
 com\neighborhood\app\mapper\CommentMapper.class
 com\neighborhood\app\mapper\ServiceMapper.class
 com\neighborhood\app\entity\Comment.class
@@ -68,6 +75,7 @@ com\neighborhood\app\entity\UserVO.class
 com\neighborhood\app\service\impl\ServiceModuleServiceImpl.class
 com\neighborhood\app\mapper\NewsMapper.class
 com\neighborhood\app\service\impl\SearchServiceImpl.class
+com\neighborhood\app\service\FavoriteService.class
 com\neighborhood\app\service\ServiceModuleService.class
 com\neighborhood\app\common\Result.class
 com\neighborhood\app\service\NewsService.class

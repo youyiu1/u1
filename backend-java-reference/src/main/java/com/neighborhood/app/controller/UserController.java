@@ -15,6 +15,7 @@ import com.neighborhood.app.util.JwtUtil;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.web.bind.annotation.*;
+import java.util.List;
 import java.util.concurrent.TimeUnit;
 
 @RestController
@@ -104,6 +105,14 @@ public class UserController {
     @GetMapping("/isfollowing")
     public Result<Boolean> isFollowing(@RequestParam String followerId, @RequestParam String followingId) {
         return Result.ok(userService.isFollowing(followerId, followingId));
+    }
+
+    /**
+     * 获取用户关注列表
+     */
+    @GetMapping("/{userId}/following")
+    public Result<List<User>> getFollowingList(@PathVariable String userId) {
+        return Result.ok(userService.getFollowingList(userId));
     }
 
     @PostMapping("/update")

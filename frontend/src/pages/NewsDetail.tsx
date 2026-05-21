@@ -7,7 +7,7 @@ import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { ChevronLeft, MessageSquare, Heart, Share2, Bookmark, MapPin, MoreHorizontal, Plus, Send, Smile, Image as ImageIcon } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
-import { newsApi } from '../services/api';
+import { newsApi, userApi } from '../services/api';
 import { FollowButton } from '../components/common/FollowButton';
 import { CommentItem } from '../components/common/CommentItem';
 import { Post, Comment } from '../types';
@@ -35,14 +35,23 @@ export default function NewsDetail() {
   const authorTag = post?.author?.tag || post?.authorTag || '';
   const authorFollowersCount = post?.author?.followersCount ?? post?.authorFollowersCount;
   const postTime = post?.time || post?.createTime || '';
+  const authorId = post?.author?.id || (post as any)?.authorId || '';
 
   useEffect(() => {
     const fetchPost = async () => {
       try {
-        const data = await newsApi.get(Number(id));
+        const data = await newsApi.get(id as string);
         setPost(data);
-        const commentData = await newsApi.getComments(Number(id));
+        const commentData = await newsApi.getComments(id as string);
         setComments(commentData);
+        // 获取作者关注状态
+        const currentUser = JSON.parse(localStorage.getItem('neighborhood_user') || '{}');
+        if (currentUser.id && authorId) {
+          try {
+            const following = await userApi.isFollowing(currentUser.id, authorId);
+            setIsFollowed(following);
+          } catch {}
+        }
       } catch (err: any) {
         setError(err.message || '加载失败');
       } finally {
@@ -50,12 +59,12 @@ export default function NewsDetail() {
       }
     };
     if (id) fetchPost();
-  }, [id]);
+  }, [id, authorId]);
 
   const handleLike = async () => {
     if (!post) return;
     try {
-      await newsApi.like(Number(id));
+      await newsApi.like(id as string);
       setIsLiked(!isLiked);
     } catch (err) {
       console.error('点赞失败', err);
@@ -65,14 +74,14 @@ export default function NewsDetail() {
   const handleAddComment = async () => {
     if (!commentText.trim() || !user) return;
     try {
-      await newsApi.addComment(Number(id), {
+      await newsApi.addComment(id as string, {
         content: commentText,
         userId: user.id,
         userName: user.name,
         userAvatar: user.avatar,
       });
       setCommentText('');
-      const commentData = await newsApi.getComments(Number(id));
+      const commentData = await newsApi.getComments(id as string);
       setComments(commentData);
     } catch (err: any) {
       alert(err.message || '评论失败');

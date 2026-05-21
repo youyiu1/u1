@@ -13,7 +13,9 @@ D:\下载文件\同城生活\backend-java-reference\src\main\java\com\neighborhood\app\e
 D:\下载文件\同城生活\backend-java-reference\src\main\java\com\neighborhood\app\service\impl\NewsServiceImpl.java
 D:\下载文件\同城生活\backend-java-reference\src\main\java\com\neighborhood\app\mapper\FollowMapper.java
 D:\下载文件\同城生活\backend-java-reference\src\main\java\com\neighborhood\app\entity\Notification.java
+D:\下载文件\同城生活\backend-java-reference\src\main\java\com\neighborhood\app\controller\FavoriteController.java
 D:\下载文件\同城生活\backend-java-reference\src\main\java\com\neighborhood\app\entity\Comment.java
+D:\下载文件\同城生活\backend-java-reference\src\main\java\com\neighborhood\app\entity\Favorite.java
 D:\下载文件\同城生活\backend-java-reference\src\main\java\com\neighborhood\app\service\impl\EmailServiceImpl.java
 D:\下载文件\同城生活\backend-java-reference\src\main\java\com\neighborhood\app\controller\MessageController.java
 D:\下载文件\同城生活\backend-java-reference\src\main\java\com\neighborhood\app\mapper\NotificationMapper.java
@@ -26,6 +28,7 @@ D:\下载文件\同城生活\backend-java-reference\src\main\java\com\neighborhood\app\e
 D:\下载文件\同城生活\backend-java-reference\src\main\java\com\neighborhood\app\service\impl\MarketServiceImpl.java
 D:\下载文件\同城生活\backend-java-reference\src\main\java\com\neighborhood\app\entity\AuthResponse.java
 D:\下载文件\同城生活\backend-java-reference\src\main\java\com\neighborhood\app\service\MarketService.java
+D:\下载文件\同城生活\backend-java-reference\src\main\java\com\neighborhood\app\controller\FileController.java
 D:\下载文件\同城生活\backend-java-reference\src\main\java\com\neighborhood\app\service\MessageService.java
 D:\下载文件\同城生活\backend-java-reference\src\main\java\com\neighborhood\app\service\impl\UserServiceImpl.java
 D:\下载文件\同城生活\backend-java-reference\src\main\java\com\neighborhood\app\entity\Booking.java
@@ -40,10 +43,12 @@ D:\下载文件\同城生活\backend-java-reference\src\main\java\com\neighborhood\app\e
 D:\下载文件\同城生活\backend-java-reference\src\main\java\com\neighborhood\app\mapper\BookingMapper.java
 D:\下载文件\同城生活\backend-java-reference\src\main\java\com\neighborhood\app\controller\UserController.java
 D:\下载文件\同城生活\backend-java-reference\src\main\java\com\neighborhood\app\service\CategoryService.java
+D:\下载文件\同城生活\backend-java-reference\src\main\java\com\neighborhood\app\mapper\FavoriteMapper.java
 D:\下载文件\同城生活\backend-java-reference\src\main\java\com\neighborhood\app\service\impl\ServiceReviewServiceImpl.java
 D:\下载文件\同城生活\backend-java-reference\src\main\java\com\neighborhood\app\Application.java
 D:\下载文件\同城生活\backend-java-reference\src\main\java\com\neighborhood\app\interceptor\AuthInterceptor.java
 D:\下载文件\同城生活\backend-java-reference\src\main\java\com\neighborhood\app\service\NotificationService.java
+D:\下载文件\同城生活\backend-java-reference\src\main\java\com\neighborhood\app\service\impl\FavoriteServiceImpl.java
 D:\下载文件\同城生活\backend-java-reference\src\main\java\com\neighborhood\app\service\EmailService.java
 D:\下载文件\同城生活\backend-java-reference\src\main\java\com\neighborhood\app\entity\Follow.java
 D:\下载文件\同城生活\backend-java-reference\src\main\java\com\neighborhood\app\service\NewsService.java
@@ -58,6 +63,8 @@ D:\下载文件\同城生活\backend-java-reference\src\main\java\com\neighborhood\app\s
 D:\下载文件\同城生活\backend-java-reference\src\main\java\com\neighborhood\app\util\StringUtils.java
 D:\下载文件\同城生活\backend-java-reference\src\main\java\com\neighborhood\app\entity\ServiceDetailVO.java
 D:\下载文件\同城生活\backend-java-reference\src\main\java\com\neighborhood\app\common\ResultUtils.java
+D:\下载文件\同城生活\backend-java-reference\src\main\java\com\neighborhood\app\service\FavoriteService.java
+D:\下载文件\同城生活\backend-java-reference\src\main\java\com\neighborhood\app\service\FileService.java
 D:\下载文件\同城生活\backend-java-reference\src\main\java\com\neighborhood\app\service\impl\MessageServiceImpl.java
 D:\下载文件\同城生活\backend-java-reference\src\main\java\com\neighborhood\app\entity\UserVO.java
 D:\下载文件\同城生活\backend-java-reference\src\main\java\com\neighborhood\app\service\UserService.java

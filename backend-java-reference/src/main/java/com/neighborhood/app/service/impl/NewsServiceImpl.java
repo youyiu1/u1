@@ -127,4 +127,19 @@ public class NewsServiceImpl extends ServiceImpl<NewsMapper, News> implements Ne
                         .last("LIMIT " + limit + " OFFSET " + offset)
         );
     }
+
+    @Override
+    public List<NewsVO> listByUserId(String userId) {
+        List<News> newsList = lambdaQuery()
+                .eq(News::getAuthorId, userId)
+                .orderByDesc(News::getCreateTime)
+                .list();
+        if (newsList.isEmpty()) {
+            return List.of();
+        }
+        User author = userMapper.selectById(userId);
+        return newsList.stream()
+                .map(news -> NewsVO.fromNews(news, author))
+                .collect(Collectors.toList());
+    }
 }

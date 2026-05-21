@@ -15,6 +15,7 @@ public interface MarketService extends IService<MarketItem> {
     MarketItem getById(Long id);
     MarketItemVO getMarketItemVOById(Long id);  // 获取带卖家信息的闲置详情
     List<MarketItemVO> listVO();                 // 获取带卖家信息的闲置列表
+    List<MarketItemVO> listByUserId(String userId);  // 获取用户商品
     boolean save(MarketItem item);
     boolean updateById(MarketItem item);
 }

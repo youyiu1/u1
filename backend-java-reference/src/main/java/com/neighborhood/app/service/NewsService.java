@@ -16,6 +16,7 @@ public interface NewsService extends IService<News> {
     News getById(Long id);
     NewsVO getNewsVOById(Long id);  // 获取带作者信息的动态详情
     List<NewsVO> listDescVO();      // 获取带作者信息的动态列表
+    List<NewsVO> listByUserId(String userId);  // 获取用户动态
     boolean save(News news);
     boolean updateById(News news);
     void addComment(Long newsId, Comment comment);

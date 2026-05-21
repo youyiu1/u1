@@ -6,6 +6,7 @@
 package com.neighborhood.app.controller;
 
 import com.neighborhood.app.service.FileService;
+import com.neighborhood.app.common.Result;
 import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;

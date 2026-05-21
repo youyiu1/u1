@@ -10,6 +10,7 @@ import com.fasterxml.jackson.databind.ser.std.ToStringSerializer;
 import lombok.Data;
 import lombok.experimental.Accessors;
 import java.time.LocalDateTime;
+import java.util.ArrayList;
 import java.util.List;
 
 @Data
@@ -34,6 +35,10 @@ public class NewsVO {
     private Integer collections;
     private LocalDateTime createTime;
     private LocalDateTime updateTime;
+
+    public List<String> getImages() {
+        return images == null ? List.of() : images;
+    }
 
     public static NewsVO fromNews(News news, User author) {
         NewsVO vo = new NewsVO();

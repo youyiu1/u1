@@ -10,6 +10,7 @@ import com.fasterxml.jackson.databind.ser.std.ToStringSerializer;
 import lombok.Data;
 import lombok.experimental.Accessors;
 import java.math.BigDecimal;
+import java.util.ArrayList;
 import java.util.List;
 
 @Data
@@ -36,6 +37,13 @@ public class MarketItemVO {
     private String location;
     private Boolean verified;
     private Boolean freeShipping;
+
+    public List<String> getImages() {
+        List<String> result = new ArrayList<>();
+        if (image != null && !image.isBlank()) result.add(image);
+        if (images != null) result.addAll(images);
+        return result;
+    }
 
     public static MarketItemVO fromMarketItem(MarketItem item, User seller) {
         MarketItemVO vo = new MarketItemVO();

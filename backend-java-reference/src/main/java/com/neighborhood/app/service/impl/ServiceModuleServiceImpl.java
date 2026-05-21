@@ -102,4 +102,12 @@ public class ServiceModuleServiceImpl extends ServiceImpl<ServiceMapper, Service
         booking.setUpdateTime(LocalDateTime.now());
         return bookingMapper.insert(booking) > 0;
     }
+
+    @Override
+    public List<ServiceEntity> listByUserId(String userId) {
+        return lambdaQuery()
+                .eq(ServiceEntity::getSellerId, userId)
+                .orderByDesc(ServiceEntity::getId)
+                .list();
+    }
 }
