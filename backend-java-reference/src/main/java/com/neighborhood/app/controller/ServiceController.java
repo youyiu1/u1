@@ -46,7 +46,9 @@ public class ServiceController {
     }
 
     @PostMapping("/create")
-    public Result<Boolean> create(@RequestBody ServiceEntity service) {
+    public Result<Boolean> create(@RequestBody ServiceEntity service, HttpServletRequest request) {
+        String userId = (String) request.getAttribute("userId");
+        service.setSellerId(userId);
         return Result.ok(serviceModuleService.save(service));
     }
 

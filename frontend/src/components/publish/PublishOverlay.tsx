@@ -67,6 +67,8 @@ export const PublishOverlay: React.FC<PublishOverlayProps> = ({ isOpen, onClose,
   const [price, setPrice] = useState('');
   const [condition, setCondition] = useState('全新');
   const [newsType, setNewsType] = useState('生活记录');
+  const [serviceCategory, setServiceCategory] = useState('domestic');
+  const [serviceUnit, setServiceUnit] = useState('次');
   const [content, setContent] = useState('');
   const [images, setImages] = useState<string[]>([]);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -98,7 +100,8 @@ export const PublishOverlay: React.FC<PublishOverlayProps> = ({ isOpen, onClose,
           title,
           price: Number(price),
           description: content,
-          category: '个人互助',
+          category: serviceCategory,
+          unit: serviceUnit,
         } as any);
       } else if (selectedId === 'snap') {
         // 随手拍 - 作为同城动态发布
@@ -125,6 +128,8 @@ export const PublishOverlay: React.FC<PublishOverlayProps> = ({ isOpen, onClose,
     setPrice('');
     setCondition('全新');
     setNewsType('生活记录');
+    setServiceCategory('domestic');
+    setServiceUnit('次');
     setContent('');
     setImages([]);
     setIsSuccess(false);
@@ -287,6 +292,58 @@ export const PublishOverlay: React.FC<PublishOverlayProps> = ({ isOpen, onClose,
                                          }`}
                                        >
                                          {c}
+                                       </button>
+                                     ))}
+                                  </div>
+                               </div>
+                            </div>
+                          )}
+
+                          {selectedId === 'service' && (
+                            <div className="flex flex-wrap gap-4 border-b border-hairline pb-4">
+                               <div className="flex items-center gap-2 pr-4 border-r border-hairline">
+                                  <span className="text-lg font-black text-ink">¥</span>
+                                  <input
+                                   type="number"
+                                   value={price}
+                                   onChange={(e) => setPrice(e.target.value)}
+                                   placeholder="价格"
+                                   className="w-24 bg-transparent border-none p-0 focus:ring-0 text-lg font-bold placeholder:text-muted/30"
+                                 />
+                               </div>
+                               <div className="flex items-center gap-2 pr-4 border-r border-hairline">
+                                  <span className="text-[10px] font-black text-muted uppercase tracking-widest">类型:</span>
+                                  <div className="flex gap-2">
+                                     {[
+                                       { value: 'domestic', label: '家政' },
+                                       { value: 'pet', label: '宠物' },
+                                       { value: 'repair', label: '维修' },
+                                       { value: 'other', label: '其他' },
+                                     ].map(c => (
+                                       <button
+                                         key={c.value}
+                                         onClick={() => setServiceCategory(c.value)}
+                                         className={`px-3 py-1 rounded-lg text-[10px] font-bold transition-all ${
+                                           serviceCategory === c.value ? 'bg-accent-green text-white shadow-md' : 'bg-white text-muted border border-hairline'
+                                         }`}
+                                       >
+                                         {c.label}
+                                       </button>
+                                     ))}
+                                  </div>
+                               </div>
+                               <div className="flex items-center gap-2">
+                                  <span className="text-[10px] font-black text-muted uppercase tracking-widest">单位:</span>
+                                  <div className="flex gap-2">
+                                     {['次', '小时', '月', '件'].map(u => (
+                                       <button
+                                         key={u}
+                                         onClick={() => setServiceUnit(u)}
+                                         className={`px-3 py-1 rounded-lg text-[10px] font-bold transition-all ${
+                                           serviceUnit === u ? 'bg-accent-green text-white shadow-md' : 'bg-white text-muted border border-hairline'
+                                         }`}
+                                       >
+                                         {u}
                                        </button>
                                      ))}
                                   </div>
