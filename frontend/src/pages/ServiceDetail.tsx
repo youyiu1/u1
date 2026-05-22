@@ -127,6 +127,8 @@ export default function ServiceDetail() {
   const [bookingTime, setBookingTime] = useState(formatTime(now));
   const [duration, setDuration] = useState(4);
 
+  const { user } = useAuth();
+
   // 是否是自己的服务
   const sellerId = service?.seller?.id || (service as any)?.sellerId;
   const isOwnService = user?.id && user.id === sellerId;
@@ -168,7 +170,6 @@ export default function ServiceDetail() {
     if (id) fetchService();
   }, [id]);
 
-  const { user } = useAuth();
   const { increaseUnread } = useNotification();
 
   const handleBooking = async () => {
