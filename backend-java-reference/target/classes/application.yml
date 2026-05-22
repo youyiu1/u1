@@ -2,6 +2,11 @@ server:
   port: 8080
 
 spring:
+  servlet:
+    multipart:
+      max-file-size: 10MB
+      max-request-size: 20MB
+
   application:
     name: neighborhood-app
 
@@ -66,3 +71,7 @@ cache:
 jwt:
   secret: neighborhood-app-secret-key-2024-very-long-key-for-hs256
   expiration: 86400000
+
+# 文件上传配置
+file:
+  upload-dir: D:/下载文件/同城生活/backend-java-reference/uploads

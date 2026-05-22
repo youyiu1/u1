@@ -27,7 +27,7 @@ import { motion, AnimatePresence } from 'motion/react';
 import { useChat } from '../context/ChatContext';
 import { useAuth } from '../context/AuthContext';
 import { useNotification } from '../context/NotificationContext';
-import { serviceApi } from '../services/api';
+import { serviceApi, userApi } from '../services/api';
 import { FollowButton } from '../components/common/FollowButton';
 import { ConfirmDialog } from '../components/common/ConfirmDialog';
 import { ServiceDetail as ServiceDetailType, Review } from '../types';
@@ -116,6 +116,7 @@ export default function ServiceDetail() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [isLiked, setIsLiked] = useState(false);
+  const [isFollowing, setIsFollowing] = useState(false);
   const [isBooking, setIsBooking] = useState(false);
   const [showConfirm, setShowConfirm] = useState(false);
   const [bookingSuccess, setBookingSuccess] = useState(false);
@@ -131,6 +132,15 @@ export default function ServiceDetail() {
       try {
         const data = await serviceApi.get(id);
         setService(data);
+        // 获取关注状态
+        const currentUser = JSON.parse(localStorage.getItem('neighborhood_user') || '{}');
+        const sellerId = data.seller?.id || (data as any).sellerId;
+        if (currentUser.id && sellerId) {
+          try {
+            const following = await userApi.isFollowing(currentUser.id, sellerId);
+            setIsFollowing(following);
+          } catch {}
+        }
       } catch (err: any) {
         setError(err.message || '加载失败');
       } finally {
@@ -348,7 +358,8 @@ export default function ServiceDetail() {
                      极好口碑商家
                    </span>
                    <FollowButton
-                    isFollowingInitial={service.seller?.isFollowing}
+                    isFollowingInitial={isFollowing}
+                    onFollowChange={setIsFollowing}
                     size="sm"
                     variant="outline"
                     className="md:ml-auto"
