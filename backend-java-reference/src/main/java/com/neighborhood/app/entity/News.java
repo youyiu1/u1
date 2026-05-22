@@ -14,6 +14,7 @@ import com.fasterxml.jackson.databind.annotation.JsonSerialize;
 import com.fasterxml.jackson.databind.ser.std.ToStringSerializer;
 import lombok.Data;
 import java.time.LocalDateTime;
+import java.util.ArrayList;
 import java.util.List;
 
 @Data
@@ -33,7 +34,10 @@ public class News {
     private List<String> images;
 
     public List<String> getImages() {
-        return images == null ? List.of() : images;
+        if (images == null) {
+            return new ArrayList<>();
+        }
+        return images;
     }
     private Integer shares;
     private Integer collections;

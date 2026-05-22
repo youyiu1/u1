@@ -32,7 +32,10 @@ public class MarketItem {
     private List<String> images;
 
     public List<String> getImages() {
-        return images == null ? List.of() : images;
+        if (images == null) {
+            return new ArrayList<>();
+        }
+        return images;
     }
     @TableField("seller_id")
     private String sellerId;
