@@ -7,7 +7,7 @@ import React, { useState, useEffect } from 'react';
 import { MessageSquare, Heart, Share2, MoreHorizontal, MapPin, Image as ImageIcon, TrendingUp, Users, Bookmark, Plus } from 'lucide-react';
 import { motion } from 'motion/react';
 import { Link, useNavigate } from 'react-router-dom';
-import { newsApi } from '../services/api';
+import { newsApi, userApi } from '../services/api';
 import { FollowButton } from '../components/common/FollowButton';
 import { Post } from '../types';
 
@@ -29,6 +29,34 @@ export default function News() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [postText, setPostText] = useState('');
+  const [suggestedUsers, setSuggestedUsers] = useState(SUGGESTED_USERS);
+  const [postFollowStates, setPostFollowStates] = useState<Record<string, boolean>>({});
+
+  const handleSuggestedFollowChange = async (userId: string, newState: boolean) => {
+    const currentUser = JSON.parse(localStorage.getItem('neighborhood_user') || '{}');
+    if (!currentUser.id) return;
+    try {
+      if (newState) {
+        await userApi.follow(currentUser.id, userId);
+      } else {
+        await userApi.unfollow(currentUser.id, userId);
+      }
+      setSuggestedUsers(prev => prev.map(u => u.id === userId ? { ...u, isFollowing: newState } : u));
+    } catch {}
+  };
+
+  const handlePostFollowChange = async (authorId: string, newState: boolean) => {
+    const currentUser = JSON.parse(localStorage.getItem('neighborhood_user') || '{}');
+    if (!currentUser.id || !authorId) return;
+    try {
+      if (newState) {
+        await userApi.follow(currentUser.id, authorId);
+      } else {
+        await userApi.unfollow(currentUser.id, authorId);
+      }
+      setPostFollowStates(prev => ({ ...prev, [authorId]: newState }));
+    } catch {}
+  };
 
   useEffect(() => {
     const fetchPosts = async () => {
@@ -117,6 +145,7 @@ export default function News() {
               ) : (
                 posts.map((post) => {
                   // 兼容后端 NewsVO 扁平结构和旧 author 对象结构
+                  const authorId = post.author?.id || post.authorId || '';
                   const authorName = post.author?.name || post.authorName || '匿名用户';
                   const authorAvatar = post.author?.avatar || post.authorAvatar || '';
                   const postTime = post.time || post.createTime || '';
@@ -143,7 +172,12 @@ export default function News() {
                         </div>
                       </div>
                       <div className="flex items-center gap-2" onClick={e => e.stopPropagation()}>
-                        <FollowButton size="sm" variant="ghost" />
+                        <FollowButton
+                          size="sm"
+                          variant="ghost"
+                          isFollowingInitial={postFollowStates[authorId] ?? false}
+                          onFollowChange={(newState) => handlePostFollowChange(authorId, newState)}
+                        />
                         <button className="p-2 text-muted hover:bg-surface-soft rounded-xl transition-all">
                           <MoreHorizontal className="w-4 h-4" />
                         </button>
@@ -223,6 +257,7 @@ export default function News() {
                      </div>
                      <FollowButton
                         isFollowingInitial={user.isFollowing}
+                        onFollowChange={(newState) => handleSuggestedFollowChange(user.id, newState)}
                         size="sm"
                         variant="ghost"
                         className="shrink-0"
