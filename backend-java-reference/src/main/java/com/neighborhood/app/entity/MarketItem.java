@@ -30,6 +30,10 @@ public class MarketItem {
     private String itemCondition;
     @TableField(typeHandler = JacksonTypeHandler.class)
     private List<String> images;
+
+    public List<String> getImages() {
+        return images == null ? List.of() : images;
+    }
     @TableField("seller_id")
     private String sellerId;
     private String category;

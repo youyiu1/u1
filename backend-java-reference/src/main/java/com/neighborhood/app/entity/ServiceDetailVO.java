@@ -24,6 +24,10 @@ public class ServiceDetailVO {
     private List<String> highlights;
     private List<String> images;
 
+    public List<String> getImages() {
+        return images == null ? List.of() : images;
+    }
+
     private SellerInfo seller;
 
     @Data

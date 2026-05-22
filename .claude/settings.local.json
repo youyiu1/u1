@@ -43,7 +43,8 @@
       "Bash(redis-cli GET *)",
       "Bash(redis-cli KEYS *)",
       "Bash(tasklist //FI \"IMAGENAME eq java.exe\")",
-      "Bash(redis-cli TTL \"token:2056555272571645954\")"
+      "Bash(redis-cli TTL \"token:2056555272571645954\")",
+      "Bash(redis-cli FLUSHDB)"
     ]
   }
 }

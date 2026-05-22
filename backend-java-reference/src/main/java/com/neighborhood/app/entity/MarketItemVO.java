@@ -23,6 +23,10 @@ public class MarketItemVO {
     private BigDecimal price;
     private String itemCondition;
     private List<String> images;
+
+    public List<String> getImages() {
+        return images == null ? List.of() : images;
+    }
     // 卖家信息（扁平化）
     private String sellerId;
     private String sellerName;

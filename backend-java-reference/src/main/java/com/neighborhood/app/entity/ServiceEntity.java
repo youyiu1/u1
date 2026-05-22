@@ -35,4 +35,8 @@ public class ServiceEntity {
     private List<String> highlights;
     @TableField(typeHandler = JacksonTypeHandler.class)
     private List<String> images;
+
+    public List<String> getImages() {
+        return images == null ? List.of() : images;
+    }
 }
