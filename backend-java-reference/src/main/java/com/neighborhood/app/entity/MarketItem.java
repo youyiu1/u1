@@ -28,7 +28,6 @@ public class MarketItem {
     private BigDecimal price;
     @TableField("item_condition")
     private String itemCondition;
-    private String image;
     @TableField(typeHandler = JacksonTypeHandler.class)
     private List<String> images;
     @TableField("seller_id")
@@ -39,14 +38,4 @@ public class MarketItem {
     private String location;
     private Boolean verified;
     private Boolean freeShipping;
-
-    /**
-     * 统一图片列表，前端只使用此方法获取图片数组
-     */
-    public List<String> getImages() {
-        List<String> result = new ArrayList<>();
-        if (image != null && !image.isBlank()) result.add(image);
-        if (images != null) result.addAll(images);
-        return result;
-    }
 }

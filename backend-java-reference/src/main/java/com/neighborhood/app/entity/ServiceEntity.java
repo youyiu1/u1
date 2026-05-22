@@ -26,7 +26,6 @@ public class ServiceEntity {
     private String description;
     private String category;
     private BigDecimal price;
-    private String image;
     private String sellerId;
     private Double rating;
     private Integer reviews;
@@ -34,4 +33,6 @@ public class ServiceEntity {
     private String unit;
     @TableField(typeHandler = JacksonTypeHandler.class)
     private List<String> highlights;
+    @TableField(typeHandler = JacksonTypeHandler.class)
+    private List<String> images;
 }

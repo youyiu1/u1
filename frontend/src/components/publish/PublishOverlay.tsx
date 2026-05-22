@@ -131,7 +131,6 @@ export const PublishOverlay: React.FC<PublishOverlayProps> = ({ isOpen, onClose,
           itemCondition: condition,
           description: content,
           category: marketCategory,
-          image: uploadedUrls[0] || '',
           images: uploadedUrls,
         } as any);
       } else if (selectedId === 'service') {
@@ -142,7 +141,7 @@ export const PublishOverlay: React.FC<PublishOverlayProps> = ({ isOpen, onClose,
           description: content,
           category: serviceCategory,
           unit: serviceUnit,
-          image: uploadedUrls[0] || '',
+          images: uploadedUrls,
         } as any);
       } else if (selectedId === 'snap') {
         // 随手拍 - 作为同城动态发布

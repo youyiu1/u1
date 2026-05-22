@@ -22,7 +22,6 @@ public class MarketItemVO {
     private String description;
     private BigDecimal price;
     private String itemCondition;
-    private String image;
     private List<String> images;
     // 卖家信息（扁平化）
     private String sellerId;
@@ -38,13 +37,6 @@ public class MarketItemVO {
     private Boolean verified;
     private Boolean freeShipping;
 
-    public List<String> getImages() {
-        List<String> result = new ArrayList<>();
-        if (image != null && !image.isBlank()) result.add(image);
-        if (images != null) result.addAll(images);
-        return result;
-    }
-
     public static MarketItemVO fromMarketItem(MarketItem item, User seller) {
         MarketItemVO vo = new MarketItemVO();
         vo.setId(item.getId());
@@ -52,7 +44,6 @@ public class MarketItemVO {
         vo.setDescription(item.getDescription());
         vo.setPrice(item.getPrice());
         vo.setItemCondition(item.getItemCondition());
-        vo.setImage(item.getImage());
         vo.setImages(item.getImages());
         vo.setCategory(item.getCategory());
         vo.setOriginalPrice(item.getOriginalPrice());

@@ -16,13 +16,13 @@ public class ServiceDetailVO {
     private String description;
     private String category;
     private BigDecimal price;
-    private String image;
     private String sellerId;
     private Double rating;
     private Integer reviews;
     private String distance;
     private String unit;
     private List<String> highlights;
+    private List<String> images;
 
     private SellerInfo seller;
 
@@ -44,13 +44,13 @@ public class ServiceDetailVO {
         vo.setDescription(service.getDescription());
         vo.setCategory(service.getCategory());
         vo.setPrice(service.getPrice());
-        vo.setImage(service.getImage());
         vo.setSellerId(service.getSellerId());
         vo.setRating(service.getRating());
         vo.setReviews(service.getReviews());
         vo.setDistance(service.getDistance());
         vo.setUnit(service.getUnit());
         vo.setHighlights(service.getHighlights());
+        vo.setImages(service.getImages());
 
         if (seller != null) {
             SellerInfo sellerInfo = new SellerInfo();
