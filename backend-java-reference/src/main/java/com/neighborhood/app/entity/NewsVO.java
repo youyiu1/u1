@@ -37,7 +37,8 @@ public class NewsVO {
     private LocalDateTime updateTime;
 
     public List<String> getImages() {
-        return images == null ? List.of() : images;
+        if (images == null) return List.of();
+        return images;
     }
 
     public static NewsVO fromNews(News news, User author) {
@@ -50,7 +51,7 @@ public class NewsVO {
         vo.setCategory(news.getCategory());
         vo.setLikes(news.getLikes());
         vo.setCommentsCount(news.getCommentsCount());
-        vo.setImages(news.getImages());
+        vo.setImages(parseImages(news.getImages()));
         vo.setShares(news.getShares());
         vo.setCollections(news.getCollections());
         vo.setCreateTime(news.getCreateTime());
@@ -64,5 +65,25 @@ public class NewsVO {
             vo.setAuthorFollowersCount(author.getFollowersCount());
         }
         return vo;
+    }
+
+    private static List<String> parseImages(String imagesJson) {
+        if (imagesJson == null || imagesJson.isEmpty()) {
+            return List.of();
+        }
+        try {
+            com.fasterxml.jackson.databind.ObjectMapper mapper = new com.fasterxml.jackson.databind.ObjectMapper();
+            var node = mapper.readTree(imagesJson);
+            if (node.isArray()) {
+                List<String> list = new ArrayList<>();
+                for (var n : node) {
+                    list.add(n.asText());
+                }
+                return list;
+            }
+        } catch (Exception e) {
+            // ignore
+        }
+        return List.of();
     }
 }

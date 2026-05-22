@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.neighborhood.app.mapper.NewsMapper">
+    <resultMap id="BaseResultMap" type="com.neighborhood.app.entity.News">
+        <id column="id" property="id"/>
+        <result column="author_id" property="authorId"/>
+        <result column="title" property="title"/>
+        <result column="content" property="content"/>
+        <result column="location" property="location"/>
+        <result column="category" property="category"/>
+        <result column="likes" property="likes"/>
+        <result column="comments_count" property="commentsCount"/>
+        <result column="images" property="images" typeHandler="com.neighborhood.app.handler.MySqlJsonTypeHandler"/>
+        <result column="shares" property="shares"/>
+        <result column="collections" property="collections"/>
+        <result column="create_time" property="createTime"/>
+        <result column="update_time" property="updateTime"/>
+    </resultMap>
+</mapper>

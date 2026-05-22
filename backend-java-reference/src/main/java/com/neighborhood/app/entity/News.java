@@ -9,15 +9,10 @@ import com.baomidou.mybatisplus.annotation.IdType;
 import com.baomidou.mybatisplus.annotation.TableField;
 import com.baomidou.mybatisplus.annotation.TableId;
 import com.baomidou.mybatisplus.annotation.TableName;
-import com.baomidou.mybatisplus.extension.handlers.JacksonTypeHandler;
-import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.annotation.JsonSerialize;
 import com.fasterxml.jackson.databind.ser.std.ToStringSerializer;
 import lombok.Data;
 import java.time.LocalDateTime;
-import java.util.ArrayList;
-import java.util.List;
 
 @Data
 @TableName("t_news")
@@ -26,37 +21,16 @@ public class News {
     @JsonSerialize(using = ToStringSerializer.class)
     private Long id;
     private String authorId;
-    private String title;      // 标题（可选，详情页显示）
+    private String title;
     private String content;
     private String location;
-    private String category;  // 分类：生活记录、同城发现、探店动态、邻里闲情、物业反馈
+    private String category;
     private Integer likes;
     private Integer commentsCount;
     @TableField("images")
-    private String imagesJson;
+    private String images;
     private Integer shares;
     private Integer collections;
     private LocalDateTime createTime;
     private LocalDateTime updateTime;
-
-    private static final ObjectMapper MAPPER = new ObjectMapper();
-
-    public List<String> getImages() {
-        if (imagesJson == null || imagesJson.isEmpty()) {
-            return new ArrayList<>();
-        }
-        try {
-            JsonNode node = MAPPER.readTree(imagesJson);
-            if (node.isArray()) {
-                List<String> list = new ArrayList<>();
-                for (JsonNode n : node) {
-                    list.add(n.asText());
-                }
-                return list;
-            }
-        } catch (Exception e) {
-            // ignore parse error
-        }
-        return new ArrayList<>();
-    }
 }

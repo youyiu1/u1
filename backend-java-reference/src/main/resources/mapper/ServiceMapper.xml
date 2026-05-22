@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.neighborhood.app.mapper.ServiceMapper">
+    <resultMap id="BaseResultMap" type="com.neighborhood.app.entity.ServiceEntity">
+        <id column="id" property="id"/>
+        <result column="title" property="title"/>
+        <result column="description" property="description"/>
+        <result column="category" property="category"/>
+        <result column="price" property="price"/>
+        <result column="seller_id" property="sellerId"/>
+        <result column="rating" property="rating"/>
+        <result column="reviews" property="reviews"/>
+        <result column="distance" property="distance"/>
+        <result column="unit" property="unit"/>
+        <result column="highlights" property="highlights" typeHandler="com.neighborhood.app.handler.MySqlJsonTypeHandler"/>
+        <result column="images" property="images" typeHandler="com.neighborhood.app.handler.MySqlJsonTypeHandler"/>
+    </resultMap>
+</mapper>

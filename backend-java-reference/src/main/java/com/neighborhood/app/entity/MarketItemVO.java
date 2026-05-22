@@ -25,7 +25,8 @@ public class MarketItemVO {
     private List<String> images;
 
     public List<String> getImages() {
-        return images == null ? List.of() : images;
+        if (images == null) return List.of();
+        return images;
     }
     // 卖家信息（扁平化）
     private String sellerId;
@@ -48,7 +49,7 @@ public class MarketItemVO {
         vo.setDescription(item.getDescription());
         vo.setPrice(item.getPrice());
         vo.setItemCondition(item.getItemCondition());
-        vo.setImages(item.getImages());
+        vo.setImages(parseImages(item.getImages()));
         vo.setCategory(item.getCategory());
         vo.setOriginalPrice(item.getOriginalPrice());
         vo.setLocation(item.getLocation());
@@ -65,5 +66,25 @@ public class MarketItemVO {
             vo.setSellerSoldCount(seller.getRating() != null ? seller.getRating().intValue() : 0);
         }
         return vo;
+    }
+
+    private static List<String> parseImages(String imagesJson) {
+        if (imagesJson == null || imagesJson.isEmpty()) {
+            return List.of();
+        }
+        try {
+            com.fasterxml.jackson.databind.ObjectMapper mapper = new com.fasterxml.jackson.databind.ObjectMapper();
+            var node = mapper.readTree(imagesJson);
+            if (node.isArray()) {
+                List<String> list = new ArrayList<>();
+                for (var n : node) {
+                    list.add(n.asText());
+                }
+                return list;
+            }
+        } catch (Exception e) {
+            // ignore
+        }
+        return List.of();
     }
 }
