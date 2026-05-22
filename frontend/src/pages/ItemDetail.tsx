@@ -49,11 +49,12 @@ export default function ItemDetail() {
   const [isFollowing, setIsFollowing] = useState(false);
   const [activeImg, setActiveImg] = useState(0);
 
-  // 是否是自己的商品
-  const isOwnItem = currentUser?.id && currentUser.id === sellerId;
-
   // 兼容扁平化的卖家信息
   const sellerId = item?.seller?.id || (item as any)?.sellerId || '';
+
+  // 是否是自己的商品（需要sellerId先定义）
+  const isOwnItem = currentUser?.id && currentUser.id === sellerId;
+
   const sellerName = item?.seller?.name || item?.sellerName || '';
   const sellerAvatar = item?.seller?.avatar || item?.sellerAvatar || '';
   const sellerVerified = item?.seller?.verified ?? item?.sellerVerified ?? false;
@@ -324,7 +325,6 @@ export default function ItemDetail() {
                     立即聊一聊
                   </motion.button>
                 </div>
-              </div>
               )}
 
               <div className="flex items-center gap-3 p-4 bg-primary/5 rounded-2xl border border-primary/10">
