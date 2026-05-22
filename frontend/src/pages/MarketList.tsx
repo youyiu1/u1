@@ -122,8 +122,8 @@ export default function MarketList() {
                 onClick={() => navigate(`/item/${item.id}`)}
               >
                 <div className="relative aspect-square rounded-2xl overflow-hidden mb-3 bg-surface-soft">
-                  {item.image && item.image.trim() ? (
-                    <img src={item.image} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" alt={item.title} />
+                  {item.images && item.images[0] && item.images[0].trim() ? (
+                    <img src={item.images[0]} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" alt={item.title} />
                   ) : (
                     <div className="w-full h-full bg-stone-200 flex items-center justify-center text-stone-400 text-xs">暂无图片</div>
                   )}

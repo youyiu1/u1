@@ -119,7 +119,7 @@ export default function ItemDetail() {
   }
 
   const categoryName = categoryMap[item.category] || item.category;
-  const images = [item.image, ...(item.images || [])];
+  const images = item.images || [];
 
   return (
     <div className="bg-[#fcfdff] min-h-screen pb-20">

@@ -113,8 +113,8 @@ export default function ServiceList() {
                 onClick={() => navigate(`/service/${service.id}`)}
               >
                 <div className="relative h-48 overflow-hidden">
-                  {service.image && service.image.trim() ? (
-                    <img src={service.image} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" alt={service.title} />
+                  {service.images && service.images[0] && service.images[0].trim() ? (
+                    <img src={service.images[0]} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" alt={service.title} />
                   ) : (
                     <div className="w-full h-full bg-stone-200 flex items-center justify-center text-stone-400 text-xs">暂无图片</div>
                   )}

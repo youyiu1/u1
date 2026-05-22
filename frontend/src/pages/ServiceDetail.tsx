@@ -348,14 +348,14 @@ export default function ServiceDetail() {
 
             <div className="grid grid-cols-1 md:grid-cols-12 gap-4 h-[400px] md:h-[540px]">
               <div className="md:col-span-8 h-full rounded-[48px] overflow-hidden shadow-2xl shadow-ink/5 border border-hairline group">
-                <img src={service.image || undefined} className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110" alt="Main" />
+                <img src={(service.images && service.images[0]) || undefined} className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110" alt="Main" />
               </div>
               <div className="md:col-span-4 grid grid-rows-2 gap-4 h-full">
                 <div className="rounded-[32px] overflow-hidden border border-hairline group">
-                  <img src={service.image || undefined} className="w-full h-full object-cover group-hover:scale-110 transition-transform" alt="Detail 1" />
+                  <img src={(service.images && service.images[1]) || undefined} className="w-full h-full object-cover group-hover:scale-110 transition-transform" alt="Detail 1" />
                 </div>
                 <div className="relative rounded-[32px] overflow-hidden border border-hairline group cursor-pointer">
-                  <img src={service.image || undefined} className="w-full h-full object-cover group-hover:scale-110 transition-transform" alt="Detail 2" />
+                  <img src={(service.images && service.images[2]) || undefined} className="w-full h-full object-cover group-hover:scale-110 transition-transform" alt="Detail 2" />
                   <div className="absolute inset-x-4 bottom-4 px-4 py-3 bg-white/90 backdrop-blur-md rounded-2xl flex items-center justify-center gap-2 font-black text-xs shadow-xl">
                     <Sparkles className="w-4 h-4" /> 查看全景
                   </div>
