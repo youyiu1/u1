@@ -22,6 +22,7 @@ import {
 import { motion, AnimatePresence } from 'motion/react';
 import { marketApi, userApi } from '../services/api';
 import { useChat } from '../context/ChatContext';
+import { useAuth } from '../context/AuthContext';
 import { FollowButton } from '../components/common/FollowButton';
 import { Item } from '../types';
 
@@ -38,6 +39,7 @@ export default function ItemDetail() {
   const navigate = useNavigate();
   const location = useLocation();
   const { openChat } = useChat();
+  const { user: currentUser } = useAuth();
   const fromProfile = location.state?.from;
 
   const [item, setItem] = useState<Item | null>(null);
@@ -46,6 +48,9 @@ export default function ItemDetail() {
   const [isLiked, setIsLiked] = useState(false);
   const [isFollowing, setIsFollowing] = useState(false);
   const [activeImg, setActiveImg] = useState(0);
+
+  // 是否是自己的商品
+  const isOwnItem = currentUser?.id && currentUser.id === sellerId;
 
   // 兼容扁平化的卖家信息
   const sellerId = item?.seller?.id || (item as any)?.sellerId || '';
@@ -75,9 +80,8 @@ export default function ItemDetail() {
       try {
         const data = await marketApi.get(id as string);
         setItem(data);
-        // 获取关注状态
-        const currentUser = JSON.parse(localStorage.getItem('neighborhood_user') || '{}');
-        if (currentUser.id && sellerId) {
+        // 非本人时获取关注状态
+        if (currentUser?.id && sellerId && currentUser.id !== sellerId) {
           try {
             const following = await userApi.isFollowing(currentUser.id, sellerId);
             setIsFollowing(following);
@@ -90,7 +94,7 @@ export default function ItemDetail() {
       }
     };
     if (id) fetchItem();
-  }, [id, sellerId]);
+  }, [id, sellerId, currentUser?.id]);
 
   if (loading) {
     return (
@@ -275,12 +279,14 @@ export default function ItemDetail() {
                       </div>
                     </div>
                   </div>
-                  <FollowButton
-                    isFollowingInitial={isFollowing}
-                    onFollowChange={handleFollowChange}
-                    size="sm"
-                    variant="ghost"
-                  />
+                  {!isOwnItem && (
+                    <FollowButton
+                      isFollowingInitial={isFollowing}
+                      onFollowChange={handleFollowChange}
+                      size="sm"
+                      variant="ghost"
+                    />
+                  )}
                 </div>
 
                 <div className="grid grid-cols-3 gap-3">
@@ -299,42 +305,27 @@ export default function ItemDetail() {
                 </div>
               </div>
 
-              <div className="space-y-4">
-                <motion.button
-                  whileHover={{ scale: 1.02 }}
-                  whileTap={{ scale: 0.98 }}
-                  onClick={() => openChat({
-                    id: sellerId,
-                    name: sellerName,
-                    avatar: sellerAvatar,
-                    isOnline: true
-                  })}
-                  className="w-full h-16 bg-ink text-white rounded-2xl font-black shadow-xl shadow-ink/20 flex items-center justify-center gap-3 group"
-                >
-                  <div className="p-2 bg-white/10 rounded-xl group-hover:bg-primary transition-colors">
-                     <MessageCircle className="w-5 h-5" />
-                  </div>
-                  立即聊一聊
-                </motion.button>
-
-                <div className="grid grid-cols-2 gap-4">
+              {!isOwnItem && (
+                <div className="space-y-4">
                   <motion.button
-                    whileTap={{ scale: 0.95 }}
-                    onClick={() => setIsLiked(!isLiked)}
-                    className="h-14 bg-white border-2 border-hairline rounded-2xl font-black text-ink flex items-center justify-center gap-2 hover:bg-surface-soft transition-all"
+                    whileHover={{ scale: 1.02 }}
+                    whileTap={{ scale: 0.98 }}
+                    onClick={() => openChat({
+                      id: sellerId,
+                      name: sellerName,
+                      avatar: sellerAvatar,
+                      isOnline: true
+                    })}
+                    className="w-full h-16 bg-ink text-white rounded-2xl font-black shadow-xl shadow-ink/20 flex items-center justify-center gap-3 group"
                   >
-                    <Heart className={`w-5 h-5 ${isLiked ? 'fill-primary text-primary border-primary' : ''}`} />
-                    {isLiked ? '已收藏' : '收藏'}
-                  </motion.button>
-                  <motion.button
-                    whileTap={{ scale: 0.95 }}
-                    className="h-14 bg-surface-soft border-2 border-transparent rounded-2xl font-black text-ink flex items-center justify-center gap-2 hover:border-primary/20 transition-all"
-                  >
-                    <Share2 className="w-5 h-5" />
-                    分享
+                    <div className="p-2 bg-white/10 rounded-xl group-hover:bg-primary transition-colors">
+                       <MessageCircle className="w-5 h-5" />
+                    </div>
+                    立即聊一聊
                   </motion.button>
                 </div>
               </div>
+              )}
 
               <div className="flex items-center gap-3 p-4 bg-primary/5 rounded-2xl border border-primary/10">
                 <ShieldCheck className="w-6 h-6 text-primary shrink-0" />

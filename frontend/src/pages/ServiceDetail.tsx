@@ -127,6 +127,10 @@ export default function ServiceDetail() {
   const [bookingTime, setBookingTime] = useState(formatTime(now));
   const [duration, setDuration] = useState(4);
 
+  // 是否是自己的服务
+  const sellerId = service?.seller?.id || (service as any)?.sellerId;
+  const isOwnService = user?.id && user.id === sellerId;
+
   const handleFollowChange = async (newState: boolean) => {
     const currentUser = JSON.parse(localStorage.getItem('neighborhood_user') || '{}');
     const sellerId = service?.seller?.id || (service as any)?.sellerId;
@@ -371,6 +375,7 @@ export default function ServiceDetail() {
                    <span className="px-3 py-1 bg-green-50 text-green-600 rounded-lg text-[10px] font-black uppercase tracking-widest">
                      极好口碑商家
                    </span>
+                   {!isOwnService && (
                    <FollowButton
                     isFollowingInitial={isFollowing}
                     onFollowChange={handleFollowChange}
@@ -378,6 +383,7 @@ export default function ServiceDetail() {
                     variant="outline"
                     className="md:ml-auto"
                    />
+                   )}
                  </div>
                  <p className="text-secondary font-medium leading-relaxed max-w-lg mb-4">
                    "致力于为邻居提供五星级的管家式服务，细节决定品质。每一次服务都是我诚信的积累。"
@@ -397,6 +403,7 @@ export default function ServiceDetail() {
                    </div>
                  </div>
               </div>
+              {!isOwnService && (
               <button
                 onClick={() => openChat({
                   id: service.seller?.id || '',
@@ -408,6 +415,7 @@ export default function ServiceDetail() {
               >
                 沟通需求
               </button>
+              )}
             </div>
 
             <div className="space-y-16 px-2">

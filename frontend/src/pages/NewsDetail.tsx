@@ -39,6 +39,9 @@ export default function NewsDetail() {
   const postTime = post?.time || post?.createTime || '';
   const authorId = post?.author?.id || (post as any)?.authorId || '';
 
+  // 是否是自己的帖子
+  const isOwnPost = user?.id && user.id === authorId;
+
   const handleFollowChange = async (newState: boolean) => {
     const currentUser = JSON.parse(localStorage.getItem('neighborhood_user') || '{}');
     if (!currentUser.id || !authorId) return;
@@ -188,11 +191,13 @@ export default function NewsDetail() {
                   </div>
                 </div>
               </div>
+              {!isOwnPost && (
               <FollowButton
                 isFollowingInitial={isFollowed}
                 onFollowChange={handleFollowChange}
                 size="lg"
               />
+              )}
             </div>
 
             <div className="space-y-10 mb-10">
