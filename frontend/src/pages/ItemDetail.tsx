@@ -57,6 +57,19 @@ export default function ItemDetail() {
   const sellerSoldCount = item?.seller?.soldCount ?? item?.sellerSoldCount ?? 0;
   const sellerFollowersCount = item?.seller?.followersCount ?? item?.sellerFollowersCount ?? 0;
 
+  const handleFollowChange = async (newState: boolean) => {
+    const currentUser = JSON.parse(localStorage.getItem('neighborhood_user') || '{}');
+    if (!currentUser.id || !sellerId) return;
+    try {
+      if (newState) {
+        await userApi.follow(currentUser.id, sellerId);
+      } else {
+        await userApi.unfollow(currentUser.id, sellerId);
+      }
+      setIsFollowing(newState);
+    } catch {}
+  };
+
   useEffect(() => {
     const fetchItem = async () => {
       try {
@@ -264,6 +277,7 @@ export default function ItemDetail() {
                   </div>
                   <FollowButton
                     isFollowingInitial={isFollowing}
+                    onFollowChange={handleFollowChange}
                     size="sm"
                     variant="ghost"
                   />

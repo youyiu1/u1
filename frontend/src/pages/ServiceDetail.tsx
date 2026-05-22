@@ -127,6 +127,20 @@ export default function ServiceDetail() {
   const [bookingTime, setBookingTime] = useState(formatTime(now));
   const [duration, setDuration] = useState(4);
 
+  const handleFollowChange = async (newState: boolean) => {
+    const currentUser = JSON.parse(localStorage.getItem('neighborhood_user') || '{}');
+    const sellerId = service?.seller?.id || (service as any)?.sellerId;
+    if (!currentUser.id || !sellerId) return;
+    try {
+      if (newState) {
+        await userApi.follow(currentUser.id, sellerId);
+      } else {
+        await userApi.unfollow(currentUser.id, sellerId);
+      }
+      setIsFollowing(newState);
+    } catch {}
+  };
+
   useEffect(() => {
     const fetchService = async () => {
       try {
@@ -359,7 +373,7 @@ export default function ServiceDetail() {
                    </span>
                    <FollowButton
                     isFollowingInitial={isFollowing}
-                    onFollowChange={setIsFollowing}
+                    onFollowChange={handleFollowChange}
                     size="sm"
                     variant="outline"
                     className="md:ml-auto"

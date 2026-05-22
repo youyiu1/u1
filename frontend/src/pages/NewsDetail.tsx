@@ -39,6 +39,19 @@ export default function NewsDetail() {
   const postTime = post?.time || post?.createTime || '';
   const authorId = post?.author?.id || (post as any)?.authorId || '';
 
+  const handleFollowChange = async (newState: boolean) => {
+    const currentUser = JSON.parse(localStorage.getItem('neighborhood_user') || '{}');
+    if (!currentUser.id || !authorId) return;
+    try {
+      if (newState) {
+        await userApi.follow(currentUser.id, authorId);
+      } else {
+        await userApi.unfollow(currentUser.id, authorId);
+      }
+      setIsFollowed(newState);
+    } catch {}
+  };
+
   useEffect(() => {
     const fetchPost = async () => {
       try {
@@ -177,7 +190,7 @@ export default function NewsDetail() {
               </div>
               <FollowButton
                 isFollowingInitial={isFollowed}
-                onFollowChange={setIsFollowed}
+                onFollowChange={handleFollowChange}
                 size="lg"
               />
             </div>
