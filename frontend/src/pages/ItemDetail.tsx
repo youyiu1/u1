@@ -118,8 +118,17 @@ export default function ItemDetail() {
     );
   }
 
+  // 解析images JSON字符串为数组
+  const getImages = (imgs: any): string[] => {
+    if (Array.isArray(imgs)) return imgs;
+    if (typeof imgs === 'string' && imgs.startsWith('[')) {
+      try { return JSON.parse(imgs); } catch { return []; }
+    }
+    return [];
+  };
+
   const categoryName = categoryMap[item.category] || item.category;
-  const images = item.images || [];
+  const images = getImages(item.images);
 
   return (
     <div className="bg-[#fcfdff] min-h-screen pb-20">

@@ -6,7 +6,6 @@
 package com.neighborhood.app.entity;
 
 import com.baomidou.mybatisplus.annotation.IdType;
-import com.baomidou.mybatisplus.annotation.TableField;
 import com.baomidou.mybatisplus.annotation.TableId;
 import com.baomidou.mybatisplus.annotation.TableName;
 import com.fasterxml.jackson.databind.annotation.JsonSerialize;
@@ -29,8 +28,6 @@ public class ServiceEntity {
     private Integer reviews;
     private String distance;
     private String unit;
-    @TableField("highlights")
     private String highlights;
-    @TableField("images")
     private String images;
 }

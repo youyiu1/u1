@@ -25,6 +25,7 @@ D:\下载文件\同城生活\backend-java-reference\src\main\java\com\neighborhood\app\s
 D:\下载文件\同城生活\backend-java-reference\src\main\java\com\neighborhood\app\service\impl\CacheServiceImpl.java
 D:\下载文件\同城生活\backend-java-reference\src\main\java\com\neighborhood\app\controller\CategoryController.java
 D:\下载文件\同城生活\backend-java-reference\src\main\java\com\neighborhood\app\entity\News.java
+D:\下载文件\同城生活\backend-java-reference\src\main\java\com\neighborhood\app\config\S3Config.java
 D:\下载文件\同城生活\backend-java-reference\src\main\java\com\neighborhood\app\service\impl\MarketServiceImpl.java
 D:\下载文件\同城生活\backend-java-reference\src\main\java\com\neighborhood\app\entity\AuthResponse.java
 D:\下载文件\同城生活\backend-java-reference\src\main\java\com\neighborhood\app\service\MarketService.java
@@ -46,6 +47,7 @@ D:\下载文件\同城生活\backend-java-reference\src\main\java\com\neighborhood\app\s
 D:\下载文件\同城生活\backend-java-reference\src\main\java\com\neighborhood\app\mapper\FavoriteMapper.java
 D:\下载文件\同城生活\backend-java-reference\src\main\java\com\neighborhood\app\service\impl\ServiceReviewServiceImpl.java
 D:\下载文件\同城生活\backend-java-reference\src\main\java\com\neighborhood\app\Application.java
+D:\下载文件\同城生活\backend-java-reference\src\main\java\com\neighborhood\app\controller\Test.java
 D:\下载文件\同城生活\backend-java-reference\src\main\java\com\neighborhood\app\interceptor\AuthInterceptor.java
 D:\下载文件\同城生活\backend-java-reference\src\main\java\com\neighborhood\app\service\NotificationService.java
 D:\下载文件\同城生活\backend-java-reference\src\main\java\com\neighborhood\app\service\impl\FavoriteServiceImpl.java
@@ -54,6 +56,7 @@ D:\下载文件\同城生活\backend-java-reference\src\main\java\com\neighborhood\app\e
 D:\下载文件\同城生活\backend-java-reference\src\main\java\com\neighborhood\app\service\NewsService.java
 D:\下载文件\同城生活\backend-java-reference\src\main\java\com\neighborhood\app\entity\User.java
 D:\下载文件\同城生活\backend-java-reference\src\main\java\com\neighborhood\app\controller\ServiceController.java
+D:\下载文件\同城生活\backend-java-reference\src\main\java\com\neighborhood\app\handler\MySqlJsonTypeHandler.java
 D:\下载文件\同城生活\backend-java-reference\src\main\java\com\neighborhood\app\service\impl\ServiceModuleServiceImpl.java
 D:\下载文件\同城生活\backend-java-reference\src\main\java\com\neighborhood\app\entity\Message.java
 D:\下载文件\同城生活\backend-java-reference\src\main\java\com\neighborhood\app\config\RedisConfig.java

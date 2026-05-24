@@ -52,25 +52,65 @@ public class MySqlJsonTypeHandler extends BaseTypeHandler<List<String>> {
 
     @Override
     public List<String> getNullableResult(ResultSet rs, String columnName) throws SQLException {
-        // MySQL JSON 列可能被当作 BLOB 返回
-        Object obj = rs.getObject(columnName);
+        // MySQL JSON 列可能被当作 BLOB 返回，尝试多种方式读取
         System.out.println("=== MySqlJsonTypeHandler getNullableResult ===");
         System.out.println("columnName: " + columnName);
-        System.out.println("obj class: " + (obj != null ? obj.getClass().getName() : "null"));
-        System.out.println("obj value: " + obj);
-        List<String> result = parseObject(obj);
+        List<String> result = parseFromResultSet(rs, columnName);
         System.out.println("result: " + result);
         return result;
     }
 
     @Override
     public List<String> getNullableResult(ResultSet rs, int columnIndex) throws SQLException {
-        Object obj = rs.getObject(columnIndex);
         System.out.println("=== MySqlJsonTypeHandler getNullableResult(int) ===");
         System.out.println("columnIndex: " + columnIndex);
-        System.out.println("obj class: " + (obj != null ? obj.getClass().getName() : "null"));
-        System.out.println("obj value: " + obj);
-        return parseObject(obj);
+        List<String> result = parseFromResultSetByIndex(rs, columnIndex);
+        System.out.println("result: " + result);
+        return result;
+    }
+
+    private List<String> parseFromResultSet(ResultSet rs, String columnName) throws SQLException {
+        // 尝试 getString 方式
+        try {
+            String str = rs.getString(columnName);
+            if (str != null) {
+                System.out.println("getString success: " + str);
+                return parseJson(str);
+            }
+        } catch (Exception e) {
+            System.out.println("getString failed: " + e.getMessage());
+        }
+        // 尝试 getObject 方式
+        try {
+            Object obj = rs.getObject(columnName);
+            System.out.println("getObject type: " + (obj != null ? obj.getClass().getName() : "null"));
+            return parseObject(obj);
+        } catch (Exception e) {
+            System.out.println("getObject failed: " + e.getMessage());
+        }
+        return new ArrayList<>();
+    }
+
+    private List<String> parseFromResultSetByIndex(ResultSet rs, int columnIndex) throws SQLException {
+        // 尝试 getString 方式
+        try {
+            String str = rs.getString(columnIndex);
+            if (str != null) {
+                System.out.println("getString(index) success: " + str);
+                return parseJson(str);
+            }
+        } catch (Exception e) {
+            System.out.println("getString(index) failed: " + e.getMessage());
+        }
+        // 尝试 getObject 方式
+        try {
+            Object obj = rs.getObject(columnIndex);
+            System.out.println("getObject(index) type: " + (obj != null ? obj.getClass().getName() : "null"));
+            return parseObject(obj);
+        } catch (Exception e) {
+            System.out.println("getObject(index) failed: " + e.getMessage());
+        }
+        return new ArrayList<>();
     }
 
     @Override

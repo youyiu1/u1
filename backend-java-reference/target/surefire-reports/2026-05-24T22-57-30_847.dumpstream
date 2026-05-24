@@ -1,0 +1,5 @@
+# Created at 2026-05-24T22:57:31.042
+Boot Manifest-JAR contains absolute paths in classpath 'D:\server\apache-maven-3.8.9\mvn_repo\org\apache\maven\surefire\surefire-api\3.1.2\surefire-api-3.1.2.jar'
+Hint: <argLine>-Djdk.net.URLClassPath.disableClassPathURLCheck=true</argLine>
+'other' has different root
+

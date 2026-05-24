@@ -22,6 +22,15 @@ export const GlobalCard: React.FC<CardProps> = ({ type, data }) => {
   const service = data as Service;
   const item = data as Item;
 
+  // 解析images JSON字符串为数组
+  const getImages = (imgs: any): string[] => {
+    if (Array.isArray(imgs)) return imgs;
+    if (typeof imgs === 'string' && imgs.startsWith('[')) {
+      try { return JSON.parse(imgs); } catch { return []; }
+    }
+    return [];
+  };
+
   return (
     <motion.div
       initial={{ opacity: 0, y: 10 }}
@@ -32,7 +41,7 @@ export const GlobalCard: React.FC<CardProps> = ({ type, data }) => {
       <div onClick={() => navigate(`/${isService ? 'service' : 'item'}/${data.id}`, { state: { from: '/' } })}>
         <div className="aspect-[4/5] overflow-hidden mb-6 relative rounded-[32px] bg-stone-100 shadow-inner group-hover:shadow-premium transition-all duration-700 ease-[0.16,1,0.3,1]">
           <img
-            src={data.images?.[0] || null}
+            src={getImages(data.images)?.[0] || null}
             alt={data.title}
             className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-1000 ease-[0.16,1,0.3,1]"
           />

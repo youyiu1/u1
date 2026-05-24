@@ -42,6 +42,15 @@ export default function NewsDetail() {
   // 是否是自己的帖子
   const isOwnPost = user?.id && user.id === authorId;
 
+  // 解析images JSON字符串为数组
+  const getImages = (imgs: any): string[] => {
+    if (Array.isArray(imgs)) return imgs;
+    if (typeof imgs === 'string' && imgs.startsWith('[')) {
+      try { return JSON.parse(imgs); } catch { return []; }
+    }
+    return [];
+  };
+
   const handleFollowChange = async (newState: boolean) => {
     const currentUser = JSON.parse(localStorage.getItem('neighborhood_user') || '{}');
     if (!currentUser.id || !authorId) return;
@@ -213,9 +222,9 @@ export default function NewsDetail() {
                 </p>
               </div>
 
-              {(post.images || []).length > 0 && (
-                <div className={`grid gap-4 ${post.images.length > 1 ? 'grid-cols-2' : 'grid-cols-1'}`}>
-                  {post.images.map((img, idx) => (
+              {(getImages(post.images) || []).length > 0 && (
+                <div className={`grid gap-4 ${getImages(post.images).length > 1 ? 'grid-cols-2' : 'grid-cols-1'}`}>
+                  {getImages(post.images).map((img, idx) => (
                     <motion.div
                       key={idx}
                       whileHover={{ scale: 1.02 }}

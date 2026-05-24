@@ -180,21 +180,21 @@ CREATE TABLE t_message (
 
 -- 插入测试用户
 INSERT INTO t_user (id, name, email, password, avatar, tag, is_verified, followers_count, following_count) VALUES
-('u001', '李阿姨', 'li_ayi@example.com', '123456', 'https://images.unsplash.com/photo-1544005313-94ddf0286df2?auto=format&fit=crop&q=80&w=200', '社区达人', 1, 3420, 156),
-('u002', '王大厨', 'wang_dachu@example.com', '123456', 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?auto=format&fit=crop&q=80&w=200', '美食达人', 1, 1240, 320),
-('u003', '小林', 'photo_xiaolin@example.com', '123456', 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?auto=format&fit=crop&q=80&w=200', '摄影达人', 0, 850, 412);
+('u001', '李阿姨', 'li_ayi@example.com', '123456', '/api/file/931f8e1a2d834e03a288800df5a7e6ec.jpg', '社区达人', 1, 3420, 156),
+('u002', '王大厨', 'wang_dachu@example.com', '123456', '/api/file/37dc56e3f2b541b79d98e82c4abd371a.jpg', '美食达人', 1, 1240, 320),
+('u003', '小林', 'photo_xiaolin@example.com', '123456', '/api/file/64edb6bef14c4c1b8bd23ffe817e54a5.jpg', '摄影达人', 0, 850, 412);
 
 -- 插入测试动态
 INSERT INTO t_news (author_id, content, location, category, likes, comments_count, images, shares, collections) VALUES
-('u001', '今天在小区门口发现了一家新开的花店，品种好齐全，老板人也特别好！强烈推荐给各位邻居~ 🌸🌷', '金地格林世界', '同城发现', 24, 6, '["https://images.unsplash.com/photo-1526047932273-341f2a7631f9?auto=format&fit=crop&q=80&w=800"]', 2, 5),
+('u001', '今天在小区门口发现了一家新开的花店，品种好齐全，老板人也特别好！强烈推荐给各位邻居~ 🌸🌷', '金地格林世界', '同城发现', 24, 6, '["/api/file/c2675e0851d940799368c483682ddf3d.jpg"]', 2, 5),
 ('u002', '有人在公园看到一只走失的柯基吗？邻居家的狗跑丢了，大家帮忙关注下，特征是背部有一块深色花纹。', '滨江公园', '邻里闲情', 86, 15, '[]', 12, 8);
 
 -- 插入测试服务
 INSERT INTO t_service (title, description, category, price, image, seller_id, rating, reviews, distance, unit, highlights) VALUES
-('专业家庭保洁 - 全屋深度除尘除螨及高温消毒', '我们提供的不只是保洁，更是为您打造一个健康舒心的居家环境。我们的服务包括：全屋360°除尘、厨卫重垢去除、全屋除螨以及紫外线/高温蒸汽消毒。', 'domestic', 150.00, 'https://images.unsplash.com/photo-1581578731548-c64695cc6954?auto=format&fit=crop&q=80&w=800', 'u001', 4.81, 128, '1.2km', '次', '["4小时", "自备工具", "环保药剂"]'),
-('上门宠物洗护 - 狗狗SPA与深度清洁', '专业宠物洗护师，3年大厂经验。', 'pet', 88.00, 'https://images.unsplash.com/photo-1516734212186-a967f81ad0d7?auto=format&fit=crop&q=80&w=800', 'u001', 5.0, 86, '0.8km', '次', '["自带设备", "温和沐浴"]');
+('专业家庭保洁 - 全屋深度除尘除螨及高温消毒', '我们提供的不只是保洁，更是为您打造一个健康舒心的居家环境。我们的服务包括：全屋360°除尘、厨卫重垢去除、全屋除螨以及紫外线/高温蒸汽消毒。', 'domestic', 150.00, '/api/file/b6c049a9c65744a6a7dcd58e76cf9f65.jpg', 'u001', 4.81, 128, '1.2km', '次', '["4小时", "自备工具", "环保药剂"]'),
+('上门宠物洗护 - 狗狗SPA与深度清洁', '专业宠物洗护师，3年大厂经验。', 'pet', 88.00, '/api/file/b6c049a9c65744a6a7dcd58e76cf9f65.jpg', 'u001', 5.0, 86, '0.8km', '次', '["自带设备", "温和沐浴"]');
 
 -- 插入测试闲置
 INSERT INTO t_market_item (title, description, price, item_condition, image, images, seller_id, category, original_price, location, verified, free_shipping) VALUES
-('德龙 (De''Longhi) 意式半自动咖啡机 - 95成新', '成色很好，用了不到半年。', 3200.00, '95成新', 'https://images.unsplash.com/photo-1580915411954-282cb1b0d780?auto=format&fit=crop&q=80&w=800', '["https://images.unsplash.com/photo-1580915411954-282cb1b0d780?auto=format&fit=crop&q=80&w=800"]', 'u002', 'market', 5480.00, '浦东新区', 1, 1),
-('Nintendo Switch 日版蓝红 - 带健身环', '吃灰半年，全套包装齐全。', 1800.00, '99新', 'https://images.unsplash.com/photo-1578303512597-81e6cc155b3e?auto=format&fit=crop&q=80&w=800', '["https://images.unsplash.com/photo-1578303512597-81e6cc155b3e?auto=format&fit=crop&q=80&w=800"]', 'u003', 'market', 2400.00, '徐汇区', 1, 1);
+('德龙 (De''Longhi) 意式半自动咖啡机 - 95成新', '成色很好，用了不到半年。', 3200.00, '95成新', '/api/file/44dc84a59ccd486b9b0a383c556c9d9b.jpg', '["/api/file/44dc84a59ccd486b9b0a383c556c9d9b.jpg"]', 'u002', 'market', 5480.00, '浦东新区', 1, 1),
+('Nintendo Switch 日版蓝红 - 带健身环', '吃灰半年，全套包装齐全。', 1800.00, '99新', '/api/file/d0f83c5066454d7c958a3fb0e954c5a2.jpg', '["/api/file/d0f83c5066454d7c958a3fb0e954c5a2.jpg"]', 'u003', 'market', 2400.00, '徐汇区', 1, 1);

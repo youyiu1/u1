@@ -27,7 +27,6 @@ public class News {
     private String category;
     private Integer likes;
     private Integer commentsCount;
-    @TableField("images")
     private String images;
     private Integer shares;
     private Integer collections;

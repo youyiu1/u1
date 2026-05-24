@@ -25,7 +25,6 @@ public class MarketItem {
     private BigDecimal price;
     @TableField("item_condition")
     private String itemCondition;
-    @TableField("images")
     private String images;
     @TableField("seller_id")
     private String sellerId;

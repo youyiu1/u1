@@ -32,6 +32,15 @@ export default function News() {
   const [suggestedUsers, setSuggestedUsers] = useState(SUGGESTED_USERS);
   const [postFollowStates, setPostFollowStates] = useState<Record<string, boolean>>({});
 
+  // 解析images JSON字符串为数组
+  const getImages = (imgs: any): string[] => {
+    if (Array.isArray(imgs)) return imgs;
+    if (typeof imgs === 'string' && imgs.startsWith('[')) {
+      try { return JSON.parse(imgs); } catch { return []; }
+    }
+    return [];
+  };
+
   const handleSuggestedFollowChange = async (userId: string, newState: boolean) => {
     const currentUser = JSON.parse(localStorage.getItem('neighborhood_user') || '{}');
     if (!currentUser.id) return;
@@ -189,9 +198,9 @@ export default function News() {
                         {post.content}
                       </p>
 
-                      {(post.images || []).length > 0 && (
-                        <div className={`grid gap-2 overflow-hidden rounded-2xl border border-hairline ${post.images.length >= 2 ? 'grid-cols-2' : 'grid-cols-1'}`}>
-                          {post.images.map((img, i) => (
+                      {(getImages(post.images) || []).length > 0 && (
+                        <div className={`grid gap-2 overflow-hidden rounded-2xl border border-hairline ${getImages(post.images).length >= 2 ? 'grid-cols-2' : 'grid-cols-1'}`}>
+                          {getImages(post.images).map((img, i) => (
                             <div key={i} className="aspect-[16/9]">
                               <img src={img || undefined} className="w-full h-full object-cover" alt="Post content" />
                             </div>

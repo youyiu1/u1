@@ -46,7 +46,8 @@
       "Bash(redis-cli TTL \"token:2056555272571645954\")",
       "Bash(redis-cli FLUSHDB)",
       "Bash(xxd)",
-      "Bash(redis-cli FLUSHALL)"
+      "Bash(redis-cli FLUSHALL)",
+      "WebFetch(domain:github.com)"
     ]
   }
 }

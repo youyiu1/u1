@@ -32,7 +32,7 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements Us
         user.setName(name);
         user.setEmail(email);
         user.setPassword(password);
-        user.setAvatar("https://api.dicebear.com/7.x/avataaars/svg?seed=" + email);
+        user.setAvatar("/api/file/931f8e1a2d834e03a288800df5a7e6ec.jpg");
         user.setTag("新晋邻居");
         user.setIsVerified(false);
         user.setFollowersCount(0);

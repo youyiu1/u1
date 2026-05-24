@@ -10,8 +10,6 @@ import com.fasterxml.jackson.databind.ser.std.ToStringSerializer;
 import lombok.Data;
 import lombok.experimental.Accessors;
 import java.math.BigDecimal;
-import java.util.ArrayList;
-import java.util.List;
 
 @Data
 @Accessors(chain = true)
@@ -22,13 +20,8 @@ public class MarketItemVO {
     private String description;
     private BigDecimal price;
     private String itemCondition;
-    private List<String> images;
+    private String images;
 
-    public List<String> getImages() {
-        if (images == null) return List.of();
-        return images;
-    }
-    // 卖家信息（扁平化）
     private String sellerId;
     private String sellerName;
     private String sellerAvatar;
@@ -49,7 +42,7 @@ public class MarketItemVO {
         vo.setDescription(item.getDescription());
         vo.setPrice(item.getPrice());
         vo.setItemCondition(item.getItemCondition());
-        vo.setImages(parseImages(item.getImages()));
+        vo.setImages(item.getImages());
         vo.setCategory(item.getCategory());
         vo.setOriginalPrice(item.getOriginalPrice());
         vo.setLocation(item.getLocation());
@@ -62,29 +55,9 @@ public class MarketItemVO {
             vo.setSellerAvatar(seller.getAvatar());
             vo.setSellerVerified(seller.getIsVerified());
             vo.setSellerFollowersCount(seller.getFollowersCount());
-            vo.setSellerOnSaleCount(seller.getSoldCount());  // 复用字段
+            vo.setSellerOnSaleCount(seller.getSoldCount());
             vo.setSellerSoldCount(seller.getRating() != null ? seller.getRating().intValue() : 0);
         }
         return vo;
-    }
-
-    private static List<String> parseImages(String imagesJson) {
-        if (imagesJson == null || imagesJson.isEmpty()) {
-            return List.of();
-        }
-        try {
-            com.fasterxml.jackson.databind.ObjectMapper mapper = new com.fasterxml.jackson.databind.ObjectMapper();
-            var node = mapper.readTree(imagesJson);
-            if (node.isArray()) {
-                List<String> list = new ArrayList<>();
-                for (var n : node) {
-                    list.add(n.asText());
-                }
-                return list;
-            }
-        } catch (Exception e) {
-            // ignore
-        }
-        return List.of();
     }
 }

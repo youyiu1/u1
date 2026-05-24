@@ -5,13 +5,14 @@
 
 package com.neighborhood.app.entity;
 
+import com.fasterxml.jackson.databind.annotation.JsonSerialize;
+import com.fasterxml.jackson.databind.ser.std.ToStringSerializer;
 import lombok.Data;
 import java.math.BigDecimal;
-import java.util.ArrayList;
-import java.util.List;
 
 @Data
 public class ServiceDetailVO {
+    @JsonSerialize(using = ToStringSerializer.class)
     private Long id;
     private String title;
     private String description;
@@ -22,13 +23,8 @@ public class ServiceDetailVO {
     private Integer reviews;
     private String distance;
     private String unit;
-    private List<String> highlights;
-    private List<String> images;
-
-    public List<String> getImages() {
-        if (images == null) return List.of();
-        return images;
-    }
+    private String highlights;
+    private String images;
 
     private SellerInfo seller;
 
@@ -55,8 +51,8 @@ public class ServiceDetailVO {
         vo.setReviews(service.getReviews());
         vo.setDistance(service.getDistance());
         vo.setUnit(service.getUnit());
-        vo.setHighlights(parseJson(service.getHighlights()));
-        vo.setImages(parseJson(service.getImages()));
+        vo.setHighlights(service.getHighlights());
+        vo.setImages(service.getImages());
 
         if (seller != null) {
             SellerInfo sellerInfo = new SellerInfo();
@@ -70,25 +66,5 @@ public class ServiceDetailVO {
             vo.setSeller(sellerInfo);
         }
         return vo;
-    }
-
-    private static List<String> parseJson(String json) {
-        if (json == null || json.isEmpty()) {
-            return List.of();
-        }
-        try {
-            com.fasterxml.jackson.databind.ObjectMapper mapper = new com.fasterxml.jackson.databind.ObjectMapper();
-            var node = mapper.readTree(json);
-            if (node.isArray()) {
-                List<String> list = new ArrayList<>();
-                for (var n : node) {
-                    list.add(n.asText());
-                }
-                return list;
-            }
-        } catch (Exception e) {
-            // ignore
-        }
-        return List.of();
     }
 }

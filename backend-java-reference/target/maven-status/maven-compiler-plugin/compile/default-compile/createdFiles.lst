@@ -3,6 +3,7 @@ com\neighborhood\app\service\EmailService.class
 com\neighborhood\app\config\JacksonConfig.class
 com\neighborhood\app\service\impl\NotificationServiceImpl.class
 com\neighborhood\app\controller\HomeController.class
+com\neighborhood\app\controller\Test.class
 com\neighborhood\app\entity\Favorite.class
 com\neighborhood\app\controller\ServiceController.class
 com\neighborhood\app\controller\UserController.class
@@ -13,6 +14,7 @@ com\neighborhood\app\entity\Booking.class
 com\neighborhood\app\entity\NewsVO.class
 com\neighborhood\app\interceptor\AuthInterceptor.class
 com\neighborhood\app\service\UserService.class
+com\neighborhood\app\handler\MySqlJsonTypeHandler.class
 com\neighborhood\app\controller\MarketController.class
 com\neighborhood\app\service\impl\FavoriteServiceImpl.class
 com\neighborhood\app\controller\FavoriteController.class
@@ -79,4 +81,5 @@ com\neighborhood\app\service\FavoriteService.class
 com\neighborhood\app\service\ServiceModuleService.class
 com\neighborhood\app\common\Result.class
 com\neighborhood\app\service\NewsService.class
+com\neighborhood\app\config\S3Config.class
 com\neighborhood\app\controller\ServiceController$BookingRequest.class

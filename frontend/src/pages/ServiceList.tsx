@@ -46,6 +46,15 @@ export default function ServiceList() {
     s.title.toLowerCase().includes(searchQuery.toLowerCase())
   );
 
+  // 解析highlights JSON字符串为数组
+  const getHighlights = (h: any): string[] => {
+    if (Array.isArray(h)) return h;
+    if (typeof h === 'string' && h.startsWith('[')) {
+      try { return JSON.parse(h); } catch { return []; }
+    }
+    return [];
+  };
+
   return (
     <div className="bg-white min-h-screen pb-20">
       <div className="bg-primary/5 pt-12 pb-8">
@@ -139,7 +148,7 @@ export default function ServiceList() {
                   <h3 className="text-lg font-bold text-ink mb-2 group-hover:text-primary transition-colors">{service.title}</h3>
 
                   <div className="flex flex-wrap gap-2 mb-6">
-                    {(service.highlights || []).map((h, i) => (
+                    {(getHighlights(service.highlights) || []).map((h, i) => (
                       <span key={i} className="text-[10px] text-secondary bg-surface-soft px-2 py-0.5 rounded">
                         {h}
                       </span>

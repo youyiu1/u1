@@ -16,20 +16,11 @@ public class WebConfig implements WebMvcConfigurer {
 
     private final AuthInterceptor authInterceptor;
 
-    @Value("${file.upload-dir:uploads}")
-    private String uploadDir;
-
     @Override
     public void addInterceptors(InterceptorRegistry registry) {
         registry.addInterceptor(authInterceptor)
                 .addPathPatterns("/api/**")
                 .order(0);
-    }
-
-    @Override
-    public void addResourceHandlers(ResourceHandlerRegistry registry) {
-        registry.addResourceHandler("/api/file/**")
-                .addResourceLocations("file:" + uploadDir + "/");
     }
 
     @Override
