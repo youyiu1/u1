@@ -49,6 +49,7 @@ mybatis-plus:
   type-aliases-package: com.neighborhood.app.entity
   type-handler-strategy: other
   auto-result-map: true
+  type-handlers-package: com.neighborhood.app.handler
   configuration:
     map-underscore-to-camel-case: true
     log-impl: org.apache.ibatis.logging.stdout.StdOutImpl

@@ -10,6 +10,7 @@ import { serviceApi } from '../services/api';
 import { useNavigate } from 'react-router-dom';
 import { Service } from '../types';
 import { FavoriteButton } from '../components/common/FavoriteButton';
+import { BackToTop } from '../components/common/BackToTop';
 
 const CATEGORIES = [
   { id: 'all', name: '全部分类', icon: <Sparkles className="w-4 h-4" /> },
@@ -172,6 +173,7 @@ export default function ServiceList() {
           )}
         </div>
       </main>
+      <BackToTop />
     </div>
   );
 }

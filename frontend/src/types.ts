@@ -126,10 +126,15 @@ export interface Category {
 
 export interface Comment {
   id: string;
-  user: string;
-  text: string;
+  user?: string;
+  userName?: string;
+  userAvatar?: string;
+  text?: string;
+  content?: string;
   avatar?: string;
   time?: string;
+  createTime?: string;
+  likes?: number;
 }
 
 export interface Post {

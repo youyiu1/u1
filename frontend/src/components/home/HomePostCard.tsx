@@ -9,9 +9,28 @@ interface HomePostCardProps {
 }
 
 export const HomePostCard: React.FC<HomePostCardProps> = ({ post, idx }) => {
-  const author = post.author || { name: '匿名用户', avatar: '', verified: false };
-  const avatarSrc = author.avatar || null;
-  const commentAvatars = post.comments?.slice(0, 3).map(c => c.avatar).filter(Boolean) || [];
+  // 兼容后端扁平结构和旧嵌套结构
+  const authorName = post.author?.name || post.authorName || '匿名用户';
+  const authorAvatar = post.author?.avatar || post.authorAvatar || '';
+  const authorVerified = post.author?.verified ?? post.authorVerified ?? false;
+  const avatarSrc = authorAvatar || null;
+  const postTime = post.time || post.createTime || '';
+
+  // 解析images JSON字符串为数组
+  const getImages = (imgs: any): string[] => {
+    if (Array.isArray(imgs)) return imgs;
+    if (typeof imgs === 'string' && imgs.startsWith('[')) {
+      try { return JSON.parse(imgs); } catch { return []; }
+    }
+    return [];
+  };
+  const images = getImages(post.images);
+
+  // 评论头像列表
+  const commentAvatars = (post.comments || [])
+    .filter((c: any) => c.userAvatar)
+    .slice(0, 3)
+    .map((c: any) => c.userAvatar);
 
   return (
     <motion.div
@@ -24,17 +43,17 @@ export const HomePostCard: React.FC<HomePostCardProps> = ({ post, idx }) => {
       <div className="flex items-center gap-6 mb-10">
         <div className="relative">
           {avatarSrc ? (
-            <img src={avatarSrc} alt={author.name} className="w-16 h-16 rounded-full object-cover ring-2 ring-hairline ring-offset-4 group-hover:ring-primary/30 transition-all duration-700" />
+            <img src={avatarSrc} alt={authorName} className="w-16 h-16 rounded-full object-cover ring-2 ring-hairline ring-offset-4 group-hover:ring-primary/30 transition-all duration-700" />
           ) : (
             <div className="w-16 h-16 rounded-full bg-stone-200 flex items-center justify-center text-stone-400 font-bold text-xl">
-              {author.name.charAt(0)}
+              {authorName.charAt(0)}
             </div>
           )}
-          {author.verified && <div className="absolute -bottom-1 -right-1 w-6 h-6 bg-primary border-4 border-white rounded-full shadow-sm" />}
+          {authorVerified && <div className="absolute -bottom-1 -right-1 w-6 h-6 bg-primary border-4 border-white rounded-full shadow-sm" />}
         </div>
         <div>
-          <h4 className="text-lg font-black text-ink group-hover:text-primary transition-colors">{author.name}</h4>
-          <p className="text-[10px] font-black text-secondary tracking-widest uppercase opacity-40">{post.time} • {post.location}</p>
+          <h4 className="text-lg font-black text-ink group-hover:text-primary transition-colors">{authorName}</h4>
+          <p className="text-[10px] font-black text-secondary tracking-widest uppercase opacity-40">{postTime} • {post.location}</p>
         </div>
       </div>
 
@@ -42,9 +61,9 @@ export const HomePostCard: React.FC<HomePostCardProps> = ({ post, idx }) => {
         {post.content}
       </p>
 
-      {(post.images?.length ?? 0) > 0 && post.images[0] && (
+      {(images.length ?? 0) > 0 && images[0] && (
         <div className="aspect-[16/9] rounded-[32px] overflow-hidden mb-10 shadow-inner bg-stone-100">
-          <img src={post.images[0]} alt="Post content" className="w-full h-full object-cover grayscale-[0.2] group-hover:grayscale-0 group-hover:scale-105 transition-all duration-1000 ease-[0.16,1,0.3,1]" />
+          <img src={images[0]} alt="Post content" className="w-full h-full object-cover grayscale-[0.2] group-hover:grayscale-0 group-hover:scale-105 transition-all duration-1000 ease-[0.16,1,0.3,1]" />
         </div>
       )}
 

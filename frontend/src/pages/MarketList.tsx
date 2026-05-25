@@ -12,6 +12,7 @@ import { Item } from '../types';
 import { PublishOverlay } from '../components/publish/PublishOverlay';
 import { useAuthCheck } from '../context/useAuthCheck';
 import { FavoriteButton } from '../components/common/FavoriteButton';
+import { BackToTop } from '../components/common/BackToTop';
 
 const CATEGORIES = [
   { id: 'all', name: '全部', icon: <Sparkles className="w-4 h-4" /> },
@@ -154,6 +155,7 @@ export default function MarketList() {
           )}
         </div>
       </main>
+      <BackToTop />
       <PublishOverlay isOpen={isPublishOpen} onClose={() => setIsPublishOpen(false)} defaultSelectedId="market" />
     </div>
   );

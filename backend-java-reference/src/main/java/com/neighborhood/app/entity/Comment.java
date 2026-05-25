@@ -21,6 +21,7 @@ public class Comment {
     private String userName;
     private String userAvatar;
     private String content;
+    private Integer likes;
     private LocalDateTime createTime;
 
     public Comment() {}

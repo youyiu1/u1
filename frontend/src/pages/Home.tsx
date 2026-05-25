@@ -10,6 +10,7 @@ import { GlobalCard } from '../components/common/Card';
 import { HeroSection } from '../components/home/HeroSection';
 import { SectionHeader } from '../components/common/SectionHeader';
 import { HomePostCard } from '../components/home/HomePostCard';
+import { BackToTop } from '../components/common/BackToTop';
 import { Service, Item, Post } from '../types';
 
 const BLOBS = [
@@ -153,6 +154,7 @@ export default function Home() {
           />
         </div>
       </main>
+      <BackToTop />
     </div>
   );
 }

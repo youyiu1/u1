@@ -9,6 +9,7 @@ import { motion } from 'motion/react';
 import { Link, useNavigate } from 'react-router-dom';
 import { newsApi, userApi } from '../services/api';
 import { FollowButton } from '../components/common/FollowButton';
+import { BackToTop } from '../components/common/BackToTop';
 import { Post } from '../types';
 import { getFollowState, setFollowState } from '../utils/followStorage';
 
@@ -290,6 +291,7 @@ export default function News() {
           </aside>
         </div>
       </div>
+      <BackToTop />
     </div>
   );
 }

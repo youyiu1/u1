@@ -10,6 +10,7 @@ import com.fasterxml.jackson.databind.ser.std.ToStringSerializer;
 import lombok.Data;
 import lombok.experimental.Accessors;
 import java.time.LocalDateTime;
+import java.util.List;
 
 @Data
 @Accessors(chain = true)
@@ -33,6 +34,7 @@ public class NewsVO {
     private Integer collections;
     private LocalDateTime createTime;
     private LocalDateTime updateTime;
+    private List<Comment> comments;
 
     public static NewsVO fromNews(News news, User author) {
         NewsVO vo = new NewsVO();
