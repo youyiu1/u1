@@ -46,10 +46,10 @@ spring:
     password: mkfxxjnwxjzacbih
 
 mybatis-plus:
-  mapper-locations: classpath:mapper/*.xml
   type-aliases-package: com.neighborhood.app.entity
   type-handler-strategy: other
   auto-result-map: true
+  type-handlers-package: com.neighborhood.app.handler
   configuration:
     map-underscore-to-camel-case: true
     log-impl: org.apache.ibatis.logging.stdout.StdOutImpl
@@ -70,13 +70,9 @@ jwt:
   secret: neighborhood-app-secret-key-2024-very-long-key-for-hs256
   expiration: 86400000
 
-# 文件上传配置
-file:
-  upload-dir: D:/下载文件/同城生活/backend-java-reference/uploads
-
 # RustFS 对象存储配置
 rustfs:
   endpoint: http://localhost:9000
-  access-key: yuan
-  secret-key: 2006yyy
+  access-key: 4a36qGmg5XTWojNU2Lb7
+  secret-key: 4tOJYvgIXHWw7GD2j0deLmA9ZnFrqyxBb1UaC6sl
   bucket: neighborhood

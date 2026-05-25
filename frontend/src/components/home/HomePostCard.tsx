@@ -1,5 +1,6 @@
 import React from 'react';
 import { motion } from 'motion/react';
+import { useNavigate } from 'react-router-dom';
 import { Post } from '../../types';
 import { LikeButton } from '../common/LikeButton';
 
@@ -9,6 +10,8 @@ interface HomePostCardProps {
 }
 
 export const HomePostCard: React.FC<HomePostCardProps> = ({ post, idx }) => {
+  const navigate = useNavigate();
+
   // 兼容后端扁平结构和旧嵌套结构
   const authorName = post.author?.name || post.authorName || '匿名用户';
   const authorAvatar = post.author?.avatar || post.authorAvatar || '';
@@ -26,11 +29,8 @@ export const HomePostCard: React.FC<HomePostCardProps> = ({ post, idx }) => {
   };
   const images = getImages(post.images);
 
-  // 评论头像列表
-  const commentAvatars = (post.comments || [])
-    .filter((c: any) => c.userAvatar)
-    .slice(0, 3)
-    .map((c: any) => c.userAvatar);
+  // 评论列表（带用户名用于跳转）
+  const comments = (post.comments || []).slice(0, 3);
 
   return (
     <motion.div
@@ -38,9 +38,10 @@ export const HomePostCard: React.FC<HomePostCardProps> = ({ post, idx }) => {
       whileInView={{ opacity: 1, scale: 1, y: 0 }}
       viewport={{ once: true }}
       transition={{ delay: idx * 0.2, duration: 0.8, ease: [0.16, 1, 0.3, 1] }}
-      className="flex flex-col bg-white border border-hairline rounded-[48px] p-10 hover:shadow-premium transition-all duration-700 group h-full"
+      className="flex flex-col bg-white border border-hairline rounded-[48px] p-10 hover:shadow-premium transition-all duration-700 group h-full cursor-pointer"
+      onClick={() => navigate(`/news/${post.id}`)}
     >
-      <div className="flex items-center gap-6 mb-10">
+      <div className="flex items-center gap-6 mb-10" onClick={e => { e.stopPropagation(); navigate(`/profile/${authorName}`); }}>
         <div className="relative">
           {avatarSrc ? (
             <img src={avatarSrc} alt={authorName} className="w-16 h-16 rounded-full object-cover ring-2 ring-hairline ring-offset-4 group-hover:ring-primary/30 transition-all duration-700" />
@@ -67,18 +68,19 @@ export const HomePostCard: React.FC<HomePostCardProps> = ({ post, idx }) => {
         </div>
       )}
 
-      <div className="mt-auto flex items-center justify-between pt-10 border-t border-hairline">
+      <div className="mt-auto flex items-center justify-between pt-10 border-t border-hairline" onClick={e => e.stopPropagation()}>
         <div className="flex items-center gap-8">
           <LikeButton initialLikes={post.likes} isLikedInitial={post.likes > 100} />
           <button className="flex items-center gap-2.5 group/btn">
              <div className="text-[10px] font-black text-muted group-hover/btn:text-ink uppercase tracking-widest leading-none underline decoration-hairline underline-offset-4">评论 {post.commentsCount}</div>
           </button>
         </div>
-        {commentAvatars.length > 0 && (
+        {comments.length > 0 && (
           <div className="flex -space-x-3 group-hover:-space-x-1 transition-all duration-500">
-            {commentAvatars.map((avatar, i) => (
-              <div key={i} className="w-8 h-8 rounded-full border-2 border-white bg-stone-100 overflow-hidden">
-                <img src={avatar} alt="commenter" className="w-full h-full object-cover" />
+            {comments.map((comment, i) => (
+              <div key={i} className="w-8 h-8 rounded-full border-2 border-white bg-stone-100 overflow-hidden cursor-pointer hover:ring-2 hover:ring-primary/50 transition-all"
+                onClick={() => navigate(`/profile/${comment.userName}`)}>
+                <img src={comment.userAvatar} alt={comment.userName} className="w-full h-full object-cover" />
               </div>
             ))}
           </div>

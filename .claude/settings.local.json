@@ -47,7 +47,10 @@
       "Bash(redis-cli FLUSHDB)",
       "Bash(xxd)",
       "Bash(redis-cli FLUSHALL)",
-      "WebFetch(domain:github.com)"
+      "WebFetch(domain:github.com)",
+      "Bash(rm -f backend-java-reference/src/main/java/com/neighborhood/app/controller/Test.java)",
+      "Bash(rm -rf backend-java-reference/uploads)",
+      "Bash(git rm *)"
     ]
   }
 }

@@ -3,7 +3,6 @@ com\neighborhood\app\service\EmailService.class
 com\neighborhood\app\config\JacksonConfig.class
 com\neighborhood\app\service\impl\NotificationServiceImpl.class
 com\neighborhood\app\controller\HomeController.class
-com\neighborhood\app\controller\Test.class
 com\neighborhood\app\entity\Favorite.class
 com\neighborhood\app\controller\ServiceController.class
 com\neighborhood\app\controller\UserController.class
