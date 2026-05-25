@@ -35,10 +35,17 @@ export default function News() {
   const [postText, setPostText] = useState('');
   const { showToast } = useToast();
   const [likedPosts, setLikedPosts] = useState<Record<string, boolean>>(() => {
-    const saved: Record<string, boolean> = {};
-    return saved;
+    try {
+      const saved = JSON.parse(localStorage.getItem('like_states_v1') || '{}');
+      return saved;
+    } catch { return {}; }
   });
-  const [favoritedPosts, setFavoritedPosts] = useState<Record<string, boolean>>({});
+  const [favoritedPosts, setFavoritedPosts] = useState<Record<string, boolean>>(() => {
+    try {
+      const saved = JSON.parse(localStorage.getItem('favorite_states_v1') || '{}');
+      return saved;
+    } catch { return {}; }
+  });
   const [suggestedUsers, setSuggestedUsers] = useState<Array<{id: string, name: string, avatar: string, desc: string, isFollowing: boolean}>>(() => {
     return SUGGESTED_USERS.map(u => ({
       ...u,
@@ -92,30 +99,32 @@ export default function News() {
     e.stopPropagation();
     e.preventDefault();
     const currentLiked = likedPosts[postId] ?? false;
-    setLikedPosts(prev => ({ ...prev, [postId]: !currentLiked }));
-    setPosts(prev => prev.map(p => p.id === postId ? { ...p, likes: currentLiked ? p.likes - 1 : p.likes + 1 } : p));
-    setLikeState(postId, !currentLiked);
+    const newLiked = !currentLiked;
+    setLikedPosts(prev => ({ ...prev, [postId]: newLiked }));
+    setPosts(prev => prev.map(p => p.id === postId ? { ...p, likes: newLiked ? p.likes + 1 : p.likes - 1 } : p));
+    localStorage.setItem('like_states_v1', JSON.stringify({ ...likedPosts, [postId]: newLiked }));
   };
 
   const toggleFavorite = async (postId: string, e: React.MouseEvent) => {
     e.stopPropagation();
     e.preventDefault();
     const currentFavorited = favoritedPosts[postId] ?? false;
+    const newFavorited = !currentFavorited;
     const currentUser = JSON.parse(localStorage.getItem('neighborhood_user') || '{}');
     if (!currentUser.id) {
       showToast('请先登录', 'warning');
       return;
     }
     try {
-      if (!currentFavorited) {
-        await favoriteApi.add(currentUser.id, 'news', postId);
-      } else {
+      if (!newFavorited) {
         await favoriteApi.remove(currentUser.id, 'news', postId);
+      } else {
+        await favoriteApi.add(currentUser.id, 'news', postId);
       }
-      setFavoritedPosts(prev => ({ ...prev, [postId]: !currentFavorited }));
-      setPosts(prev => prev.map(p => p.id === postId ? { ...p, collections: currentFavorited ? p.collections - 1 : p.collections + 1 } : p));
-      setFavoriteState('news', postId, !currentFavorited);
-      showToast(currentFavorited ? '已取消收藏' : '已收藏', 'success');
+      setFavoritedPosts(prev => ({ ...prev, [postId]: newFavorited }));
+      setPosts(prev => prev.map(p => p.id === postId ? { ...p, collections: newFavorited ? p.collections + 1 : p.collections - 1 } : p));
+      localStorage.setItem('favorite_states_v1', JSON.stringify({ ...favoritedPosts, [postId]: newFavorited }));
+      showToast(newFavorited ? '已收藏' : '已取消收藏', 'success');
     } catch {
       showToast('操作失败', 'error');
     }
