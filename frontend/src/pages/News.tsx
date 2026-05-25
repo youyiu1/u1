@@ -7,11 +7,12 @@ import React, { useState, useEffect } from 'react';
 import { MessageSquare, Heart, Share2, MoreHorizontal, MapPin, Image as ImageIcon, TrendingUp, Users, Bookmark, Plus } from 'lucide-react';
 import { motion } from 'motion/react';
 import { Link, useNavigate } from 'react-router-dom';
-import { newsApi, userApi } from '../services/api';
+import { newsApi, userApi, favoriteApi } from '../services/api';
 import { FollowButton } from '../components/common/FollowButton';
 import { BackToTop } from '../components/common/BackToTop';
 import { Post } from '../types';
 import { getFollowState, setFollowState } from '../utils/followStorage';
+import { getLikeState, setLikeState, getFavoriteState, setFavoriteState } from '../utils/interactionStorage';
 import { useToast } from '../context/ToastContext';
 
 const TRENDING = [
@@ -33,7 +34,11 @@ export default function News() {
   const [error, setError] = useState<string | null>(null);
   const [postText, setPostText] = useState('');
   const { showToast } = useToast();
-  const [likedPosts, setLikedPosts] = useState<Record<string, boolean>>({});
+  const [likedPosts, setLikedPosts] = useState<Record<string, boolean>>(() => {
+    const saved: Record<string, boolean> = {};
+    return saved;
+  });
+  const [favoritedPosts, setFavoritedPosts] = useState<Record<string, boolean>>({});
   const [suggestedUsers, setSuggestedUsers] = useState<Array<{id: string, name: string, avatar: string, desc: string, isFollowing: boolean}>>(() => {
     return SUGGESTED_USERS.map(u => ({
       ...u,
@@ -86,8 +91,34 @@ export default function News() {
   const toggleLike = (postId: string, e: React.MouseEvent) => {
     e.stopPropagation();
     e.preventDefault();
-    setLikedPosts(prev => ({ ...prev, [postId]: !prev[postId] }));
-    setPosts(prev => prev.map(p => p.id === postId ? { ...p, likes: prev[postId] ? p.likes - 1 : p.likes + 1 } : p));
+    const currentLiked = likedPosts[postId] ?? false;
+    setLikedPosts(prev => ({ ...prev, [postId]: !currentLiked }));
+    setPosts(prev => prev.map(p => p.id === postId ? { ...p, likes: currentLiked ? p.likes - 1 : p.likes + 1 } : p));
+    setLikeState(postId, !currentLiked);
+  };
+
+  const toggleFavorite = async (postId: string, e: React.MouseEvent) => {
+    e.stopPropagation();
+    e.preventDefault();
+    const currentFavorited = favoritedPosts[postId] ?? false;
+    const currentUser = JSON.parse(localStorage.getItem('neighborhood_user') || '{}');
+    if (!currentUser.id) {
+      showToast('请先登录', 'warning');
+      return;
+    }
+    try {
+      if (!currentFavorited) {
+        await favoriteApi.add(currentUser.id, 'news', postId);
+      } else {
+        await favoriteApi.remove(currentUser.id, 'news', postId);
+      }
+      setFavoritedPosts(prev => ({ ...prev, [postId]: !currentFavorited }));
+      setPosts(prev => prev.map(p => p.id === postId ? { ...p, collections: currentFavorited ? p.collections - 1 : p.collections + 1 } : p));
+      setFavoriteState('news', postId, !currentFavorited);
+      showToast(currentFavorited ? '已取消收藏' : '已收藏', 'success');
+    } catch {
+      showToast('操作失败', 'error');
+    }
   };
 
   const handleShare = async (postId: string, e: React.MouseEvent) => {
@@ -261,6 +292,13 @@ export default function News() {
                       >
                         <Share2 className="w-4 h-4" />
                         <span className="text-xs font-bold">{post.shares}</span>
+                      </button>
+                      <button
+                        onClick={(e) => toggleFavorite(post.id, e)}
+                        className={`flex items-center gap-1.5 transition-colors ${favoritedPosts[post.id] ? 'text-primary' : 'text-muted hover:text-primary'}`}
+                      >
+                        <Bookmark className={`w-4 h-4 ${favoritedPosts[post.id] ? 'fill-current' : ''}`} />
+                        <span className="text-xs font-bold">{post.collections}</span>
                       </button>
                     </footer>
                   </article>
