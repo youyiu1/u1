@@ -9,12 +9,15 @@ import { Heart } from 'lucide-react';
 import { useAuthCheck } from '../../context/useAuthCheck';
 
 interface LikeButtonProps {
+  postId: string;
   initialLikes?: number;
   isLikedInitial?: boolean;
   size?: 'sm' | 'md' | 'lg';
   showCount?: boolean;
-  lg?: boolean; // Convenience prop
+  lg?: boolean;
 }
+
+const LIKE_KEY = 'like_states_v1';
 
 const ParticleBurst = ({ active }: { active: boolean }) => {
   return (
@@ -38,13 +41,19 @@ const ParticleBurst = ({ active }: { active: boolean }) => {
 };
 
 export const LikeButton: React.FC<LikeButtonProps> = ({
+  postId,
   initialLikes = 0,
   isLikedInitial = false,
   size = 'md',
   showCount = true,
   lg = false
 }) => {
-  const [liked, setLiked] = useState(isLikedInitial);
+  const [liked, setLiked] = useState<boolean>(() => {
+    try {
+      const saved = JSON.parse(localStorage.getItem(LIKE_KEY) || '{}');
+      return saved[postId] ?? isLikedInitial;
+    } catch { return isLikedInitial; }
+  });
   const [likes, setLikes] = useState(initialLikes);
   const [burst, setBurst] = useState(false);
   const { requireAuth } = useAuthCheck();
@@ -57,7 +66,10 @@ export const LikeButton: React.FC<LikeButtonProps> = ({
     requireAuth(() => {
       const nextLiked = !liked;
       setLiked(nextLiked);
-      setLikes(prev => nextLiked ? prev + 1 : prev - 1);
+      setLikes(prev => Math.max(0, nextLiked ? prev + 1 : prev - 1));
+      const saved = JSON.parse(localStorage.getItem(LIKE_KEY) || '{}');
+      saved[postId] = nextLiked;
+      localStorage.setItem(LIKE_KEY, JSON.stringify(saved));
 
       if (nextLiked) {
         setBurst(true);
@@ -79,7 +91,7 @@ export const LikeButton: React.FC<LikeButtonProps> = ({
   };
 
   return (
-    <button 
+    <button
       onClick={toggleLike}
       className="group/heart flex items-center gap-3 transition-all active:scale-90"
     >
@@ -91,12 +103,12 @@ export const LikeButton: React.FC<LikeButtonProps> = ({
           } : {}}
           transition={{ duration: 0.5 }}
         >
-          <Heart 
+          <Heart
             className={`${iconSizes[effectiveSize]} transition-all duration-500 ${
-              liked 
-                ? 'fill-primary text-primary' 
+              liked
+                ? 'fill-primary text-primary'
                 : 'text-muted group-hover/heart:text-primary'
-            }`} 
+            }`}
           />
         </motion.div>
         <ParticleBurst active={burst} />

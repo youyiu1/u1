@@ -70,7 +70,7 @@ export const HomePostCard: React.FC<HomePostCardProps> = ({ post, idx }) => {
 
       <div className="mt-auto flex items-center justify-between pt-10 border-t border-hairline" onClick={e => e.stopPropagation()}>
         <div className="flex items-center gap-8">
-          <LikeButton initialLikes={post.likes} isLikedInitial={post.likes > 100} />
+          <LikeButton postId={post.id} initialLikes={post.likes} isLikedInitial={post.likes > 100} />
           <button className="flex items-center gap-2.5 group/btn">
              <div className="text-[10px] font-black text-muted group-hover/btn:text-ink uppercase tracking-widest leading-none underline decoration-hairline underline-offset-4">评论 {post.commentsCount}</div>
           </button>
