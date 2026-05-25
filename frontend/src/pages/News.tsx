@@ -46,6 +46,8 @@ export default function News() {
       return saved;
     } catch { return {}; }
   });
+  const [postLikeCounts, setPostLikeCounts] = useState<Record<string, number>>({});
+  const [postCollectionCounts, setPostCollectionCounts] = useState<Record<string, number>>({});
   const [suggestedUsers, setSuggestedUsers] = useState<Array<{id: string, name: string, avatar: string, desc: string, isFollowing: boolean}>>(() => {
     return SUGGESTED_USERS.map(u => ({
       ...u,
@@ -101,7 +103,7 @@ export default function News() {
     const currentLiked = likedPosts[postId] ?? false;
     const newLiked = !currentLiked;
     setLikedPosts(prev => ({ ...prev, [postId]: newLiked }));
-    setPosts(prev => prev.map(p => p.id === postId ? { ...p, likes: newLiked ? p.likes + 1 : p.likes - 1 } : p));
+    setPostLikeCounts(prev => ({ ...prev, [postId]: (prev[postId] ?? post.likes) + (newLiked ? 1 : -1) }));
     localStorage.setItem('like_states_v1', JSON.stringify({ ...likedPosts, [postId]: newLiked }));
   };
 
@@ -122,7 +124,7 @@ export default function News() {
         await favoriteApi.add(currentUser.id, 'news', postId);
       }
       setFavoritedPosts(prev => ({ ...prev, [postId]: newFavorited }));
-      setPosts(prev => prev.map(p => p.id === postId ? { ...p, collections: newFavorited ? p.collections + 1 : p.collections - 1 } : p));
+      setPostCollectionCounts(prev => ({ ...prev, [postId]: (prev[postId] ?? post.collections) + (newFavorited ? 1 : -1) }));
       localStorage.setItem('favorite_states_v1', JSON.stringify({ ...favoritedPosts, [postId]: newFavorited }));
       showToast(newFavorited ? '已收藏' : '已取消收藏', 'success');
     } catch {
@@ -146,6 +148,15 @@ export default function News() {
       try {
         const data = await newsApi.list();
         setPosts(data);
+        // 初始化点赞和收藏数量
+        const likeCounts: Record<string, number> = {};
+        const collectionCounts: Record<string, number> = {};
+        data.forEach((p: Post) => {
+          likeCounts[p.id] = p.likes;
+          collectionCounts[p.id] = p.collections;
+        });
+        setPostLikeCounts(likeCounts);
+        setPostCollectionCounts(collectionCounts);
       } catch (err: any) {
         setError(err.message || '加载失败');
       } finally {
@@ -289,7 +300,7 @@ export default function News() {
                         className={`flex items-center gap-1.5 transition-colors group ${likedPosts[post.id] ? 'text-red-500' : 'text-muted hover:text-red-500'}`}
                       >
                         <Heart className={`w-4 h-4 ${likedPosts[post.id] ? 'fill-current' : 'group-hover:fill-current'}`} />
-                        <span className="text-xs font-bold">{post.likes}</span>
+                        <span className="text-xs font-bold">{postLikeCounts[post.id] ?? post.likes}</span>
                       </button>
                       <button className="flex items-center gap-1.5 text-muted hover:text-blue-500 transition-colors">
                         <MessageSquare className="w-4 h-4" />
@@ -307,7 +318,7 @@ export default function News() {
                         className={`flex items-center gap-1.5 transition-colors ${favoritedPosts[post.id] ? 'text-primary' : 'text-muted hover:text-primary'}`}
                       >
                         <Bookmark className={`w-4 h-4 ${favoritedPosts[post.id] ? 'fill-current' : ''}`} />
-                        <span className="text-xs font-bold">{post.collections}</span>
+                        <span className="text-xs font-bold">{postCollectionCounts[post.id] ?? post.collections}</span>
                       </button>
                     </footer>
                   </article>

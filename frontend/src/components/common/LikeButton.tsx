@@ -7,6 +7,7 @@ import React, { useState } from 'react';
 import { motion } from 'motion/react';
 import { Heart } from 'lucide-react';
 import { useAuthCheck } from '../../context/useAuthCheck';
+import { getLiked, setLiked } from '../../utils/interactionStorage';
 
 interface LikeButtonProps {
   postId: string;
@@ -16,8 +17,6 @@ interface LikeButtonProps {
   showCount?: boolean;
   lg?: boolean;
 }
-
-const LIKE_KEY = 'like_states_v1';
 
 const ParticleBurst = ({ active }: { active: boolean }) => {
   return (
@@ -48,13 +47,10 @@ export const LikeButton: React.FC<LikeButtonProps> = ({
   showCount = true,
   lg = false
 }) => {
-  const [liked, setLiked] = useState<boolean>(() => {
-    try {
-      const saved = JSON.parse(localStorage.getItem(LIKE_KEY) || '{}');
-      return saved[postId] ?? isLikedInitial;
-    } catch { return isLikedInitial; }
-  });
-  const [likes, setLikes] = useState(initialLikes);
+  // 从localStorage读取：liked状态 + 显示数量
+  const { liked, displayCount } = getLiked(postId, initialLikes);
+  const [isLiked, setIsLiked] = useState(liked);
+  const [showCountVal, setShowCountVal] = useState(displayCount);
   const [burst, setBurst] = useState(false);
   const { requireAuth } = useAuthCheck();
 
@@ -64,12 +60,10 @@ export const LikeButton: React.FC<LikeButtonProps> = ({
     e.preventDefault();
     e.stopPropagation();
     requireAuth(() => {
-      const nextLiked = !liked;
-      setLiked(nextLiked);
-      setLikes(prev => Math.max(0, nextLiked ? prev + 1 : prev - 1));
-      const saved = JSON.parse(localStorage.getItem(LIKE_KEY) || '{}');
-      saved[postId] = nextLiked;
-      localStorage.setItem(LIKE_KEY, JSON.stringify(saved));
+      const nextLiked = !isLiked;
+      setIsLiked(nextLiked);
+      setShowCountVal(prev => nextLiked ? prev + 1 : Math.max(0, prev - 1));
+      setLiked(postId, nextLiked, initialLikes);
 
       if (nextLiked) {
         setBurst(true);
@@ -97,7 +91,7 @@ export const LikeButton: React.FC<LikeButtonProps> = ({
     >
       <div className="relative">
         <motion.div
-          animate={liked ? {
+          animate={isLiked ? {
             scale: [1, 1.4, 1],
             rotate: [0, 15, -15, 0]
           } : {}}
@@ -105,7 +99,7 @@ export const LikeButton: React.FC<LikeButtonProps> = ({
         >
           <Heart
             className={`${iconSizes[effectiveSize]} transition-all duration-500 ${
-              liked
+              isLiked
                 ? 'fill-primary text-primary'
                 : 'text-muted group-hover/heart:text-primary'
             }`}
@@ -115,9 +109,9 @@ export const LikeButton: React.FC<LikeButtonProps> = ({
       </div>
       {showCount && (
         <span className={`${textSizes[effectiveSize]} font-black uppercase tracking-[0.2em] leading-none ${
-          liked ? 'text-primary' : 'text-muted group-hover/heart:text-ink'
+          isLiked ? 'text-primary' : 'text-muted group-hover/heart:text-ink'
         }`}>
-          {likes} <span className="opacity-40">LIKES</span>
+          {showCountVal} <span className="opacity-40">LIKES</span>
         </span>
       )}
     </button>
