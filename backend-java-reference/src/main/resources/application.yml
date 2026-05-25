@@ -50,6 +50,7 @@ mybatis-plus:
   type-aliases-package: com.neighborhood.app.entity
   type-handler-strategy: other
   auto-result-map: true
+  type-handlers-package: com.neighborhood.app.handler
   configuration:
     map-underscore-to-camel-case: true
     log-impl: org.apache.ibatis.logging.stdout.StdOutImpl
@@ -77,6 +78,6 @@ file:
 # RustFS 对象存储配置
 rustfs:
   endpoint: http://localhost:9000
-  access-key: yuan
-  secret-key: 2006yyy
+  access-key: 4a36qGmg5XTWojNU2Lb7
+  secret-key: 4tOJYvgIXHWw7GD2j0deLmA9ZnFrqyxBb1UaC6sl
   bucket: neighborhood

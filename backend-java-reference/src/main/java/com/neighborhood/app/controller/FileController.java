@@ -20,43 +20,59 @@ public class FileController {
 
     private final FileService fileService;
 
+    /**
+     * 上传文件到RustFS私有桶
+     */
     @PostMapping("/upload")
     public Result<String> upload(@RequestParam("file") MultipartFile file) {
         try {
-            String url = fileService.uploadFile(file);
-            return Result.ok(url);
+            return Result.ok(fileService.uploadFile(file));
         } catch (Exception e) {
             return Result.fail("上传失败: " + e.getMessage());
         }
     }
 
-    @RequestMapping(value = "/images/**", method = RequestMethod.GET)
-    public ResponseEntity<byte[]> serveFile(jakarta.servlet.http.HttpServletRequest request) {
+    /**
+     * 获取文件的签名URL（用于访问RustFS私有桶中的文件）
+     */
+    @GetMapping("/url/{*filename}")
+    public ResponseEntity<?> getFileUrl(@PathVariable String filename,
+                                       @RequestParam(defaultValue = "60") int expiresMinutes) {
         try {
-            String path = request.getRequestURI();
-            // 去掉 /api/file 前缀
-            String key = path.substring("/api/file/".length());
-            System.out.println("=== serveFile key: " + key);
-
-            byte[] data = fileService.getFile(key);
-
-            MediaType mediaType = MediaType.APPLICATION_OCTET_STREAM;
-            if (key.endsWith(".png")) {
-                mediaType = MediaType.IMAGE_PNG;
-            } else if (key.endsWith(".jpg") || key.endsWith(".jpeg")) {
-                mediaType = MediaType.IMAGE_JPEG;
-            } else if (key.endsWith(".gif")) {
-                mediaType = MediaType.IMAGE_GIF;
-            } else if (key.endsWith(".webp")) {
-                mediaType = MediaType.parseMediaType("image/webp");
-            } else if (key.endsWith(".svg")) {
-                mediaType = MediaType.parseMediaType("image/svg+xml");
-            }
-
-            return ResponseEntity.ok().contentType(mediaType).body(data);
+            return ResponseEntity.ok(Result.ok(fileService.generatePresignedUrl(cleanKey(filename), expiresMinutes)));
         } catch (Exception e) {
-            System.out.println("serveFile error: " + e.getMessage());
+            return ResponseEntity.badRequest().body(Result.fail("获取签名URL失败: " + e.getMessage()));
+        }
+    }
+
+    /**
+     * 后端代理访问RustFS私有桶中的文件
+     */
+    @GetMapping("/{*filename}")
+    public ResponseEntity<?> getFile(@PathVariable String filename) {
+        try {
+            String key = cleanKey(filename);
+            byte[] data = fileService.getFile(key);
+            return ResponseEntity.ok().contentType(getMediaType(key)).body(data);
+        } catch (Exception e) {
             return ResponseEntity.notFound().build();
         }
+    }
+
+    /** 去掉前导斜杠 */
+    private String cleanKey(String filename) {
+        return filename.startsWith("/") ? filename.substring(1) : filename;
+    }
+
+    /** 根据文件扩展名获取MediaType */
+    private MediaType getMediaType(String key) {
+        return switch (key.substring(key.lastIndexOf('.')).toLowerCase()) {
+            case ".png" -> MediaType.IMAGE_PNG;
+            case ".jpg", ".jpeg" -> MediaType.IMAGE_JPEG;
+            case ".gif" -> MediaType.IMAGE_GIF;
+            case ".webp" -> MediaType.parseMediaType("image/webp");
+            case ".svg" -> MediaType.parseMediaType("image/svg+xml");
+            default -> MediaType.APPLICATION_OCTET_STREAM;
+        };
     }
 }

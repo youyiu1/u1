@@ -11,8 +11,11 @@ import com.baomidou.mybatisplus.annotation.TableId;
 import com.baomidou.mybatisplus.annotation.TableName;
 import com.fasterxml.jackson.databind.annotation.JsonSerialize;
 import com.fasterxml.jackson.databind.ser.std.ToStringSerializer;
+import com.neighborhood.app.handler.MySqlJsonTypeHandler;
 import lombok.Data;
+import org.apache.ibatis.type.JdbcType;
 import java.math.BigDecimal;
+import java.util.List;
 
 @Data
 @TableName("t_market_item")
@@ -25,7 +28,8 @@ public class MarketItem {
     private BigDecimal price;
     @TableField("item_condition")
     private String itemCondition;
-    private String images;
+    @TableField(value = "images", typeHandler = MySqlJsonTypeHandler.class, jdbcType = JdbcType.VARCHAR)
+    private List<String> images;
     @TableField("seller_id")
     private String sellerId;
     private String category;

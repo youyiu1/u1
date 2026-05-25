@@ -12,13 +12,13 @@ import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 import software.amazon.awssdk.core.sync.RequestBody;
 import software.amazon.awssdk.services.s3.S3Client;
-import software.amazon.awssdk.services.s3.model.DeleteObjectRequest;
-import software.amazon.awssdk.services.s3.model.PutObjectRequest;
-import software.amazon.awssdk.services.s3.model.GetObjectRequest;
-import software.amazon.awssdk.services.s3.model.HeadObjectRequest;
+import software.amazon.awssdk.services.s3.model.*;
+import software.amazon.awssdk.services.s3.presigner.S3Presigner;
+import software.amazon.awssdk.services.s3.presigner.model.GetObjectPresignRequest;
 
 import java.io.IOException;
 import java.io.InputStream;
+import java.time.Duration;
 import java.util.UUID;
 
 @Slf4j
@@ -27,141 +27,101 @@ import java.util.UUID;
 public class FileService {
 
     private final S3Client s3Client;
+    private final S3Presigner s3Presigner;
     private final S3Config s3Config;
 
-    /**
-     * 上传单个文件到RustFS，返回访问URL
-     */
+    /** 上传文件，返回代理路径 */
     public String uploadFile(MultipartFile file) throws IOException {
         if (file == null || file.isEmpty()) {
             throw new IllegalArgumentException("文件不能为空");
         }
-
-        String originalFilename = file.getOriginalFilename();
-        String ext = "";
-        if (originalFilename != null && originalFilename.contains(".")) {
-            ext = originalFilename.substring(originalFilename.lastIndexOf("."));
-        }
-        String filename = UUID.randomUUID().toString().replace("-", "") + ext;
-
-        // 按日期分类存储：images/2026/05/22/filename.jpg
-        String datePath = String.format("images/%tF", new java.util.Date()).replace("-", "/");
-        String key = datePath + filename;
-
-        String contentType = file.getContentType();
-        if (contentType == null) {
-            contentType = "application/octet-stream";
-        }
-
-        PutObjectRequest putRequest = PutObjectRequest.builder()
-                .bucket(s3Config.getBucket())
-                .key(key)
-                .contentType(contentType)
-                .build();
-
-        try (InputStream inputStream = file.getInputStream()) {
-            s3Client.putObject(putRequest, RequestBody.fromInputStream(inputStream, file.getSize()));
-        }
-
-        // 返回后端代理路径，前端通过 /api/file/{key} 访问
+        String key = generateKey(file.getOriginalFilename());
+        putObject(key, file.getInputStream(), file.getSize(), file.getContentType());
         String proxyPath = "/api/file/" + key;
         log.info("文件上传成功: {}", proxyPath);
         return proxyPath;
     }
 
-    /**
-     * 上传字节数组到RustFS（用于已有图片URL的复制存储）
-     */
+    /** 上传字节数组 */
     public String uploadBytes(byte[] data, String filename) throws IOException {
         if (data == null || data.length == 0) {
             throw new IllegalArgumentException("数据不能为空");
         }
-
-        String ext = "";
-        if (filename != null && filename.contains(".")) {
-            ext = filename.substring(filename.lastIndexOf("."));
-        }
-        String newFilename = UUID.randomUUID().toString().replace("-", "") + ext;
-
-        String datePath = String.format("images/%tF", new java.util.Date()).replace("-", "/");
-        String key = datePath + newFilename;
-
-        PutObjectRequest putRequest = PutObjectRequest.builder()
-                .bucket(s3Config.getBucket())
-                .key(key)
-                .contentType("image/jpeg")
-                .build();
-
-        s3Client.putObject(putRequest, RequestBody.fromBytes(data));
-
-        String url = s3Config.getEndpoint() + "/" + s3Config.getBucket() + "/" + key;
-        log.info("字节数据上传成功: {}", url);
-        return url;
+        String key = generateKey(filename);
+        s3Client.putObject(PutObjectRequest.builder()
+                .bucket(s3Config.getBucket()).key(key).contentType("image/jpeg").build(),
+                RequestBody.fromBytes(data));
+        log.info("字节数据上传成功: {}", key);
+        return s3Config.getEndpoint() + "/" + s3Config.getBucket() + "/" + key;
     }
 
-    /**
-     * 获取文件（用于前端代理访问RustFS文件）
-     */
+    /** 获取文件内容 */
     public byte[] getFile(String key) throws IOException {
-        GetObjectRequest getRequest = GetObjectRequest.builder()
-                .bucket(s3Config.getBucket())
-                .key(key)
-                .build();
-
-        try (var response = s3Client.getObject(getRequest)) {
+        log.info("获取文件: bucket={}, key={}", s3Config.getBucket(), key);
+        try (var response = s3Client.getObject(GetObjectRequest.builder()
+                .bucket(s3Config.getBucket()).key(key).build())) {
             return response.readAllBytes();
         }
     }
 
-    /**
-     * 删除文件
-     */
+    /** 删除文件 */
     public void deleteFile(String url) {
-        // 从URL中提取key
         String key = extractKeyFromUrl(url);
         if (key == null) {
             log.warn("无法从URL提取key: {}", url);
             return;
         }
-
-        DeleteObjectRequest deleteRequest = DeleteObjectRequest.builder()
-                .bucket(s3Config.getBucket())
-                .key(key)
-                .build();
-
-        s3Client.deleteObject(deleteRequest);
+        s3Client.deleteObject(DeleteObjectRequest.builder()
+                .bucket(s3Config.getBucket()).key(key).build());
         log.info("文件删除成功: {}", key);
     }
 
-    /**
-     * 检查文件是否存在
-     */
+    /** 检查文件是否存在 */
     public boolean fileExists(String key) {
         try {
-            HeadObjectRequest headRequest = HeadObjectRequest.builder()
-                    .bucket(s3Config.getBucket())
-                    .key(key)
-                    .build();
-            s3Client.headObject(headRequest);
+            s3Client.headObject(HeadObjectRequest.builder()
+                    .bucket(s3Config.getBucket()).key(key).build());
             return true;
         } catch (Exception e) {
             return false;
         }
     }
 
-    /**
-     * 从URL提取RustFS的key
-     */
-    private String extractKeyFromUrl(String url) {
-        if (url == null || url.isEmpty()) {
-            return null;
+    /** 生成签名URL */
+    public String generatePresignedUrl(String key, int expirationMinutes) {
+        String presignedUrl = s3Presigner.presignGetObject(GetObjectPresignRequest.builder()
+                .signatureDuration(Duration.ofMinutes(expirationMinutes))
+                .getObjectRequest(GetObjectRequest.builder()
+                        .bucket(s3Config.getBucket()).key(key).build())
+                .build()).url().toString();
+        // 提取签名查询参数，重组为 path-style URL
+        return s3Config.getEndpoint() + "/" + s3Config.getBucket() + "/" + key
+                + presignedUrl.substring(presignedUrl.indexOf("?"));
+    }
+
+    /** 生成文件key：images/yyyy/MM/dd/uuid.ext */
+    private String generateKey(String filename) {
+        String ext = "";
+        if (filename != null && filename.contains(".")) {
+            ext = filename.substring(filename.lastIndexOf('.'));
         }
-        // URL格式: http://localhost:9000/neighborhood/images/2026/05/22/xxx.jpg
+        String datePath = String.format("images/%tF", new java.util.Date()).replace("-", "/");
+        return datePath + UUID.randomUUID().toString().replace("-", "") + ext;
+    }
+
+    /** 上传对象到RustFS */
+    private void putObject(String key, InputStream input, long size, String contentType) throws IOException {
+        if (contentType == null) contentType = "application/octet-stream";
+        s3Client.putObject(PutObjectRequest.builder()
+                .bucket(s3Config.getBucket()).key(key).contentType(contentType).build(),
+                RequestBody.fromInputStream(input, size));
+    }
+
+    /** 从URL提取key */
+    private String extractKeyFromUrl(String url) {
+        if (url == null || url.isEmpty()) return null;
         String bucketPath = "/" + s3Config.getBucket() + "/";
         int idx = url.indexOf(bucketPath);
-        if (idx > 0) {
-            return url.substring(idx + bucketPath.length());
-        }
-        return null;
+        return idx > 0 ? url.substring(idx + bucketPath.length()) : null;
     }
 }
