@@ -8,10 +8,12 @@ package com.neighborhood.app.service.impl;
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.neighborhood.app.entity.Comment;
+import com.neighborhood.app.entity.Follow;
 import com.neighborhood.app.entity.News;
 import com.neighborhood.app.entity.NewsVO;
 import com.neighborhood.app.entity.User;
 import com.neighborhood.app.mapper.CommentMapper;
+import com.neighborhood.app.mapper.FollowMapper;
 import com.neighborhood.app.mapper.NewsMapper;
 import com.neighborhood.app.mapper.UserMapper;
 import com.neighborhood.app.service.CacheService;
@@ -30,14 +32,30 @@ public class NewsServiceImpl extends ServiceImpl<NewsMapper, News> implements Ne
     private final CommentMapper commentMapper;
     private final CacheService cacheService;
     private final UserMapper userMapper;
+    private final FollowMapper followMapper;
 
     /**
      * 设置当前用户点赞/收藏状态
      */
     private void setUserInteractionStatus(NewsVO vo, String userId) {
-        if (vo == null || userId == null) return;
-        vo.setIsLiked(cacheService.isNewsLiked(vo.getId(), userId));
-        vo.setIsFavorited(cacheService.isFavorited(userId, "news", vo.getId()));
+        if (vo == null) return;
+        if (userId != null) {
+            vo.setIsLiked(cacheService.isNewsLiked(vo.getId(), userId));
+            vo.setIsFavorited(cacheService.isFavorited(userId, "news", vo.getId()));
+            vo.setIsFollowing(isFollowing(userId, vo.getAuthorId()));
+        }
+    }
+
+    /**
+     * 检查用户A是否关注用户B
+     */
+    private boolean isFollowing(String followerId, String followingId) {
+        if (followerId == null || followingId == null) return false;
+        return followMapper.selectCount(
+                new QueryWrapper<Follow>()
+                        .eq("follower_id", followerId)
+                        .eq("following_id", followingId)
+        ) > 0;
     }
 
     @Override

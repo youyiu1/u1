@@ -172,4 +172,5 @@ export interface Post {
   // 当前用户点赞/收藏状态
   isLiked?: boolean;
   isFavorited?: boolean;
+  isFollowing?: boolean;
 }

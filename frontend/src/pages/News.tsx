@@ -40,8 +40,6 @@ export default function News() {
     }));
   });
 
-  const [postFollowStates, setPostFollowStates] = useState<Record<string, boolean>>({});
-
   // 解析images JSON字符串为数组
   const getImages = (imgs: any): string[] => {
     if (Array.isArray(imgs)) return imgs;
@@ -77,7 +75,13 @@ export default function News() {
       } else {
         await userApi.unfollow(currentUser.id, authorId);
       }
-      setPostFollowStates(prev => ({ ...prev, [authorId]: newState }));
+      // 更新posts中的isFollowing状态
+      setPosts(prev => prev.map(p => {
+        if (p.authorId === authorId || p.author?.id === authorId) {
+          return { ...p, isFollowing: newState };
+        }
+        return p;
+      }));
       setFollowState(authorId, newState);
     } catch {}
   };
@@ -266,7 +270,7 @@ export default function News() {
                         <FollowButton
                           size="sm"
                           variant="ghost"
-                          isFollowingInitial={postFollowStates[authorId] ?? false}
+                          isFollowingInitial={post.isFollowing ?? false}
                           onFollowChange={(newState) => handlePostFollowChange(authorId, newState)}
                         />
                         <button className="p-2 text-muted hover:bg-surface-soft rounded-xl transition-all">

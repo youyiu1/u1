@@ -84,18 +84,9 @@ export default function NewsDetail() {
         setPost(data);
         const commentData = await newsApi.getComments(id as string);
         setComments(commentData);
-        const currentUser = JSON.parse(localStorage.getItem('neighborhood_user') || '{}');
-        const dataAuthorId = data?.author?.id || (data as any)?.authorId || '';
-        if (currentUser.id && dataAuthorId) {
-          const saved = getFollowState(dataAuthorId);
-          setIsFollowed(saved);
-          if (!saved) {
-            try {
-              const following = await userApi.isFollowing(currentUser.id, dataAuthorId);
-              setIsFollowed(following);
-              setFollowState(dataAuthorId, following);
-            } catch {}
-          }
+        // 使用API返回的isFollowing状态
+        if (data?.isFollowing !== undefined && data.isFollowing !== null) {
+          setIsFollowed(data.isFollowing);
         }
       } catch (err: any) {
         setError(err.message || '加载失败');
