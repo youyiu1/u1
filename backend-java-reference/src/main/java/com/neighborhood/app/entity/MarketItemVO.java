@@ -10,7 +10,6 @@ import com.fasterxml.jackson.databind.ser.std.ToStringSerializer;
 import lombok.Data;
 import lombok.experimental.Accessors;
 import java.math.BigDecimal;
-import java.util.List;
 
 @Data
 @Accessors(chain = true)
@@ -21,7 +20,7 @@ public class MarketItemVO {
     private String description;
     private BigDecimal price;
     private String itemCondition;
-    private List<String> images;
+    private String images;
 
     private String sellerId;
     private String sellerName;
