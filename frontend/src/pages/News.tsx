@@ -12,6 +12,7 @@ import { FollowButton } from '../components/common/FollowButton';
 import { BackToTop } from '../components/common/BackToTop';
 import { Post } from '../types';
 import { getFollowState, setFollowState } from '../utils/followStorage';
+import { useToast } from '../context/ToastContext';
 
 const TRENDING = [
   { id: 't1', name: '五一小长假去哪玩', posts: '1.2k' },
@@ -31,6 +32,8 @@ export default function News() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [postText, setPostText] = useState('');
+  const { showToast } = useToast();
+  const [likedPosts, setLikedPosts] = useState<Record<string, boolean>>({});
   const [suggestedUsers, setSuggestedUsers] = useState<Array<{id: string, name: string, avatar: string, desc: string, isFollowing: boolean}>>(() => {
     return SUGGESTED_USERS.map(u => ({
       ...u,
@@ -78,6 +81,24 @@ export default function News() {
       setPostFollowStates(prev => ({ ...prev, [authorId]: newState }));
       setFollowState(authorId, newState);
     } catch {}
+  };
+
+  const toggleLike = (postId: string, e: React.MouseEvent) => {
+    e.stopPropagation();
+    e.preventDefault();
+    setLikedPosts(prev => ({ ...prev, [postId]: !prev[postId] }));
+    setPosts(prev => prev.map(p => p.id === postId ? { ...p, likes: prev[postId] ? p.likes - 1 : p.likes + 1 } : p));
+  };
+
+  const handleShare = async (postId: string, e: React.MouseEvent) => {
+    e.stopPropagation();
+    e.preventDefault();
+    try {
+      await navigator.clipboard.writeText(`${window.location.origin}/news/${postId}`);
+      showToast('链接已复制', 'success');
+    } catch {
+      showToast('分享链接复制失败', 'error');
+    }
   };
 
   useEffect(() => {
@@ -223,17 +244,23 @@ export default function News() {
                     </div>
 
                     <footer className="flex items-center gap-6 mt-6 pt-4 border-t border-hairline">
-                      <button className="flex items-center gap-1.5 text-muted hover:text-red-500 transition-colors group">
-                        <Heart className="w-4 h-4 group-hover:fill-current" />
+                      <button
+                        onClick={(e) => toggleLike(post.id, e)}
+                        className={`flex items-center gap-1.5 transition-colors group ${likedPosts[post.id] ? 'text-red-500' : 'text-muted hover:text-red-500'}`}
+                      >
+                        <Heart className={`w-4 h-4 ${likedPosts[post.id] ? 'fill-current' : 'group-hover:fill-current'}`} />
                         <span className="text-xs font-bold">{post.likes}</span>
                       </button>
                       <button className="flex items-center gap-1.5 text-muted hover:text-blue-500 transition-colors">
                         <MessageSquare className="w-4 h-4" />
                         <span className="text-xs font-bold">{post.commentsCount}</span>
                       </button>
-                      <button className="flex items-center gap-1.5 text-muted hover:text-green-500 transition-colors">
+                      <button
+                        onClick={(e) => handleShare(post.id, e)}
+                        className="flex items-center gap-1.5 text-muted hover:text-green-500 transition-colors"
+                      >
                         <Share2 className="w-4 h-4" />
-                        <span className="text-xs font-bold font-bold">{post.shares}</span>
+                        <span className="text-xs font-bold">{post.shares}</span>
                       </button>
                     </footer>
                   </article>
