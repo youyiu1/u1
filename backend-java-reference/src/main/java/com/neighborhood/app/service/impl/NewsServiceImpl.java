@@ -150,6 +150,28 @@ public class NewsServiceImpl extends ServiceImpl<NewsMapper, News> implements Ne
         return result;
     }
 
+    @Override
+    public boolean unlike(Long newsId, String userId) {
+        // 检查是否已点赞
+        if (!cacheService.isNewsLiked(newsId, userId)) {
+            return false;
+        }
+        boolean result = lambdaUpdate().eq(News::getId, newsId)
+                .setSql("likes = likes - 1")
+                .update();
+        if (result) {
+            cacheService.evictNews(newsId);
+            // Redis 删除用户点赞记录
+            cacheService.removeNewsLike(newsId, userId);
+        }
+        return result;
+    }
+
+    @Override
+    public boolean isLiked(Long newsId, String userId) {
+        return cacheService.isNewsLiked(newsId, userId);
+    }
+
     public List<Comment> getCommentsByNewsId(Long newsId, int limit, int offset) {
         return commentMapper.selectList(
                 new QueryWrapper<Comment>()

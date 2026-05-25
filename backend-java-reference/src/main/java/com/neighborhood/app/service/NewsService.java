@@ -22,6 +22,8 @@ public interface NewsService extends IService<News> {
     boolean save(News news);
     boolean updateById(News news);
     void addComment(Long newsId, Comment comment);
-    boolean like(Long newsId, String userId);      // 带用户ID，用于Redis记录
+    boolean like(Long newsId, String userId);      // 点赞
+    boolean unlike(Long newsId, String userId);     // 取消点赞
+    boolean isLiked(Long newsId, String userId);  // 检查是否点赞
     List<Comment> getCommentsByNewsId(Long newsId, int limit, int offset);
 }

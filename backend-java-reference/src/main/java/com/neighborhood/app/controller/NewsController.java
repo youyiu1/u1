@@ -64,12 +64,28 @@ public class NewsController {
     }
 
     /**
-     * 点赞动态
+     * 点赞动态（已点则取消，未点则点赞）
      */
     @PostMapping("/{id}/like")
     public Result<Boolean> like(@PathVariable Long id, HttpServletRequest request) {
         String userId = (String) request.getAttribute("userId");
-        return Result.ok(newsService.like(id, userId));
+        // 查询当前点赞状态
+        if (newsService.isLiked(id, userId)) {
+            // 已点赞，取消
+            return Result.ok(newsService.unlike(id, userId));
+        } else {
+            // 未点赞，点赞
+            return Result.ok(newsService.like(id, userId));
+        }
+    }
+
+    /**
+     * 取消点赞
+     */
+    @PostMapping("/{id}/unlike")
+    public Result<Boolean> unlike(@PathVariable Long id, HttpServletRequest request) {
+        String userId = (String) request.getAttribute("userId");
+        return Result.ok(newsService.unlike(id, userId));
     }
 
     @GetMapping("/{id}/comments")
