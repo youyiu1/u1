@@ -13,6 +13,8 @@ import { CommentItem } from '../components/common/CommentItem';
 import { Post, Comment } from '../types';
 import { useAuth } from '../context/AuthContext';
 
+const FOLLOW_KEY = 'follow_states_v2';
+
 export default function NewsDetail() {
   const { id } = useParams();
   const navigate = useNavigate();
@@ -26,29 +28,39 @@ export default function NewsDetail() {
   const [error, setError] = useState<string | null>(null);
   const [commentText, setCommentText] = useState('');
   const [isLiked, setIsLiked] = useState(false);
-  const [isFollowed, setIsFollowed] = useState(false);
   const [isBookmarked, setIsBookmarked] = useState(false);
   const [isLoadingMore, setIsLoadingMore] = useState(false);
+  const [isFollowed, setIsFollowed] = useState(false);
 
-  // 兼容后端 NewsVO 扁平结构和旧 author 对象结构
-  const authorName = post?.author?.name || post?.authorName || '';
-  const authorAvatar = post?.author?.avatar || post?.authorAvatar || '';
-  const authorVerified = post?.author?.verified ?? post?.authorVerified ?? false;
-  const authorTag = post?.author?.tag || post?.authorTag || '';
-  const authorFollowersCount = post?.author?.followersCount ?? post?.authorFollowersCount;
-  const postTime = post?.time || post?.createTime || '';
   const authorId = post?.author?.id || (post as any)?.authorId || '';
-
-  // 是否是自己的帖子
+  const authorName = post?.author?.name || (post as any)?.authorName || '';
+  const authorAvatar = post?.author?.avatar || (post as any)?.authorAvatar || '';
+  const authorVerified = post?.author?.verified ?? (post as any)?.authorVerified ?? false;
+  const authorTag = post?.author?.tag || (post as any)?.authorTag || '';
+  const postTime = post?.time || (post as any)?.createTime || '';
   const isOwnPost = user?.id && user.id === authorId;
 
-  // 解析images JSON字符串为数组
   const getImages = (imgs: any): string[] => {
     if (Array.isArray(imgs)) return imgs;
     if (typeof imgs === 'string' && imgs.startsWith('[')) {
       try { return JSON.parse(imgs); } catch { return []; }
     }
     return [];
+  };
+
+  const getFollowState = (key: string) => {
+    try {
+      const saved = JSON.parse(localStorage.getItem(FOLLOW_KEY) || '{}');
+      return saved[key] ?? false;
+    } catch { return false; }
+  };
+
+  const setFollowState = (key: string, value: boolean) => {
+    try {
+      const saved = JSON.parse(localStorage.getItem(FOLLOW_KEY) || '{}');
+      saved[key] = value;
+      localStorage.setItem(FOLLOW_KEY, JSON.stringify(saved));
+    } catch {}
   };
 
   const handleFollowChange = async (newState: boolean) => {
@@ -61,6 +73,7 @@ export default function NewsDetail() {
         await userApi.unfollow(currentUser.id, authorId);
       }
       setIsFollowed(newState);
+      setFollowState(authorId, newState);
     } catch {}
   };
 
@@ -71,13 +84,18 @@ export default function NewsDetail() {
         setPost(data);
         const commentData = await newsApi.getComments(id as string);
         setComments(commentData);
-        // 获取作者关注状态
         const currentUser = JSON.parse(localStorage.getItem('neighborhood_user') || '{}');
-        if (currentUser.id && authorId) {
-          try {
-            const following = await userApi.isFollowing(currentUser.id, authorId);
-            setIsFollowed(following);
-          } catch {}
+        const dataAuthorId = data?.author?.id || (data as any)?.authorId || '';
+        if (currentUser.id && dataAuthorId) {
+          const saved = getFollowState(dataAuthorId);
+          setIsFollowed(saved);
+          if (!saved) {
+            try {
+              const following = await userApi.isFollowing(currentUser.id, dataAuthorId);
+              setIsFollowed(following);
+              setFollowState(dataAuthorId, following);
+            } catch {}
+          }
         }
       } catch (err: any) {
         setError(err.message || '加载失败');
@@ -86,7 +104,7 @@ export default function NewsDetail() {
       }
     };
     if (id) fetchPost();
-  }, [id, authorId]);
+  }, [id]);
 
   const handleLike = async () => {
     if (!post) return;
@@ -217,7 +235,6 @@ export default function NewsDetail() {
                )}
             </div>
 
-            {/* 评论区 */}
             <div className="pt-6 border-t border-hairline">
               <h3 className="text-base font-black text-ink mb-6">评论 ({comments.length})</h3>
               <div className="space-y-4">
@@ -237,7 +254,6 @@ export default function NewsDetail() {
         </motion.div>
       </div>
 
-      {/* 底部操作栏 */}
       <div className="fixed bottom-0 left-0 right-0 z-40 bg-white/90 backdrop-blur-xl border-t border-hairline">
         <div className="max-w-[720px] mx-auto px-6 py-4">
           <div className="flex items-center justify-between">
@@ -270,7 +286,6 @@ export default function NewsDetail() {
             </button>
           </div>
 
-          {/* 评论输入框 */}
           <div className="flex items-center gap-3 mt-4 bg-surface-soft rounded-2xl px-4 py-2.5 border border-hairline focus-within:border-primary/40 focus-within:bg-white transition-all">
             <textarea
               value={commentText}

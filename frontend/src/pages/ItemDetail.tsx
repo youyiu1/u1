@@ -25,6 +25,7 @@ import { useChat } from '../context/ChatContext';
 import { useAuth } from '../context/AuthContext';
 import { FollowButton } from '../components/common/FollowButton';
 import { Item } from '../types';
+import { getFollowState, setFollowState } from '../utils/followStorage';
 
 const categoryMap: Record<string, string> = {
   'domestic': '家政服务',
@@ -46,13 +47,15 @@ export default function ItemDetail() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [isLiked, setIsLiked] = useState(false);
-  const [isFollowing, setIsFollowing] = useState(false);
   const [activeImg, setActiveImg] = useState(0);
 
-  // 兼容扁平化的卖家信息
+  // 兼容扁平化的卖家信息 - 先计算sellerId
   const sellerId = item?.seller?.id || (item as any)?.sellerId || '';
 
-  // 是否是自己的商品（需要sellerId先定义）
+  // 从localStorage读取初始关注状态
+  const [isFollowing, setIsFollowing] = useState(false);
+
+  // 是否是自己的商品
   const isOwnItem = currentUser?.id && currentUser.id === sellerId;
 
   const sellerName = item?.seller?.name || item?.sellerName || '';
@@ -73,6 +76,7 @@ export default function ItemDetail() {
         await userApi.unfollow(currentUser.id, sellerId);
       }
       setIsFollowing(newState);
+      setFollowState(sellerId, newState);
     } catch {}
   };
 
@@ -81,12 +85,18 @@ export default function ItemDetail() {
       try {
         const data = await marketApi.get(id as string);
         setItem(data);
-        // 非本人时获取关注状态
-        if (currentUser?.id && sellerId && currentUser.id !== sellerId) {
-          try {
-            const following = await userApi.isFollowing(currentUser.id, sellerId);
-            setIsFollowing(following);
-          } catch {}
+        const currentUser = JSON.parse(localStorage.getItem('neighborhood_user') || '{}');
+        const dataSellerId = data?.seller?.id || (data as any)?.sellerId || '';
+        if (currentUser?.id && dataSellerId && currentUser.id !== dataSellerId) {
+          const saved = getFollowState(dataSellerId);
+          setIsFollowing(saved);
+          if (!saved) {
+            try {
+              const following = await userApi.isFollowing(currentUser.id, dataSellerId);
+              setIsFollowing(following);
+              setFollowState(dataSellerId, following);
+            } catch {}
+          }
         }
       } catch (err: any) {
         setError(err.message || '加载失败');
@@ -95,7 +105,7 @@ export default function ItemDetail() {
       }
     };
     if (id) fetchItem();
-  }, [id, sellerId, currentUser?.id]);
+  }, [id]);
 
   if (loading) {
     return (

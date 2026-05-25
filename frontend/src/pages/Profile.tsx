@@ -28,6 +28,7 @@ import { ProfilePostCard } from '../components/profile/ProfilePostCard';
 import { ProfileMarketItem } from '../components/profile/ProfileMarketItem';
 import { Post, Item, Service, User } from '../types';
 import { getToken } from '../services/api';
+import { getFollowState, setFollowState } from '../utils/followStorage';
 
 export default function Profile() {
   const { username: paramUsername } = useParams();
@@ -39,11 +40,19 @@ export default function Profile() {
   const [posts, setPosts] = useState<Post[]>([]);
   const [items, setItems] = useState<Item[]>([]);
   const [services, setServices] = useState<Service[]>([]);
+  const [following, setFollowing] = useState<User[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  const initialTab = searchParams.get('tab') || 'posts';
-  const [activeTab, setActiveTab] = useState(initialTab);
+  const [activeTab, setActiveTab] = useState(() => searchParams.get('tab') || 'posts');
+
+  // 同步Tab到URL
+  const handleTabChange = (tabId: string) => {
+    setActiveTab(tabId);
+    const url = new URL(window.location.href);
+    url.searchParams.set('tab', tabId);
+    window.history.pushState({}, '', url.toString());
+  };
 
   const username = paramUsername || currentUser?.name;
   // 无 token 时访问个人中心（无 username 参数）跳转登录
@@ -74,19 +83,22 @@ export default function Profile() {
             user = await userApi.getCurrentUser();
             setStats({ followers: user.followersCount || 0, isFollowing: false });
           } catch (err: any) {
-            // token无效，跳转登录
             navigate('/login');
             return;
           }
         } else {
           user = await userApi.getUserByName(username);
-          // 检查关注状态
           if (currentUser && user?.id) {
-            try {
-              const following = await userApi.isFollowing(currentUser.id, user.id);
-              setStats({ followers: user.followersCount || 0, isFollowing: following });
-            } catch {
-              setStats({ followers: user.followersCount || 0, isFollowing: false });
+            const saved = getFollowState(user.id);
+            setStats({ followers: user.followersCount || 0, isFollowing: saved });
+            if (!saved) {
+              try {
+                const following = await userApi.isFollowing(currentUser.id, user.id);
+                setStats({ followers: user.followersCount || 0, isFollowing: following });
+                setFollowState(user.id, following);
+              } catch {
+                setStats({ followers: user.followersCount || 0, isFollowing: false });
+              }
             }
           } else {
             setStats({ followers: user.followersCount || 0, isFollowing: false });
@@ -94,17 +106,18 @@ export default function Profile() {
         }
         setProfileUser(user);
 
-        // 使用用户ID获取该用户的发布内容
         const userId = user.id;
         if (userId) {
-          const [newsData, marketData, serviceData] = await Promise.all([
+          const [newsData, marketData, serviceData, followingData] = await Promise.all([
             newsApi.getByUserId(userId).catch(() => []),
             marketApi.getByUserId(userId).catch(() => []),
             serviceApi.getByUserId(userId).catch(() => []),
+            userApi.getFollowingList(userId).catch(() => []),
           ]);
           setPosts(newsData);
           setItems(marketData);
           setServices(serviceData);
+          setFollowing(followingData);
         }
       } catch (err: any) {
         setError(err.message || '加载失败');
@@ -117,17 +130,19 @@ export default function Profile() {
 
   const handleFollowChange = async (isFollowing: boolean) => {
     if (!currentUser || !profileUser) return;
+    const targetId = profileUser.id || profileUser.name;
     try {
       if (isFollowing) {
-        await userApi.follow(currentUser.id, profileUser.id || profileUser.name);
+        await userApi.follow(currentUser.id, targetId);
       } else {
-        await userApi.unfollow(currentUser.id, profileUser.id || profileUser.name);
+        await userApi.unfollow(currentUser.id, targetId);
       }
       setStats(prev => ({
         ...prev,
         isFollowing,
         followers: isFollowing ? prev.followers + 1 : Math.max(0, prev.followers - 1)
       }));
+      setFollowState(targetId, isFollowing);
     } catch (err) {
       console.error('关注操作失败', err);
     }
@@ -189,7 +204,7 @@ export default function Profile() {
                   ].map(tab => (
                     <button
                       key={tab.id}
-                      onClick={() => setActiveTab(tab.id)}
+                      onClick={() => handleTabChange(tab.id)}
                       className={`flex items-center gap-2 pb-4 text-sm font-bold transition-all relative shrink-0 group ${
                         activeTab === tab.id ? 'text-primary' : 'text-secondary hover:text-ink'
                       }`}
@@ -260,8 +275,25 @@ export default function Profile() {
                        )}
 
                        {activeTab === 'following' && (
-                         <div className="col-span-2 py-20 text-center">
-                            <p className="text-sm text-muted font-bold">暂无关注</p>
+                         <div className="col-span-2">
+                           {following.length === 0 ? (
+                             <div className="py-20 text-center">
+                               <Users className="w-16 h-16 text-hairline mx-auto mb-4" />
+                               <p className="text-sm text-muted font-bold">还没有关注任何人</p>
+                             </div>
+                           ) : (
+                             <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                               {following.map(user => (
+                                 <div key={user.id} className="bg-white p-4 rounded-2xl border border-hairline text-center cursor-pointer hover:border-primary/30 transition-colors"
+                                   onClick={() => navigate(`/profile/${user.name}`)}>
+                                   <img src={user.avatar || `https://ui-avatars.com/api/?name=${user.name}&size=100`}
+                                     className="w-16 h-16 rounded-xl object-cover mx-auto mb-3 border border-hairline" alt={user.name} />
+                                   <p className="font-bold text-sm text-ink truncate">{user.name}</p>
+                                   {user.tag && <p className="text-xs text-primary mt-1">{user.tag}</p>}
+                                 </div>
+                               ))}
+                             </div>
+                           )}
                          </div>
                        )}
 

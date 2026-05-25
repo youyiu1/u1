@@ -31,6 +31,7 @@ import { serviceApi, userApi } from '../services/api';
 import { FollowButton } from '../components/common/FollowButton';
 import { ConfirmDialog } from '../components/common/ConfirmDialog';
 import { ServiceDetail as ServiceDetailType, Review } from '../types';
+import { getFollowState, setFollowState } from '../utils/followStorage';
 
 function ReviewSection({ serviceId, rating }: { serviceId: string; rating: number }) {
   const [reviews, setReviews] = useState<Review[]>([]);
@@ -135,15 +136,16 @@ export default function ServiceDetail() {
 
   const handleFollowChange = async (newState: boolean) => {
     const currentUser = JSON.parse(localStorage.getItem('neighborhood_user') || '{}');
-    const sellerId = service?.seller?.id || (service as any)?.sellerId;
-    if (!currentUser.id || !sellerId) return;
+    const sid = service?.seller?.id || (service as any)?.sellerId;
+    if (!currentUser.id || !sid) return;
     try {
       if (newState) {
-        await userApi.follow(currentUser.id, sellerId);
+        await userApi.follow(currentUser.id, sid);
       } else {
-        await userApi.unfollow(currentUser.id, sellerId);
+        await userApi.unfollow(currentUser.id, sid);
       }
       setIsFollowing(newState);
+      setFollowState(sid, newState);
     } catch {}
   };
 
@@ -152,14 +154,18 @@ export default function ServiceDetail() {
       try {
         const data = await serviceApi.get(id);
         setService(data);
-        // 获取关注状态
         const currentUser = JSON.parse(localStorage.getItem('neighborhood_user') || '{}');
-        const sellerId = data.seller?.id || (data as any).sellerId;
-        if (currentUser.id && sellerId) {
-          try {
-            const following = await userApi.isFollowing(currentUser.id, sellerId);
-            setIsFollowing(following);
-          } catch {}
+        const sid = data.seller?.id || (data as any).sellerId;
+        if (currentUser.id && sid) {
+          const saved = getFollowState(sid);
+          setIsFollowing(saved);
+          if (!saved) {
+            try {
+              const following = await userApi.isFollowing(currentUser.id, sid);
+              setIsFollowing(following);
+              setFollowState(sid, following);
+            } catch {}
+          }
         }
       } catch (err: any) {
         setError(err.message || '加载失败');
@@ -352,10 +358,10 @@ export default function ServiceDetail() {
               </div>
               <div className="md:col-span-4 grid grid-rows-2 gap-4 h-full">
                 <div className="rounded-[32px] overflow-hidden border border-hairline group">
-                  <img src={(service.images && service.images[1]) || undefined} className="w-full h-full object-cover group-hover:scale-110 transition-transform" alt="Detail 1" />
+                  <img src={(service.images && service.images[Math.min(1, service.images.length - 1)]) || (service.images && service.images[0]) || undefined} className="w-full h-full object-cover group-hover:scale-110 transition-transform" alt="Detail 1" />
                 </div>
                 <div className="relative rounded-[32px] overflow-hidden border border-hairline group cursor-pointer">
-                  <img src={(service.images && service.images[2]) || undefined} className="w-full h-full object-cover group-hover:scale-110 transition-transform" alt="Detail 2" />
+                  <img src={(service.images && service.images[Math.min(2, service.images.length - 1)]) || (service.images && service.images[0]) || undefined} className="w-full h-full object-cover group-hover:scale-110 transition-transform" alt="Detail 2" />
                   <div className="absolute inset-x-4 bottom-4 px-4 py-3 bg-white/90 backdrop-blur-md rounded-2xl flex items-center justify-center gap-2 font-black text-xs shadow-xl">
                     <Sparkles className="w-4 h-4" /> 查看全景
                   </div>

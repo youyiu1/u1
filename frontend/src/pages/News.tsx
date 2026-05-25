@@ -10,6 +10,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import { newsApi, userApi } from '../services/api';
 import { FollowButton } from '../components/common/FollowButton';
 import { Post } from '../types';
+import { getFollowState, setFollowState } from '../utils/followStorage';
 
 const TRENDING = [
   { id: 't1', name: '五一小长假去哪玩', posts: '1.2k' },
@@ -29,7 +30,13 @@ export default function News() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [postText, setPostText] = useState('');
-  const [suggestedUsers, setSuggestedUsers] = useState(SUGGESTED_USERS);
+  const [suggestedUsers, setSuggestedUsers] = useState<Array<{id: string, name: string, avatar: string, desc: string, isFollowing: boolean}>>(() => {
+    return SUGGESTED_USERS.map(u => ({
+      ...u,
+      isFollowing: getFollowState('suggested_' + u.id)
+    }));
+  });
+
   const [postFollowStates, setPostFollowStates] = useState<Record<string, boolean>>({});
 
   // 解析images JSON字符串为数组
@@ -50,7 +57,11 @@ export default function News() {
       } else {
         await userApi.unfollow(currentUser.id, userId);
       }
-      setSuggestedUsers(prev => prev.map(u => u.id === userId ? { ...u, isFollowing: newState } : u));
+      setSuggestedUsers(prev => {
+        const updated = prev.map(u => u.id === userId ? { ...u, isFollowing: newState } : u);
+        setFollowState('suggested_' + userId, newState);
+        return updated;
+      });
     } catch {}
   };
 
@@ -64,6 +75,7 @@ export default function News() {
         await userApi.unfollow(currentUser.id, authorId);
       }
       setPostFollowStates(prev => ({ ...prev, [authorId]: newState }));
+      setFollowState(authorId, newState);
     } catch {}
   };
 
@@ -255,7 +267,7 @@ export default function News() {
                  发现邻居
                </h3>
                <div className="space-y-6">
-                 {SUGGESTED_USERS.map((user) => (
+                 {suggestedUsers.map((user) => (
                    <div key={user.id} className="flex items-center justify-between group">
                      <div className="flex items-center gap-3 cursor-pointer" onClick={() => navigate(`/profile/${user.name}`)}>
                        <img src={user.avatar || undefined} className="w-10 h-10 rounded-xl object-cover border border-hairline group-hover:scale-105 transition-all" alt={user.name} />
