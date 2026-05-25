@@ -14,12 +14,14 @@ import java.util.List;
 public interface NewsService extends IService<News> {
     List<News> listDesc();
     News getById(Long id);
-    NewsVO getNewsVOById(Long id);  // 获取带作者信息的动态详情
-    List<NewsVO> listDescVO();      // 获取带作者信息的动态列表
-    List<NewsVO> listByUserId(String userId);  // 获取用户动态
+    NewsVO getNewsVOById(Long id);
+    NewsVO getNewsVOById(Long id, String userId);  // 带用户上下文
+    List<NewsVO> listDescVO();
+    List<NewsVO> listDescVO(String userId);        // 带用户上下文
+    List<NewsVO> listByUserId(String userId);
     boolean save(News news);
     boolean updateById(News news);
     void addComment(Long newsId, Comment comment);
-    boolean like(Long newsId);
+    boolean like(Long newsId, String userId);      // 带用户ID，用于Redis记录
     List<Comment> getCommentsByNewsId(Long newsId, int limit, int offset);
 }

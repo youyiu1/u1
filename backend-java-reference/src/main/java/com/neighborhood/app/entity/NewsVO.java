@@ -35,6 +35,9 @@ public class NewsVO {
     private LocalDateTime createTime;
     private LocalDateTime updateTime;
     private List<Comment> comments;
+    // 当前用户是否点赞/收藏
+    private Boolean isLiked;
+    private Boolean isFavorited;
 
     public static NewsVO fromNews(News news, User author) {
         NewsVO vo = new NewsVO();

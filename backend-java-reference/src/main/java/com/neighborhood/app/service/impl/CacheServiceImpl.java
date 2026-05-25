@@ -280,6 +280,68 @@ public class CacheServiceImpl implements CacheService {
         }
     }
 
+    // ========== 点赞相关（Redis Set 存储用户ID） ==========
+
+    @Override
+    public void addNewsLike(Long newsId, String userId) {
+        try {
+            redisTemplate.opsForSet().add(NEWS_LIKE_KEY + newsId, userId);
+        } catch (Exception e) {
+            log.error("添加点赞失败: newsId={}, userId={}", newsId, userId, e);
+        }
+    }
+
+    @Override
+    public void removeNewsLike(Long newsId, String userId) {
+        try {
+            redisTemplate.opsForSet().remove(NEWS_LIKE_KEY + newsId, userId);
+        } catch (Exception e) {
+            log.error("取消点赞失败: newsId={}, userId={}", newsId, userId, e);
+        }
+    }
+
+    @Override
+    public boolean isNewsLiked(Long newsId, String userId) {
+        try {
+            Boolean isMember = redisTemplate.opsForSet().isMember(NEWS_LIKE_KEY + newsId, userId);
+            return Boolean.TRUE.equals(isMember);
+        } catch (Exception e) {
+            log.error("检查点赞状态失败: newsId={}, userId={}", newsId, userId, e);
+            return false;
+        }
+    }
+
+    // ========== 收藏相关（Redis Set 存储 userId:targetType:targetId） ==========
+
+    @Override
+    public void addFavorite(String userId, String targetType, Long targetId) {
+        try {
+            redisTemplate.opsForSet().add(FAVORITE_KEY, userId + ":" + targetType + ":" + targetId);
+        } catch (Exception e) {
+            log.error("添加收藏失败: userId={}, targetType={}, targetId={}", userId, targetType, targetId, e);
+        }
+    }
+
+    @Override
+    public void removeFavorite(String userId, String targetType, Long targetId) {
+        try {
+            redisTemplate.opsForSet().remove(FAVORITE_KEY, userId + ":" + targetType + ":" + targetId);
+        } catch (Exception e) {
+            log.error("取消收藏失败: userId={}, targetType={}, targetId={}", userId, targetType, targetId, e);
+        }
+    }
+
+    @Override
+    public boolean isFavorited(String userId, String targetType, Long targetId) {
+        try {
+            Boolean isMember = redisTemplate.opsForSet().isMember(FAVORITE_KEY, userId + ":" + targetType + ":" + targetId);
+            return Boolean.TRUE.equals(isMember);
+        } catch (Exception e) {
+            log.error("检查收藏状态失败: userId={}, targetType={}, targetId={}", userId, targetType, targetId, e);
+            return false;
+        }
+    }
+
     // ==================== 常量 ====================
 
     private static final String USER_KEY = "user:";
@@ -302,4 +364,10 @@ public class CacheServiceImpl implements CacheService {
 
     private static final String HOME_INDEX_KEY = "home:index";
     private static final long HOME_INDEX_TTL = 5;
+
+    // 点赞 Redis Set，key = "news:likes:{newsId}"，value = userId 集合
+    private static final String NEWS_LIKE_KEY = "news:likes:";
+
+    // 收藏 Redis Set，key = "favorites"，value = "userId:targetType:targetId" 集合
+    private static final String FAVORITE_KEY = "favorites";
 }

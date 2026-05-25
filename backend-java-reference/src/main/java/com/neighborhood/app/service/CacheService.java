@@ -30,4 +30,14 @@ public interface CacheService {
     <T> T getCachedHomeIndex();
     void evictHomeIndex();
     void evictAll();
+
+    // ========== 点赞相关 ==========
+    void addNewsLike(Long newsId, String userId);
+    void removeNewsLike(Long newsId, String userId);
+    boolean isNewsLiked(Long newsId, String userId);
+
+    // ========== 收藏相关 ==========
+    void addFavorite(String userId, String targetType, Long targetId);
+    void removeFavorite(String userId, String targetType, Long targetId);
+    boolean isFavorited(String userId, String targetType, Long targetId);
 }

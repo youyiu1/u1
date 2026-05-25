@@ -25,7 +25,7 @@ public interface FavoriteService extends IService<Favorite> {
     java.util.List<Favorite> getUserFavorites(String userId);
 
     /**
-     * 检查是否已收藏
+     * 检查是否已收藏（先查Redis）
      */
     boolean isFavorited(String userId, String targetType, Long targetId);
 }

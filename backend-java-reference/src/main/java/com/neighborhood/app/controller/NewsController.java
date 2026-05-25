@@ -25,11 +25,12 @@ public class NewsController {
     private NewsService newsService;
 
     /**
-     * 获取动态列表（带作者信息）
+     * 获取动态列表（带作者信息和当前用户点赞/收藏状态）
      */
     @GetMapping("/list")
-    public Result<List<NewsVO>> list() {
-        return Result.ok(newsService.listDescVO());
+    public Result<List<NewsVO>> list(HttpServletRequest request) {
+        String userId = (String) request.getAttribute("userId");
+        return Result.ok(newsService.listDescVO(userId));
     }
 
     /**
@@ -54,16 +55,21 @@ public class NewsController {
     }
 
     /**
-     * 获取动态详情（带作者信息）
+     * 获取动态详情（带作者信息和当前用户点赞/收藏状态）
      */
     @GetMapping("/{id}")
-    public Result<NewsVO> getById(@PathVariable Long id) {
-        return Result.ok(newsService.getNewsVOById(id));
+    public Result<NewsVO> getById(@PathVariable Long id, HttpServletRequest request) {
+        String userId = (String) request.getAttribute("userId");
+        return Result.ok(newsService.getNewsVOById(id, userId));
     }
 
+    /**
+     * 点赞动态
+     */
     @PostMapping("/{id}/like")
-    public Result<Boolean> like(@PathVariable Long id) {
-        return Result.ok(newsService.like(id));
+    public Result<Boolean> like(@PathVariable Long id, HttpServletRequest request) {
+        String userId = (String) request.getAttribute("userId");
+        return Result.ok(newsService.like(id, userId));
     }
 
     @GetMapping("/{id}/comments")

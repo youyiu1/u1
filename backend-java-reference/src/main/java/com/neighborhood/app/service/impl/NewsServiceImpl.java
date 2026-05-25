@@ -31,6 +31,15 @@ public class NewsServiceImpl extends ServiceImpl<NewsMapper, News> implements Ne
     private final CacheService cacheService;
     private final UserMapper userMapper;
 
+    /**
+     * 设置当前用户点赞/收藏状态
+     */
+    private void setUserInteractionStatus(NewsVO vo, String userId) {
+        if (vo == null || userId == null) return;
+        vo.setIsLiked(cacheService.isNewsLiked(vo.getId(), userId));
+        vo.setIsFavorited(cacheService.isFavorited(userId, "news", vo.getId()));
+    }
+
     @Override
     public List<News> listDesc() {
         return lambdaQuery().orderByDesc(News::getCreateTime).list();
@@ -51,16 +60,28 @@ public class NewsServiceImpl extends ServiceImpl<NewsMapper, News> implements Ne
 
     @Override
     public NewsVO getNewsVOById(Long id) {
+        return getNewsVOById(id, null);
+    }
+
+    @Override
+    public NewsVO getNewsVOById(Long id, String userId) {
         News news = getById(id);
         if (news == null) {
             return null;
         }
         User author = userMapper.selectById(news.getAuthorId());
-        return NewsVO.fromNews(news, author);
+        NewsVO vo = NewsVO.fromNews(news, author);
+        setUserInteractionStatus(vo, userId);
+        return vo;
     }
 
     @Override
     public List<NewsVO> listDescVO() {
+        return listDescVO(null);
+    }
+
+    @Override
+    public List<NewsVO> listDescVO(String userId) {
         List<News> newsList = listDesc();
         if (newsList.isEmpty()) {
             return List.of();
@@ -73,7 +94,11 @@ public class NewsServiceImpl extends ServiceImpl<NewsMapper, News> implements Ne
         Map<String, User> userMap = userMapper.selectBatchIds(authorIds).stream()
                 .collect(Collectors.toMap(User::getId, u -> u));
         return newsList.stream()
-                .map(news -> NewsVO.fromNews(news, userMap.get(news.getAuthorId())))
+                .map(news -> {
+                    NewsVO vo = NewsVO.fromNews(news, userMap.get(news.getAuthorId()));
+                    setUserInteractionStatus(vo, userId);
+                    return vo;
+                })
                 .collect(Collectors.toList());
     }
 
@@ -109,12 +134,18 @@ public class NewsServiceImpl extends ServiceImpl<NewsMapper, News> implements Ne
 
     @Override
     @Transactional
-    public boolean like(Long newsId) {
+    public boolean like(Long newsId, String userId) {
+        // 检查是否已点赞，避免重复
+        if (cacheService.isNewsLiked(newsId, userId)) {
+            return false;
+        }
         boolean result = lambdaUpdate().eq(News::getId, newsId)
                 .setSql("likes = likes + 1")
                 .update();
         if (result) {
             cacheService.evictNews(newsId);
+            // Redis 记录用户点赞
+            cacheService.addNewsLike(newsId, userId);
         }
         return result;
     }

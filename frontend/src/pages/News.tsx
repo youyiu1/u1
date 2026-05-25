@@ -4,15 +4,14 @@
  */
 
 import React, { useState, useEffect } from 'react';
-import { MessageSquare, Heart, Share2, MoreHorizontal, MapPin, Image as ImageIcon, TrendingUp, Users, Bookmark, Plus } from 'lucide-react';
+import { MessageSquare, Heart, Share2, MoreHorizontal, MapPin, Image as ImageIcon, TrendingUp, Users, Bookmark } from 'lucide-react';
 import { motion } from 'motion/react';
-import { Link, useNavigate } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 import { newsApi, userApi, favoriteApi } from '../services/api';
 import { FollowButton } from '../components/common/FollowButton';
 import { BackToTop } from '../components/common/BackToTop';
 import { Post } from '../types';
 import { getFollowState, setFollowState } from '../utils/followStorage';
-import { getLikeState, setLikeState, getFavoriteState, setFavoriteState } from '../utils/interactionStorage';
 import { useToast } from '../context/ToastContext';
 
 const TRENDING = [
@@ -34,20 +33,6 @@ export default function News() {
   const [error, setError] = useState<string | null>(null);
   const [postText, setPostText] = useState('');
   const { showToast } = useToast();
-  const [likedPosts, setLikedPosts] = useState<Record<string, boolean>>(() => {
-    try {
-      const saved = JSON.parse(localStorage.getItem('like_states_v1') || '{}');
-      return saved;
-    } catch { return {}; }
-  });
-  const [favoritedPosts, setFavoritedPosts] = useState<Record<string, boolean>>(() => {
-    try {
-      const saved = JSON.parse(localStorage.getItem('favorite_states_v1') || '{}');
-      return saved;
-    } catch { return {}; }
-  });
-  const [postLikeCounts, setPostLikeCounts] = useState<Record<string, number>>({});
-  const [postCollectionCounts, setPostCollectionCounts] = useState<Record<string, number>>({});
   const [suggestedUsers, setSuggestedUsers] = useState<Array<{id: string, name: string, avatar: string, desc: string, isFollowing: boolean}>>(() => {
     return SUGGESTED_USERS.map(u => ({
       ...u,
@@ -97,36 +82,57 @@ export default function News() {
     } catch {}
   };
 
-  const toggleLike = (postId: string, e: React.MouseEvent) => {
+  const toggleLike = async (postId: string, e: React.MouseEvent) => {
     e.stopPropagation();
     e.preventDefault();
-    const currentLiked = likedPosts[postId] ?? false;
-    const newLiked = !currentLiked;
-    setLikedPosts(prev => ({ ...prev, [postId]: newLiked }));
-    setPostLikeCounts(prev => ({ ...prev, [postId]: (prev[postId] ?? post.likes) + (newLiked ? 1 : -1) }));
-    localStorage.setItem('like_states_v1', JSON.stringify({ ...likedPosts, [postId]: newLiked }));
-  };
-
-  const toggleFavorite = async (postId: string, e: React.MouseEvent) => {
-    e.stopPropagation();
-    e.preventDefault();
-    const currentFavorited = favoritedPosts[postId] ?? false;
-    const newFavorited = !currentFavorited;
     const currentUser = JSON.parse(localStorage.getItem('neighborhood_user') || '{}');
     if (!currentUser.id) {
       showToast('请先登录', 'warning');
       return;
     }
     try {
-      if (!newFavorited) {
+      await newsApi.like(postId);
+      // 调用成功后更新本地状态
+      setPosts(prev => prev.map(p => {
+        if (p.id === postId) {
+          return {
+            ...p,
+            isLiked: !p.isLiked,
+            likes: p.isLiked ? p.likes - 1 : p.likes + 1
+          };
+        }
+        return p;
+      }));
+    } catch {
+      showToast('操作失败', 'error');
+    }
+  };
+
+  const toggleFavorite = async (postId: string, e: React.MouseEvent) => {
+    e.stopPropagation();
+    e.preventDefault();
+    const currentUser = JSON.parse(localStorage.getItem('neighborhood_user') || '{}');
+    if (!currentUser.id) {
+      showToast('请先登录', 'warning');
+      return;
+    }
+    try {
+      if (posts.find(p => p.id === postId)?.isFavorited) {
         await favoriteApi.remove(currentUser.id, 'news', postId);
       } else {
         await favoriteApi.add(currentUser.id, 'news', postId);
       }
-      setFavoritedPosts(prev => ({ ...prev, [postId]: newFavorited }));
-      setPostCollectionCounts(prev => ({ ...prev, [postId]: (prev[postId] ?? post.collections) + (newFavorited ? 1 : -1) }));
-      localStorage.setItem('favorite_states_v1', JSON.stringify({ ...favoritedPosts, [postId]: newFavorited }));
-      showToast(newFavorited ? '已收藏' : '已取消收藏', 'success');
+      setPosts(prev => prev.map(p => {
+        if (p.id === postId) {
+          return {
+            ...p,
+            isFavorited: !p.isFavorited,
+            collections: p.isFavorited ? p.collections - 1 : p.collections + 1
+          };
+        }
+        return p;
+      }));
+      showToast(posts.find(p => p.id === postId)?.isFavorited ? '已取消收藏' : '已收藏', 'success');
     } catch {
       showToast('操作失败', 'error');
     }
@@ -148,15 +154,6 @@ export default function News() {
       try {
         const data = await newsApi.list();
         setPosts(data);
-        // 初始化点赞和收藏数量
-        const likeCounts: Record<string, number> = {};
-        const collectionCounts: Record<string, number> = {};
-        data.forEach((p: Post) => {
-          likeCounts[p.id] = p.likes;
-          collectionCounts[p.id] = p.collections;
-        });
-        setPostLikeCounts(likeCounts);
-        setPostCollectionCounts(collectionCounts);
       } catch (err: any) {
         setError(err.message || '加载失败');
       } finally {
@@ -297,10 +294,10 @@ export default function News() {
                     <footer className="flex items-center gap-6 mt-6 pt-4 border-t border-hairline">
                       <button
                         onClick={(e) => toggleLike(post.id, e)}
-                        className={`flex items-center gap-1.5 transition-colors group ${likedPosts[post.id] ? 'text-red-500' : 'text-muted hover:text-red-500'}`}
+                        className={`flex items-center gap-1.5 transition-colors group ${post.isLiked ? 'text-red-500' : 'text-muted hover:text-red-500'}`}
                       >
-                        <Heart className={`w-4 h-4 ${likedPosts[post.id] ? 'fill-current' : 'group-hover:fill-current'}`} />
-                        <span className="text-xs font-bold">{postLikeCounts[post.id] ?? post.likes}</span>
+                        <Heart className={`w-4 h-4 ${post.isLiked ? 'fill-current' : 'group-hover:fill-current'}`} />
+                        <span className="text-xs font-bold">{post.likes}</span>
                       </button>
                       <button className="flex items-center gap-1.5 text-muted hover:text-blue-500 transition-colors">
                         <MessageSquare className="w-4 h-4" />
@@ -315,10 +312,10 @@ export default function News() {
                       </button>
                       <button
                         onClick={(e) => toggleFavorite(post.id, e)}
-                        className={`flex items-center gap-1.5 transition-colors ${favoritedPosts[post.id] ? 'text-primary' : 'text-muted hover:text-primary'}`}
+                        className={`flex items-center gap-1.5 transition-colors ${post.isFavorited ? 'text-primary' : 'text-muted hover:text-primary'}`}
                       >
-                        <Bookmark className={`w-4 h-4 ${favoritedPosts[post.id] ? 'fill-current' : ''}`} />
-                        <span className="text-xs font-bold">{postCollectionCounts[post.id] ?? post.collections}</span>
+                        <Bookmark className={`w-4 h-4 ${post.isFavorited ? 'fill-current' : ''}`} />
+                        <span className="text-xs font-bold">{post.collections}</span>
                       </button>
                     </footer>
                   </article>

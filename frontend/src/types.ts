@@ -169,4 +169,7 @@ export interface Post {
   shares: number;
   collections: number;
   comments: Comment[];
+  // 当前用户点赞/收藏状态
+  isLiked?: boolean;
+  isFavorited?: boolean;
 }
