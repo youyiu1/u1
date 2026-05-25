@@ -31,12 +31,26 @@ public class AuthInterceptor implements HandlerInterceptor {
 
         String path = request.getRequestURI();
 
-        // 公开接口放行
+        String authHeader = request.getHeader(HEADER_AUTH);
+        // 尝试从Token提取userId（公开接口也需要）
+        if (authHeader != null && authHeader.startsWith(BEARER_PREFIX)) {
+            String token = authHeader.substring(BEARER_PREFIX.length());
+            if (jwtUtil.validateToken(token)) {
+                String userId = jwtUtil.getUserIdFromToken(token);
+                Object redisToken = redisTemplate.opsForValue().get(TOKEN_PREFIX + userId);
+                if (redisToken != null && token.equals(redisToken.toString())) {
+                    redisTemplate.expire(TOKEN_PREFIX + userId, jwtUtil.getExpiration(), TimeUnit.MILLISECONDS);
+                    request.setAttribute("userId", userId);
+                }
+            }
+        }
+
+        // 公开接口放行（userId可能已设置）
         if (isPublicPath(path)) {
             return true;
         }
 
-        String authHeader = request.getHeader(HEADER_AUTH);
+        // 非公开接口需要完整验证
         if (authHeader == null || !authHeader.startsWith(BEARER_PREFIX)) {
             response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
             response.setContentType("application/json;charset=UTF-8");
