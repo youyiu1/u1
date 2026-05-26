@@ -12,6 +12,7 @@ import { FollowButton } from '../components/common/FollowButton';
 import { CommentItem } from '../components/common/CommentItem';
 import { Post, Comment } from '../types';
 import { useAuth } from '../context/AuthContext';
+import { useLikeAndFavorite } from '../hooks/useLikeAndFavorite';
 
 const FOLLOW_KEY = 'follow_states_v2';
 
@@ -27,10 +28,26 @@ export default function NewsDetail() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [commentText, setCommentText] = useState('');
-  const [isLiked, setIsLiked] = useState(false);
-  const [isBookmarked, setIsBookmarked] = useState(false);
   const [isLoadingMore, setIsLoadingMore] = useState(false);
   const [isFollowed, setIsFollowed] = useState(false);
+
+  const { isLiked, isFavorited, likes, collections, toggleLike, toggleFavorite } = useLikeAndFavorite(
+    id || '',
+    {
+      isLiked: post?.isLiked ?? false,
+      isFavorited: post?.isFavorited ?? false,
+      likes: post?.likes ?? 0,
+      collections: post?.collections ?? 0,
+    },
+    {
+      onLikeChange: (newIsLiked, newLikes) => {
+        setPost(prev => prev ? { ...prev, likes: newLikes, isLiked: newIsLiked } : null);
+      },
+      onFavoriteChange: (newIsFavorited, newCollections) => {
+        setPost(prev => prev ? { ...prev, collections: newCollections, isFavorited: newIsFavorited } : null);
+      },
+    }
+  );
 
   const authorId = post?.author?.id || (post as any)?.authorId || '';
   const authorName = post?.author?.name || (post as any)?.authorName || '';
@@ -84,16 +101,8 @@ export default function NewsDetail() {
         setPost(data);
         const commentData = await newsApi.getComments(id as string);
         setComments(commentData);
-        // 使用API返回的isFollowing状态
         if (data?.isFollowing !== undefined && data.isFollowing !== null) {
           setIsFollowed(data.isFollowing);
-        }
-        // 使用API返回的点赞/收藏状态初始化
-        if (data?.isLiked !== undefined && data.isLiked !== null) {
-          setIsLiked(data.isLiked);
-        }
-        if (data?.isFavorited !== undefined && data.isFavorited !== null) {
-          setIsBookmarked(data.isFavorited);
         }
       } catch (err: any) {
         setError(err.message || '加载失败');
@@ -103,34 +112,6 @@ export default function NewsDetail() {
     };
     if (id) fetchPost();
   }, [id]);
-
-  const handleLike = async () => {
-    if (!post) return;
-    const wasLiked = isLiked;
-    const prevLikes = post.likes;
-    try {
-      await newsApi.like(id as string);
-      setIsLiked(!wasLiked);
-      setPost({ ...post, likes: wasLiked ? Math.max(0, prevLikes - 1) : prevLikes + 1 });
-    } catch (err) {
-      console.error('点赞失败', err);
-    }
-  };
-
-  const handleBookmark = async () => {
-    if (!post || !user) return;
-    const wasBookmarked = isBookmarked;
-    try {
-      if (wasBookmarked) {
-        await favoriteApi.remove(user.id, 'news', Number(id));
-      } else {
-        await favoriteApi.add(user.id, 'news', Number(id));
-      }
-      setIsBookmarked(!wasBookmarked);
-    } catch (err) {
-      console.error('收藏失败', err);
-    }
-  };
 
   const handleAddComment = async () => {
     if (!commentText.trim() || !user) return;
@@ -275,24 +256,24 @@ export default function NewsDetail() {
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-6">
               <button
-                onClick={handleLike}
+                onClick={toggleLike}
                 className={`flex items-center gap-2 transition-all ${isLiked ? 'text-primary' : 'text-secondary hover:text-primary'}`}
               >
                 <Heart className={`w-5 h-5 ${isLiked ? 'fill-current' : ''}`} />
-                <span className="text-xs font-bold">{post.likes}</span>
+                <span className="text-xs font-bold">{likes}</span>
               </button>
 
               <button
-                onClick={handleBookmark}
-                className={`flex items-center gap-2 transition-all ${isBookmarked ? 'text-accent-gold' : 'text-secondary hover:text-accent-gold'}`}
+                onClick={(e) => toggleFavorite(e, user?.id || '')}
+                className={`flex items-center gap-2 transition-all ${isFavorited ? 'text-accent-gold' : 'text-secondary hover:text-accent-gold'}`}
               >
-                <Bookmark className={`w-5 h-5 ${isBookmarked ? 'fill-current' : ''}`} />
-                <span className="text-xs font-bold">{isBookmarked ? '已收藏' : '收藏'}</span>
+                <Bookmark className={`w-5 h-5 ${isFavorited ? 'fill-current' : ''}`} />
+                <span className="text-xs font-bold">{isFavorited ? '已收藏' : '收藏'}</span>
               </button>
 
               <button className="flex items-center gap-2 text-secondary hover:text-primary transition-all">
                 <Share2 className="w-5 h-5" />
-                <span className="text-xs font-bold">{post.shares}</span>
+                <span className="text-xs font-bold">{post?.shares || 0}</span>
               </button>
             </div>
 
