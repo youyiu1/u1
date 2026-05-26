@@ -213,4 +213,24 @@ public class NewsServiceImpl extends ServiceImpl<NewsMapper, News> implements Ne
                 .map(news -> NewsVO.fromNews(news, author))
                 .collect(Collectors.toList());
     }
+
+    @Override
+    public List<NewsVO> listTrending(int limit) {
+        List<News> newsList = lambdaQuery()
+                .orderByDesc(News::getCommentsCount)
+                .last("LIMIT " + limit)
+                .list();
+        if (newsList.isEmpty()) {
+            return List.of();
+        }
+        List<String> authorIds = newsList.stream()
+                .map(News::getAuthorId)
+                .distinct()
+                .collect(Collectors.toList());
+        Map<String, User> userMap = userMapper.selectBatchIds(authorIds).stream()
+                .collect(Collectors.toMap(User::getId, u -> u));
+        return newsList.stream()
+                .map(news -> NewsVO.fromNews(news, userMap.get(news.getAuthorId())))
+                .collect(Collectors.toList());
+    }
 }

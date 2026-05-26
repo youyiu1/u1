@@ -18,5 +18,6 @@ public interface UserService extends IService<User> {
     boolean unfollow(String followerId, String followingId);
     boolean isFollowing(String followerId, String followingId);
     List<User> getFollowingList(String userId);  // 获取用户关注列表
+    List<User> getSuggestedUsers(String currentUserId, int limit);  // 获取推荐用户
     boolean updateById(User user);
 }

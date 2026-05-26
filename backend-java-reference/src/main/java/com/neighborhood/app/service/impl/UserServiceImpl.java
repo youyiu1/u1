@@ -139,4 +139,23 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements Us
                 .collect(Collectors.toList());
         return getBaseMapper().selectBatchIds(followingIds);
     }
+
+    @Override
+    public List<User> getSuggestedUsers(String currentUserId, int limit) {
+        // 获取当前用户已关注的所有用户ID
+        List<Follow> follows = followMapper.selectList(
+                new QueryWrapper<Follow>().eq("follower_id", currentUserId)
+        );
+        List<String> excludeIds = follows.stream()
+                .map(Follow::getFollowingId)
+                .collect(Collectors.toList());
+        // 排除自己和已关注的人
+        excludeIds.add(currentUserId);
+
+        return lambdaQuery()
+                .notIn(excludeIds.size() > 0, User::getId, excludeIds)
+                .orderByDesc(User::getFollowersCount)
+                .last("LIMIT " + limit)
+                .list();
+    }
 }

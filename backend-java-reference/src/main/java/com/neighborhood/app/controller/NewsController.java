@@ -101,4 +101,12 @@ public class NewsController {
         newsService.addComment(id, comment);
         return Result.ok();
     }
+
+    /**
+     * 获取热门动态（按评论数排序）
+     */
+    @GetMapping("/trending")
+    public Result<List<NewsVO>> trending(@RequestParam(defaultValue = "5") int limit) {
+        return Result.ok(newsService.listTrending(limit));
+    }
 }

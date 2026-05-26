@@ -122,6 +122,8 @@ export const userApi = {
     request<boolean>(`/user/isfollowing?followerId=${followerId}&followingId=${followingId}`),
 
   getFollowingList: (userId: string) => request<User[]>(`/user/${userId}/following`),
+
+  getSuggestedUsers: (limit = 5) => request<User[]>(`/user/suggested?limit=${limit}`),
 };
 
 // 动态/帖子相关
@@ -149,6 +151,8 @@ export const newsApi = {
       method: 'POST',
       body: JSON.stringify(comment),
     }),
+
+  getTrending: (limit = 5) => request<Post[]>(`/news/trending?limit=${limit}`),
 };
 
 // 闲置市场相关

@@ -10,6 +10,8 @@ export interface User {
   avatar: string;
   tag?: string;
   isVerified: boolean;
+  followersCount?: number;
+  followingCount?: number;
 }
 
 export interface ChatPartner {

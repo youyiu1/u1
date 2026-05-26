@@ -11,21 +11,9 @@ import { newsApi, userApi } from '../services/api';
 import { FollowButton } from '../components/common/FollowButton';
 import { BackToTop } from '../components/common/BackToTop';
 import { PostItemActions } from '../components/common/PostItemActions';
-import { Post } from '../types';
+import { Post, User } from '../types';
 import { getFollowState, setFollowState } from '../utils/followStorage';
 import { useToast } from '../context/ToastContext';
-
-const TRENDING = [
-  { id: 't1', name: '五一小长假去哪玩', posts: '1.2k' },
-  { id: 't2', name: '小区楼下新开的咖啡店', posts: '856' },
-  { id: 't3', name: '寻找滨江公园慢跑搭子', posts: '432' },
-  { id: 't4', name: '二手书共享计划', posts: '210' },
-];
-
-const SUGGESTED_USERS = [
-  { id: 'u1', name: '王大厨', avatar: 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?auto=format&fit=crop&q=80&w=100', desc: '资深美食家', isFollowing: false },
-  { id: 'u2', name: '摄影师小林', avatar: 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?auto=format&fit=crop&q=80&w=100', desc: '发现身边的美', isFollowing: true },
-];
 
 export default function News() {
   const navigate = useNavigate();
@@ -34,12 +22,8 @@ export default function News() {
   const [error, setError] = useState<string | null>(null);
   const [postText, setPostText] = useState('');
   const { showToast } = useToast();
-  const [suggestedUsers, setSuggestedUsers] = useState<Array<{id: string, name: string, avatar: string, desc: string, isFollowing: boolean}>>(() => {
-    return SUGGESTED_USERS.map(u => ({
-      ...u,
-      isFollowing: getFollowState('suggested_' + u.id)
-    }));
-  });
+  const [trending, setTrending] = useState<Array<{id: string, name: string, posts: string}>>([]);
+  const [suggestedUsers, setSuggestedUsers] = useState<Array<{id: string, name: string, avatar: string, tag: string, followersCount: number, isFollowing: boolean}>>([]);
 
   // 解析images JSON字符串为数组
   const getImages = (imgs: any): string[] => {
@@ -110,6 +94,37 @@ export default function News() {
       }
     };
     fetchPosts();
+
+    // 获取热门话题
+    const fetchTrending = async () => {
+      try {
+        const data = await newsApi.getTrending(4);
+        setTrending(data.map((p: Post) => ({
+          id: p.id,
+          name: p.content?.slice(0, 20) || '热门话题',
+          posts: String(p.commentsCount || 0),
+        })));
+      } catch {}
+    };
+
+    // 获取推荐用户
+    const fetchSuggestedUsers = async () => {
+      try {
+        const data = await userApi.getSuggestedUsers(5);
+        const currentUser = JSON.parse(localStorage.getItem('neighborhood_user') || '{}');
+        setSuggestedUsers(data.map((u: User) => ({
+          id: u.id,
+          name: u.name,
+          avatar: u.avatar || '',
+          tag: u.tag || '',
+          followersCount: u.followersCount || 0,
+          isFollowing: getFollowState('suggested_' + u.id) ?? false,
+        })));
+      } catch {}
+    };
+
+    fetchTrending();
+    fetchSuggestedUsers();
   }, []);
 
   const handleCreatePost = async () => {
@@ -255,7 +270,7 @@ export default function News() {
                 热门话题
               </h3>
               <div className="space-y-4">
-                {TRENDING.map((item, idx) => (
+                {trending.map((item, idx) => (
                   <div key={idx} className="group cursor-pointer flex items-start gap-3">
                     <span className="text-xs font-bold text-muted">#{idx + 1}</span>
                     <div>
@@ -279,7 +294,7 @@ export default function News() {
                        <img src={user.avatar || undefined} className="w-10 h-10 rounded-xl object-cover border border-hairline group-hover:scale-105 transition-all" alt={user.name} />
                        <div className="min-w-0">
                          <p className="text-xs font-black text-ink group-hover:text-primary transition-colors truncate">{user.name}</p>
-                         <p className="text-[10px] text-muted font-bold truncate">{user.desc}</p>
+                         <p className="text-[10px] text-muted font-bold truncate">{user.followersCount} 粉丝</p>
                        </div>
                      </div>
                      <FollowButton

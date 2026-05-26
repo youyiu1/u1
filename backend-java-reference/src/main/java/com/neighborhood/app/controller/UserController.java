@@ -115,6 +115,21 @@ public class UserController {
         return Result.ok(userService.getFollowingList(userId));
     }
 
+    /**
+     * 获取推荐用户（排除已关注）
+     */
+    @GetMapping("/suggested")
+    public Result<List<User>> getSuggestedUsers(
+            @RequestParam(required = false) String currentUserId,
+            @RequestParam(defaultValue = "5") int limit,
+            HttpServletRequest request) {
+        // 如果没传currentUserId，从token获取
+        if (currentUserId == null || currentUserId.isEmpty()) {
+            currentUserId = (String) request.getAttribute("userId");
+        }
+        return Result.ok(userService.getSuggestedUsers(currentUserId, limit));
+    }
+
     @PostMapping("/update")
     public Result<Boolean> update(@RequestBody User user) {
         return Result.ok(userService.updateById(user));
