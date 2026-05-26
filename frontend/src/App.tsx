@@ -18,6 +18,7 @@ import NewsDetail from './pages/NewsDetail';
 import Profile from './pages/Profile';
 import ServiceDetail from './pages/ServiceDetail';
 import ItemDetail from './pages/ItemDetail';
+import Search from './pages/Search';
 import Login from './pages/Login';
 import Register from './pages/Register';
 
@@ -40,6 +41,7 @@ export default function App() {
                 <Route path="news/:id" element={<NewsDetail />} />
                 <Route path="profile" element={<Profile />} />
                 <Route path="profile/:username" element={<Profile />} />
+                <Route path="search" element={<Search />} />
                 <Route path="login" element={<Login />} />
                 <Route path="register" element={<Register />} />
                 <Route path="*" element={<Home />} />
