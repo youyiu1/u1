@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, useEffect } from 'react';
 import { newsApi, favoriteApi } from '../services/api';
 import { useToast } from '../context/ToastContext';
 
@@ -26,6 +26,16 @@ export function useLikeAndFavorite(
 ) {
   const [state, setState] = useState(initialState);
   const { showToast } = useToast();
+
+  // 同步外部状态变化（API返回数据后）
+  useEffect(() => {
+    setState(prev => ({
+      isLiked: initialState.isLiked ?? prev.isLiked,
+      isFavorited: initialState.isFavorited ?? prev.isFavorited,
+      likes: initialState.likes ?? prev.likes,
+      collections: initialState.collections ?? prev.collections,
+    }));
+  }, [initialState.isLiked, initialState.isFavorited, initialState.likes, initialState.collections]);
 
   const toggleLike = useCallback(async (e: React.MouseEvent) => {
     e?.stopPropagation();
