@@ -170,7 +170,7 @@ export default function Profile() {
       <div className="h-48 md:h-64 bg-surface-soft relative overflow-hidden">
         <div className="absolute inset-0 bg-gradient-to-b from-primary/5 to-transparent" />
         <button
-          onClick={() => navigate(-1)}
+          onClick={() => navigate('/news', { replace: true })}
           className="absolute top-6 left-6 p-2 bg-white/80 backdrop-blur-md rounded-full shadow-sm hover:bg-white transition-colors z-10"
         >
           <ChevronLeft className="w-5 h-5 text-ink" />
