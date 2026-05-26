@@ -136,6 +136,20 @@ public class UserController {
         return Result.ok(userService.updateById(user));
     }
 
+    /**
+     * 修改密码（需验证旧密码）
+     */
+    @PostMapping("/change-password")
+    public Result<Boolean> changePassword(@RequestAttribute String userId, @RequestBody ChangePasswordRequest request) {
+        if (request.getOldPassword() == null || request.getNewPassword() == null) {
+            return Result.fail("旧密码和新密码不能为空");
+        }
+        if (request.getNewPassword().length() < 6) {
+            return Result.fail("新密码至少6位");
+        }
+        return Result.ok(userService.changePassword(userId, request.getOldPassword(), request.getNewPassword()));
+    }
+
     public static class FollowRequest {
         private String followerId;
         private String followingId;
@@ -160,5 +174,15 @@ public class UserController {
         public void setPassword(String password) { this.password = password; }
         public String getCode() { return code; }
         public void setCode(String code) { this.code = code; }
+    }
+
+    public static class ChangePasswordRequest {
+        private String oldPassword;
+        private String newPassword;
+
+        public String getOldPassword() { return oldPassword; }
+        public void setOldPassword(String oldPassword) { this.oldPassword = oldPassword; }
+        public String getNewPassword() { return newPassword; }
+        public void setNewPassword(String newPassword) { this.newPassword = newPassword; }
     }
 }

@@ -7,7 +7,6 @@ import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { X, Lock, Bell, Eye, ShieldCheck, CheckCircle2, Loader2 } from 'lucide-react';
 import { userApi } from '../../services/api';
-import { useAuth } from '../../context/AuthContext';
 
 interface ChangePasswordOverlayProps {
   isOpen: boolean;
@@ -16,7 +15,6 @@ interface ChangePasswordOverlayProps {
 }
 
 export const ChangePasswordOverlay: React.FC<ChangePasswordOverlayProps> = ({ isOpen, onClose, onSuccess }) => {
-  const { user } = useAuth();
   const [oldPassword, setOldPassword] = useState('');
   const [newPassword, setNewPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
@@ -45,11 +43,7 @@ export const ChangePasswordOverlay: React.FC<ChangePasswordOverlayProps> = ({ is
     setIsSubmitting(true);
 
     try {
-      // 调用后端修改密码接口
-      await userApi.update({
-        id: user?.id,
-        password: newPassword,
-      } as any);
+      await userApi.changePassword(oldPassword, newPassword);
 
       setIsSuccess(true);
       setTimeout(() => {

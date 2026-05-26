@@ -20,4 +20,5 @@ public interface UserService extends IService<User> {
     List<User> getFollowingList(String userId);  // 获取用户关注列表
     List<User> getSuggestedUsers(String currentUserId, int limit);  // 获取推荐用户
     boolean updateById(User user);
+    boolean changePassword(String userId, String oldPassword, String newPassword);  // 修改密码
 }

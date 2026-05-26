@@ -106,6 +106,12 @@ export const userApi = {
       body: JSON.stringify(user),
     }),
 
+  changePassword: (oldPassword: string, newPassword: string) =>
+    request<boolean>('/user/change-password', {
+      method: 'POST',
+      body: JSON.stringify({ oldPassword, newPassword }),
+    }),
+
   follow: (followerId: string, followingId: string) =>
     request<boolean>('/user/follow', {
       method: 'POST',

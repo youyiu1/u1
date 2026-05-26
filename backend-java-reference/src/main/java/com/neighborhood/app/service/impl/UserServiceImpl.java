@@ -112,6 +112,25 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements Us
         return result;
     }
 
+    @Override
+    public boolean changePassword(String userId, String oldPassword, String newPassword) {
+        User user = getById(userId);
+        if (user == null) {
+            return false;
+        }
+        // 验证旧密码
+        if (!user.getPassword().equals(oldPassword)) {
+            return false;
+        }
+        // 更新新密码
+        user.setPassword(newPassword);
+        boolean result = super.updateById(user);
+        if (result) {
+            cacheService.evictUser(userId);
+        }
+        return result;
+    }
+
     private void updateUserCounts(String followerId, String followingId, int followerDelta, int followingDelta) {
         User follower = getById(followerId);
         User following = getById(followingId);
