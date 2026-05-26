@@ -83,10 +83,10 @@ public class NotificationServiceImpl extends ServiceImpl<NotificationMapper, Not
         // 更新 booking 关联的通知ID
         if (bookingId != null) {
             BookingMapper bookingMapper = SpringContext.getBean(BookingMapper.class);
-            bookingMapper.lambdaUpdate()
-                .eq(Booking::getId, bookingId)
-                .set(Booking::getNotificationId, notification.getId())
-                .update();
+            com.baomidou.mybatisplus.core.conditions.update.LambdaUpdateWrapper<Booking> wrapper =
+                new com.baomidou.mybatisplus.core.conditions.update.LambdaUpdateWrapper<>();
+            wrapper.eq(Booking::getId, bookingId).set(Booking::getNotificationId, notification.getId());
+            bookingMapper.update(null, wrapper);
         }
     }
 
@@ -134,10 +134,10 @@ public class NotificationServiceImpl extends ServiceImpl<NotificationMapper, Not
             // 更新 booking 状态
             if (notification.getRelatedBookingId() != null) {
                 BookingMapper bookingMapper = SpringContext.getBean(BookingMapper.class);
-                bookingMapper.lambdaUpdate()
-                    .eq(Booking::getId, notification.getRelatedBookingId())
-                    .set(Booking::getStatus, "confirmed")
-                    .update();
+                com.baomidou.mybatisplus.core.conditions.update.LambdaUpdateWrapper<Booking> wrapper =
+                    new com.baomidou.mybatisplus.core.conditions.update.LambdaUpdateWrapper<>();
+                wrapper.eq(Booking::getId, notification.getRelatedBookingId()).set(Booking::getStatus, "confirmed");
+                bookingMapper.update(null, wrapper);
             }
             // 发送确认通知给买家
             Notification confirmNotification = new Notification();
@@ -167,10 +167,10 @@ public class NotificationServiceImpl extends ServiceImpl<NotificationMapper, Not
             // 更新 booking 状态
             if (notification.getRelatedBookingId() != null) {
                 BookingMapper bookingMapper = SpringContext.getBean(BookingMapper.class);
-                bookingMapper.lambdaUpdate()
-                    .eq(Booking::getId, notification.getRelatedBookingId())
-                    .set(Booking::getStatus, "cancelled")
-                    .update();
+                com.baomidou.mybatisplus.core.conditions.update.LambdaUpdateWrapper<Booking> wrapper =
+                    new com.baomidou.mybatisplus.core.conditions.update.LambdaUpdateWrapper<>();
+                wrapper.eq(Booking::getId, notification.getRelatedBookingId()).set(Booking::getStatus, "cancelled");
+                bookingMapper.update(null, wrapper);
             }
         }
         return true;
