@@ -23,9 +23,12 @@ import { motion, AnimatePresence } from 'motion/react';
 import { userApi, newsApi, marketApi, serviceApi } from '../services/api';
 import { FollowButton } from '../components/common/FollowButton';
 import { useAuth } from '../context/AuthContext';
+import { useAuthCheck } from '../context/useAuthCheck';
+import { usePublish } from '../context/PublishContext';
 import { ProfileInfoCard } from '../components/profile/ProfileInfoCard';
 import { ProfilePostCard } from '../components/profile/ProfilePostCard';
 import { ProfileMarketItem } from '../components/profile/ProfileMarketItem';
+import { ChangePasswordOverlay, NotificationSettingsOverlay, PrivacySettingsOverlay } from '../components/settings/SettingsOverlays';
 import { Post, Item, Service, User } from '../types';
 import { getToken } from '../services/api';
 import { getFollowState, setFollowState } from '../utils/followStorage';
@@ -35,6 +38,8 @@ export default function Profile() {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const { user: currentUser, logout } = useAuth();
+  const { requireAuth } = useAuthCheck();
+  const { openPublish } = usePublish();
 
   const [profileUser, setProfileUser] = useState<User | null>(null);
   const [posts, setPosts] = useState<Post[]>([]);
@@ -45,6 +50,9 @@ export default function Profile() {
   const [error, setError] = useState<string | null>(null);
 
   const [activeTab, setActiveTab] = useState(() => searchParams.get('tab') || 'posts');
+  const [passwordOverlayOpen, setPasswordOverlayOpen] = useState(false);
+  const [notificationOverlayOpen, setNotificationOverlayOpen] = useState(false);
+  const [privacyOverlayOpen, setPrivacyOverlayOpen] = useState(false);
 
   // 同步Tab到URL
   const handleTabChange = (tabId: string) => {
@@ -254,7 +262,7 @@ export default function Profile() {
                                 <ShoppingBag className="w-12 h-12 text-hairline mx-auto mb-4" />
                                 <p className="text-sm font-bold text-muted">还没有发布过宝贝或服务呢</p>
                                 <button
-                                  onClick={() => navigate('/')}
+                                  onClick={() => requireAuth(() => openPublish())}
                                   className="mt-6 px-8 py-3 bg-primary text-white rounded-2xl font-black text-[10px] uppercase tracking-widest"
                                 >
                                   去发布一个
@@ -292,24 +300,51 @@ export default function Profile() {
                             <div className="bg-stone-50 rounded-[32px] p-8 border border-hairline">
                                <h4 className="text-sm font-black text-ink uppercase tracking-widest mb-6">账户安全</h4>
                                <div className="space-y-3">
-                                  {[
-                                    { icon: <Lock className="w-4 h-4" />, label: '修改登录密码', desc: '建议定期更换密码以保障账户安全' },
-                                    { icon: <Bell className="w-4 h-4" />, label: '消息通知设置', desc: '管理系统通知、私信及动态提醒' },
-                                    { icon: <Eye className="w-4 h-4" />, label: '隐私权限设置', desc: '控制个人资料及动态的可见范围' },
-                                  ].map((item, i) => (
-                                    <button key={i} className="w-full flex items-center justify-between p-4 bg-white rounded-2xl border border-hairline hover:border-primary/30 transition-all group">
-                                       <div className="flex items-center gap-4">
-                                          <div className="w-10 h-10 bg-surface-soft rounded-xl flex items-center justify-center text-secondary group-hover:text-primary transition-colors">
-                                             {item.icon}
-                                          </div>
-                                          <div className="text-left">
-                                             <p className="text-xs font-black text-ink">{item.label}</p>
-                                             <p className="text-[10px] text-muted font-medium">{item.desc}</p>
-                                          </div>
-                                       </div>
-                                       <ChevronLeft className="w-4 h-4 text-muted rotate-180" />
-                                    </button>
-                                  ))}
+                                  <button
+                                    onClick={() => setPasswordOverlayOpen(true)}
+                                    className="w-full flex items-center justify-between p-4 bg-white rounded-2xl border border-hairline hover:border-primary/30 transition-all group"
+                                  >
+                                     <div className="flex items-center gap-4">
+                                        <div className="w-10 h-10 bg-surface-soft rounded-xl flex items-center justify-center text-secondary group-hover:text-primary transition-colors">
+                                           <Lock className="w-4 h-4" />
+                                        </div>
+                                        <div className="text-left">
+                                           <p className="text-xs font-black text-ink">修改登录密码</p>
+                                           <p className="text-[10px] text-muted font-medium">建议定期更换密码以保障账户安全</p>
+                                        </div>
+                                     </div>
+                                     <ChevronLeft className="w-4 h-4 text-muted rotate-180" />
+                                  </button>
+                                  <button
+                                    onClick={() => setNotificationOverlayOpen(true)}
+                                    className="w-full flex items-center justify-between p-4 bg-white rounded-2xl border border-hairline hover:border-primary/30 transition-all group"
+                                  >
+                                     <div className="flex items-center gap-4">
+                                        <div className="w-10 h-10 bg-surface-soft rounded-xl flex items-center justify-center text-secondary group-hover:text-primary transition-colors">
+                                           <Bell className="w-4 h-4" />
+                                        </div>
+                                        <div className="text-left">
+                                           <p className="text-xs font-black text-ink">消息通知设置</p>
+                                           <p className="text-[10px] text-muted font-medium">管理系统通知、私信及动态提醒</p>
+                                        </div>
+                                     </div>
+                                     <ChevronLeft className="w-4 h-4 text-muted rotate-180" />
+                                  </button>
+                                  <button
+                                    onClick={() => setPrivacyOverlayOpen(true)}
+                                    className="w-full flex items-center justify-between p-4 bg-white rounded-2xl border border-hairline hover:border-primary/30 transition-all group"
+                                  >
+                                     <div className="flex items-center gap-4">
+                                        <div className="w-10 h-10 bg-surface-soft rounded-xl flex items-center justify-center text-secondary group-hover:text-primary transition-colors">
+                                           <Eye className="w-4 h-4" />
+                                        </div>
+                                        <div className="text-left">
+                                           <p className="text-xs font-black text-ink">隐私权限设置</p>
+                                           <p className="text-[10px] text-muted font-medium">控制个人资料及动态的可见范围</p>
+                                        </div>
+                                     </div>
+                                     <ChevronLeft className="w-4 h-4 text-muted rotate-180" />
+                                  </button>
                                </div>
                             </div>
 
@@ -341,6 +376,10 @@ export default function Profile() {
           </div>
         </div>
       </div>
+
+      <ChangePasswordOverlay isOpen={passwordOverlayOpen} onClose={() => setPasswordOverlayOpen(false)} />
+      <NotificationSettingsOverlay isOpen={notificationOverlayOpen} onClose={() => setNotificationOverlayOpen(false)} />
+      <PrivacySettingsOverlay isOpen={privacyOverlayOpen} onClose={() => setPrivacyOverlayOpen(false)} />
     </div>
   );
 }
