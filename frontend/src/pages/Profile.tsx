@@ -20,7 +20,7 @@ import {
   Heart,
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
-import { userApi, newsApi, marketApi, serviceApi } from '../services/api';
+import { userApi, newsApi, marketApi, serviceApi, favoriteApi } from '../services/api';
 import { FollowButton } from '../components/common/FollowButton';
 import { useAuth } from '../context/AuthContext';
 import { useAuthCheck } from '../context/useAuthCheck';
@@ -28,6 +28,7 @@ import { usePublish } from '../context/PublishContext';
 import { ProfileInfoCard } from '../components/profile/ProfileInfoCard';
 import { ProfilePostCard } from '../components/profile/ProfilePostCard';
 import { ProfileMarketItem } from '../components/profile/ProfileMarketItem';
+import { ProfileFavoriteItem } from '../components/profile/ProfileFavoriteItem';
 import { ChangePasswordOverlay, NotificationSettingsOverlay, PrivacySettingsOverlay } from '../components/settings/SettingsOverlays';
 import { Post, Item, Service, User } from '../types';
 import { getToken } from '../services/api';
@@ -48,6 +49,11 @@ export default function Profile() {
   const [following, setFollowing] = useState<User[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+
+  // 收藏相关
+  const [favorites, setFavorites] = useState<any[]>([]);
+  const [favoriteItems, setFavoriteItems] = useState<Record<string, Post | Item | Service>>({});
+  const [activeFavoriteTab, setActiveFavoriteTab] = useState<'all' | 'news' | 'market'>('all');
 
   const [activeTab, setActiveTab] = useState(() => searchParams.get('tab') || 'posts');
   const [passwordOverlayOpen, setPasswordOverlayOpen] = useState(false);
@@ -116,16 +122,50 @@ export default function Profile() {
 
         const userId = user.id;
         if (userId) {
-          const [newsData, marketData, serviceData, followingData] = await Promise.all([
+          const [newsData, marketData, serviceData, followingData, favoriteList] = await Promise.all([
             newsApi.getByUserId(userId).catch(() => []),
             marketApi.getByUserId(userId).catch(() => []),
             serviceApi.getByUserId(userId).catch(() => []),
             userApi.getFollowingList(userId).catch(() => []),
+            isOwnProfile ? favoriteApi.list(userId).catch(() => []) : [],
           ]);
           setPosts(newsData);
           setItems(marketData);
           setServices(serviceData);
           setFollowing(followingData);
+          setFavorites(favoriteList);
+
+          // 获取收藏项的完整数据
+          if (favoriteList.length > 0) {
+            const itemMap: Record<string, Post | Item | Service> = {};
+            const newsIds: string[] = [];
+            const marketIds: string[] = [];
+            const serviceIds: string[] = [];
+
+            favoriteList.forEach((f: any) => {
+              if (f.targetType === 'news') newsIds.push(f.targetId);
+              else if (f.targetType === 'market') marketIds.push(f.targetId);
+              else if (f.targetType === 'service') serviceIds.push(f.targetId);
+            });
+
+            const itemResults = await Promise.all([
+              newsIds.length > 0 ? Promise.all(newsIds.map((id: string) => newsApi.get(id).catch(() => null))) : [],
+              marketIds.length > 0 ? Promise.all(marketIds.map((id: string) => marketApi.get(id).catch(() => null))) : [],
+              serviceIds.length > 0 ? Promise.all(serviceIds.map((id: string) => serviceApi.get(id).catch(() => null))) : [],
+            ]);
+
+            newsIds.forEach((id, idx) => {
+              if (itemResults[0][idx]) itemMap[id] = itemResults[0][idx];
+            });
+            marketIds.forEach((id, idx) => {
+              if (itemResults[1][idx]) itemMap[id] = itemResults[1][idx];
+            });
+            serviceIds.forEach((id, idx) => {
+              if (itemResults[2][idx]) itemMap[id] = itemResults[2][idx];
+            });
+
+            setFavoriteItems(itemMap);
+          }
         }
       } catch (err: any) {
         setError(err.message || '加载失败');
@@ -144,6 +184,15 @@ export default function Profile() {
       isFollowing,
       followers: isFollowing ? prev.followers + 1 : Math.max(0, prev.followers - 1)
     }));
+  };
+
+  const handleUnfavorite = (targetId: string) => {
+    setFavorites(prev => prev.filter(f => f.targetId !== targetId));
+    setFavoriteItems(prev => {
+      const next = { ...prev };
+      delete next[targetId];
+      return next;
+    });
   };
 
   if (loading) {
@@ -267,6 +316,52 @@ export default function Profile() {
                                 >
                                   去发布一个
                                 </button>
+                             </div>
+                           )}
+                         </div>
+                       )}
+
+                       {activeTab === 'bookmarks' && (
+                         <div className="col-span-2 space-y-4">
+                           {favorites.length > 0 ? (
+                             <>
+                               {/* 子Tab */}
+                               <div className="flex items-center gap-2">
+                                 {(['all', 'news', 'market', 'service'] as const).map(tab => (
+                                   <button
+                                     key={tab}
+                                     onClick={() => setActiveFavoriteTab(tab)}
+                                     className={`px-4 py-2 rounded-xl text-xs font-bold transition-all ${
+                                       activeFavoriteTab === tab
+                                         ? 'bg-primary text-white'
+                                         : 'bg-surface-soft text-secondary hover:text-ink'
+                                     }`}
+                                   >
+                                     {tab === 'all' ? '全部' : tab === 'news' ? '动态' : tab === 'market' ? '闲置' : '服务'}
+                                   </button>
+                                 ))}
+                               </div>
+                               <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
+                                 {favorites
+                                   .filter(f => activeFavoriteTab === 'all' || f.targetType === activeFavoriteTab)
+                                   .map(fav => {
+                                     const item = favoriteItems[fav.targetId];
+                                     if (!item) return null;
+                                     return (
+                                       <ProfileFavoriteItem
+                                         key={fav.targetId}
+                                         favorite={fav}
+                                         data={item}
+                                         onUnfavorite={handleUnfavorite}
+                                       />
+                                     );
+                                   })}
+                               </div>
+                             </>
+                           ) : (
+                             <div className="py-20 text-center bg-stone-50 rounded-[40px] border border-dashed border-hairline">
+                               <Bookmark className="w-12 h-12 text-hairline mx-auto mb-4" />
+                               <p className="text-sm font-bold text-muted">还没有收藏过任何内容</p>
                              </div>
                            )}
                          </div>
