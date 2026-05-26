@@ -18,4 +18,12 @@ public interface ServiceReviewService extends IService<ServiceReview> {
      * 添加服务评价
      */
     boolean addReview(Long serviceId, String userId, String userName, String userAvatar, Integer rating, String content);
+    /**
+     * 评价点赞
+     */
+    boolean likeReview(Long reviewId);
+    /**
+     * 取消点赞
+     */
+    boolean unlikeReview(Long reviewId);
 }

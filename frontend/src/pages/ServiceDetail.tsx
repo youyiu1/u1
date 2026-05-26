@@ -28,7 +28,7 @@ import { useChat } from '../context/ChatContext';
 import { useAuth } from '../context/AuthContext';
 import { useNotification } from '../context/NotificationContext';
 import { useToast } from '../context/ToastContext';
-import { serviceApi, userApi, favoriteApi, notificationApi, chatApi } from '../services/api';
+import { serviceApi, userApi, favoriteApi, notificationApi, chatApi, reviewApi } from '../services/api';
 import { FollowButton } from '../components/common/FollowButton';
 import { ConfirmDialog } from '../components/common/ConfirmDialog';
 import { ServiceDetail as ServiceDetailType, Review } from '../types';
@@ -48,6 +48,15 @@ function ReviewSection({ serviceId, rating }: { serviceId: string; rating: numbe
     };
     fetchReviews();
   }, [serviceId]);
+
+  const handleLike = async (reviewId: string, currentLikes: number) => {
+    try {
+      await reviewApi.likeReview(reviewId);
+      setReviews(prev => prev.map(r => r.id === reviewId ? { ...r, likes: currentLikes + 1 } : r));
+    } catch (err) {
+      console.error('点赞失败', err);
+    }
+  };
 
   return (
     <div className="space-y-12">
@@ -90,7 +99,10 @@ function ReviewSection({ serviceId, rating }: { serviceId: string; rating: numbe
                     </div>
                   </div>
                 </div>
-                <button className="flex items-center gap-2 text-xs font-black text-muted hover:text-primary transition-colors group">
+                <button
+                  onClick={() => handleLike(review.id, review.likes)}
+                  className="flex items-center gap-2 text-xs font-black text-muted hover:text-primary transition-colors group"
+                >
                   <ThumbsUp className="w-4 h-4 group-hover:-translate-y-0.5 transition-transform" />
                   <span>{review.likes}</span>
                 </button>

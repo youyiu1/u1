@@ -39,4 +39,20 @@ public class ServiceReviewServiceImpl extends ServiceImpl<ServiceReviewMapper, S
         review.setCreateTime(LocalDateTime.now());
         return save(review);
     }
+
+    @Override
+    public boolean likeReview(Long reviewId) {
+        return lambdaUpdate()
+                .eq(ServiceReview::getId, reviewId)
+                .setSql("likes = likes + 1")
+                .update();
+    }
+
+    @Override
+    public boolean unlikeReview(Long reviewId) {
+        return lambdaUpdate()
+                .eq(ServiceReview::getId, reviewId)
+                .setSql("likes = likes - 1")
+                .update();
+    }
 }

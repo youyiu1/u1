@@ -301,6 +301,10 @@ export const reviewApi = {
       method: 'POST',
       body: JSON.stringify(data),
     }),
+  likeReview: (reviewId: string) =>
+    request<boolean>(`/service/review/${reviewId}/like`, { method: 'POST' }),
+  unlikeReview: (reviewId: string) =>
+    request<boolean>(`/service/review/${reviewId}/unlike`, { method: 'POST' }),
 };
 
 // 搜索相关

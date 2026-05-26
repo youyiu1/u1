@@ -81,6 +81,22 @@ public class ServiceController {
         return Result.ok(success);
     }
 
+    /**
+     * 评价点赞
+     */
+    @PostMapping("/review/{id}/like")
+    public Result<Boolean> likeReview(@PathVariable Long id) {
+        return Result.ok(serviceReviewService.likeReview(id));
+    }
+
+    /**
+     * 取消评价点赞
+     */
+    @PostMapping("/review/{id}/unlike")
+    public Result<Boolean> unlikeReview(@PathVariable Long id) {
+        return Result.ok(serviceReviewService.unlikeReview(id));
+    }
+
     @PostMapping("/create")
     public Result<Boolean> create(@RequestBody ServiceEntity service, HttpServletRequest request) {
         String userId = (String) request.getAttribute("userId");
