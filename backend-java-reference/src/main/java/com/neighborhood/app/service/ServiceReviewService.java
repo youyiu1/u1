@@ -14,4 +14,8 @@ public interface ServiceReviewService extends IService<ServiceReview> {
      * 获取服务评价列表
      */
     List<ServiceReview> getByServiceId(Long serviceId);
+    /**
+     * 添加服务评价
+     */
+    boolean addReview(Long serviceId, String userId, String userName, String userAvatar, Integer rating, String content);
 }

@@ -18,10 +18,12 @@ import {
   ShoppingBag,
   Users,
   Heart,
+  CheckCircle2,
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
-import { userApi, newsApi, marketApi, serviceApi, favoriteApi } from '../services/api';
+import { userApi, newsApi, marketApi, serviceApi, favoriteApi, orderApi } from '../services/api';
 import { FollowButton } from '../components/common/FollowButton';
+import { ReviewDialog } from '../components/common/ReviewDialog';
 import { useAuth } from '../context/AuthContext';
 import { useAuthCheck } from '../context/useAuthCheck';
 import { usePublish } from '../context/PublishContext';
@@ -29,8 +31,9 @@ import { ProfileInfoCard } from '../components/profile/ProfileInfoCard';
 import { ProfilePostCard } from '../components/profile/ProfilePostCard';
 import { ProfileMarketItem } from '../components/profile/ProfileMarketItem';
 import { ProfileFavoriteItem } from '../components/profile/ProfileFavoriteItem';
+import { ProfileCompletedItem } from '../components/profile/ProfileCompletedItem';
 import { ChangePasswordOverlay, NotificationSettingsOverlay, PrivacySettingsOverlay } from '../components/settings/SettingsOverlays';
-import { Post, Item, Service, User } from '../types';
+import { Post, Item, Service, User, Order } from '../types';
 import { getToken } from '../services/api';
 import { getFollowState, setFollowState } from '../utils/followStorage';
 
@@ -59,6 +62,11 @@ export default function Profile() {
   const [passwordOverlayOpen, setPasswordOverlayOpen] = useState(false);
   const [notificationOverlayOpen, setNotificationOverlayOpen] = useState(false);
   const [privacyOverlayOpen, setPrivacyOverlayOpen] = useState(false);
+
+  // 已完成订单相关
+  const [completedOrders, setCompletedOrders] = useState<Order[]>([]);
+  const [reviewDialogOpen, setReviewDialogOpen] = useState(false);
+  const [reviewingOrder, setReviewingOrder] = useState<Order | null>(null);
 
   // 同步Tab到URL
   const handleTabChange = (tabId: string) => {
@@ -122,18 +130,20 @@ export default function Profile() {
 
         const userId = user.id;
         if (userId) {
-          const [newsData, marketData, serviceData, followingData, favoriteList] = await Promise.all([
+          const [newsData, marketData, serviceData, followingData, favoriteList, completedData] = await Promise.all([
             newsApi.getByUserId(userId).catch(() => []),
             marketApi.getByUserId(userId).catch(() => []),
             serviceApi.getByUserId(userId).catch(() => []),
             userApi.getFollowingList(userId).catch(() => []),
             isOwnProfile ? favoriteApi.list(userId).catch(() => []) : [],
+            isOwnProfile ? orderApi.completedList(userId).catch(() => []) : [],
           ]);
           setPosts(newsData);
           setItems(marketData);
           setServices(serviceData);
           setFollowing(followingData);
           setFavorites(favoriteList);
+          setCompletedOrders(completedData);
 
           // 获取收藏项的完整数据
           if (favoriteList.length > 0) {
@@ -223,6 +233,7 @@ export default function Profile() {
                     ...(isOwnProfile ? [
                       { id: 'posts', name: '社区动态', icon: <Grid className="w-4 h-4" /> },
                       { id: 'market', name: '发布清单', icon: <ShoppingBag className="w-4 h-4" /> },
+                      { id: 'completed', name: '已完成', icon: <CheckCircle2 className="w-4 h-4" /> },
                       { id: 'bookmarks', name: '收藏夾', icon: <Bookmark className="w-4 h-4" /> },
                       { id: 'following', name: '关注邻里', icon: <Users className="w-4 h-4" /> },
                       { id: 'settings', name: '系统设置', icon: <Settings className="w-4 h-4" /> },
@@ -308,6 +319,34 @@ export default function Profile() {
                                 >
                                   去发布一个
                                 </button>
+                             </div>
+                           )}
+                         </div>
+                       )}
+
+                       {activeTab === 'completed' && (
+                         <div className="col-span-2">
+                           {completedOrders.length > 0 ? (
+                             <div className="space-y-4">
+                               {completedOrders.map((order) => (
+                                 <ProfileCompletedItem
+                                   key={order.id}
+                                   order={order}
+                                   currentUserId={currentUser?.id || ''}
+                                   onDelete={(id) => {
+                                     setCompletedOrders(prev => prev.filter(o => o.id !== id));
+                                   }}
+                                   onReview={(order) => {
+                                     setReviewingOrder(order);
+                                     setReviewDialogOpen(true);
+                                   }}
+                                 />
+                               ))}
+                             </div>
+                           ) : (
+                             <div className="py-20 text-center bg-stone-50 rounded-[40px] border border-dashed border-hairline">
+                               <CheckCircle2 className="w-12 h-12 text-hairline mx-auto mb-4" />
+                               <p className="text-sm font-bold text-muted">还没有已完成的服务或交易</p>
                              </div>
                            )}
                          </div>
@@ -449,7 +488,7 @@ export default function Profile() {
                          </div>
                        )}
 
-                       {activeTab !== 'posts' && activeTab !== 'market' && activeTab !== 'following' && activeTab !== 'settings' && (
+                       {activeTab !== 'posts' && activeTab !== 'market' && activeTab !== 'completed' && activeTab !== 'following' && activeTab !== 'settings' && (
                          <div className="col-span-2 py-20 text-center space-y-4">
                             <div className="w-16 h-16 bg-surface-soft rounded-full flex items-center justify-center mx-auto">
                               <Settings className="w-6 h-6 text-muted" />
@@ -464,6 +503,25 @@ export default function Profile() {
           </div>
         </div>
       </div>
+
+      <ReviewDialog
+        isOpen={reviewDialogOpen}
+        onClose={() => {
+          setReviewDialogOpen(false);
+          setReviewingOrder(null);
+        }}
+        onSubmit={async (rating, content) => {
+          if (!reviewingOrder || !currentUser) return;
+          await reviewApi.addServiceReview(reviewingOrder.serviceId!, {
+            userId: currentUser.id,
+            userName: currentUser.name,
+            userAvatar: currentUser.avatar,
+            rating,
+            content,
+          });
+        }}
+        title={`评价 ${reviewingOrder?.serviceTitle || '服务'}`}
+      />
 
       <ChangePasswordOverlay isOpen={passwordOverlayOpen} onClose={() => setPasswordOverlayOpen(false)} />
       <NotificationSettingsOverlay isOpen={notificationOverlayOpen} onClose={() => setNotificationOverlayOpen(false)} />

@@ -31,6 +31,17 @@ public class OrderServiceImpl extends ServiceImpl<OrderMapper, Order> implements
     }
 
     @Override
+    public List<Order> listCompletedByUserId(String userId) {
+        return lambdaQuery()
+                .eq(Order::getBuyerId, userId)
+                .or()
+                .eq(Order::getSellerId, userId)
+                .eq(Order::getStatus, "confirmed")
+                .orderByDesc(Order::getCreateTime)
+                .list();
+    }
+
+    @Override
     public Order getById(Long id) {
         return lambdaQuery()
                 .eq(Order::getId, id)

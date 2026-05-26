@@ -54,6 +54,33 @@ public class ServiceController {
         return Result.ok(serviceReviewService.getByServiceId(id));
     }
 
+    /**
+     * 添加服务评价
+     */
+    @PostMapping("/{id}/review")
+    public Result<Boolean> addReview(@PathVariable Long id, @RequestBody AddReviewRequest request) {
+        boolean success = serviceReviewService.addReview(
+            id,
+            request.getUserId(),
+            request.getUserName(),
+            request.getUserAvatar(),
+            request.getRating(),
+            request.getContent()
+        );
+        if (success) {
+            // 更新服务评分
+            List<ServiceReview> reviews = serviceReviewService.getByServiceId(id);
+            double avgRating = reviews.stream().mapToInt(ServiceReview::getRating).average().orElse(0);
+            ServiceEntity service = serviceModuleService.getById(id);
+            if (service != null) {
+                service.setRating(avgRating);
+                service.setReviews(reviews.size());
+                serviceModuleService.updateById(service);
+            }
+        }
+        return Result.ok(success);
+    }
+
     @PostMapping("/create")
     public Result<Boolean> create(@RequestBody ServiceEntity service, HttpServletRequest request) {
         String userId = (String) request.getAttribute("userId");
@@ -113,5 +140,23 @@ public class ServiceController {
         public void setBookingTime(String bookingTime) { this.bookingTime = bookingTime; }
         public Integer getDuration() { return duration; }
         public void setDuration(Integer duration) { this.duration = duration; }
+    }
+
+    public static class AddReviewRequest {
+        private String userId;
+        private String userName;
+        private String userAvatar;
+        private Integer rating;
+        private String content;
+        public String getUserId() { return userId; }
+        public void setUserId(String userId) { this.userId = userId; }
+        public String getUserName() { return userName; }
+        public void setUserName(String userName) { this.userName = userName; }
+        public String getUserAvatar() { return userAvatar; }
+        public void setUserAvatar(String userAvatar) { this.userAvatar = userAvatar; }
+        public Integer getRating() { return rating; }
+        public void setRating(Integer rating) { this.rating = rating; }
+        public String getContent() { return content; }
+        public void setContent(String content) { this.content = content; }
     }
 }

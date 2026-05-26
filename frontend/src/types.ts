@@ -130,6 +130,30 @@ export interface Category {
   icon?: string;
 }
 
+export interface Order {
+  id: string;
+  bookingId?: string;
+  buyerId: string;
+  sellerId: string;
+  serviceId?: string;
+  serviceTitle: string;
+  price: number;
+  bookingDate: string;
+  bookingTime: string;
+  duration: number;
+  status: string;
+  createTime: string;
+  updateTime?: string;
+}
+
+export interface ReviewFormData {
+  userId: string;
+  userName: string;
+  userAvatar: string;
+  rating: number;
+  content: string;
+}
+
 export interface Comment {
   id: string;
   user?: string;

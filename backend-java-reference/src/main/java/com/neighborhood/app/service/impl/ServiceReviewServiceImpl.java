@@ -11,6 +11,7 @@ import com.neighborhood.app.mapper.ServiceReviewMapper;
 import com.neighborhood.app.service.ServiceReviewService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
+import java.time.LocalDateTime;
 import java.util.List;
 
 @Service
@@ -23,5 +24,19 @@ public class ServiceReviewServiceImpl extends ServiceImpl<ServiceReviewMapper, S
                 .eq(ServiceReview::getServiceId, serviceId)
                 .orderByDesc(ServiceReview::getCreateTime)
                 .list();
+    }
+
+    @Override
+    public boolean addReview(Long serviceId, String userId, String userName, String userAvatar, Integer rating, String content) {
+        ServiceReview review = new ServiceReview();
+        review.setServiceId(serviceId);
+        review.setUserId(userId);
+        review.setUserName(userName);
+        review.setUserAvatar(userAvatar);
+        review.setRating(rating);
+        review.setContent(content);
+        review.setLikes(0);
+        review.setCreateTime(LocalDateTime.now());
+        return save(review);
     }
 }

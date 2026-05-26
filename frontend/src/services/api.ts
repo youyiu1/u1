@@ -286,9 +286,19 @@ export const categoryApi = {
 // 订单相关
 export const orderApi = {
   list: (userId: string) => request<any[]>(`/order/list?userId=${userId}`),
+  completedList: (userId: string) => request<any[]>(`/order/completed?userId=${userId}`),
   get: (id: string) => request<any>(`/order/${id}`),
   confirm: (id: string) => request<boolean>(`/order/${id}/confirm`, { method: 'POST' }),
   cancel: (id: string) => request<boolean>(`/order/${id}/cancel`, { method: 'POST' }),
+};
+
+// 服务评价相关
+export const reviewApi = {
+  addServiceReview: (serviceId: string, data: { userId: string; userName: string; userAvatar: string; rating: number; content: string }) =>
+    request<boolean>(`/service/${serviceId}/review`, {
+      method: 'POST',
+      body: JSON.stringify(data),
+    }),
 };
 
 // 搜索相关
