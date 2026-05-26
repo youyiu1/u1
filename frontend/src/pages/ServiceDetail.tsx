@@ -134,19 +134,8 @@ export default function ServiceDetail() {
   const sellerId = service?.seller?.id || (service as any)?.sellerId;
   const isOwnService = user?.id && user.id === sellerId;
 
-  const handleFollowChange = async (newState: boolean) => {
-    const currentUser = JSON.parse(localStorage.getItem('neighborhood_user') || '{}');
-    const sid = service?.seller?.id || (service as any)?.sellerId;
-    if (!currentUser.id || !sid) return;
-    try {
-      if (newState) {
-        await userApi.follow(currentUser.id, sid);
-      } else {
-        await userApi.unfollow(currentUser.id, sid);
-      }
-      setIsFollowing(newState);
-      setFollowState(sid, newState);
-    } catch {}
+  const handleFollowChange = (newState: boolean) => {
+    setIsFollowing(newState);
   };
 
   useEffect(() => {
@@ -384,6 +373,7 @@ export default function ServiceDetail() {
                    </span>
                    {!isOwnService && (
                    <FollowButton
+                    targetId={sellerId}
                     isFollowingInitial={isFollowing}
                     onFollowChange={handleFollowChange}
                     size="sm"

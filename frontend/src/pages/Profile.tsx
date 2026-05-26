@@ -128,24 +128,14 @@ export default function Profile() {
     fetchProfileData();
   }, [username, currentUser, paramUsername]);
 
-  const handleFollowChange = async (isFollowing: boolean) => {
-    if (!currentUser || !profileUser) return;
+  const handleFollowChange = (isFollowing: boolean) => {
+    if (!profileUser) return;
     const targetId = profileUser.id || profileUser.name;
-    try {
-      if (isFollowing) {
-        await userApi.follow(currentUser.id, targetId);
-      } else {
-        await userApi.unfollow(currentUser.id, targetId);
-      }
-      setStats(prev => ({
-        ...prev,
-        isFollowing,
-        followers: isFollowing ? prev.followers + 1 : Math.max(0, prev.followers - 1)
-      }));
-      setFollowState(targetId, isFollowing);
-    } catch (err) {
-      console.error('关注操作失败', err);
-    }
+    setStats(prev => ({
+      ...prev,
+      isFollowing,
+      followers: isFollowing ? prev.followers + 1 : Math.max(0, prev.followers - 1)
+    }));
   };
 
   if (loading) {

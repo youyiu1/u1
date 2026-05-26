@@ -80,18 +80,8 @@ export default function NewsDetail() {
     } catch {}
   };
 
-  const handleFollowChange = async (newState: boolean) => {
-    const currentUser = JSON.parse(localStorage.getItem('neighborhood_user') || '{}');
-    if (!currentUser.id || !authorId) return;
-    try {
-      if (newState) {
-        await userApi.follow(currentUser.id, authorId);
-      } else {
-        await userApi.unfollow(currentUser.id, authorId);
-      }
-      setIsFollowed(newState);
-      setFollowState(authorId, newState);
-    } catch {}
+  const handleFollowChange = (newState: boolean) => {
+    setIsFollowed(newState);
   };
 
   useEffect(() => {
@@ -199,7 +189,7 @@ export default function NewsDetail() {
                 </div>
               </div>
               {!isOwnPost && (
-                <FollowButton isFollowingInitial={isFollowed} onFollowChange={handleFollowChange} size="sm" variant="ghost" />
+                <FollowButton targetId={authorId} isFollowingInitial={isFollowed} onFollowChange={handleFollowChange} size="sm" variant="ghost" />
               )}
             </div>
 

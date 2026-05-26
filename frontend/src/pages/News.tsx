@@ -51,26 +51,6 @@ export default function News() {
     } catch {}
   };
 
-  const handlePostFollowChange = async (authorId: string, newState: boolean) => {
-    const currentUser = JSON.parse(localStorage.getItem('neighborhood_user') || '{}');
-    if (!currentUser.id || !authorId) return;
-    try {
-      if (newState) {
-        await userApi.follow(currentUser.id, authorId);
-      } else {
-        await userApi.unfollow(currentUser.id, authorId);
-      }
-      // 更新posts中的isFollowing状态
-      setPosts(prev => prev.map(p => {
-        if (p.authorId === authorId || p.author?.id === authorId) {
-          return { ...p, isFollowing: newState };
-        }
-        return p;
-      }));
-      setFollowState(authorId, newState);
-    } catch {}
-  };
-
   const handleShare = async (postId: string, e: React.MouseEvent) => {
     e.stopPropagation();
     e.preventDefault();
@@ -228,10 +208,18 @@ export default function News() {
                       </div>
                       <div className="flex items-center gap-2" onClick={e => e.stopPropagation()}>
                         <FollowButton
+                          targetId={authorId}
                           size="sm"
                           variant="ghost"
                           isFollowingInitial={post.isFollowing ?? false}
-                          onFollowChange={(newState) => handlePostFollowChange(authorId, newState)}
+                          onFollowChange={(newState) => {
+                            setPosts(prev => prev.map(p => {
+                              if ((p.authorId === authorId || p.author?.id === authorId) && p.id === post.id) {
+                                return { ...p, isFollowing: newState };
+                              }
+                              return p;
+                            }));
+                          }}
                         />
                         <button className="p-2 text-muted hover:bg-surface-soft rounded-xl transition-all">
                           <MoreHorizontal className="w-4 h-4" />
@@ -298,8 +286,11 @@ export default function News() {
                        </div>
                      </div>
                      <FollowButton
+                        targetId={user.id}
                         isFollowingInitial={user.isFollowing}
-                        onFollowChange={(newState) => handleSuggestedFollowChange(user.id, newState)}
+                        onFollowChange={(newState) => {
+                          setSuggestedUsers(prev => prev.map(u => u.id === user.id ? { ...u, isFollowing: newState } : u));
+                        }}
                         size="sm"
                         variant="ghost"
                         className="shrink-0"

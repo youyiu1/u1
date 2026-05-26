@@ -1,9 +1,16 @@
-import React, { useState, useEffect } from 'react';
+/**
+ * @license
+ * SPDX-License-Identifier: Apache-2.0
+ */
+
+import React from 'react';
 import { UserPlus, UserMinus, Check } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { useAuthCheck } from '../../context/useAuthCheck';
+import { useFollow } from '../../hooks/useFollow';
 
 interface FollowButtonProps {
+  targetId: string;
   isFollowingInitial?: boolean;
   onFollowChange?: (isFollowing: boolean) => void;
   className?: string;
@@ -12,32 +19,27 @@ interface FollowButtonProps {
 }
 
 export const FollowButton: React.FC<FollowButtonProps> = ({
+  targetId,
   isFollowingInitial = false,
   onFollowChange,
   className = '',
   variant = 'primary',
   size = 'md',
 }) => {
-  const [isFollowing, setIsFollowing] = useState(isFollowingInitial);
   const { requireAuth } = useAuthCheck();
+  const { isFollowing, isLoading, toggleFollow } = useFollow({
+    targetId,
+    initialState: isFollowingInitial,
+    onFollowChange,
+  });
 
-  // 同步props变化
-  useEffect(() => {
-    setIsFollowing(isFollowingInitial);
-  }, [isFollowingInitial]);
-
-  const handleToggle = (e: React.MouseEvent) => {
+  const handleClick = (e: React.MouseEvent) => {
     e.preventDefault();
     e.stopPropagation();
-    requireAuth(() => {
-      const newState = !isFollowing;
-      setIsFollowing(newState);
-      onFollowChange?.(newState);
-    });
+    requireAuth(() => toggleFollow());
   };
 
   const baseStyles = "relative flex items-center justify-center font-black transition-all overflow-hidden rounded-2xl group active:scale-95";
-
   const sizeStyles = {
     sm: "px-4 py-1.5 text-[10px] gap-1.5 tracking-wider uppercase",
     md: "px-6 py-2.5 text-[11px] gap-2 tracking-widest uppercase",
@@ -48,7 +50,6 @@ export const FollowButton: React.FC<FollowButtonProps> = ({
     if (isFollowing) {
       return "bg-surface-soft text-muted border border-hairline hover:bg-hairline hover:text-ink";
     }
-
     switch (variant) {
       case 'outline':
         return "bg-transparent border-2 border-primary text-primary hover:bg-primary/5";
@@ -63,8 +64,9 @@ export const FollowButton: React.FC<FollowButtonProps> = ({
     <motion.button
       whileHover={{ y: -2 }}
       whileTap={{ scale: 0.95 }}
-      onClick={handleToggle}
-      className={`${baseStyles} ${sizeStyles[size]} ${getVariantStyles()} ${className}`}
+      onClick={handleClick}
+      disabled={isLoading}
+      className={`${baseStyles} ${sizeStyles[size]} ${getVariantStyles()} ${isLoading ? 'opacity-50' : ''} ${className}`}
     >
       <AnimatePresence mode="wait">
         {isFollowing ? (

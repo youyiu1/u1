@@ -51,6 +51,7 @@ export const ProfileInfoCard: React.FC<ProfileInfoCardProps> = ({
             {!isOwnProfile && (
               <>
                 <FollowButton
+                  targetId={userData.id}
                   isFollowingInitial={stats.isFollowing}
                   onFollowChange={handleFollowChange}
                   variant="primary"
