@@ -30,7 +30,7 @@ public class OrderController {
     /**
      * 获取用户已完成的订单列表
      */
-    @GetMapping("/completed")
+    @GetMapping("/list/completed")
     public Result<List<Order>> completedList(@RequestParam String userId) {
         return Result.ok(orderService.listCompletedByUserId(userId));
     }

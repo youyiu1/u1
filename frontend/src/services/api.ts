@@ -286,7 +286,7 @@ export const categoryApi = {
 // 订单相关
 export const orderApi = {
   list: (userId: string) => request<any[]>(`/order/list?userId=${userId}`),
-  completedList: (userId: string) => request<any[]>(`/order/completed?userId=${userId}`),
+  completedList: (userId: string) => request<any[]>(`/order/list/completed?userId=${userId}`),
   get: (id: string) => request<any>(`/order/${id}`),
   confirm: (id: string) => request<boolean>(`/order/${id}/confirm`, { method: 'POST' }),
   cancel: (id: string) => request<boolean>(`/order/${id}/cancel`, { method: 'POST' }),
