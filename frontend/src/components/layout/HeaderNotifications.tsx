@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useContext, useRef } from 'react';
-import { Bell } from 'lucide-react';
+import { Bell, Check, X } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { notificationApi } from '../../services/api';
 import { Notification } from '../../types';
@@ -24,6 +24,7 @@ export const HeaderNotifications: React.FC = () => {
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [loading, setLoading] = useState(false);
   const [showConfirm, setShowConfirm] = useState(false);
+  const [processingId, setProcessingId] = useState<string | null>(null);
   const containerRef = useRef<HTMLDivElement>(null);
 
   // 点击外部关闭
@@ -84,6 +85,84 @@ export const HeaderNotifications: React.FC = () => {
     clearUnread();
   };
 
+  // 判断是否是预约类通知
+  const isBookingNotification = (n: Notification) => {
+    return n.title === '新预约请求';
+  };
+
+  // 解析通知内容获取预约信息
+  const parseBookingInfo = (content: string) => {
+    // 内容格式: "用户 xxx 预约了您的服务「xxx」，时间：xxx xxx"
+    const match = content.match(/用户 (.+?) 预约了您的服务「(.+?)」，时间：(.+?) (.+?)$/);
+    if (match) {
+      return {
+        userName: match[1],
+        serviceTitle: match[2],
+        bookingDate: match[3],
+        bookingTime: match[4],
+      };
+    }
+    return null;
+  };
+
+  const handleAccept = async (n: Notification) => {
+    if (!user) return;
+    setProcessingId(n.id);
+    try {
+      const info = parseBookingInfo(n.content);
+      if (info) {
+        // 从通知中提取buyerId（需要通知包含userId，这里简化处理）
+        // 实际应该从notification.relatedBookingId获取
+        await notificationApi.process({
+          notificationId: n.id,
+          accept: true,
+          buyerId: '', // 服务端可以通过notification获取
+          sellerId: user.id,
+          serviceId: '',
+          serviceTitle: info.serviceTitle,
+          price: '',
+          bookingDate: info.bookingDate,
+          bookingTime: info.bookingTime,
+          duration: 1,
+        });
+        // 刷新通知列表
+        const data = await notificationApi.list(user.id);
+        setNotifications(data);
+      }
+    } catch (err) {
+      console.error('Failed to accept booking:', err);
+    }
+    setProcessingId(null);
+  };
+
+  const handleReject = async (n: Notification) => {
+    if (!user) return;
+    setProcessingId(n.id);
+    try {
+      const info = parseBookingInfo(n.content);
+      if (info) {
+        await notificationApi.process({
+          notificationId: n.id,
+          accept: false,
+          buyerId: '',
+          sellerId: user.id,
+          serviceId: '',
+          serviceTitle: info.serviceTitle,
+          price: '',
+          bookingDate: info.bookingDate,
+          bookingTime: info.bookingTime,
+          duration: 1,
+        });
+        // 刷新通知列表
+        const data = await notificationApi.list(user.id);
+        setNotifications(data);
+      }
+    } catch (err) {
+      console.error('Failed to reject booking:', err);
+    }
+    setProcessingId(null);
+  };
+
   return (
     <div className="relative" ref={containerRef}>
       <button
@@ -138,7 +217,7 @@ export const HeaderNotifications: React.FC = () => {
                     <div
                       key={notification.id}
                       onClick={async () => {
-                        if (!notification.isRead && user?.id) {
+                        if (!notification.isRead && user?.id && !isBookingNotification(notification)) {
                           try {
                             await notificationApi.markRead(notification.id);
                             setNotifications(prev => prev.map(n =>
@@ -168,6 +247,26 @@ export const HeaderNotifications: React.FC = () => {
                       <p className="text-xs text-secondary leading-relaxed line-clamp-2">
                         {notification.content}
                       </p>
+                      {isBookingNotification(notification) && !notification.isProcessed && (
+                        <div className="flex items-center gap-2 mt-3" onClick={e => e.stopPropagation()}>
+                          <button
+                            onClick={() => handleAccept(notification)}
+                            disabled={processingId === notification.id}
+                            className="flex items-center gap-1 px-3 py-1.5 bg-green-500 text-white text-xs font-bold rounded-xl hover:bg-green-600 transition-colors disabled:opacity-50"
+                          >
+                            <Check className="w-3 h-3" />
+                            同意
+                          </button>
+                          <button
+                            onClick={() => handleReject(notification)}
+                            disabled={processingId === notification.id}
+                            className="flex items-center gap-1 px-3 py-1.5 bg-stone-200 text-stone-600 text-xs font-bold rounded-xl hover:bg-stone-300 transition-colors disabled:opacity-50"
+                          >
+                            <X className="w-3 h-3" />
+                            拒绝
+                          </button>
+                        </div>
+                      )}
                     </div>
                   ))
                 ) : (

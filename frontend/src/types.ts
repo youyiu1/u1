@@ -119,6 +119,9 @@ export interface Notification {
   time: string;
   isRead: boolean;
   serviceName?: string;
+  isProcessed?: boolean;
+  orderId?: string;
+  relatedBookingId?: string;
 }
 
 export interface Category {

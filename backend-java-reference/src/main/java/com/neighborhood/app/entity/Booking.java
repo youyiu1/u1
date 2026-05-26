@@ -27,6 +27,8 @@ public class Booking {
     private String bookingTime;
     private Integer duration;
     private String status; // pending, confirmed, completed, cancelled
+    @JsonSerialize(using = ToStringSerializer.class)
+    private Long notificationId; // 关联的通知ID
     private LocalDateTime createTime;
     private LocalDateTime updateTime;
 }

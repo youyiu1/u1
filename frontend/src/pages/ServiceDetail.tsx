@@ -28,7 +28,7 @@ import { useChat } from '../context/ChatContext';
 import { useAuth } from '../context/AuthContext';
 import { useNotification } from '../context/NotificationContext';
 import { useToast } from '../context/ToastContext';
-import { serviceApi, userApi, favoriteApi } from '../services/api';
+import { serviceApi, userApi, favoriteApi, notificationApi, chatApi } from '../services/api';
 import { FollowButton } from '../components/common/FollowButton';
 import { ConfirmDialog } from '../components/common/ConfirmDialog';
 import { ServiceDetail as ServiceDetailType, Review } from '../types';
@@ -120,6 +120,7 @@ export default function ServiceDetail() {
   const [isLiked, setIsLiked] = useState(false);
   const [isFollowing, setIsFollowing] = useState(false);
   const [isBooking, setIsBooking] = useState(false);
+  const [isBooked, setIsBooked] = useState(() => localStorage.getItem(`booked_${id}`) === 'true');
   const [showConfirm, setShowConfirm] = useState(false);
   const [bookingSuccess, setBookingSuccess] = useState(false);
   const now = new Date();
@@ -204,7 +205,7 @@ export default function ServiceDetail() {
     setShowConfirm(false);
     setIsBooking(true);
     try {
-      await serviceApi.book({
+      const result = await serviceApi.book({
         serviceId: id as string,
         buyerId: user.id,
         sellerId,
@@ -212,9 +213,29 @@ export default function ServiceDetail() {
         bookingTime,
         duration,
       });
+      setIsBooked(true);
+      localStorage.setItem(`booked_${id}`, 'true');
+      localStorage.setItem(`booking_${id}`, JSON.stringify({
+        serviceId: id,
+        serviceTitle: service.title,
+        price: service.price,
+        bookingDate,
+        bookingTime,
+        duration,
+      }));
       setBookingSuccess(true);
       increaseUnread();
       window.dispatchEvent(new Event('notification-created'));
+      // 发送通知和消息给卖家（通知内容包含预约信息用于后续处理）
+      try {
+        await notificationApi.send(
+          sellerId,
+          '新预约请求',
+          `用户 ${user.name} 预约了您的服务「${service.title}」，时间：${bookingDate} ${bookingTime}`,
+          service.title
+        );
+        await chatApi.sendMessage(sellerId, `您好，我想预约您的服务「${service.title}」，预约时间：${bookingDate} ${bookingTime}，时长：${duration}小时。请确认是否可接单。`);
+      } catch {}
     } catch (err: any) {
       alert(err.message || '预约失败');
     } finally {
@@ -538,10 +559,15 @@ export default function ServiceDetail() {
                   whileHover={{ scale: 1.02 }}
                   whileTap={{ scale: 0.98 }}
                   onClick={() => setShowConfirm(true)}
-                  disabled={isBooking}
+                  disabled={isBooking || isBooked}
                   className="w-full h-16 bg-ink text-white rounded-[24px] font-black shadow-xl shadow-ink/20 flex items-center justify-center gap-3 group transition-all"
                 >
-                  {isBooking ? (
+                  {isBooked ? (
+                    <>
+                      <CheckCircle2 className="w-5 h-5" />
+                      已预约
+                    </>
+                  ) : isBooking ? (
                     <div className="w-5 h-5 border-4 border-white/30 border-t-white rounded-full animate-spin" />
                   ) : (
                     <>

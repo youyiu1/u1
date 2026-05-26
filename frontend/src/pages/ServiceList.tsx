@@ -4,10 +4,12 @@
  */
 
 import React, { useState, useEffect } from 'react';
-import { Search, Star, MapPin, CheckCircle2, Heart, Sparkles, Clock, ShieldCheck, Wrench, Brush, Scissors, Dumbbell } from 'lucide-react';
+import { Search, Star, MapPin, CheckCircle2, Heart, Sparkles, Clock, ShieldCheck, Wrench, Brush, Scissors, Dumbbell, Plus } from 'lucide-react';
 import { motion } from 'motion/react';
 import { serviceApi } from '../services/api';
 import { useNavigate } from 'react-router-dom';
+import { useAuthCheck } from '../context/useAuthCheck';
+import { usePublish } from '../context/PublishContext';
 import { Service } from '../types';
 import { FavoriteButton } from '../components/common/FavoriteButton';
 import { BackToTop } from '../components/common/BackToTop';
@@ -22,6 +24,8 @@ const CATEGORIES = [
 
 export default function ServiceList() {
   const navigate = useNavigate();
+  const { requireAuth } = useAuthCheck();
+  const { openPublish } = usePublish();
   const [services, setServices] = useState<Service[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -60,23 +64,26 @@ export default function ServiceList() {
     <div className="bg-white min-h-screen pb-20">
       <div className="bg-primary/5 pt-12 pb-8">
         <div className="max-w-[1280px] mx-auto px-6 md:px-20">
-           <h1 className="text-3xl font-bold text-ink mb-6">发现周边的专业服务</h1>
-           <div className="flex flex-col md:flex-row gap-4">
-              <div className="flex-1 relative group">
-                <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
-                  <Search className="w-5 h-5 text-muted group-focus-within:text-primary transition-colors" />
-                </div>
-                <input
-                  type="text"
-                  placeholder="搜索服务名称、关键词..."
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  className="w-full pl-12 pr-4 py-4 bg-white border border-hairline rounded-2xl focus:ring-2 focus:ring-primary/10 transition-all outline-none text-sm font-medium"
-                />
-              </div>
-              <button className="px-8 py-4 bg-primary text-white rounded-2xl font-bold shadow-lg shadow-primary/10 hover:bg-primary-hover transition-all">
-                立即搜索
-              </button>
+           <div className="flex flex-col md:flex-row gap-6 items-end justify-between">
+             <div className="flex-1 max-w-2xl">
+               <h1 className="text-3xl font-bold text-ink mb-6">发现周边的专业服务</h1>
+               <div className="relative group">
+                 <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
+                   <Search className="w-5 h-5 text-muted group-focus-within:text-primary transition-colors" />
+                 </div>
+                 <input
+                   type="text"
+                   placeholder="搜索服务名称、关键词..."
+                   value={searchQuery}
+                   onChange={(e) => setSearchQuery(e.target.value)}
+                   onKeyDown={(e) => { if (e.key === 'Enter') e.preventDefault(); }}
+                   className="w-full pl-12 pr-4 py-4 bg-white border border-hairline rounded-2xl focus:ring-2 focus:ring-primary/10 transition-all outline-none text-sm font-medium"
+                 />
+               </div>
+             </div>
+             <button onClick={() => requireAuth(() => openPublish())} className="px-8 py-4 bg-primary text-white rounded-2xl font-bold shadow-lg shadow-primary/10 hover:bg-primary-hover transition-all flex items-center gap-2">
+               <Plus className="w-5 h-5" /> 发布服务
+             </button>
            </div>
 
            <div className="flex items-center gap-4 mt-8 overflow-x-auto no-scrollbar pb-2">

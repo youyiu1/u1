@@ -14,4 +14,6 @@ public interface NotificationService extends IService<Notification> {
     boolean markRead(Long id);
     boolean markAllRead(String userId);
     void saveNotification(String userId, String title, String content, String serviceName);
+    void saveNotificationWithBooking(String userId, String title, String content, String serviceName, Long bookingId);
+    boolean processNotification(Long notificationId, boolean accept, String buyerId, String sellerId, Long serviceId, String serviceTitle, String price, String bookingDate, String bookingTime, Integer duration);
 }

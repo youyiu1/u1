@@ -225,6 +225,27 @@ export const notificationApi = {
   list: (userId: string) => request<Notification[]>(`/notification/list?userId=${userId}`),
   markRead: (id: string) => request<boolean>(`/notification/${id}/read`, { method: 'POST' }),
   markAllRead: (userId: string) => request<boolean>(`/notification/read-all?userId=${userId}`, { method: 'POST' }),
+  send: (userId: string, title: string, content: string, serviceName?: string) =>
+    request<boolean>('/notification/send', {
+      method: 'POST',
+      body: JSON.stringify({ userId, title, content, serviceName }),
+    }),
+  process: (params: {
+    notificationId: string;
+    accept: boolean;
+    buyerId: string;
+    sellerId: string;
+    serviceId: string;
+    serviceTitle: string;
+    price: string;
+    bookingDate: string;
+    bookingTime: string;
+    duration: number;
+  }) =>
+    request<boolean>('/notification/process', {
+      method: 'POST',
+      body: JSON.stringify(params),
+    }),
 };
 
 // 消息相关
@@ -260,6 +281,14 @@ export const favoriteApi = {
 // 分类相关
 export const categoryApi = {
   list: () => request<Category[]>('/category/list'),
+};
+
+// 订单相关
+export const orderApi = {
+  list: (userId: string) => request<any[]>(`/order/list?userId=${userId}`),
+  get: (id: string) => request<any>(`/order/${id}`),
+  confirm: (id: string) => request<boolean>(`/order/${id}/confirm`, { method: 'POST' }),
+  cancel: (id: string) => request<boolean>(`/order/${id}/cancel`, { method: 'POST' }),
 };
 
 // 搜索相关
