@@ -37,7 +37,7 @@ export const ToastProvider: React.FC<{ children: ReactNode }> = ({ children }) =
               exit={{ opacity: 0, y: -10, scale: 0.95 }}
               className={`px-6 py-3 rounded-2xl shadow-xl font-bold text-sm ${
                 toast.type === 'error' ? 'bg-red-500 text-white' :
-                toast.type === 'success' ? 'bg-green-500 text-white' :
+                toast.type === 'success' ? 'bg-red-100 text-red-600' :
                 toast.type === 'warning' ? 'bg-red-500 text-white' :
                 'bg-ink text-white'
               }`}

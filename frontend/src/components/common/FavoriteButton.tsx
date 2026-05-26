@@ -3,33 +3,61 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { motion } from 'motion/react';
 import { Heart } from 'lucide-react';
 import { useAuthCheck } from '../../context/useAuthCheck';
+import { useToast } from '../../context/ToastContext';
+import { favoriteApi } from '../../services/api';
 
 interface FavoriteButtonProps {
+  targetId: string;
+  targetType: 'news' | 'market' | 'service';
   initialFavorited?: boolean;
   size?: 'sm' | 'md';
 }
 
 export const FavoriteButton: React.FC<FavoriteButtonProps> = ({
+  targetId,
+  targetType,
   initialFavorited = false,
   size = 'md'
 }) => {
   const [favorited, setFavorited] = useState(initialFavorited);
   const [burst, setBurst] = useState(false);
   const { requireAuth } = useAuthCheck();
+  const { showToast } = useToast();
+
+  // 加载时从 API 获取真实收藏状态
+  useEffect(() => {
+    const currentUser = JSON.parse(localStorage.getItem('neighborhood_user') || '{}');
+    if (!currentUser.id || !targetId) return;
+    favoriteApi.check(currentUser.id, targetType, Number(targetId))
+      .then(res => setFavorited(res))
+      .catch(() => {});
+  }, [targetId, targetType]);
 
   const toggleFavorite = (e: React.MouseEvent) => {
     e.preventDefault();
     e.stopPropagation();
-    requireAuth(() => {
+    requireAuth(async () => {
+      const currentUser = JSON.parse(localStorage.getItem('neighborhood_user') || '{}');
+      if (!currentUser.id) return;
       const next = !favorited;
-      setFavorited(next);
-      if (next) {
-        setBurst(true);
-        setTimeout(() => setBurst(false), 900);
+      try {
+        if (next) {
+          await favoriteApi.add(currentUser.id, targetType, Number(targetId));
+        } else {
+          await favoriteApi.remove(currentUser.id, targetType, Number(targetId));
+        }
+        setFavorited(next);
+        showToast(next ? '已收藏' : '已取消收藏', 'success');
+        if (next) {
+          setBurst(true);
+          setTimeout(() => setBurst(false), 900);
+        }
+      } catch {
+        showToast('操作失败', 'error');
       }
     });
   };

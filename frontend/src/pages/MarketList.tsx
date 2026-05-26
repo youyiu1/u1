@@ -131,7 +131,7 @@ export default function MarketList() {
                   <div className="absolute top-3 left-3 px-2 py-1 bg-red-400/90 backdrop-blur-md text-white text-[10px] font-bold rounded">
                     {item.itemCondition || item.condition || '全新'}
                   </div>
-                  <FavoriteButton />
+                  <FavoriteButton targetId={item.id} targetType="market" />
                 </div>
                 <h3 className="text-sm font-bold text-ink mb-1 line-clamp-1 group-hover:text-primary transition-colors">{item.title}</h3>
                 <div className="flex items-center gap-2 mb-2">

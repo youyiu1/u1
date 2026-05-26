@@ -2,9 +2,12 @@ import React from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Heart, MessageCircle } from 'lucide-react';
 import { Post } from '../../types';
+import { PostMenu } from '../common/PostMenu';
 
 interface ProfilePostCardProps {
   post: Post;
+  currentUserId?: string;
+  onDelete?: (postId: string) => void;
 }
 
 // 格式化时间显示
@@ -24,8 +27,9 @@ const formatTime = (timeStr: string | undefined) => {
   return date.toLocaleDateString('zh-CN', { month: 'short', day: 'numeric' });
 };
 
-export const ProfilePostCard: React.FC<ProfilePostCardProps> = ({ post }) => {
+export const ProfilePostCard: React.FC<ProfilePostCardProps> = ({ post, currentUserId, onDelete }) => {
   const navigate = useNavigate();
+  const isOwner = currentUserId && (post.authorId === currentUserId || post.author?.id === currentUserId);
 
   return (
     <div
@@ -43,6 +47,15 @@ export const ProfilePostCard: React.FC<ProfilePostCardProps> = ({ post }) => {
         {post.images && post.images.length > 0 && post.images[0] && (
           <div className="w-16 h-16 rounded-xl overflow-hidden shrink-0 border border-hairline/50">
             <img src={post.images[0]} className="w-full h-full object-cover" alt="" />
+          </div>
+        )}
+        {/* 删除按钮 */}
+        {isOwner && onDelete && (
+          <div onClick={e => e.stopPropagation()}>
+            <PostMenu
+              isOwner={true}
+              onDelete={async () => { await onDelete(post.id); }}
+            />
           </div>
         )}
       </div>

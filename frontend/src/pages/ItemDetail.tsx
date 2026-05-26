@@ -175,16 +175,35 @@ export default function ItemDetail() {
         </div>
       </div>
 
-      <div className="max-w-[1280px] mx-auto px-6 md:px-12 py-8">
-        <div className="hidden md:flex items-center gap-2 text-xs font-black text-muted mb-8 uppercase tracking-widest">
-          <button onClick={() => navigate(fromProfile ? -1 : '/market')} className="hover:text-primary transition-colors">
-            <ChevronLeft className="w-4 h-4 inline mr-1" />
-            {fromProfile ? '返回' : '闲置交易'}
-          </button>
-          <ChevronRight className="w-3 h-3" />
-          <span className="text-ink">{item.title}</span>
+      <div className="bg-white border-b border-hairline py-6 hidden md:block">
+        <div className="max-w-[1280px] mx-auto px-6 flex items-center justify-between">
+          <div className="flex items-center gap-3">
+             <button onClick={() => navigate(fromProfile ? -1 : '/market')} className="p-2 hover:bg-surface-soft rounded-xl transition-colors">
+               <ChevronLeft className="w-6 h-6" />
+             </button>
+             <div className="flex items-center gap-2 text-xs font-black text-muted uppercase tracking-widest">
+               <span>首页</span>
+               <ChevronRight className="w-3 h-3" />
+               <span>闲置交易</span>
+               <ChevronRight className="w-3 h-3" />
+               <span className="text-ink">{item.title}</span>
+             </div>
+          </div>
+          <div className="flex items-center gap-3">
+             <button className="flex items-center gap-2 px-4 py-2 hover:bg-surface-soft rounded-xl transition-all text-xs font-black">
+               <Share2 className="w-4 h-4" /> 分享闲置
+             </button>
+             <button
+               onClick={() => handleToggleFavorite()}
+               className={`flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-black transition-all ${isLiked ? 'bg-primary/5 text-primary' : 'hover:bg-surface-soft'}`}
+             >
+               <Heart className={`w-4 h-4 ${isLiked ? 'fill-current' : ''}`} /> {isLiked ? '取消保存' : '保存闲置'}
+             </button>
+          </div>
         </div>
+      </div>
 
+      <div className="max-w-[1280px] mx-auto px-6 md:px-12 py-8">
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-12 items-start">
           <div className="lg:col-span-8 space-y-10">
             <div className="grid grid-cols-1 md:grid-cols-12 gap-4">

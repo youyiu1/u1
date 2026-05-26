@@ -133,7 +133,7 @@ export default function ServiceList() {
                     <span className="text-xs font-bold text-ink">{service.rating}</span>
                     <span className="text-[10px] text-muted font-medium">({service.reviews} 评价)</span>
                   </div>
-                  <FavoriteButton />
+                  <FavoriteButton targetId={service.id} targetType="service" />
                 </div>
 
                 <div className="p-6">

@@ -271,7 +271,17 @@ export default function Profile() {
                        {activeTab === 'posts' && (
                          posts.length > 0 ? (
                            <div className="space-y-3">
-                             {posts.map(post => <ProfilePostCard key={post.id} post={post} />)}
+                             {posts.map(post => (
+                               <ProfilePostCard
+                                 key={post.id}
+                                 post={post}
+                                 currentUserId={currentUser?.id}
+                                 onDelete={(id) => {
+                                   newsApi.delete(id);
+                                   setPosts(prev => prev.filter(p => p.id !== id));
+                                 }}
+                               />
+                             ))}
                            </div>
                          ) : (
                             <div className="py-20 text-center">
