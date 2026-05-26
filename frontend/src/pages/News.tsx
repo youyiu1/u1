@@ -337,7 +337,7 @@ export default function News() {
                       </button>
                       <button
                         onClick={(e) => toggleFavorite(post.id, e)}
-                        className={`flex items-center gap-1.5 transition-colors ${post.isFavorited ? 'text-primary' : 'text-muted hover:text-primary'}`}
+                        className={`flex items-center gap-1.5 transition-colors ${post.isFavorited ? 'text-accent-gold' : 'text-muted hover:text-accent-gold'}`}
                       >
                         <Bookmark className={`w-4 h-4 ${post.isFavorited ? 'fill-current' : ''}`} />
                         <span className="text-xs font-bold">{post.collections}</span>
