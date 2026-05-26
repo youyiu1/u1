@@ -13,6 +13,7 @@ import com.neighborhood.app.mapper.FollowMapper;
 import com.neighborhood.app.mapper.UserMapper;
 import com.neighborhood.app.service.UserService;
 import com.neighborhood.app.service.CacheService;
+import com.neighborhood.app.dto.PrivacySettings;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -108,6 +109,28 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements Us
         boolean result = super.updateById(user);
         if (result) {
             cacheService.evictUser(user.getId());
+        }
+        return result;
+    }
+
+    @Override
+    public boolean updatePrivacy(String userId, PrivacySettings settings) {
+        User user = getById(userId);
+        if (user == null) {
+            return false;
+        }
+        if (settings.getProfileVisible() != null) {
+            user.setProfileVisible(settings.getProfileVisible());
+        }
+        if (settings.getPostsVisible() != null) {
+            user.setPostsVisible(settings.getPostsVisible());
+        }
+        if (settings.getShowLocation() != null) {
+            user.setShowLocation(settings.getShowLocation());
+        }
+        boolean result = super.updateById(user);
+        if (result) {
+            cacheService.evictUser(userId);
         }
         return result;
     }

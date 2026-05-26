@@ -26,4 +26,8 @@ public class User {
     private Integer followingCount;
     private Double rating;
     private Integer soldCount;
+    // 隐私设置
+    private String profileVisible = "public";  // public/friends
+    private String postsVisible = "public";      // public/friends
+    private Boolean showLocation = true;         // 是否显示位置
 }

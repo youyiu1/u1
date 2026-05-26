@@ -18,6 +18,9 @@ public class UserVO {
     private Boolean isVerified;
     private Integer followersCount;
     private Integer followingCount;
+    private String profileVisible = "public";
+    private String postsVisible = "public";
+    private Boolean showLocation = true;
 
     public static UserVO fromUser(User user) {
         UserVO vo = new UserVO();
@@ -30,6 +33,9 @@ public class UserVO {
         vo.setIsVerified(user.getIsVerified());
         vo.setFollowersCount(user.getFollowersCount());
         vo.setFollowingCount(user.getFollowingCount());
+        vo.setProfileVisible(user.getProfileVisible() != null ? user.getProfileVisible() : "public");
+        vo.setPostsVisible(user.getPostsVisible() != null ? user.getPostsVisible() : "public");
+        vo.setShowLocation(user.getShowLocation() != null ? user.getShowLocation() : true);
         return vo;
     }
 }

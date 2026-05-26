@@ -112,6 +112,12 @@ export const userApi = {
       body: JSON.stringify({ oldPassword, newPassword }),
     }),
 
+  updatePrivacy: (settings: { profileVisible?: string; postsVisible?: string; showLocation?: boolean }) =>
+    request<boolean>('/user/privacy', {
+      method: 'POST',
+      body: JSON.stringify(settings),
+    }),
+
   follow: (followerId: string, followingId: string) =>
     request<boolean>('/user/follow', {
       method: 'POST',

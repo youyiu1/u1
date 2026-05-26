@@ -7,6 +7,7 @@ package com.neighborhood.app.service;
 
 import com.baomidou.mybatisplus.extension.service.IService;
 import com.neighborhood.app.entity.User;
+import com.neighborhood.app.dto.PrivacySettings;
 import java.util.List;
 
 public interface UserService extends IService<User> {
@@ -21,4 +22,5 @@ public interface UserService extends IService<User> {
     List<User> getSuggestedUsers(String currentUserId, int limit);  // 获取推荐用户
     boolean updateById(User user);
     boolean changePassword(String userId, String oldPassword, String newPassword);  // 修改密码
+    boolean updatePrivacy(String userId, PrivacySettings settings);  // 更新隐私设置
 }

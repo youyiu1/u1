@@ -3,10 +3,11 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { X, Lock, Bell, Eye, ShieldCheck, CheckCircle2, Loader2 } from 'lucide-react';
 import { userApi } from '../../services/api';
+import { useAuth } from '../../context/AuthContext';
 
 interface ChangePasswordOverlayProps {
   isOpen: boolean;
@@ -298,17 +299,42 @@ interface PrivacySettingsOverlayProps {
 }
 
 export const PrivacySettingsOverlay: React.FC<PrivacySettingsOverlayProps> = ({ isOpen, onClose }) => {
+  const { user } = useAuth();
   const [settings, setSettings] = useState({
     profileVisible: 'public',
     postsVisible: 'public',
-    locationVisible: false,
-    lastSeenVisible: true,
+    showLocation: true,
   });
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
-  const handleSave = () => {
-    // TODO: 调用后端保存隐私设置
-    console.log('隐私设置:', settings);
-    onClose();
+  // 打开时从用户信息加载设置
+  useEffect(() => {
+    if (isOpen && user) {
+      setSettings({
+        profileVisible: (user as any).profileVisible || 'public',
+        postsVisible: (user as any).postsVisible || 'public',
+        showLocation: (user as any).showLocation !== false,
+      });
+    }
+  }, [isOpen, user]);
+
+  const handleSave = async () => {
+    setIsSubmitting(true);
+    try {
+      await userApi.updatePrivacy(settings);
+      // 更新本地用户信息
+      if (user) {
+        (user as any).profileVisible = settings.profileVisible;
+        (user as any).postsVisible = settings.postsVisible;
+        (user as any).showLocation = settings.showLocation;
+        localStorage.setItem('neighborhood_user', JSON.stringify(user));
+      }
+      onClose();
+    } catch (err) {
+      console.error('保存隐私设置失败', err);
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   return (
@@ -354,7 +380,6 @@ export const PrivacySettingsOverlay: React.FC<PrivacySettingsOverlayProps> = ({ 
                       {[
                         { value: 'public', label: '公开' },
                         { value: 'friends', label: '仅好友' },
-                        { value: 'private', label: '仅自己' },
                       ].map(option => (
                         <button
                           key={option.value}
@@ -402,33 +427,13 @@ export const PrivacySettingsOverlay: React.FC<PrivacySettingsOverlayProps> = ({ 
                       </div>
                     </div>
                     <button
-                      onClick={() => setSettings(prev => ({ ...prev, locationVisible: !prev.locationVisible }))}
+                      onClick={() => setSettings(prev => ({ ...prev, showLocation: !prev.showLocation }))}
                       className={`w-12 h-7 rounded-full transition-all relative ${
-                        settings.locationVisible ? 'bg-primary' : 'bg-stone-300'
+                        settings.showLocation ? 'bg-primary' : 'bg-stone-300'
                       }`}
                     >
                       <div className={`absolute top-0.5 w-6 h-6 bg-white rounded-full shadow transition-all ${
-                        settings.locationVisible ? 'left-6' : 'left-0.5'
-                      }`} />
-                    </button>
-                  </div>
-
-                  <div className="flex items-center justify-between p-4 bg-stone-50 rounded-2xl">
-                    <div className="flex items-center gap-3">
-                      <Eye className="w-5 h-5 text-muted" />
-                      <div>
-                        <p className="text-sm font-bold text-ink">显示在线状态</p>
-                        <p className="text-xs text-muted">让他人看到你是否在线</p>
-                      </div>
-                    </div>
-                    <button
-                      onClick={() => setSettings(prev => ({ ...prev, lastSeenVisible: !prev.lastSeenVisible }))}
-                      className={`w-12 h-7 rounded-full transition-all relative ${
-                        settings.lastSeenVisible ? 'bg-primary' : 'bg-stone-300'
-                      }`}
-                    >
-                      <div className={`absolute top-0.5 w-6 h-6 bg-white rounded-full shadow transition-all ${
-                        settings.lastSeenVisible ? 'left-6' : 'left-0.5'
+                        settings.showLocation ? 'left-6' : 'left-0.5'
                       }`} />
                     </button>
                   </div>
@@ -443,9 +448,17 @@ export const PrivacySettingsOverlay: React.FC<PrivacySettingsOverlayProps> = ({ 
                   </button>
                   <button
                     onClick={handleSave}
-                    className="flex-1 py-3.5 bg-primary text-white rounded-2xl text-sm font-bold hover:bg-primary-hover transition-colors"
+                    disabled={isSubmitting}
+                    className="flex-1 py-3.5 bg-primary text-white rounded-2xl text-sm font-bold hover:bg-primary-hover transition-colors disabled:opacity-50 flex items-center justify-center gap-2"
                   >
-                    保存设置
+                    {isSubmitting ? (
+                      <>
+                        <Loader2 className="w-4 h-4 animate-spin" />
+                        保存中...
+                      </>
+                    ) : (
+                      '保存设置'
+                    )}
                   </button>
                 </div>
               </div>

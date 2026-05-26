@@ -8,6 +8,7 @@ package com.neighborhood.app.controller;
 import com.neighborhood.app.entity.User;
 import com.neighborhood.app.entity.UserVO;
 import com.neighborhood.app.entity.AuthResponse;
+import com.neighborhood.app.dto.PrivacySettings;
 import com.neighborhood.app.service.UserService;
 import com.neighborhood.app.service.EmailService;
 import com.neighborhood.app.common.Result;
@@ -148,6 +149,14 @@ public class UserController {
             return Result.fail("新密码至少6位");
         }
         return Result.ok(userService.changePassword(userId, request.getOldPassword(), request.getNewPassword()));
+    }
+
+    /**
+     * 更新隐私设置
+     */
+    @PostMapping("/privacy")
+    public Result<Boolean> updatePrivacy(@RequestAttribute String userId, @RequestBody PrivacySettings settings) {
+        return Result.ok(userService.updatePrivacy(userId, settings));
     }
 
     public static class FollowRequest {

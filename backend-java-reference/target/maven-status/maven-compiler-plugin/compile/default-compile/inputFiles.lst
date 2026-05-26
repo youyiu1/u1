@@ -9,6 +9,7 @@ D:\下载文件\同城生活\backend-java-reference\src\main\java\com\neighborhood\app\e
 D:\下载文件\同城生活\backend-java-reference\src\main\java\com\neighborhood\app\config\WebConfig.java
 D:\下载文件\同城生活\backend-java-reference\src\main\java\com\neighborhood\app\mapper\CategoryMapper.java
 D:\下载文件\同城生活\backend-java-reference\src\main\java\com\neighborhood\app\service\ServiceModuleService.java
+D:\下载文件\同城生活\backend-java-reference\src\main\java\com\neighborhood\app\dto\PrivacySettings.java
 D:\下载文件\同城生活\backend-java-reference\src\main\java\com\neighborhood\app\entity\MarketItem.java
 D:\下载文件\同城生活\backend-java-reference\src\main\java\com\neighborhood\app\service\impl\NewsServiceImpl.java
 D:\下载文件\同城生活\backend-java-reference\src\main\java\com\neighborhood\app\mapper\FollowMapper.java
