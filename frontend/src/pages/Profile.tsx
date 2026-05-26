@@ -144,6 +144,7 @@ export default function Profile() {
 
             favoriteList.forEach((f: any) => {
               const targetId = String(f.targetId);
+              const mapKey = `${f.targetType}-${targetId}`;
               if (f.targetType === 'news') newsIds.push(targetId);
               else if (f.targetType === 'market') marketIds.push(targetId);
               else if (f.targetType === 'service') serviceIds.push(targetId);
@@ -156,13 +157,13 @@ export default function Profile() {
             ]);
 
             newsIds.forEach((id, idx) => {
-              if (itemResults[0][idx]) itemMap[id] = itemResults[0][idx];
+              if (itemResults[0][idx]) itemMap[`news-${id}`] = itemResults[0][idx];
             });
             marketIds.forEach((id, idx) => {
-              if (itemResults[1][idx]) itemMap[id] = itemResults[1][idx];
+              if (itemResults[1][idx]) itemMap[`market-${id}`] = itemResults[1][idx];
             });
             serviceIds.forEach((id, idx) => {
-              if (itemResults[2][idx]) itemMap[id] = itemResults[2][idx];
+              if (itemResults[2][idx]) itemMap[`service-${id}`] = itemResults[2][idx];
             });
 
             setFavoriteItems(itemMap);
@@ -346,11 +347,12 @@ export default function Profile() {
                                  {favorites
                                    .filter(f => activeFavoriteTab === 'all' || f.targetType === activeFavoriteTab)
                                    .map(fav => {
-                                     const item = favoriteItems[String(fav.targetId)];
+                                     const mapKey = `${fav.targetType}-${fav.targetId}`;
+                                     const item = favoriteItems[mapKey];
                                      if (!item) return null;
                                      return (
                                        <ProfileFavoriteItem
-                                         key={`${fav.targetType}-${fav.targetId}`}
+                                         key={mapKey}
                                          favorite={fav}
                                          data={item}
                                          onUnfavorite={handleUnfavorite}
