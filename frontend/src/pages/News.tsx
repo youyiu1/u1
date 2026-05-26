@@ -94,6 +94,11 @@ export default function News() {
       showToast('请先登录', 'warning');
       return;
     }
+    // 先获取当前状态用于乐观更新
+    const post = posts.find(p => p.id === postId);
+    if (!post) return;
+    const wasLiked = post.isLiked;
+    const prevLikes = post.likes;
     try {
       await newsApi.like(postId);
       // 调用成功后更新本地状态
@@ -101,13 +106,20 @@ export default function News() {
         if (p.id === postId) {
           return {
             ...p,
-            isLiked: !p.isLiked,
-            likes: p.isLiked ? p.likes - 1 : p.likes + 1
+            isLiked: !wasLiked,
+            likes: wasLiked ? Math.max(0, prevLikes - 1) : prevLikes + 1
           };
         }
         return p;
       }));
     } catch {
+      // 失败时回滚
+      setPosts(prev => prev.map(p => {
+        if (p.id === postId) {
+          return { ...p, isLiked: wasLiked, likes: prevLikes };
+        }
+        return p;
+      }));
       showToast('操作失败', 'error');
     }
   };
@@ -120,8 +132,12 @@ export default function News() {
       showToast('请先登录', 'warning');
       return;
     }
+    // 先获取当前状态用于乐观更新
+    const post = posts.find(p => p.id === postId);
+    if (!post) return;
+    const wasFavorited = post.isFavorited;
     try {
-      if (posts.find(p => p.id === postId)?.isFavorited) {
+      if (wasFavorited) {
         await favoriteApi.remove(currentUser.id, 'news', postId);
       } else {
         await favoriteApi.add(currentUser.id, 'news', postId);
@@ -130,14 +146,21 @@ export default function News() {
         if (p.id === postId) {
           return {
             ...p,
-            isFavorited: !p.isFavorited,
-            collections: p.isFavorited ? p.collections - 1 : p.collections + 1
+            isFavorited: !wasFavorited,
+            collections: wasFavorited ? Math.max(0, p.collections - 1) : p.collections + 1
           };
         }
         return p;
       }));
-      showToast(posts.find(p => p.id === postId)?.isFavorited ? '已取消收藏' : '已收藏', 'success');
+      showToast(wasFavorited ? '已取消收藏' : '已收藏', 'success');
     } catch {
+      // 失败时回滚
+      setPosts(prev => prev.map(p => {
+        if (p.id === postId) {
+          return { ...p, isFavorited: wasFavorited, collections: wasFavorited ? p.collections + 1 : Math.max(0, p.collections - 1) };
+        }
+        return p;
+      }));
       showToast('操作失败', 'error');
     }
   };

@@ -88,6 +88,13 @@ export default function NewsDetail() {
         if (data?.isFollowing !== undefined && data.isFollowing !== null) {
           setIsFollowed(data.isFollowing);
         }
+        // 使用API返回的点赞/收藏状态初始化
+        if (data?.isLiked !== undefined && data.isLiked !== null) {
+          setIsLiked(data.isLiked);
+        }
+        if (data?.isFavorited !== undefined && data.isFavorited !== null) {
+          setIsBookmarked(data.isFavorited);
+        }
       } catch (err: any) {
         setError(err.message || '加载失败');
       } finally {
@@ -99,9 +106,12 @@ export default function NewsDetail() {
 
   const handleLike = async () => {
     if (!post) return;
+    const wasLiked = isLiked;
+    const prevLikes = post.likes;
     try {
       await newsApi.like(id as string);
-      setIsLiked(!isLiked);
+      setIsLiked(!wasLiked);
+      setPost({ ...post, likes: wasLiked ? Math.max(0, prevLikes - 1) : prevLikes + 1 });
     } catch (err) {
       console.error('点赞失败', err);
     }
@@ -254,7 +264,7 @@ export default function NewsDetail() {
                 className={`flex items-center gap-2 transition-all ${isLiked ? 'text-primary' : 'text-secondary hover:text-primary'}`}
               >
                 <Heart className={`w-5 h-5 ${isLiked ? 'fill-current' : ''}`} />
-                <span className="text-xs font-bold">{post.likes + (isLiked ? 1 : 0)}</span>
+                <span className="text-xs font-bold">{post.likes}</span>
               </button>
 
               <button
