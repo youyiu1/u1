@@ -159,6 +159,9 @@ export const newsApi = {
     }),
 
   getTrending: (limit = 5) => request<Post[]>(`/news/trending?limit=${limit}`),
+
+  delete: (id: string) =>
+    request<boolean>(`/news/${id}/delete`, { method: 'POST' }),
 };
 
 // 闲置市场相关

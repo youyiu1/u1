@@ -11,12 +11,15 @@ import { newsApi, userApi } from '../services/api';
 import { FollowButton } from '../components/common/FollowButton';
 import { BackToTop } from '../components/common/BackToTop';
 import { PostItemActions } from '../components/common/PostItemActions';
+import { PostMenu } from '../components/common/PostMenu';
 import { Post, User } from '../types';
 import { getFollowState, setFollowState } from '../utils/followStorage';
 import { useToast } from '../context/ToastContext';
+import { useAuth } from '../context/AuthContext';
 
 export default function News() {
   const navigate = useNavigate();
+  const { user: currentUser } = useAuth();
   const [posts, setPosts] = useState<Post[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -45,7 +48,7 @@ export default function News() {
       }
       setSuggestedUsers(prev => {
         const updated = prev.map(u => u.id === userId ? { ...u, isFollowing: newState } : u);
-        setFollowState('suggested_' + userId, newState);
+        setFollowState(userId, newState);
         return updated;
       });
     } catch {}
@@ -98,7 +101,7 @@ export default function News() {
           avatar: u.avatar || '',
           tag: u.tag || '',
           followersCount: u.followersCount || 0,
-          isFollowing: getFollowState('suggested_' + u.id) ?? false,
+          isFollowing: getFollowState(u.id) ?? false,
         })));
       } catch {}
     };
@@ -214,16 +217,25 @@ export default function News() {
                           isFollowingInitial={post.isFollowing ?? false}
                           onFollowChange={(newState) => {
                             setPosts(prev => prev.map(p => {
-                              if ((p.authorId === authorId || p.author?.id === authorId) && p.id === post.id) {
+                              if (p.authorId === authorId || p.author?.id === authorId) {
                                 return { ...p, isFollowing: newState };
                               }
                               return p;
                             }));
                           }}
                         />
-                        <button className="p-2 text-muted hover:bg-surface-soft rounded-xl transition-all">
-                          <MoreHorizontal className="w-4 h-4" />
-                        </button>
+                        <PostMenu
+                          isOwner={currentUser?.id === authorId}
+                          onDelete={async () => {
+                            if (!window.confirm('确定要删除这条动态吗？')) return;
+                            await newsApi.delete(post.id);
+                            setPosts(prev => prev.filter(p => p.id !== post.id));
+                          }}
+                          onReport={async () => {
+                            if (!window.confirm('确定要举报这条动态吗？')) return;
+                            showToast('举报成功，我们会尽快处理', 'success');
+                          }}
+                        />
                       </div>
                     </header>
 

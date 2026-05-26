@@ -12,6 +12,7 @@ import { FollowButton } from '../components/common/FollowButton';
 import { CommentItem } from '../components/common/CommentItem';
 import { Post, Comment } from '../types';
 import { useAuth } from '../context/AuthContext';
+import { useToast } from '../context/ToastContext';
 import { useLikeAndFavorite } from '../hooks/useLikeAndFavorite';
 
 const FOLLOW_KEY = 'follow_states_v2';
@@ -21,6 +22,7 @@ export default function NewsDetail() {
   const navigate = useNavigate();
   const location = useLocation();
   const { user } = useAuth();
+  const { showToast } = useToast();
   const fromProfile = location.state?.from;
 
   const [post, setPost] = useState<Post | null>(null);
@@ -115,8 +117,9 @@ export default function NewsDetail() {
       setCommentText('');
       const commentData = await newsApi.getComments(id as string);
       setComments(commentData);
+      showToast('评论成功', 'success');
     } catch (err: any) {
-      alert(err.message || '评论失败');
+      showToast(err.message || '评论失败', 'error');
     }
   };
 

@@ -27,4 +27,5 @@ public interface NewsService extends IService<News> {
     boolean isLiked(Long newsId, String userId);  // 检查是否点赞
     List<Comment> getCommentsByNewsId(Long newsId, int limit, int offset);
     List<NewsVO> listTrending(int limit);  // 获取热门动态
+    boolean deleteById(Long id, String userId);  // 删除动态（仅作者可删除）
 }

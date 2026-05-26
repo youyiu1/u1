@@ -20,6 +20,7 @@ import { HeaderSearch } from './HeaderSearch';
 import { HeaderNotifications } from './HeaderNotifications';
 import { HeaderUserMenu } from './HeaderUserMenu';
 import { useAuthCheck } from '../../context/useAuthCheck';
+import { usePublish } from '../../context/PublishContext';
 
 const NAV_ITEMS = [
   { name: '首页', path: '/' },
@@ -31,12 +32,12 @@ const NAV_ITEMS = [
 export default function Header() {
   const location = useLocation();
   const { openChat, unreadCount } = useChat();
-  const [isPublishModalOpen, setIsPublishModalOpen] = useState(false);
+  const { isPublishOpen, openPublish, closePublish } = usePublish();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const { requireAuth } = useAuthCheck();
 
   const handlePublish = () => {
-    requireAuth(() => setIsPublishModalOpen(true));
+    requireAuth(() => openPublish());
   };
 
   return (
@@ -215,7 +216,7 @@ export default function Header() {
           )}
         </AnimatePresence>
       </header>
-      <PublishOverlay isOpen={isPublishModalOpen} onClose={() => setIsPublishModalOpen(false)} />
+      <PublishOverlay isOpen={isPublishOpen} onClose={closePublish} />
     </>
   );
 }

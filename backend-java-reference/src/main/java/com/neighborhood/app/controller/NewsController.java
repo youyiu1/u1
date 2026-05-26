@@ -109,4 +109,13 @@ public class NewsController {
     public Result<List<NewsVO>> trending(@RequestParam(defaultValue = "5") int limit) {
         return Result.ok(newsService.listTrending(limit));
     }
+
+    /**
+     * 删除动态（仅作者可删除）
+     */
+    @PostMapping("/{id}/delete")
+    public Result<Boolean> delete(@PathVariable Long id, HttpServletRequest request) {
+        String userId = (String) request.getAttribute("userId");
+        return Result.ok(newsService.deleteById(id, userId));
+    }
 }

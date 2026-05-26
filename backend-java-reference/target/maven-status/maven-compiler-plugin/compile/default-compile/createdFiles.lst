@@ -74,6 +74,7 @@ com\neighborhood\app\controller\NewsController.class
 com\neighborhood\app\entity\ServiceDetailVO.class
 com\neighborhood\app\entity\UserVO.class
 com\neighborhood\app\service\impl\ServiceModuleServiceImpl.class
+com\neighborhood\app\controller\UserController$ChangePasswordRequest.class
 com\neighborhood\app\mapper\NewsMapper.class
 com\neighborhood\app\service\impl\SearchServiceImpl.class
 com\neighborhood\app\service\FavoriteService.class

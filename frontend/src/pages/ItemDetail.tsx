@@ -20,9 +20,10 @@ import {
   Share2
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
-import { marketApi, userApi } from '../services/api';
+import { marketApi, userApi, favoriteApi } from '../services/api';
 import { useChat } from '../context/ChatContext';
 import { useAuth } from '../context/AuthContext';
+import { useToast } from '../context/ToastContext';
 import { FollowButton } from '../components/common/FollowButton';
 import { Item } from '../types';
 import { getFollowState, setFollowState } from '../utils/followStorage';
@@ -41,6 +42,7 @@ export default function ItemDetail() {
   const location = useLocation();
   const { openChat } = useChat();
   const { user: currentUser } = useAuth();
+  const { showToast } = useToast();
   const fromProfile = location.state?.from;
 
   const [item, setItem] = useState<Item | null>(null);
@@ -70,6 +72,25 @@ export default function ItemDetail() {
     setIsFollowing(newState);
   };
 
+  const handleToggleFavorite = async () => {
+    if (!item || !currentUser?.id) {
+      showToast('请先登录', 'warning');
+      return;
+    }
+    const wasLiked = isLiked;
+    try {
+      if (wasLiked) {
+        await favoriteApi.remove(currentUser.id, 'market', Number(item.id));
+      } else {
+        await favoriteApi.add(currentUser.id, 'market', Number(item.id));
+      }
+      setIsLiked(!wasLiked);
+      showToast(wasLiked ? '已取消收藏' : '已收藏', 'success');
+    } catch {
+      showToast('操作失败', 'error');
+    }
+  };
+
   useEffect(() => {
     const fetchItem = async () => {
       try {
@@ -87,6 +108,13 @@ export default function ItemDetail() {
               setFollowState(dataSellerId, following);
             } catch {}
           }
+        }
+        // 获取初始收藏状态
+        if (currentUser?.id && id) {
+          try {
+            const favorited = await favoriteApi.check(currentUser.id, 'market', Number(id));
+            setIsLiked(favorited);
+          } catch {}
         }
       } catch (err: any) {
         setError(err.message || '加载失败');
@@ -139,7 +167,7 @@ export default function ItemDetail() {
         <div className="flex items-center gap-2">
           <button className="p-2 bg-surface-soft rounded-xl"><Share2 className="w-5 h-5 text-ink" /></button>
           <button
-            onClick={() => setIsLiked(!isLiked)}
+            onClick={() => handleToggleFavorite()}
             className="p-2 bg-surface-soft rounded-xl"
           >
             <Heart className={`w-5 h-5 ${isLiked ? 'fill-primary text-primary' : 'text-ink'}`} />

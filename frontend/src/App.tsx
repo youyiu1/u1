@@ -8,6 +8,7 @@ import { AuthProvider } from './context/AuthContext';
 import { ChatProvider } from './context/ChatContext';
 import { ToastProvider } from './context/ToastContext';
 import { NotificationProvider } from './context/NotificationContext';
+import { PublishProvider } from './context/PublishContext';
 import Layout from './components/layout/Layout';
 import Home from './pages/Home';
 import ServiceList from './pages/ServiceList';
@@ -26,6 +27,7 @@ export default function App() {
       <ToastProvider>
         <NotificationProvider>
           <ChatProvider>
+          <PublishProvider>
           <BrowserRouter>
             <Routes>
               <Route path="/" element={<Layout />}>
@@ -44,6 +46,7 @@ export default function App() {
               </Route>
             </Routes>
           </BrowserRouter>
+          </PublishProvider>
         </ChatProvider>
         </NotificationProvider>
       </ToastProvider>

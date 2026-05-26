@@ -233,4 +233,23 @@ public class NewsServiceImpl extends ServiceImpl<NewsMapper, News> implements Ne
                 .map(news -> NewsVO.fromNews(news, userMap.get(news.getAuthorId())))
                 .collect(Collectors.toList());
     }
+
+    @Override
+    @Transactional
+    public boolean deleteById(Long id, String userId) {
+        News news = super.getById(id);
+        if (news == null) {
+            return false;
+        }
+        // 仅作者可删除
+        if (!news.getAuthorId().equals(userId)) {
+            return false;
+        }
+        boolean result = super.removeById(id);
+        if (result) {
+            cacheService.evictNews(id);
+            cacheService.evictNewsList();
+        }
+        return result;
+    }
 }

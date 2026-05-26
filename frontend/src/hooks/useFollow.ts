@@ -25,10 +25,19 @@ export function useFollow({ targetId, initialState, onFollowChange }: UseFollowO
     return () => { isMountedRef.current = false; };
   }, []);
 
+  const prevTargetIdRef = useRef<string | null>(null);
+  const prevInitialStateRef = useRef<boolean | undefined>(undefined);
+
   useEffect(() => {
-    if (initialState !== undefined) {
-      setIsFollowing(initialState);
+    if (prevTargetIdRef.current !== null) {
+      if (prevTargetIdRef.current !== targetId && initialState !== undefined) {
+        setIsFollowing(initialState);
+      } else if (prevInitialStateRef.current !== initialState && initialState !== undefined) {
+        setIsFollowing(initialState);
+      }
     }
+    prevTargetIdRef.current = targetId;
+    prevInitialStateRef.current = initialState;
   }, [initialState, targetId]);
 
   const toggleFollow = useCallback(async () => {
@@ -56,6 +65,7 @@ export function useFollow({ targetId, initialState, onFollowChange }: UseFollowO
       setIsFollowing(newState);
       setFollowState(targetId, newState);
       onFollowChange?.(newState);
+      showToast(newState ? '已关注' : '已取消关注', 'success');
     } catch {
       if (!isMountedRef.current) return;
       setIsFollowing(wasFollowing);

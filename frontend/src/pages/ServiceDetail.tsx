@@ -27,7 +27,8 @@ import { motion, AnimatePresence } from 'motion/react';
 import { useChat } from '../context/ChatContext';
 import { useAuth } from '../context/AuthContext';
 import { useNotification } from '../context/NotificationContext';
-import { serviceApi, userApi } from '../services/api';
+import { useToast } from '../context/ToastContext';
+import { serviceApi, userApi, favoriteApi } from '../services/api';
 import { FollowButton } from '../components/common/FollowButton';
 import { ConfirmDialog } from '../components/common/ConfirmDialog';
 import { ServiceDetail as ServiceDetailType, Review } from '../types';
@@ -129,6 +130,7 @@ export default function ServiceDetail() {
   const [duration, setDuration] = useState(4);
 
   const { user } = useAuth();
+  const { showToast } = useToast();
 
   // 是否是自己的服务
   const sellerId = service?.seller?.id || (service as any)?.sellerId;
@@ -136,6 +138,25 @@ export default function ServiceDetail() {
 
   const handleFollowChange = (newState: boolean) => {
     setIsFollowing(newState);
+  };
+
+  const handleToggleFavorite = async () => {
+    if (!service || !user?.id) {
+      showToast('请先登录', 'warning');
+      return;
+    }
+    const wasLiked = isLiked;
+    try {
+      if (wasLiked) {
+        await favoriteApi.remove(user.id, 'service', Number(service.id));
+      } else {
+        await favoriteApi.add(user.id, 'service', Number(service.id));
+      }
+      setIsLiked(!wasLiked);
+      showToast(wasLiked ? '已取消收藏' : '已收藏', 'success');
+    } catch {
+      showToast('操作失败', 'error');
+    }
   };
 
   useEffect(() => {
@@ -155,6 +176,11 @@ export default function ServiceDetail() {
               setFollowState(sid, following);
             } catch {}
           }
+          // 获取初始收藏状态
+          try {
+            const favorited = await favoriteApi.check(currentUser.id, 'service', Number(id));
+            setIsLiked(favorited);
+          } catch {}
         }
       } catch (err: any) {
         setError(err.message || '加载失败');
@@ -276,7 +302,7 @@ export default function ServiceDetail() {
         <div className="flex items-center gap-2">
           <button className="p-2 bg-surface-soft rounded-xl"><Share2 className="w-5 h-5 text-ink" /></button>
           <button
-            onClick={() => setIsLiked(!isLiked)}
+            onClick={() => handleToggleFavorite()}
             className="p-2 bg-surface-soft rounded-xl"
           >
             <Heart className={`w-5 h-5 ${isLiked ? 'fill-primary text-primary' : 'text-ink'}`} />
@@ -303,7 +329,7 @@ export default function ServiceDetail() {
                <Share2 className="w-4 h-4" /> 分享服务
              </button>
              <button
-               onClick={() => setIsLiked(!isLiked)}
+               onClick={() => handleToggleFavorite()}
                className={`flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-black transition-all ${isLiked ? 'bg-primary/5 text-primary' : 'hover:bg-surface-soft'}`}
              >
                <Heart className={`w-4 h-4 ${isLiked ? 'fill-current' : ''}`} /> {isLiked ? '取消保存' : '保存服务'}
