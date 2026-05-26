@@ -264,7 +264,7 @@ export default function NewsDetail() {
               </button>
 
               <button
-                onClick={(e) => toggleFavorite(e, user?.id || '')}
+                onClick={toggleFavorite}
                 className={`flex items-center gap-2 transition-all ${isFavorited ? 'text-accent-gold' : 'text-secondary hover:text-accent-gold'}`}
               >
                 <Bookmark className={`w-5 h-5 ${isFavorited ? 'fill-current' : ''}`} />

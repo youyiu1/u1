@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import { useState, useCallback } from 'react';
+import React, { useState, useCallback } from 'react';
 import { newsApi, favoriteApi } from '../services/api';
 import { useToast } from '../context/ToastContext';
 
@@ -52,18 +52,24 @@ export function useLikeAndFavorite(
     }
   }, [postId, state.isLiked, state.likes, options]);
 
-  const toggleFavorite = useCallback(async (e: React.MouseEvent, userId: string) => {
+  const toggleFavorite = useCallback(async (e: React.MouseEvent) => {
     e?.stopPropagation();
     e?.preventDefault();
+
+    const currentUser = JSON.parse(localStorage.getItem('neighborhood_user') || '{}');
+    if (!currentUser.id) {
+      showToast('请先登录', 'warning');
+      return;
+    }
 
     const wasFavorited = state.isFavorited;
     const prevCollections = state.collections;
 
     try {
       if (wasFavorited) {
-        await favoriteApi.remove(userId, 'news', Number(postId));
+        await favoriteApi.remove(currentUser.id, 'news', postId);
       } else {
-        await favoriteApi.add(userId, 'news', Number(postId));
+        await favoriteApi.add(currentUser.id, 'news', postId);
       }
       const newIsFavorited = !wasFavorited;
       const newCollections = wasFavorited ? Math.max(0, prevCollections - 1) : prevCollections + 1;
