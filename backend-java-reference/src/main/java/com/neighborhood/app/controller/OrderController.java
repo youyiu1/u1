@@ -36,6 +36,14 @@ public class OrderController {
     }
 
     /**
+     * 获取用户进行中的订单列表
+     */
+    @GetMapping("/list/in_progress")
+    public Result<List<Order>> inProgressList(@RequestParam String userId) {
+        return Result.ok(orderService.listInProgressByUserId(userId));
+    }
+
+    /**
      * 获取订单详情
      */
     @GetMapping("/{id}")
@@ -44,11 +52,19 @@ public class OrderController {
     }
 
     /**
-     * 确认订单
+     * 商家确认订单（改为进行中）
      */
     @PostMapping("/{id}/confirm")
     public Result<Boolean> confirm(@PathVariable Long id) {
         return Result.ok(orderService.confirmOrder(id));
+    }
+
+    /**
+     * 用户确认服务完成
+     */
+    @PostMapping("/{id}/complete")
+    public Result<Boolean> complete(@PathVariable Long id) {
+        return Result.ok(orderService.completeOrder(id));
     }
 
     /**

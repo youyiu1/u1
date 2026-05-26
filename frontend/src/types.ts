@@ -141,7 +141,8 @@ export interface Order {
   bookingDate: string;
   bookingTime: string;
   duration: number;
-  status: string;
+  status: 'pending' | 'in_progress' | 'completed' | 'cancelled';
+  completedTime?: string;
   createTime: string;
   updateTime?: string;
 }

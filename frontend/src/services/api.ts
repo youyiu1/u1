@@ -287,8 +287,10 @@ export const categoryApi = {
 export const orderApi = {
   list: (userId: string) => request<any[]>(`/order/list?userId=${userId}`),
   completedList: (userId: string) => request<any[]>(`/order/list/completed?userId=${userId}`),
+  inProgressList: (userId: string) => request<any[]>(`/order/list/in_progress?userId=${userId}`),
   get: (id: string) => request<any>(`/order/${id}`),
   confirm: (id: string) => request<boolean>(`/order/${id}/confirm`, { method: 'POST' }),
+  complete: (id: string) => request<boolean>(`/order/${id}/complete`, { method: 'POST' }),
   cancel: (id: string) => request<boolean>(`/order/${id}/cancel`, { method: 'POST' }),
 };
 

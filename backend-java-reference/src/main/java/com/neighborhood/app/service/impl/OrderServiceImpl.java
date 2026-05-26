@@ -36,7 +36,18 @@ public class OrderServiceImpl extends ServiceImpl<OrderMapper, Order> implements
                 .eq(Order::getBuyerId, userId)
                 .or()
                 .eq(Order::getSellerId, userId)
-                .eq(Order::getStatus, "confirmed")
+                .eq(Order::getStatus, "completed")
+                .orderByDesc(Order::getCreateTime)
+                .list();
+    }
+
+    @Override
+    public List<Order> listInProgressByUserId(String userId) {
+        return lambdaQuery()
+                .eq(Order::getBuyerId, userId)
+                .or()
+                .eq(Order::getSellerId, userId)
+                .eq(Order::getStatus, "in_progress")
                 .orderByDesc(Order::getCreateTime)
                 .list();
     }
@@ -70,7 +81,16 @@ public class OrderServiceImpl extends ServiceImpl<OrderMapper, Order> implements
     public boolean confirmOrder(Long orderId) {
         return lambdaUpdate()
                 .eq(Order::getId, orderId)
-                .set(Order::getStatus, "confirmed")
+                .set(Order::getStatus, "in_progress")
+                .update();
+    }
+
+    @Override
+    public boolean completeOrder(Long orderId) {
+        return lambdaUpdate()
+                .eq(Order::getId, orderId)
+                .set(Order::getStatus, "completed")
+                .set(Order::getCompletedTime, LocalDateTime.now())
                 .update();
     }
 

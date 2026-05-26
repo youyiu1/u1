@@ -64,6 +64,7 @@ export default function Profile() {
   const [privacyOverlayOpen, setPrivacyOverlayOpen] = useState(false);
 
   // 已完成订单相关
+  const [inProgressOrders, setInProgressOrders] = useState<Order[]>([]);
   const [completedOrders, setCompletedOrders] = useState<Order[]>([]);
   const [reviewDialogOpen, setReviewDialogOpen] = useState(false);
   const [reviewingOrder, setReviewingOrder] = useState<Order | null>(null);
@@ -130,13 +131,14 @@ export default function Profile() {
 
         const userId = user.id;
         if (userId) {
-          const [newsData, marketData, serviceData, followingData, favoriteList, completedData] = await Promise.all([
+          const [newsData, marketData, serviceData, followingData, favoriteList, completedData, inProgressData] = await Promise.all([
             newsApi.getByUserId(userId).catch(() => []),
             marketApi.getByUserId(userId).catch(() => []),
             serviceApi.getByUserId(userId).catch(() => []),
             userApi.getFollowingList(userId).catch(() => []),
             isOwnProfile ? favoriteApi.list(userId).catch(() => []) : [],
             isOwnProfile ? orderApi.completedList(userId).catch(() => []) : [],
+            isOwnProfile ? orderApi.inProgressList(userId).catch(() => []) : [],
           ]);
           setPosts(newsData);
           setItems(marketData);
@@ -144,6 +146,7 @@ export default function Profile() {
           setFollowing(followingData);
           setFavorites(favoriteList);
           setCompletedOrders(completedData);
+          setInProgressOrders(inProgressData);
 
           // 获取收藏项的完整数据
           if (favoriteList.length > 0) {
@@ -325,28 +328,56 @@ export default function Profile() {
                        )}
 
                        {activeTab === 'completed' && (
-                         <div className="col-span-2">
-                           {completedOrders.length > 0 ? (
-                             <div className="space-y-4">
-                               {completedOrders.map((order) => (
-                                 <ProfileCompletedItem
-                                   key={order.id}
-                                   order={order}
-                                   currentUserId={currentUser?.id || ''}
-                                   onDelete={(id) => {
-                                     setCompletedOrders(prev => prev.filter(o => o.id !== id));
-                                   }}
-                                   onReview={(order) => {
-                                     setReviewingOrder(order);
-                                     setReviewDialogOpen(true);
-                                   }}
-                                 />
-                               ))}
+                         <div className="col-span-2 space-y-6">
+                           {inProgressOrders.length > 0 && (
+                             <div>
+                               <h3 className="text-sm font-black text-muted uppercase tracking-widest mb-4">进行中</h3>
+                               <div className="space-y-4">
+                                 {inProgressOrders.map((order) => (
+                                   <ProfileCompletedItem
+                                     key={order.id}
+                                     order={order}
+                                     currentUserId={currentUser?.id || ''}
+                                     onDelete={(id) => {
+                                       setInProgressOrders(prev => prev.filter(o => o.id !== id));
+                                     }}
+                                     onComplete={async (order) => {
+                                       await orderApi.complete(order.id);
+                                       setInProgressOrders(prev => prev.filter(o => o.id !== order.id));
+                                       setCompletedOrders(prev => [{ ...order, status: 'completed', completedTime: new Date().toISOString() }, ...prev]);
+                                     }}
+                                   />
+                                 ))}
+                               </div>
                              </div>
-                           ) : (
+                           )}
+
+                           {completedOrders.length > 0 && (
+                             <div>
+                               <h3 className="text-sm font-black text-muted uppercase tracking-widest mb-4">已完成</h3>
+                               <div className="space-y-4">
+                                 {completedOrders.map((order) => (
+                                   <ProfileCompletedItem
+                                     key={order.id}
+                                     order={order}
+                                     currentUserId={currentUser?.id || ''}
+                                     onDelete={(id) => {
+                                       setCompletedOrders(prev => prev.filter(o => o.id !== id));
+                                     }}
+                                     onReview={(order) => {
+                                       setReviewingOrder(order);
+                                       setReviewDialogOpen(true);
+                                     }}
+                                   />
+                                 ))}
+                               </div>
+                             </div>
+                           )}
+
+                           {inProgressOrders.length === 0 && completedOrders.length === 0 && (
                              <div className="py-20 text-center bg-stone-50 rounded-[40px] border border-dashed border-hairline">
                                <CheckCircle2 className="w-12 h-12 text-hairline mx-auto mb-4" />
-                               <p className="text-sm font-bold text-muted">还没有已完成的服务或交易</p>
+                               <p className="text-sm font-bold text-muted">还没有进行中或已完成的服务</p>
                              </div>
                            )}
                          </div>

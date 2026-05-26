@@ -31,7 +31,8 @@ public class Order {
     private LocalDateTime bookingDate;
     private String bookingTime;
     private Integer duration;
-    private String status; // pending, confirmed, completed, cancelled
+    private String status; // pending, in_progress, completed, cancelled
+    private LocalDateTime completedTime; // 用户确认完成时间
     private LocalDateTime createTime;
     private LocalDateTime updateTime;
 }
