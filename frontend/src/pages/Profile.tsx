@@ -143,9 +143,10 @@ export default function Profile() {
             const serviceIds: string[] = [];
 
             favoriteList.forEach((f: any) => {
-              if (f.targetType === 'news') newsIds.push(f.targetId);
-              else if (f.targetType === 'market') marketIds.push(f.targetId);
-              else if (f.targetType === 'service') serviceIds.push(f.targetId);
+              const targetId = String(f.targetId);
+              if (f.targetType === 'news') newsIds.push(targetId);
+              else if (f.targetType === 'market') marketIds.push(targetId);
+              else if (f.targetType === 'service') serviceIds.push(targetId);
             });
 
             const itemResults = await Promise.all([
@@ -345,11 +346,11 @@ export default function Profile() {
                                  {favorites
                                    .filter(f => activeFavoriteTab === 'all' || f.targetType === activeFavoriteTab)
                                    .map(fav => {
-                                     const item = favoriteItems[fav.targetId];
+                                     const item = favoriteItems[String(fav.targetId)];
                                      if (!item) return null;
                                      return (
                                        <ProfileFavoriteItem
-                                         key={fav.targetId}
+                                         key={String(fav.targetId)}
                                          favorite={fav}
                                          data={item}
                                          onUnfavorite={handleUnfavorite}
