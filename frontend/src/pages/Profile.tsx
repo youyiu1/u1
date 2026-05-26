@@ -350,7 +350,7 @@ export default function Profile() {
                                      if (!item) return null;
                                      return (
                                        <ProfileFavoriteItem
-                                         key={String(fav.targetId)}
+                                         key={`${fav.targetType}-${fav.targetId}`}
                                          favorite={fav}
                                          data={item}
                                          onUnfavorite={handleUnfavorite}
