@@ -7,7 +7,7 @@ import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate, useLocation } from 'react-router-dom';
 import { ChevronLeft, MessageSquare, Heart, Share2, Bookmark, MapPin, MoreHorizontal } from 'lucide-react';
 import { motion } from 'motion/react';
-import { newsApi, userApi } from '../services/api';
+import { newsApi, userApi, favoriteApi } from '../services/api';
 import { FollowButton } from '../components/common/FollowButton';
 import { CommentItem } from '../components/common/CommentItem';
 import { Post, Comment } from '../types';
@@ -114,6 +114,21 @@ export default function NewsDetail() {
       setPost({ ...post, likes: wasLiked ? Math.max(0, prevLikes - 1) : prevLikes + 1 });
     } catch (err) {
       console.error('点赞失败', err);
+    }
+  };
+
+  const handleBookmark = async () => {
+    if (!post || !user) return;
+    const wasBookmarked = isBookmarked;
+    try {
+      if (wasBookmarked) {
+        await favoriteApi.remove(user.id, 'news', Number(id));
+      } else {
+        await favoriteApi.add(user.id, 'news', Number(id));
+      }
+      setIsBookmarked(!wasBookmarked);
+    } catch (err) {
+      console.error('收藏失败', err);
     }
   };
 
@@ -268,7 +283,7 @@ export default function NewsDetail() {
               </button>
 
               <button
-                onClick={() => setIsBookmarked(!isBookmarked)}
+                onClick={handleBookmark}
                 className={`flex items-center gap-2 transition-all ${isBookmarked ? 'text-accent-gold' : 'text-secondary hover:text-accent-gold'}`}
               >
                 <Bookmark className={`w-5 h-5 ${isBookmarked ? 'fill-current' : ''}`} />
