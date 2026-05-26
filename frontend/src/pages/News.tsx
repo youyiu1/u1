@@ -4,12 +4,13 @@
  */
 
 import React, { useState, useEffect } from 'react';
-import { MessageSquare, Heart, Share2, MoreHorizontal, MapPin, Image as ImageIcon, TrendingUp, Users, Bookmark } from 'lucide-react';
+import { MessageSquare, Share2, MoreHorizontal, MapPin, Image as ImageIcon, TrendingUp, Users } from 'lucide-react';
 import { motion } from 'motion/react';
 import { useNavigate } from 'react-router-dom';
-import { newsApi, userApi, favoriteApi } from '../services/api';
+import { newsApi, userApi } from '../services/api';
 import { FollowButton } from '../components/common/FollowButton';
 import { BackToTop } from '../components/common/BackToTop';
+import { PostItemActions } from '../components/common/PostItemActions';
 import { Post } from '../types';
 import { getFollowState, setFollowState } from '../utils/followStorage';
 import { useToast } from '../context/ToastContext';
@@ -84,83 +85,6 @@ export default function News() {
       }));
       setFollowState(authorId, newState);
     } catch {}
-  };
-
-  const toggleLike = async (postId: string, e: React.MouseEvent) => {
-    e.stopPropagation();
-    e.preventDefault();
-    const currentUser = JSON.parse(localStorage.getItem('neighborhood_user') || '{}');
-    if (!currentUser.id) {
-      showToast('请先登录', 'warning');
-      return;
-    }
-    // 先获取当前状态用于乐观更新
-    const post = posts.find(p => p.id === postId);
-    if (!post) return;
-    const wasLiked = post.isLiked;
-    try {
-      await newsApi.like(postId);
-      setPosts(prev => prev.map(p => {
-        if (p.id === postId) {
-          return {
-            ...p,
-            isLiked: !wasLiked,
-            likes: wasLiked ? Math.max(0, p.likes - 1) : p.likes + 1,
-          };
-        }
-        return p;
-      }));
-    } catch {
-      // 失败时回滚
-      setPosts(prev => prev.map(p => {
-        if (p.id === postId) {
-          return { ...p, isLiked: wasLiked, likes: post.likes };
-        }
-        return p;
-      }));
-      showToast('操作失败', 'error');
-    }
-  };
-
-  const toggleFavorite = async (postId: string, e: React.MouseEvent) => {
-    e.stopPropagation();
-    e.preventDefault();
-    const currentUser = JSON.parse(localStorage.getItem('neighborhood_user') || '{}');
-    if (!currentUser.id) {
-      showToast('请先登录', 'warning');
-      return;
-    }
-    // 先获取当前状态用于乐观更新
-    const post = posts.find(p => p.id === postId);
-    if (!post) return;
-    const wasFavorited = post.isFavorited;
-    try {
-      if (wasFavorited) {
-        await favoriteApi.remove(currentUser.id, 'news', postId);
-      } else {
-        await favoriteApi.add(currentUser.id, 'news', postId);
-      }
-      setPosts(prev => prev.map(p => {
-        if (p.id === postId) {
-          return {
-            ...p,
-            isFavorited: !wasFavorited,
-            collections: wasFavorited ? Math.max(0, p.collections - 1) : p.collections + 1,
-          };
-        }
-        return p;
-      }));
-      showToast(wasFavorited ? '已取消收藏' : '已收藏', 'success');
-    } catch {
-      // 失败时回滚
-      setPosts(prev => prev.map(p => {
-        if (p.id === postId) {
-          return { ...p, isFavorited: wasFavorited, collections: post.collections };
-        }
-        return p;
-      }));
-      showToast('操作失败', 'error');
-    }
   };
 
   const handleShare = async (postId: string, e: React.MouseEvent) => {
@@ -316,33 +240,7 @@ export default function News() {
                       )}
                     </div>
 
-                    <footer className="flex items-center gap-6 mt-6 pt-4 border-t border-hairline">
-                      <button
-                        onClick={(e) => toggleLike(post.id, e)}
-                        className={`flex items-center gap-1.5 transition-colors group ${post.isLiked ? 'text-red-500' : 'text-muted hover:text-red-500'}`}
-                      >
-                        <Heart className={`w-4 h-4 ${post.isLiked ? 'fill-current' : 'group-hover:fill-current'}`} />
-                        <span className="text-xs font-bold">{post.likes}</span>
-                      </button>
-                      <button className="flex items-center gap-1.5 text-muted hover:text-blue-500 transition-colors">
-                        <MessageSquare className="w-4 h-4" />
-                        <span className="text-xs font-bold">{post.commentsCount}</span>
-                      </button>
-                      <button
-                        onClick={(e) => handleShare(post.id, e)}
-                        className="flex items-center gap-1.5 text-muted hover:text-green-500 transition-colors"
-                      >
-                        <Share2 className="w-4 h-4" />
-                        <span className="text-xs font-bold">{post.shares}</span>
-                      </button>
-                      <button
-                        onClick={(e) => toggleFavorite(post.id, e)}
-                        className={`flex items-center gap-1.5 transition-colors ${post.isFavorited ? 'text-accent-gold' : 'text-muted hover:text-accent-gold'}`}
-                      >
-                        <Bookmark className={`w-4 h-4 ${post.isFavorited ? 'fill-current' : ''}`} />
-                        <span className="text-xs font-bold">{post.collections}</span>
-                      </button>
-                    </footer>
+                    <PostItemActions post={post} />
                   </article>
                   );
                 })

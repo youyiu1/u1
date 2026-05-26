@@ -8,15 +8,12 @@ import { Heart, MessageSquare, Share2, Bookmark } from 'lucide-react';
 import { useLikeAndFavorite } from '../../hooks/useLikeAndFavorite';
 import { Post } from '../../types';
 
-interface PostActionsProps {
+interface PostItemActionsProps {
   post: Post;
-  onShare?: (postId: string, e: React.MouseEvent) => void;
 }
 
-export function PostActions({ post, onShare }: PostActionsProps) {
-  const currentUser = JSON.parse(localStorage.getItem('neighborhood_user') || '{}');
-
-  const { isLiked, isFavorited, likes, collections, toggleLike, toggleFavorite } = useLikeAndFavorite(
+export function PostItemActions({ post }: PostItemActionsProps) {
+  const { isLiked, isFavorited, likes, collections, isLiking, isFavoriting, toggleLike, toggleFavorite } = useLikeAndFavorite(
     post.id,
     {
       isLiked: post.isLiked ?? false,
@@ -30,7 +27,8 @@ export function PostActions({ post, onShare }: PostActionsProps) {
     <footer className="flex items-center gap-6 mt-6 pt-4 border-t border-hairline">
       <button
         onClick={toggleLike}
-        className={`flex items-center gap-1.5 transition-colors group ${isLiked ? 'text-red-500' : 'text-muted hover:text-red-500'}`}
+        disabled={isLiking}
+        className={`flex items-center gap-1.5 transition-colors group ${isLiked ? 'text-red-500' : 'text-muted hover:text-red-500'} ${isLiking ? 'opacity-50' : ''}`}
       >
         <Heart className={`w-4 h-4 ${isLiked ? 'fill-current' : 'group-hover:fill-current'}`} />
         <span className="text-xs font-bold">{likes}</span>
@@ -41,17 +39,15 @@ export function PostActions({ post, onShare }: PostActionsProps) {
         <span className="text-xs font-bold">{post.commentsCount}</span>
       </button>
 
-      <button
-        onClick={(e) => onShare?.(post.id, e)}
-        className="flex items-center gap-1.5 text-muted hover:text-green-500 transition-colors"
-      >
+      <button className="flex items-center gap-1.5 text-muted hover:text-green-500 transition-colors">
         <Share2 className="w-4 h-4" />
         <span className="text-xs font-bold">{post.shares}</span>
       </button>
 
       <button
-        onClick={(e) => toggleFavorite(e, currentUser.id)}
-        className={`flex items-center gap-1.5 transition-colors ${isFavorited ? 'text-primary' : 'text-muted hover:text-primary'}`}
+        onClick={toggleFavorite}
+        disabled={isFavoriting}
+        className={`flex items-center gap-1.5 transition-colors ${isFavorited ? 'text-accent-gold' : 'text-muted hover:text-accent-gold'} ${isFavoriting ? 'opacity-50' : ''}`}
       >
         <Bookmark className={`w-4 h-4 ${isFavorited ? 'fill-current' : ''}`} />
         <span className="text-xs font-bold">{collections}</span>
