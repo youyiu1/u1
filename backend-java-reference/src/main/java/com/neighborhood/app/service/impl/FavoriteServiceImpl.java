@@ -6,27 +6,27 @@
 package com.neighborhood.app.service.impl;
 
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
+import com.baomidou.mybatisplus.core.conditions.update.UpdateWrapper;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.neighborhood.app.entity.Favorite;
+import com.neighborhood.app.entity.News;
 import com.neighborhood.app.mapper.FavoriteMapper;
+import com.neighborhood.app.mapper.NewsMapper;
 import com.neighborhood.app.service.CacheService;
 import com.neighborhood.app.service.FavoriteService;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
-import javax.sql.DataSource;
-import java.sql.Connection;
-import java.sql.PreparedStatement;
 
 @Slf4j
 @Service
 public class FavoriteServiceImpl extends ServiceImpl<FavoriteMapper, Favorite> implements FavoriteService {
 
     private final CacheService cacheService;
-    private final DataSource dataSource;
+    private final NewsMapper newsMapper;
 
-    public FavoriteServiceImpl(CacheService cacheService, DataSource dataSource) {
+    public FavoriteServiceImpl(CacheService cacheService, NewsMapper newsMapper) {
         this.cacheService = cacheService;
-        this.dataSource = dataSource;
+        this.newsMapper = newsMapper;
     }
 
     @Override
@@ -70,15 +70,14 @@ public class FavoriteServiceImpl extends ServiceImpl<FavoriteMapper, Favorite> i
 
     // 更新news表的collections字段
     private void updateNewsCollections(Long newsId, int delta) {
-        String sql = delta > 0
-            ? "UPDATE t_news SET collections = collections + " + delta + " WHERE id = " + newsId
-            : "UPDATE t_news SET collections = GREATEST(collections + " + delta + ", 0) WHERE id = " + newsId;
-        try (Connection conn = dataSource.getConnection();
-             PreparedStatement ps = conn.prepareStatement(sql)) {
-            ps.executeUpdate();
-        } catch (Exception e) {
-            log.error("更新收藏数失败: newsId={}, delta={}", newsId, delta, e);
+        UpdateWrapper<News> wrapper = new UpdateWrapper<>();
+        wrapper.eq("id", newsId);
+        if (delta > 0) {
+            wrapper.setSql("collections = collections + " + delta);
+        } else {
+            wrapper.setSql("collections = GREATEST(collections + " + delta + ", 0)");
         }
+        newsMapper.update(null, wrapper);
     }
 
     @Override
