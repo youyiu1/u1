@@ -14,6 +14,7 @@ public class UserVO {
     private String email;
     private String avatar;
     private String tag;
+    private String bio;
     private Boolean isVerified;
     private Integer followersCount;
     private Integer followingCount;
@@ -25,6 +26,7 @@ public class UserVO {
         vo.setEmail(user.getEmail());
         vo.setAvatar(user.getAvatar());
         vo.setTag(user.getTag());
+        vo.setBio(user.getBio());
         vo.setIsVerified(user.getIsVerified());
         vo.setFollowersCount(user.getFollowersCount());
         vo.setFollowingCount(user.getFollowingCount());

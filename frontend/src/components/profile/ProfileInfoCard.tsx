@@ -1,8 +1,9 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { motion } from 'motion/react';
 import { ShieldCheck, MessageCircle, MapPin, Calendar } from 'lucide-react';
 import { FollowButton } from '../common/FollowButton';
 import { useChat } from '../../context/ChatContext';
+import { EditProfileOverlay } from './EditProfileOverlay';
 
 interface ProfileInfoCardProps {
   userData: any;
@@ -23,6 +24,7 @@ export const ProfileInfoCard: React.FC<ProfileInfoCardProps> = ({
   isOwnProfile = false
 }) => {
   const { openChat } = useChat();
+  const [isEditOpen, setIsEditOpen] = useState(false);
 
   return (
     <div className="md:w-[320px] space-y-4 md:space-y-6">
@@ -73,7 +75,7 @@ export const ProfileInfoCard: React.FC<ProfileInfoCardProps> = ({
             )}
             {isOwnProfile && (
               <button
-                onClick={() => {}}
+                onClick={() => setIsEditOpen(true)}
                 className="col-span-2 h-11 bg-primary text-white rounded-xl text-[11px] font-black hover:bg-primary-hover transition-colors flex items-center justify-center gap-1.5 uppercase tracking-widest"
               >
                 编辑个人资料
@@ -82,6 +84,8 @@ export const ProfileInfoCard: React.FC<ProfileInfoCardProps> = ({
           </div>
         </div>
       </div>
+
+      <EditProfileOverlay isOpen={isEditOpen} onClose={() => setIsEditOpen(false)} />
 
       <div className="bg-white border border-hairline rounded-[24px] md:rounded-2xl p-5 md:p-6 space-y-4 shadow-sm">
          <h3 className="text-[10px] font-black uppercase tracking-widest text-muted border-b border-hairline pb-3 mb-2">个人资料</h3>

@@ -9,6 +9,7 @@ export interface User {
   email?: string;
   avatar: string;
   tag?: string;
+  bio?: string;
   isVerified: boolean;
   followersCount?: number;
   followingCount?: number;

@@ -23,6 +23,7 @@ CREATE TABLE t_user (
     password VARCHAR(100) NOT NULL COMMENT '密码',
     avatar VARCHAR(255) DEFAULT '' COMMENT '头像URL',
     tag VARCHAR(50) DEFAULT '' COMMENT '标签',
+    bio VARCHAR(255) DEFAULT '' COMMENT '个人简介',
     is_verified TINYINT(1) DEFAULT 0 COMMENT '是否认证',
     followers_count INT DEFAULT 0 COMMENT '粉丝数',
     following_count INT DEFAULT 0 COMMENT '关注数',

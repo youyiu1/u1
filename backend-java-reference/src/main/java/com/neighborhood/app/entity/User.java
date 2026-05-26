@@ -20,6 +20,7 @@ public class User {
     private String password;
     private String avatar;
     private String tag;
+    private String bio;
     private Boolean isVerified;
     private Integer followersCount;
     private Integer followingCount;
