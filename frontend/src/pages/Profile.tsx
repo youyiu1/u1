@@ -138,34 +138,14 @@ export default function Profile() {
           // 获取收藏项的完整数据
           if (favoriteList.length > 0) {
             const itemMap: Record<string, Post | Item | Service> = {};
-            const newsIds: string[] = [];
-            const marketIds: string[] = [];
-            const serviceIds: string[] = [];
-
-            favoriteList.forEach((f: any) => {
-              const targetId = String(f.targetId);
-              const mapKey = `${f.targetType}-${targetId}`;
-              if (f.targetType === 'news') newsIds.push(targetId);
-              else if (f.targetType === 'market') marketIds.push(targetId);
-              else if (f.targetType === 'service') serviceIds.push(targetId);
-            });
-
-            const itemResults = await Promise.all([
-              newsIds.length > 0 ? Promise.all(newsIds.map((id: string) => newsApi.get(id).catch(() => null))) : [],
-              marketIds.length > 0 ? Promise.all(marketIds.map((id: string) => marketApi.get(id).catch(() => null))) : [],
-              serviceIds.length > 0 ? Promise.all(serviceIds.map((id: string) => serviceApi.get(id).catch(() => null))) : [],
-            ]);
-
-            newsIds.forEach((id, idx) => {
-              if (itemResults[0][idx]) itemMap[`news-${id}`] = itemResults[0][idx];
-            });
-            marketIds.forEach((id, idx) => {
-              if (itemResults[1][idx]) itemMap[`market-${id}`] = itemResults[1][idx];
-            });
-            serviceIds.forEach((id, idx) => {
-              if (itemResults[2][idx]) itemMap[`service-${id}`] = itemResults[2][idx];
-            });
-
+            const results = await Promise.all(
+              favoriteList.map((f: any) => {
+                const mapKey = `${f.targetType}-${f.targetId}`;
+                const api = f.targetType === 'news' ? newsApi : f.targetType === 'market' ? marketApi : serviceApi;
+                return api.get(f.targetId).then(item => ({ mapKey, item })).catch(() => null);
+              })
+            );
+            results.forEach(r => { if (r?.item) itemMap[r.mapKey] = r.item; });
             setFavoriteItems(itemMap);
           }
         }
