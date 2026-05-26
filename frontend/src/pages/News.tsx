@@ -100,12 +100,12 @@ export default function News() {
     const wasLiked = post.isLiked;
     try {
       await newsApi.like(postId);
-      // 调用成功后更新本地状态（只更新isLiked，likes由刷新后API返回）
       setPosts(prev => prev.map(p => {
         if (p.id === postId) {
           return {
             ...p,
             isLiked: !wasLiked,
+            likes: wasLiked ? Math.max(0, p.likes - 1) : p.likes + 1,
           };
         }
         return p;
@@ -114,7 +114,7 @@ export default function News() {
       // 失败时回滚
       setPosts(prev => prev.map(p => {
         if (p.id === postId) {
-          return { ...p, isLiked: wasLiked };
+          return { ...p, isLiked: wasLiked, likes: post.likes };
         }
         return p;
       }));
@@ -145,7 +145,7 @@ export default function News() {
           return {
             ...p,
             isFavorited: !wasFavorited,
-            // collections不在前端更新，让刷新后从API获取
+            collections: wasFavorited ? Math.max(0, p.collections - 1) : p.collections + 1,
           };
         }
         return p;
@@ -155,7 +155,7 @@ export default function News() {
       // 失败时回滚
       setPosts(prev => prev.map(p => {
         if (p.id === postId) {
-          return { ...p, isFavorited: wasFavorited };
+          return { ...p, isFavorited: wasFavorited, collections: post.collections };
         }
         return p;
       }));
