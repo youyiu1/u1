@@ -22,10 +22,12 @@ public class ServiceDetailVO {
     private String sellerId;
     private Double rating;
     private Integer reviews;
-    private String distance;
     private String unit;
     private String highlights;
     private List<String> images;
+    private Double latitude;                          // 服务位置纬度
+    private Double longitude;                         // 服务位置经度
+    private String distance;                          // 计算后的距离
 
     private SellerInfo seller;
 
@@ -40,7 +42,7 @@ public class ServiceDetailVO {
         private Boolean isFollowing;
     }
 
-    public static ServiceDetailVO fromService(ServiceEntity service, User seller) {
+    public static ServiceDetailVO fromService(ServiceEntity service, User seller, Double buyerLat, Double buyerLng) {
         ServiceDetailVO vo = new ServiceDetailVO();
         vo.setId(service.getId());
         vo.setTitle(service.getTitle());
@@ -50,10 +52,18 @@ public class ServiceDetailVO {
         vo.setSellerId(service.getSellerId());
         vo.setRating(service.getRating());
         vo.setReviews(service.getReviews());
-        vo.setDistance(service.getDistance());
         vo.setUnit(service.getUnit());
         vo.setHighlights(service.getHighlights());
         vo.setImages(service.getImages());
+        vo.setLatitude(service.getLatitude());
+        vo.setLongitude(service.getLongitude());
+
+        // 计算距离
+        if (buyerLat != null && buyerLng != null && service.getLatitude() != null && service.getLongitude() != null) {
+            double dist = com.neighborhood.app.utils.DistanceUtil.calculateDistance(
+                buyerLat, buyerLng, service.getLatitude(), service.getLongitude());
+            vo.setDistance(com.neighborhood.app.utils.DistanceUtil.formatDistance(dist));
+        }
 
         if (seller != null) {
             SellerInfo sellerInfo = new SellerInfo();

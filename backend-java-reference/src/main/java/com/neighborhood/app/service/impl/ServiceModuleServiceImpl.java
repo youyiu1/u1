@@ -58,13 +58,13 @@ public class ServiceModuleServiceImpl extends ServiceImpl<ServiceMapper, Service
     /**
      * 获取服务详情（含卖家信息）
      */
-    public ServiceDetailVO getServiceDetail(Long id) {
+    public ServiceDetailVO getServiceDetail(Long id, Double buyerLat, Double buyerLng) {
         ServiceEntity service = getById(id);
         if (service == null) {
             return null;
         }
         User seller = userService.getById(service.getSellerId());
-        return ServiceDetailVO.fromService(service, seller);
+        return ServiceDetailVO.fromService(service, seller, buyerLat, buyerLng);
     }
 
     @Override
@@ -109,5 +109,20 @@ public class ServiceModuleServiceImpl extends ServiceImpl<ServiceMapper, Service
                 .eq(ServiceEntity::getSellerId, userId)
                 .orderByDesc(ServiceEntity::getId)
                 .list();
+    }
+
+    @Override
+    public List<ServiceEntity> listWithDistance(Double buyerLat, Double buyerLng) {
+        List<ServiceEntity> list = super.list();
+        if (buyerLat != null && buyerLng != null) {
+            for (ServiceEntity service : list) {
+                if (service.getLatitude() != null && service.getLongitude() != null) {
+                    double dist = com.neighborhood.app.utils.DistanceUtil.calculateDistance(
+                        buyerLat, buyerLng, service.getLatitude(), service.getLongitude());
+                    service.setDistance(com.neighborhood.app.utils.DistanceUtil.formatDistance(dist));
+                }
+            }
+        }
+        return list;
     }
 }

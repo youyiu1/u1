@@ -29,6 +29,7 @@ import { useAuth } from '../context/AuthContext';
 import { useNotification } from '../context/NotificationContext';
 import { useToast } from '../context/ToastContext';
 import { serviceApi, userApi, favoriteApi, notificationApi, chatApi, reviewApi } from '../services/api';
+import { getCurrentLocation } from '../utils/location';
 import { FollowButton } from '../components/common/FollowButton';
 import { ConfirmDialog } from '../components/common/ConfirmDialog';
 import { ServiceDetail as ServiceDetailType, Review } from '../types';
@@ -175,7 +176,8 @@ export default function ServiceDetail() {
   useEffect(() => {
     const fetchService = async () => {
       try {
-        const data = await serviceApi.get(id);
+        const location = await getCurrentLocation();
+        const data = await serviceApi.get(id, location?.latitude, location?.longitude);
         setService(data);
         const currentUser = JSON.parse(localStorage.getItem('neighborhood_user') || '{}');
         const sid = data.seller?.id || (data as any).sellerId;

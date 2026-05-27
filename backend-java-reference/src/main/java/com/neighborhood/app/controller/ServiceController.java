@@ -42,8 +42,10 @@ public class ServiceController {
     }
 
     @GetMapping("/{id}")
-    public Result<ServiceDetailVO> getById(@PathVariable Long id) {
-        return Result.ok(serviceModuleService.getServiceDetail(id));
+    public Result<ServiceDetailVO> getById(@PathVariable Long id,
+            @RequestParam(required = false) Double lat,
+            @RequestParam(required = false) Double lng) {
+        return Result.ok(serviceModuleService.getServiceDetail(id, lat, lng));
     }
 
     /**

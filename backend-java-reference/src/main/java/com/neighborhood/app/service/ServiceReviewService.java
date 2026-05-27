@@ -19,11 +19,15 @@ public interface ServiceReviewService extends IService<ServiceReview> {
      */
     boolean addReview(Long serviceId, String userId, String userName, String userAvatar, Integer rating, String content);
     /**
+     * 获取评价列表及当前用户点赞状态
+     */
+    java.util.List<java.util.Map<String, Object>> getByServiceIdWithLikeStatus(Long serviceId, String userId);
+    /**
      * 评价点赞
      */
     boolean likeReview(Long reviewId);
     /**
-     * 取消点赞
+     * 取消评价点赞
      */
     boolean unlikeReview(Long reviewId);
 }

@@ -12,6 +12,8 @@ CREATE TABLE `t_user` (
   `avatar` varchar(500) DEFAULT NULL COMMENT '头像URL',
   `tag` varchar(50) DEFAULT NULL COMMENT '标签',
   `is_verified` tinyint(1) DEFAULT '0' COMMENT '是否认证',
+  `latitude` double DEFAULT NULL COMMENT '用户纬度',
+  `longitude` double DEFAULT NULL COMMENT '用户经度',
   PRIMARY KEY (`id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='用户基本信息表';
 
@@ -49,6 +51,8 @@ CREATE TABLE `t_service` (
   `price` decimal(10,2) DEFAULT NULL,
   `image` varchar(500) DEFAULT NULL,
   `seller_id` varchar(64) DEFAULT NULL,
+  `latitude` double DEFAULT NULL COMMENT '服务位置纬度',
+  `longitude` double DEFAULT NULL COMMENT '服务位置经度',
   PRIMARY KEY (`id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='生活服务表';
 
@@ -63,3 +67,28 @@ CREATE TABLE `t_favorite` (
   UNIQUE KEY `uk_user_target` (`user_id`, `target_type`, `target_id`),
   INDEX `idx_user_id` (`user_id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='收藏表';
+
+-- 6. 评价点赞表
+CREATE TABLE IF NOT EXISTS `t_review_like` (
+  `id` bigint NOT NULL COMMENT '主键ID',
+  `review_id` bigint NOT NULL COMMENT '评价ID',
+  `user_id` varchar(64) NOT NULL COMMENT '用户ID',
+  `create_time` datetime DEFAULT CURRENT_TIMESTAMP,
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `uk_review_user` (`review_id`, `user_id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='评价点赞表';
+
+-- 7. 服务评价表
+CREATE TABLE IF NOT EXISTS `t_service_review` (
+  `id` bigint NOT NULL COMMENT '主键ID',
+  `service_id` bigint NOT NULL COMMENT '服务ID',
+  `user_id` varchar(64) NOT NULL COMMENT '用户ID',
+  `user_name` varchar(100) NOT NULL COMMENT '用户名',
+  `user_avatar` varchar(500) DEFAULT NULL COMMENT '用户头像',
+  `rating` int NOT NULL COMMENT '评分1-5',
+  `content` text NOT NULL COMMENT '评价内容',
+  `likes` int DEFAULT '0' COMMENT '点赞数',
+  `create_time` datetime DEFAULT CURRENT_TIMESTAMP,
+  PRIMARY KEY (`id`),
+  INDEX `idx_service_id` (`service_id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='服务评价表';

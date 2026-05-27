@@ -110,6 +110,7 @@ export interface Review {
   content: string;
   createTime: string;
   likes: number;
+  isLiked?: boolean;
 }
 
 export interface Notification {

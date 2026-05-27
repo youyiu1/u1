@@ -189,7 +189,10 @@ export const marketApi = {
 export const serviceApi = {
   list: () => request<Service[]>('/service/list'),
 
-  get: (id: string) => request<ServiceDetail>(`/service/${id}`),
+  get: (id: string, lat?: number, lng?: number) => {
+    const params = lat != null && lng != null ? `?lat=${lat}&lng=${lng}` : '';
+    return request<ServiceDetail>(`/service/${id}${params}`);
+  },
 
   getByUserId: (userId: string) => request<Service[]>(`/service/user/${userId}`),
 

@@ -33,6 +33,8 @@ public class ServiceEntity {
     private String distance;
     private String unit;
     private String highlights;
+    private Double latitude;                          // 服务位置纬度
+    private Double longitude;                         // 服务位置经度
     @TableField(value = "images", typeHandler = MySqlJsonTypeHandler.class, jdbcType = JdbcType.VARCHAR)
     private List<String> images;
 }

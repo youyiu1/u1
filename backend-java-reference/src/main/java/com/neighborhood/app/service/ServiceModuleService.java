@@ -13,8 +13,9 @@ import java.util.List;
 public interface ServiceModuleService extends IService<ServiceEntity> {
     List<ServiceEntity> list();
     ServiceEntity getById(Long id);
-    ServiceDetailVO getServiceDetail(Long id);
+    ServiceDetailVO getServiceDetail(Long id, Double buyerLat, Double buyerLng);
     List<ServiceEntity> listByUserId(String userId);  // 获取用户服务
+    List<ServiceEntity> listWithDistance(Double buyerLat, Double buyerLng);  // 带距离的服务列表
     boolean save(ServiceEntity service);
     boolean updateById(ServiceEntity service);
     boolean book(Long serviceId, String buyerId, String sellerId, String bookingDate, String bookingTime, Integer duration);
