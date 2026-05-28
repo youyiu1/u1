@@ -341,6 +341,66 @@ public class CacheServiceImpl implements CacheService {
         }
     }
 
+    // ========== 评价点赞相关（Redis Set 存储用户ID） ==========
+
+    @Override
+    public void addReviewLike(Long reviewId, String userId) {
+        try {
+            stringRedisTemplate.opsForSet().add(REVIEW_LIKE_KEY + reviewId, userId);
+        } catch (Exception e) {
+            log.error("添加评价点赞失败: reviewId={}, userId={}", reviewId, userId, e);
+        }
+    }
+
+    @Override
+    public void removeReviewLike(Long reviewId, String userId) {
+        try {
+            stringRedisTemplate.opsForSet().remove(REVIEW_LIKE_KEY + reviewId, userId);
+        } catch (Exception e) {
+            log.error("取消评价点赞失败: reviewId={}, userId={}", reviewId, userId, e);
+        }
+    }
+
+    @Override
+    public boolean isReviewLiked(Long reviewId, String userId) {
+        try {
+            return Boolean.TRUE.equals(stringRedisTemplate.opsForSet().isMember(REVIEW_LIKE_KEY + reviewId, userId));
+        } catch (Exception e) {
+            log.error("检查评价点赞状态失败: reviewId={}, userId={}", reviewId, userId, e);
+            return false;
+        }
+    }
+
+    // ========== 评论点赞相关（Redis Set 存储用户ID） ==========
+
+    @Override
+    public void addCommentLike(Long commentId, String userId) {
+        try {
+            stringRedisTemplate.opsForSet().add(COMMENT_LIKE_KEY + commentId, userId);
+        } catch (Exception e) {
+            log.error("添加评论点赞失败: commentId={}, userId={}", commentId, userId, e);
+        }
+    }
+
+    @Override
+    public void removeCommentLike(Long commentId, String userId) {
+        try {
+            stringRedisTemplate.opsForSet().remove(COMMENT_LIKE_KEY + commentId, userId);
+        } catch (Exception e) {
+            log.error("取消评论点赞失败: commentId={}, userId={}", commentId, userId, e);
+        }
+    }
+
+    @Override
+    public boolean isCommentLiked(Long commentId, String userId) {
+        try {
+            return Boolean.TRUE.equals(stringRedisTemplate.opsForSet().isMember(COMMENT_LIKE_KEY + commentId, userId));
+        } catch (Exception e) {
+            log.error("检查评论点赞状态失败: commentId={}, userId={}", commentId, userId, e);
+            return false;
+        }
+    }
+
     // ==================== 常量 ====================
 
     private static final String USER_KEY = "user:";
@@ -366,6 +426,12 @@ public class CacheServiceImpl implements CacheService {
 
     // 点赞 Redis Set，key = "news:likes:{newsId}"，value = userId 集合
     private static final String NEWS_LIKE_KEY = "news:likes:";
+
+    // 评价点赞 Redis Set，key = "review:likes:{reviewId}"，value = userId 集合
+    private static final String REVIEW_LIKE_KEY = "review:likes:";
+
+    // 评论点赞 Redis Set，key = "comment:likes:{commentId}"，value = userId 集合
+    private static final String COMMENT_LIKE_KEY = "comment:likes:";
 
     // 收藏 Redis Set，key = "favorites"，value = "userId:targetType:targetId" 集合
     private static final String FAVORITE_KEY = "favorites";

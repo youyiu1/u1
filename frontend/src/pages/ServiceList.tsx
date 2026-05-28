@@ -7,6 +7,7 @@ import React, { useState, useEffect } from 'react';
 import { Search, Star, MapPin, CheckCircle2, Heart, Sparkles, Clock, ShieldCheck, Wrench, Brush, Scissors, Dumbbell, Plus } from 'lucide-react';
 import { motion } from 'motion/react';
 import { serviceApi } from '../services/api';
+import { getCurrentLocation } from '../utils/location';
 import { useNavigate } from 'react-router-dom';
 import { useAuthCheck } from '../context/useAuthCheck';
 import { usePublish } from '../context/PublishContext';
@@ -35,7 +36,8 @@ export default function ServiceList() {
   useEffect(() => {
     const fetchServices = async () => {
       try {
-        const data = await serviceApi.list();
+        const location = await getCurrentLocation();
+        const data = await serviceApi.list(location?.latitude, location?.longitude);
         setServices(data);
       } catch (err: any) {
         setError(err.message || '加载失败');

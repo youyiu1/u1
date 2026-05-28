@@ -9,6 +9,8 @@ import com.neighborhood.app.entity.News;
 import com.neighborhood.app.entity.NewsVO;
 import com.neighborhood.app.entity.Comment;
 import com.neighborhood.app.service.NewsService;
+import com.neighborhood.app.service.CommentLikeService;
+import com.neighborhood.app.utils.RequestUserUtil;
 import com.neighborhood.app.common.Result;
 import jakarta.servlet.http.HttpServletRequest;
 import lombok.extern.slf4j.Slf4j;
@@ -23,6 +25,8 @@ public class NewsController {
 
     @Autowired
     private NewsService newsService;
+    @Autowired
+    private CommentLikeService commentLikeService;
 
     /**
      * 获取动态列表（带作者信息和当前用户点赞/收藏状态）
@@ -92,8 +96,38 @@ public class NewsController {
     public Result<List<Comment>> getComments(
             @PathVariable Long id,
             @RequestParam(defaultValue = "20") int limit,
-            @RequestParam(defaultValue = "0") int offset) {
-        return Result.ok(newsService.getCommentsByNewsId(id, limit, offset));
+            @RequestParam(defaultValue = "0") int offset,
+            @RequestParam(required = false) String userId,
+            HttpServletRequest request) {
+        String effectiveUserId = RequestUserUtil.getEffectiveUserId(request, userId);
+        return Result.ok(newsService.getCommentsByNewsId(id, limit, offset, effectiveUserId));
+    }
+
+    /**
+     * 评论点赞/取消点赞
+     */
+    @PostMapping("/comment/{id}/like")
+    public Result<Boolean> likeComment(
+            @PathVariable Long id,
+            @RequestParam(required = false) String userId,
+            HttpServletRequest request) {
+        String effectiveUserId = RequestUserUtil.getEffectiveUserId(request, userId);
+        if (effectiveUserId == null || effectiveUserId.isBlank()) {
+            return Result.fail("请先登录");
+        }
+
+        if (commentLikeService.isLiked(id, effectiveUserId)) {
+            boolean success = commentLikeService.unlike(id, effectiveUserId);
+            if (!success) {
+                return Result.fail("取消点赞失败");
+            }
+            return Result.ok(false);
+        }
+        boolean success = commentLikeService.like(id, effectiveUserId);
+        if (!success) {
+            return Result.fail("点赞失败");
+        }
+        return Result.ok(true);
     }
 
     @PostMapping("/{id}/comment")

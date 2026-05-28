@@ -142,11 +142,11 @@ export const userApi = {
 export const newsApi = {
   list: () => request<Post[]>('/news/list'),
 
-  get: (id: string) => request<Post>(`/news/${id}`),
+  get: (id: string, userId?: string) => request<Post>(`/news/${id}${userId ? `?userId=${userId}` : ''}`),
 
   getByUserId: (userId: string) => request<Post[]>(`/news/user/${userId}`),
 
-  create: (post: { title: string; content: string; category: string; images?: string[]; location?: string }) =>
+  create: (post: { title: string; content: string; category: string; images?: string[] | string; location?: string }) =>
     request<boolean>('/news/create', {
       method: 'POST',
       body: JSON.stringify(post),
@@ -155,8 +155,8 @@ export const newsApi = {
   like: (id: string) =>
     request<boolean>(`/news/${id}/like`, { method: 'POST' }),
 
-  getComments: (id: string, limit = 20, offset = 0) =>
-    request<Comment[]>(`/news/${id}/comments?limit=${limit}&offset=${offset}`),
+  getComments: (id: string, limit = 20, offset = 0, userId?: string) =>
+    request<Comment[]>(`/news/${id}/comments?limit=${limit}&offset=${offset}${userId ? `&userId=${encodeURIComponent(userId)}` : ''}`),
 
   addComment: (id: string, comment: { content: string; userId: string; userName: string; userAvatar: string }) =>
     request<boolean>(`/news/${id}/comment`, {
@@ -168,6 +168,9 @@ export const newsApi = {
 
   delete: (id: string) =>
     request<boolean>(`/news/${id}/delete`, { method: 'POST' }),
+
+  likeComment: (commentId: string, userId: string) =>
+    request<boolean>(`/news/comment/${commentId}/like?userId=${encodeURIComponent(userId)}`, { method: 'POST' }),
 };
 
 // 闲置市场相关
@@ -187,7 +190,10 @@ export const marketApi = {
 
 // 服务相关
 export const serviceApi = {
-  list: () => request<Service[]>('/service/list'),
+  list: (lat?: number, lng?: number) => {
+    const params = lat != null && lng != null ? `?lat=${lat}&lng=${lng}` : '';
+    return request<Service[]>(`/service/list${params}`);
+  },
 
   get: (id: string, lat?: number, lng?: number) => {
     const params = lat != null && lng != null ? `?lat=${lat}&lng=${lng}` : '';
@@ -267,17 +273,17 @@ export const chatApi = {
 // 收藏相关
 export const favoriteApi = {
   list: (userId: string) => request<any[]>(`/favorite/list?userId=${userId}`),
-  add: (userId: string, targetType: string, targetId: string) =>
+  add: (userId: string, targetType: string, targetId: string | number) =>
     request<boolean>('/favorite/add', {
       method: 'POST',
       body: JSON.stringify({ userId, targetType, targetId }),
     }),
-  remove: (userId: string, targetType: string, targetId: string) =>
+  remove: (userId: string, targetType: string, targetId: string | number) =>
     request<boolean>('/favorite/remove', {
       method: 'POST',
       body: JSON.stringify({ userId, targetType, targetId }),
     }),
-  check: (userId: string, targetType: string, targetId: string) =>
+  check: (userId: string, targetType: string, targetId: string | number) =>
     request<boolean>(`/favorite/check?userId=${userId}&targetType=${targetType}&targetId=${targetId}`),
 };
 

@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Heart } from 'lucide-react';
 import { motion } from 'motion/react';
@@ -10,16 +10,28 @@ interface CommentItemProps {
   comment: Comment;
   currentUserId?: string;
   onLikeChange?: (commentId: string, isLiked: boolean, likes: number) => void;
+  onAfterLike?: () => void | Promise<void>;
+  onReply?: (userName: string) => void;
 }
 
-export const CommentItem: React.FC<CommentItemProps> = ({ comment, currentUserId, onLikeChange }) => {
+export const CommentItem: React.FC<CommentItemProps> = ({
+  comment,
+  currentUserId,
+  onLikeChange,
+  onAfterLike,
+  onReply,
+}) => {
   const navigate = useNavigate();
   const { showToast } = useToast();
   const [liking, setLiking] = useState(false);
   const [isLiked, setIsLiked] = useState(comment.isLiked ?? false);
   const [likes, setLikes] = useState(comment.likes ?? 0);
 
-  // 同步外部状态变化（父组件刷新数据后需要同步）
+  const userName = comment.userName || comment.user || '邻居用户';
+  const avatar = comment.userAvatar || comment.avatar || `https://ui-avatars.com/api/?name=${encodeURIComponent(userName)}&background=random`;
+  const content = comment.content || comment.text || '';
+  const commentTime = comment.createTime || comment.time || '刚刚';
+
   useEffect(() => {
     setIsLiked(comment.isLiked ?? false);
     setLikes(comment.likes ?? 0);
@@ -34,23 +46,16 @@ export const CommentItem: React.FC<CommentItemProps> = ({ comment, currentUserId
       return;
     }
 
-    const wasLiked = isLiked;
-    const prevLikes = likes;
     setLiking(true);
-
-    // 乐观更新
-    setIsLiked(!wasLiked);
-    const newLikes = wasLiked ? Math.max(0, prevLikes - 1) : prevLikes + 1;
-    setLikes(newLikes);
-
     try {
-      await newsApi.likeComment(comment.id, currentUserId);
-      showToast(wasLiked ? '已取消点赞' : '已点赞', 'success');
-      onLikeChange?.(comment.id, !wasLiked, newLikes);
+      const nextLiked = await newsApi.likeComment(comment.id, currentUserId);
+      const nextLikes = nextLiked ? likes + 1 : Math.max(0, likes - 1);
+      setIsLiked(nextLiked);
+      setLikes(nextLikes);
+      onLikeChange?.(comment.id, nextLiked, nextLikes);
+      await onAfterLike?.();
+      showToast(nextLiked ? '点赞成功' : '已取消点赞', 'success');
     } catch {
-      // 回滚
-      setIsLiked(wasLiked);
-      setLikes(prevLikes);
       showToast('点赞失败', 'error');
     } finally {
       setLiking(false);
@@ -65,12 +70,12 @@ export const CommentItem: React.FC<CommentItemProps> = ({ comment, currentUserId
     >
       <div
         className="cursor-pointer shrink-0 relative overflow-hidden rounded-2xl"
-        onClick={() => navigate(`/profile/${comment.user}`)}
+        onClick={() => navigate(`/profile/${userName}`)}
       >
         <img
-          src={comment.avatar || `https://ui-avatars.com/api/?name=${comment.user}&background=random`}
+          src={avatar}
           className="w-12 h-12 border border-hairline object-cover transition-transform group-hover:scale-110"
-          alt={comment.user}
+          alt={userName}
         />
       </div>
       <div className="flex-1">
@@ -78,22 +83,27 @@ export const CommentItem: React.FC<CommentItemProps> = ({ comment, currentUserId
           <div className="flex items-center gap-2">
             <span
               className="font-black text-sm text-ink cursor-pointer hover:text-primary transition-colors"
-              onClick={() => navigate(`/profile/${comment.user}`)}
+              onClick={() => navigate(`/profile/${userName}`)}
             >
-              {comment.user}
+              {userName}
             </span>
             <span className="px-1.5 py-0.5 bg-hairline/30 rounded text-[8px] font-black text-muted uppercase">Level 3</span>
           </div>
-          <span className="text-[10px] text-muted font-bold">{comment.time || '22:45'}</span>
+          <span className="text-[10px] text-muted font-bold">{commentTime}</span>
         </div>
         <p className="text-sm text-secondary leading-relaxed mb-4 font-medium">
-          {comment.text || comment.content}
+          {content}
         </p>
         <div className="flex items-center gap-6">
-          <button className="text-[10px] font-black text-primary uppercase tracking-widest hover:opacity-70 transition-opacity">回复</button>
+          <button
+            onClick={() => onReply?.(userName)}
+            className="text-[10px] font-black text-primary uppercase tracking-widest hover:opacity-70 transition-opacity"
+          >
+            回复
+          </button>
           <button
             onClick={handleLike}
-            disabled={liking || !currentUserId}
+            disabled={liking}
             className={`flex items-center gap-1.5 text-[10px] font-black uppercase tracking-widest transition-colors disabled:opacity-50 ${isLiked ? 'text-red-500' : 'text-muted hover:text-red-500'}`}
           >
             <Heart className={`w-3 h-3 ${isLiked ? 'fill-current' : ''}`} />

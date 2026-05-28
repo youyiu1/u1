@@ -9,23 +9,39 @@ import com.baomidou.mybatisplus.extension.service.IService;
 import com.neighborhood.app.entity.Comment;
 import com.neighborhood.app.entity.News;
 import com.neighborhood.app.entity.NewsVO;
+
 import java.util.List;
 
 public interface NewsService extends IService<News> {
     List<News> listDesc();
+
     News getById(Long id);
+
     NewsVO getNewsVOById(Long id);
-    NewsVO getNewsVOById(Long id, String userId);  // 带用户上下文
+
+    NewsVO getNewsVOById(Long id, String userId);
+
     List<NewsVO> listDescVO();
-    List<NewsVO> listDescVO(String userId);        // 带用户上下文
+
+    List<NewsVO> listDescVO(String userId);
+
     List<NewsVO> listByUserId(String userId);
+
     boolean save(News news);
+
     boolean updateById(News news);
+
     void addComment(Long newsId, Comment comment);
-    boolean like(Long newsId, String userId);      // 点赞
-    boolean unlike(Long newsId, String userId);     // 取消点赞
-    boolean isLiked(Long newsId, String userId);  // 检查是否点赞
-    List<Comment> getCommentsByNewsId(Long newsId, int limit, int offset);
-    List<NewsVO> listTrending(int limit);  // 获取热门动态
-    boolean deleteById(Long id, String userId);  // 删除动态（仅作者可删除）
+
+    boolean like(Long newsId, String userId);
+
+    boolean unlike(Long newsId, String userId);
+
+    boolean isLiked(Long newsId, String userId);
+
+    List<Comment> getCommentsByNewsId(Long newsId, int limit, int offset, String userId);
+
+    List<NewsVO> listTrending(int limit);
+
+    boolean deleteById(Long id, String userId);
 }

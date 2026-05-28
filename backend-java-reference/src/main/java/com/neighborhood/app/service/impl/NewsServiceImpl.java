@@ -17,6 +17,7 @@ import com.neighborhood.app.mapper.FollowMapper;
 import com.neighborhood.app.mapper.NewsMapper;
 import com.neighborhood.app.mapper.UserMapper;
 import com.neighborhood.app.service.CacheService;
+import com.neighborhood.app.service.CommentLikeService;
 import com.neighborhood.app.service.NewsService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -33,6 +34,7 @@ public class NewsServiceImpl extends ServiceImpl<NewsMapper, News> implements Ne
     private final CacheService cacheService;
     private final UserMapper userMapper;
     private final FollowMapper followMapper;
+    private final CommentLikeService commentLikeService;
 
     /**
      * 设置当前用户点赞/收藏状态
@@ -190,13 +192,27 @@ public class NewsServiceImpl extends ServiceImpl<NewsMapper, News> implements Ne
         return cacheService.isNewsLiked(newsId, userId);
     }
 
-    public List<Comment> getCommentsByNewsId(Long newsId, int limit, int offset) {
-        return commentMapper.selectList(
+    public List<Comment> getCommentsByNewsId(Long newsId, int limit, int offset, String userId) {
+        List<Comment> comments = commentMapper.selectList(
                 new QueryWrapper<Comment>()
                         .eq("news_id", newsId)
                         .orderByDesc("create_time")
                         .last("LIMIT " + limit + " OFFSET " + offset)
         );
+        comments.forEach(c -> {
+            if (c.getId() == null) {
+                c.setLikes(0);
+                c.setIsLiked(false);
+                return;
+            }
+            c.setLikes((int) commentLikeService.countLikes(c.getId()));
+            if (userId != null && !userId.isEmpty()) {
+                c.setIsLiked(commentLikeService.isLiked(c.getId(), userId));
+            } else {
+                c.setIsLiked(false);
+            }
+        });
+        return comments;
     }
 
     @Override

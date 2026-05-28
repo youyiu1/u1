@@ -16,6 +16,9 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
 import jakarta.servlet.http.HttpServletRequest;
 import java.util.List;
+import java.util.Map;
+import java.util.HashMap;
+import java.util.stream.Collectors;
 
 @RestController
 @RequestMapping("/api/service")
@@ -29,7 +32,12 @@ public class ServiceController {
     private NotificationService notificationService;
 
     @GetMapping("/list")
-    public Result<List<ServiceEntity>> list() {
+    public Result<List<ServiceEntity>> list(
+            @RequestParam(required = false) Double lat,
+            @RequestParam(required = false) Double lng) {
+        if (lat != null && lng != null) {
+            return Result.ok(serviceModuleService.listWithDistance(lat, lng));
+        }
         return Result.ok(serviceModuleService.list());
     }
 
@@ -49,11 +57,28 @@ public class ServiceController {
     }
 
     /**
-     * 获取服务评价列表
+     * 获取服务评价列表（带当前用户点赞状态）
      */
     @GetMapping("/{id}/reviews")
-    public Result<List<ServiceReview>> getReviews(@PathVariable Long id) {
-        return Result.ok(serviceReviewService.getByServiceId(id));
+    public Result<List<Map<String, Object>>> getReviews(@PathVariable Long id, HttpServletRequest request) {
+        String userId = (String) request.getAttribute("userId");
+        if (userId != null) {
+            return Result.ok(serviceReviewService.getByServiceIdWithLikeStatus(id, userId));
+        }
+        return Result.ok(serviceReviewService.getByServiceId(id).stream().map(r -> {
+            java.util.Map<String, Object> map = new java.util.HashMap<>();
+            map.put("id", r.getId());
+            map.put("serviceId", r.getServiceId());
+            map.put("userId", r.getUserId());
+            map.put("userName", r.getUserName());
+            map.put("userAvatar", r.getUserAvatar());
+            map.put("rating", r.getRating());
+            map.put("content", r.getContent());
+            map.put("likes", r.getLikes());
+            map.put("createTime", r.getCreateTime());
+            map.put("isLiked", false);
+            return map;
+        }).collect(java.util.stream.Collectors.toList()));
     }
 
     /**
@@ -87,16 +112,18 @@ public class ServiceController {
      * 评价点赞
      */
     @PostMapping("/review/{id}/like")
-    public Result<Boolean> likeReview(@PathVariable Long id) {
-        return Result.ok(serviceReviewService.likeReview(id));
+    public Result<Boolean> likeReview(@PathVariable Long id, HttpServletRequest request) {
+        String userId = (String) request.getAttribute("userId");
+        return Result.ok(serviceReviewService.likeReview(id, userId));
     }
 
     /**
      * 取消评价点赞
      */
     @PostMapping("/review/{id}/unlike")
-    public Result<Boolean> unlikeReview(@PathVariable Long id) {
-        return Result.ok(serviceReviewService.unlikeReview(id));
+    public Result<Boolean> unlikeReview(@PathVariable Long id, HttpServletRequest request) {
+        String userId = (String) request.getAttribute("userId");
+        return Result.ok(serviceReviewService.unlikeReview(id, userId));
     }
 
     @PostMapping("/create")

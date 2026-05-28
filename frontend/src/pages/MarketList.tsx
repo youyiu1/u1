@@ -136,7 +136,7 @@ export default function MarketList() {
                 <h3 className="text-sm font-bold text-ink mb-1 line-clamp-1 group-hover:text-primary transition-colors">{item.title}</h3>
                 <div className="flex items-center gap-2 mb-2">
                   <MapPin className="w-3 h-3 text-muted" />
-                  <span className="text-[10px] text-muted">{item.location}</span>
+                  <span className="text-[10px] text-muted">{item.location || '附近'}</span>
                 </div>
                 <div className="flex items-center justify-between">
                   <div>

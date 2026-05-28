@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import React, { useState, useEffect } from 'react';
+import React, { useRef, useState, useEffect } from 'react';
 import { useParams, useNavigate, useLocation } from 'react-router-dom';
 import { ChevronLeft, MessageSquare, Heart, Share2, Bookmark, MapPin, MoreHorizontal } from 'lucide-react';
 import { motion } from 'motion/react';
@@ -32,6 +32,7 @@ export default function NewsDetail() {
   const [commentText, setCommentText] = useState('');
   const [isLoadingMore, setIsLoadingMore] = useState(false);
   const [isFollowed, setIsFollowed] = useState(false);
+  const commentInputRef = useRef<HTMLTextAreaElement | null>(null);
 
   const { isLiked, isFavorited, likes, collections, toggleLike, toggleFavorite } = useLikeAndFavorite(
     id || '',
@@ -86,13 +87,31 @@ export default function NewsDetail() {
     setIsFollowed(newState);
   };
 
+  const handleBack = () => {
+    if (fromProfile) {
+      navigate(-1);
+      return;
+    }
+    navigate('/news');
+  };
+
+  const fetchComments = async () => {
+    if (!id) return;
+    try {
+      const commentData = await newsApi.getComments(id as string, 20, 0, user?.id);
+      setComments(commentData);
+    } catch (err: any) {
+      showToast(err.message || '评论加载失败', 'error');
+    }
+  };
+
+  // 用户加载完成后再获取评论（带点赞状态）
   useEffect(() => {
+    if (!id) return;
     const fetchPost = async () => {
       try {
-        const data = await newsApi.get(id as string);
+        const data = await newsApi.get(id as string, user?.id);
         setPost(data);
-        const commentData = await newsApi.getComments(id as string);
-        setComments(commentData);
         if (data?.isFollowing !== undefined && data.isFollowing !== null) {
           setIsFollowed(data.isFollowing);
         }
@@ -102,8 +121,24 @@ export default function NewsDetail() {
         setLoading(false);
       }
     };
-    if (id) fetchPost();
-  }, [id]);
+    fetchPost();
+  }, [id, user?.id]);
+
+  useEffect(() => {
+    fetchComments();
+  }, [id, user?.id]);
+
+  const handleCommentLikeChange = (commentId: string, isLiked: boolean, likes: number) => {
+    setComments(prev =>
+      prev.map(c => c.id === commentId ? { ...c, isLiked, likes } : c)
+    );
+  };
+
+  const handleReply = (targetName: string) => {
+    const mention = `@${targetName} `;
+    setCommentText(prev => `${prev}${prev.length > 0 && !prev.endsWith(' ') ? ' ' : ''}${mention}`);
+    requestAnimationFrame(() => commentInputRef.current?.focus());
+  };
 
   const handleAddComment = async () => {
     if (!commentText.trim() || !user) return;
@@ -115,8 +150,7 @@ export default function NewsDetail() {
         userAvatar: user.avatar,
       });
       setCommentText('');
-      const commentData = await newsApi.getComments(id as string);
-      setComments(commentData);
+      await fetchComments();
       showToast('评论成功', 'success');
     } catch (err: any) {
       showToast(err.message || '评论失败', 'error');
@@ -137,7 +171,7 @@ export default function NewsDetail() {
         <div className="text-center">
           <p className="text-muted mb-4 font-bold">{error || '抱歉，未找到该动态'}</p>
           <button
-            onClick={() => navigate(fromProfile ? -1 : '/news')}
+            onClick={handleBack}
             className="px-8 py-3 bg-primary text-white rounded-2xl font-black uppercase tracking-widest text-[10px] shadow-lg shadow-primary/20"
           >
             返回动态列表
@@ -153,7 +187,7 @@ export default function NewsDetail() {
         <div className="max-w-[720px] mx-auto px-6 h-20 flex items-center justify-between gap-4">
           <div className="flex items-center gap-4">
             <button
-              onClick={() => navigate(fromProfile ? -1 : '/news')}
+              onClick={handleBack}
               className="p-2.5 hover:bg-surface-soft rounded-2xl transition-all group"
             >
               <ChevronLeft className="w-6 h-6 text-ink group-hover:-translate-x-0.5 transition-transform" />
@@ -218,11 +252,11 @@ export default function NewsDetail() {
             </div>
 
             <div className="flex flex-wrap gap-2 mb-10">
-               {post.category && (
-                 <span className="px-3 py-1.5 bg-primary/5 border border-primary/10 rounded-lg text-[10px] font-bold text-primary uppercase tracking-widest">
-                    #{post.category}
+               {post.tags && post.tags.map((tag, i) => (
+                 <span key={i} className="px-3 py-1.5 bg-yellow-50 border border-yellow-200 rounded-lg text-[10px] font-bold text-yellow-600 uppercase tracking-widest">
+                    #{tag}
                  </span>
-               )}
+               ))}
             </div>
 
             <div className="pt-6 border-t border-hairline">
@@ -230,7 +264,14 @@ export default function NewsDetail() {
               <div className="space-y-4">
                 {comments.length > 0 ? (
                   comments.map((comment) => (
-                    <CommentItem key={comment.id} comment={comment} />
+                    <CommentItem
+                      key={comment.id}
+                      comment={comment}
+                      currentUserId={user?.id}
+                      onLikeChange={handleCommentLikeChange}
+                      onAfterLike={fetchComments}
+                      onReply={handleReply}
+                    />
                   ))
                 ) : (
                   <div className="py-16 text-center bg-surface-soft rounded-3xl border border-dashed border-hairline">
@@ -278,6 +319,7 @@ export default function NewsDetail() {
 
           <div className="flex items-center gap-3 mt-4 bg-surface-soft rounded-2xl px-4 py-2.5 border border-hairline focus-within:border-primary/40 focus-within:bg-white transition-all">
             <textarea
+              ref={commentInputRef}
               value={commentText}
               onChange={(e) => setCommentText(e.target.value)}
               placeholder="写评论..."

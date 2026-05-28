@@ -28,7 +28,9 @@ import { useChat } from '../context/ChatContext';
 import { useAuth } from '../context/AuthContext';
 import { useNotification } from '../context/NotificationContext';
 import { useToast } from '../context/ToastContext';
+import { useAuthCheck } from '../context/useAuthCheck';
 import { serviceApi, userApi, favoriteApi, notificationApi, chatApi, reviewApi } from '../services/api';
+import { getCurrentLocation } from '../utils/location';
 import { FollowButton } from '../components/common/FollowButton';
 import { ConfirmDialog } from '../components/common/ConfirmDialog';
 import { ServiceDetail as ServiceDetailType, Review } from '../types';
@@ -36,11 +38,17 @@ import { getFollowState, setFollowState } from '../utils/followStorage';
 
 function ReviewSection({ serviceId, rating }: { serviceId: string; rating: number }) {
   const [reviews, setReviews] = useState<Review[]>([]);
+  const [likedReviews, setLikedReviews] = useState<Set<string>>(new Set());
+  const [likeLoading, setLikeLoading] = useState<string | null>(null);
+  const { requireAuth } = useAuthCheck();
 
   useEffect(() => {
     const fetchReviews = async () => {
       try {
         const data = await serviceApi.getReviews(serviceId);
+        // 从 API 数据初始化点赞状态（如果 API 没返回 isLiked，全部设为 false）
+        const likedIds = data.filter((r: Review) => r.isLiked).map((r: Review) => r.id);
+        setLikedReviews(new Set(likedIds));
         setReviews(data);
       } catch (err) {
         console.error('获取评价失败', err);
@@ -49,12 +57,50 @@ function ReviewSection({ serviceId, rating }: { serviceId: string; rating: numbe
     fetchReviews();
   }, [serviceId]);
 
-  const handleLike = async (reviewId: string, currentLikes: number) => {
+  const handleLike = async (reviewId: string) => {
+    const ok = requireAuth();
+    if (!ok) return;
+
+    if (likeLoading === reviewId) return;
+
+    const wasLiked = likedReviews.has(reviewId);
+    const prevReviews = reviews;
+    setLikeLoading(reviewId);
+
+    // 乐观更新
+    setLikedReviews(prev => {
+      const next = wasLiked
+        ? new Set([...prev].filter(id => id !== reviewId))
+        : new Set([...prev, reviewId]);
+      localStorage.setItem(`liked_reviews_${serviceId}`, JSON.stringify([...next]));
+      return next;
+    });
+    setReviews(prev =>
+      prev.map(r =>
+        r.id === reviewId
+          ? { ...r, likes: wasLiked ? Math.max(0, r.likes - 1) : r.likes + 1 }
+          : r
+      )
+    );
+
     try {
-      await reviewApi.likeReview(reviewId);
-      setReviews(prev => prev.map(r => r.id === reviewId ? { ...r, likes: currentLikes + 1 } : r));
-    } catch (err) {
-      console.error('点赞失败', err);
+      if (wasLiked) {
+        await reviewApi.unlikeReview(reviewId);
+      } else {
+        await reviewApi.likeReview(reviewId);
+      }
+    } catch {
+      // 回滚：用 functional update 确保拿到的是点击前的状态
+      setLikedReviews(prev => {
+        const next = wasLiked
+          ? new Set([...prev, reviewId])
+          : new Set([...prev].filter(id => id !== reviewId));
+        localStorage.setItem(`liked_reviews_${serviceId}`, JSON.stringify([...next]));
+        return next;
+      });
+      setReviews(prevReviews);
+    } finally {
+      setLikeLoading(null);
     }
   };
 
@@ -100,10 +146,11 @@ function ReviewSection({ serviceId, rating }: { serviceId: string; rating: numbe
                   </div>
                 </div>
                 <button
-                  onClick={() => handleLike(review.id, review.likes)}
-                  className="flex items-center gap-2 text-xs font-black text-muted hover:text-primary transition-colors group"
+                  onClick={() => handleLike(review.id)}
+                  disabled={likeLoading === review.id}
+                  className={`flex items-center gap-2 text-xs font-black transition-colors group ${likedReviews.has(review.id) ? 'text-primary' : 'text-muted hover:text-primary'}`}
                 >
-                  <ThumbsUp className="w-4 h-4 group-hover:-translate-y-0.5 transition-transform" />
+                  <ThumbsUp className={`w-4 h-4 group-hover:-translate-y-0.5 transition-transform ${likedReviews.has(review.id) ? 'fill-primary' : ''}`} />
                   <span>{review.likes}</span>
                 </button>
               </div>
@@ -153,6 +200,14 @@ export default function ServiceDetail() {
     setIsFollowing(newState);
   };
 
+  const handleBack = () => {
+    if (fromProfile) {
+      navigate(-1);
+      return;
+    }
+    navigate('/service');
+  };
+
   const handleToggleFavorite = async () => {
     if (!service || !user?.id) {
       showToast('请先登录', 'warning');
@@ -175,7 +230,8 @@ export default function ServiceDetail() {
   useEffect(() => {
     const fetchService = async () => {
       try {
-        const data = await serviceApi.get(id);
+        const location = await getCurrentLocation();
+        const data = await serviceApi.get(id, location?.latitude, location?.longitude);
         setService(data);
         const currentUser = JSON.parse(localStorage.getItem('neighborhood_user') || '{}');
         const sid = data.seller?.id || (data as any).sellerId;
@@ -268,7 +324,7 @@ export default function ServiceDetail() {
       <div className="min-h-screen flex items-center justify-center">
         <div className="text-center">
           <p className="text-muted mb-4 font-bold">{error || '服务不存在'}</p>
-          <button onClick={() => navigate(fromProfile ? -1 : '/service')} className="px-8 py-3 bg-primary text-white rounded-2xl font-black">
+          <button onClick={handleBack} className="px-8 py-3 bg-primary text-white rounded-2xl font-black">
             返回服务列表
           </button>
         </div>
@@ -291,6 +347,7 @@ export default function ServiceDetail() {
 
   const categoryName = getCategoryName(service.category);
   const totalPrice = (service.price * (duration / 4)) + 20;
+  const serviceImages = Array.isArray(service.images) ? service.images : [];
 
   return (
     <div className="bg-[#fcfdff] min-h-screen pb-20">
@@ -329,7 +386,7 @@ export default function ServiceDetail() {
       </AnimatePresence>
 
       <div className="sticky top-0 z-30 flex items-center justify-between px-6 py-4 bg-white/80 backdrop-blur-md border-b border-hairline md:hidden">
-        <button onClick={() => navigate(fromProfile ? -1 : -1)} className="p-2 bg-surface-soft rounded-xl">
+        <button onClick={() => navigate(-1)} className="p-2 bg-surface-soft rounded-xl">
           <ChevronLeft className="w-5 h-5 text-ink" />
         </button>
         <div className="flex items-center gap-2">
@@ -346,7 +403,7 @@ export default function ServiceDetail() {
       <div className="bg-white border-b border-hairline py-6 hidden md:block">
         <div className="max-w-[1200px] mx-auto px-6 flex items-center justify-between">
           <div className="flex items-center gap-3">
-             <button onClick={() => navigate(fromProfile ? -1 : '/service')} className="p-2 hover:bg-surface-soft rounded-xl transition-colors">
+             <button onClick={handleBack} className="p-2 hover:bg-surface-soft rounded-xl transition-colors">
                <ChevronLeft className="w-6 h-6" />
              </button>
              <div className="flex items-center gap-2 text-xs font-black text-muted uppercase tracking-widest">
@@ -400,16 +457,16 @@ export default function ServiceDetail() {
               </div>
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-12 gap-4 h-[400px] md:h-[540px]">
-              <div className="md:col-span-8 h-full rounded-[48px] overflow-hidden shadow-2xl shadow-ink/5 border border-hairline group">
-                <img src={(service.images && service.images[0]) || undefined} className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110" alt="Main" />
+            <div className="relative z-0 grid grid-cols-1 gap-4 md:grid-cols-12">
+              <div className="md:col-span-8 aspect-[9/10] rounded-[48px] overflow-hidden shadow-2xl shadow-ink/5 border border-hairline">
+                <img src={serviceImages[0] || undefined} className="w-full h-full object-cover" alt="Main" />
               </div>
-              <div className="md:col-span-4 grid grid-rows-2 gap-4 h-full">
-                <div className="rounded-[32px] overflow-hidden border border-hairline group">
-                  <img src={(service.images && service.images[Math.min(1, service.images.length - 1)]) || (service.images && service.images[0]) || undefined} className="w-full h-full object-cover group-hover:scale-110 transition-transform" alt="Detail 1" />
+              <div className="grid grid-cols-2 gap-4 md:col-span-4 md:grid-cols-1">
+                <div className="aspect-[9/10] rounded-[32px] overflow-hidden border border-hairline">
+                  <img src={serviceImages[Math.min(1, serviceImages.length - 1)] || serviceImages[0] || undefined} className="w-full h-full object-cover" alt="Detail 1" />
                 </div>
-                <div className="relative rounded-[32px] overflow-hidden border border-hairline group cursor-pointer">
-                  <img src={(service.images && service.images[Math.min(2, service.images.length - 1)]) || (service.images && service.images[0]) || undefined} className="w-full h-full object-cover group-hover:scale-110 transition-transform" alt="Detail 2" />
+                <div className="relative aspect-[9/10] rounded-[32px] overflow-hidden border border-hairline cursor-pointer">
+                  <img src={serviceImages[Math.min(2, serviceImages.length - 1)] || serviceImages[0] || undefined} className="w-full h-full object-cover" alt="Detail 2" />
                   <div className="absolute inset-x-4 bottom-4 px-4 py-3 bg-white/90 backdrop-blur-md rounded-2xl flex items-center justify-center gap-2 font-black text-xs shadow-xl">
                     <Sparkles className="w-4 h-4" /> 查看全景
                   </div>
@@ -417,7 +474,7 @@ export default function ServiceDetail() {
               </div>
             </div>
 
-            <div className="p-8 bg-white border border-hairline rounded-[40px] shadow-sm flex flex-col md:flex-row items-center gap-8 group">
+            <div className="relative z-10 p-8 bg-white border border-hairline rounded-[40px] shadow-sm flex flex-col md:flex-row items-center gap-8 group">
               <div className="relative shrink-0">
                 <img src={service.seller?.avatar || undefined} alt="Seller" className="w-24 h-24 rounded-[32px] object-cover border-4 border-white shadow-xl group-hover:rotate-6 transition-transform" />
                 <div className="absolute -bottom-2 -right-2 bg-blue-500 text-white p-1.5 rounded-xl border-4 border-white shadow-lg">

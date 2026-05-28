@@ -40,6 +40,8 @@ public class NewsVO {
     private Boolean isLiked;
     private Boolean isFavorited;
     private Boolean isFollowing;
+    // 解析出的标签
+    private List<String> tags;
 
     public static NewsVO fromNews(News news, User author) {
         NewsVO vo = new NewsVO();
@@ -63,6 +65,16 @@ public class NewsVO {
             vo.setAuthorTag(author.getTag());
             vo.setAuthorVerified(author.getIsVerified());
             vo.setAuthorFollowersCount(author.getFollowersCount());
+        }
+
+        // 解析内容中的 #话题# 标签
+        if (news.getContent() != null) {
+            java.util.List<String> tagList = new java.util.ArrayList<>();
+            java.util.regex.Matcher matcher = java.util.regex.Pattern.compile("#([^#]+)#").matcher(news.getContent());
+            while (matcher.find()) {
+                tagList.add(matcher.group(1));
+            }
+            vo.setTags(tagList);
         }
         return vo;
     }

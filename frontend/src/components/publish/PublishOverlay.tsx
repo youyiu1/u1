@@ -15,10 +15,12 @@ import {
   ChevronLeft,
   Send,
   CheckCircle2,
-  ChevronDown
+  ChevronDown,
+  MapPin
 } from 'lucide-react';
 import { newsApi, marketApi, serviceApi, fileApi } from '../../services/api';
 import { useAuth } from '../../context/AuthContext';
+import { LocationPicker } from '../common/LocationPicker';
 
 const PUBLISH_OPTIONS = [
   {
@@ -64,6 +66,10 @@ const SERVICE_CATEGORIES = [
   { value: 'other', label: '其他服务' },
 ];
 
+const SERVICE_HIGHLIGHTS = [
+  '4小时', '8小时', '自备工具', '环保药剂', '上门服务', '品质保障'
+];
+
 const MARKET_CATEGORIES = [
   { value: 'tech', label: '数码' },
   { value: 'home', label: '家居' },
@@ -88,7 +94,10 @@ export const PublishOverlay: React.FC<PublishOverlayProps> = ({ isOpen, onClose,
   const [newsType, setNewsType] = useState('生活记录');
   const [serviceCategory, setServiceCategory] = useState('domestic');
   const [serviceUnit, setServiceUnit] = useState('次');
-  const [marketCategory, setMarketCategory] = useState('market');
+  const [serviceHighlights, setServiceHighlights] = useState<string[]>([]);
+  const [marketCategory, setMarketCategory] = useState('tech');
+  const [publishLocation, setPublishLocation] = useState('');
+  const [locationPickerOpen, setLocationPickerOpen] = useState(false);
   const [content, setContent] = useState('');
   const [images, setImages] = useState<string[]>([]);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -123,6 +132,7 @@ export const PublishOverlay: React.FC<PublishOverlayProps> = ({ isOpen, onClose,
           content: content,
           category: newsType,
           images: uploadedUrls,
+          location: publishLocation,
         });
       } else if (selectedId === 'market') {
         await marketApi.create({
@@ -132,6 +142,7 @@ export const PublishOverlay: React.FC<PublishOverlayProps> = ({ isOpen, onClose,
           description: content,
           category: marketCategory,
           images: uploadedUrls,
+          location: publishLocation,
         } as any);
       } else if (selectedId === 'service') {
         // 个人互助 - 作为服务发布
@@ -142,6 +153,8 @@ export const PublishOverlay: React.FC<PublishOverlayProps> = ({ isOpen, onClose,
           category: serviceCategory,
           unit: serviceUnit,
           images: uploadedUrls,
+          highlights: serviceHighlights,
+          distance: publishLocation,
         } as any);
       } else if (selectedId === 'snap') {
         // 随手拍 - 作为同城动态发布
@@ -150,6 +163,7 @@ export const PublishOverlay: React.FC<PublishOverlayProps> = ({ isOpen, onClose,
           content: content,
           category: '随手拍',
           images: uploadedUrls,
+          location: publishLocation,
         });
       }
       setIsSuccess(true);
@@ -171,7 +185,9 @@ export const PublishOverlay: React.FC<PublishOverlayProps> = ({ isOpen, onClose,
     setNewsType('生活记录');
     setServiceCategory('domestic');
     setServiceUnit('次');
+    setServiceHighlights([]);
     setMarketCategory('tech');
+    setPublishLocation('');
     setContent('');
     setImages([]);
     setIsSuccess(false);
@@ -365,10 +381,21 @@ export const PublishOverlay: React.FC<PublishOverlayProps> = ({ isOpen, onClose,
                                     )}
                                   </div>
                                </div>
+                               <div className="flex items-center gap-2">
+                                  <span className="text-[10px] font-black text-muted uppercase tracking-widest">位置:</span>
+                                  <button
+                                    onClick={() => setLocationPickerOpen(true)}
+                                    className="flex items-center gap-2 px-3 py-1 rounded-lg text-[10px] font-bold bg-white border border-hairline hover:border-primary/30 transition-all"
+                                  >
+                                   <MapPin className="w-3 h-3" />
+                                   {publishLocation || '选择位置'}
+                                  </button>
+                               </div>
                             </div>
                           )}
 
                           {selectedId === 'service' && (
+                            <>
                             <div className="flex flex-wrap gap-4 border-b border-hairline pb-4">
                                <div className="flex items-center gap-2 pr-4 border-r border-hairline">
                                   <span className="text-lg font-black text-ink">¥</span>
@@ -422,14 +449,44 @@ export const PublishOverlay: React.FC<PublishOverlayProps> = ({ isOpen, onClose,
                                   </div>
                                </div>
                             </div>
+                            <div className="flex items-center gap-2">
+                               <span className="text-[10px] font-black text-muted uppercase tracking-widest">服务距离:</span>
+                               <button
+                                 onClick={() => setLocationPickerOpen(true)}
+                                 className="flex items-center gap-2 px-3 py-1 rounded-lg text-[10px] font-bold bg-white border border-hairline hover:border-primary/30 transition-all"
+                               >
+                                <MapPin className="w-3 h-3" />
+                                {publishLocation || '选择距离'}
+                               </button>
+                            </div>
+                            <div className="flex items-start gap-2 border-t border-dashed border-hairline pt-4 mt-4">
+                               <span className="text-[10px] font-black text-muted uppercase tracking-widest pt-1">服务特点:</span>
+                               <div className="flex flex-wrap gap-2">
+                                  {SERVICE_HIGHLIGHTS.map(h => (
+                                    <button
+                                      key={h}
+                                      onClick={() => setServiceHighlights(prev =>
+                                        prev.includes(h) ? prev.filter(x => x !== h) : [...prev, h]
+                                      )}
+                                      className={`px-3 py-1 rounded-lg text-[10px] font-bold transition-all ${
+                                        serviceHighlights.includes(h) ? 'bg-accent-green text-white shadow-md' : 'bg-white text-muted border border-hairline'
+                                      }`}
+                                    >
+                                      {h}
+                                    </button>
+                                  ))}
+                               </div>
+                            </div>
+                            </>
                           )}
 
                           {selectedId === 'news' && (
+                            <>
                             <div className="flex items-center gap-4 border-b border-hairline pb-4 overflow-x-auto no-scrollbar py-1">
                                <span className="text-[10px] font-black text-muted uppercase tracking-widest whitespace-nowrap">分类标签:</span>
                                <div className="flex gap-2">
                                   {['生活记录', '同城发现', '探店动态', '邻里闲情', '物业反馈'].map(t => (
-                                    <button 
+                                    <button
                                       key={t}
                                       onClick={() => setNewsType(t)}
                                       className={`px-4 py-1.5 rounded-xl text-[10px] font-black uppercase tracking-widest whitespace-nowrap transition-all ${
@@ -441,6 +498,17 @@ export const PublishOverlay: React.FC<PublishOverlayProps> = ({ isOpen, onClose,
                                   ))}
                                </div>
                             </div>
+                            <div className="flex items-center gap-2">
+                               <span className="text-[10px] font-black text-muted uppercase tracking-widest">位置:</span>
+                               <button
+                                 onClick={() => setLocationPickerOpen(true)}
+                                 className="flex items-center gap-2 px-3 py-1 rounded-lg text-[10px] font-bold bg-white border border-hairline hover:border-primary/30 transition-all"
+                               >
+                                <MapPin className="w-3 h-3" />
+                                {publishLocation || '选择位置'}
+                               </button>
+                            </div>
+                            </>
                           )}
 
                           
@@ -455,6 +523,19 @@ export const PublishOverlay: React.FC<PublishOverlayProps> = ({ isOpen, onClose,
                             className={`w-full bg-transparent border-none p-0 focus:ring-0 text-lg font-medium placeholder:text-muted/40 resize-none ${selectedId === 'snap' ? 'min-h-[150px]' : 'min-h-[120px]'}`}
                           />
                        </div>
+
+                       {selectedId === 'snap' && (
+                         <div className="flex items-center gap-2 mb-4">
+                            <span className="text-[10px] font-black text-muted uppercase tracking-widest">位置:</span>
+                            <button
+                              onClick={() => setLocationPickerOpen(true)}
+                              className="flex items-center gap-2 px-3 py-1 rounded-lg text-[10px] font-bold bg-white border border-hairline hover:border-primary/30 transition-all"
+                            >
+                             <MapPin className="w-3 h-3" />
+                             {publishLocation || '选择位置'}
+                            </button>
+                         </div>
+                       )}
 
                        <div className="flex items-center justify-between gap-4">
                           <div className="flex items-center gap-2">
@@ -533,6 +614,12 @@ export const PublishOverlay: React.FC<PublishOverlayProps> = ({ isOpen, onClose,
           </motion.div>
         </div>
       )}
+
+      <LocationPicker
+        isOpen={locationPickerOpen}
+        onClose={() => setLocationPickerOpen(false)}
+        onSelect={(loc) => setPublishLocation(loc.name)}
+      />
     </AnimatePresence>
   );
 };

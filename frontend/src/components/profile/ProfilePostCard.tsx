@@ -10,6 +10,16 @@ interface ProfilePostCardProps {
   onDelete?: (postId: string) => void;
 }
 
+// 解析 images（可能是 JSON 字符串或数组）
+const getImages = (imgs: any): string[] => {
+  if (!imgs) return [];
+  if (Array.isArray(imgs)) return imgs;
+  if (typeof imgs === 'string' && imgs.startsWith('[')) {
+    try { return JSON.parse(imgs); } catch { return []; }
+  }
+  return [];
+};
+
 // 格式化时间显示
 const formatTime = (timeStr: string | undefined) => {
   if (!timeStr) return '';
@@ -44,9 +54,9 @@ export const ProfilePostCard: React.FC<ProfilePostCardProps> = ({ post, currentU
           </p>
         </div>
         {/* 图片缩略图 */}
-        {post.images && post.images.length > 0 && post.images[0] && (
+        {getImages(post.images).length > 0 && getImages(post.images)[0] && (
           <div className="w-16 h-16 rounded-xl overflow-hidden shrink-0 border border-hairline/50">
-            <img src={post.images[0]} className="w-full h-full object-cover" alt="" />
+            <img src={getImages(post.images)[0]} className="w-full h-full object-cover" alt="" />
           </div>
         )}
         {/* 删除按钮 */}

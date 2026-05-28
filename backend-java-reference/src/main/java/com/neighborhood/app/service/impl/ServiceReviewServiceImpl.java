@@ -70,12 +70,12 @@ public class ServiceReviewServiceImpl extends ServiceImpl<ServiceReviewMapper, S
     }
 
     @Override
-    public boolean likeReview(Long reviewId) {
-        return reviewLikeService.like(reviewId, null);
+    public boolean likeReview(Long reviewId, String userId) {
+        return reviewLikeService.like(reviewId, userId);
     }
 
     @Override
-    public boolean unlikeReview(Long reviewId) {
-        return reviewLikeService.unlike(reviewId, null);
+    public boolean unlikeReview(Long reviewId, String userId) {
+        return reviewLikeService.unlike(reviewId, userId);
     }
 }

@@ -27,6 +27,7 @@ import { useToast } from '../context/ToastContext';
 import { FollowButton } from '../components/common/FollowButton';
 import { Item } from '../types';
 import { getFollowState, setFollowState } from '../utils/followStorage';
+import { parseImages } from '../utils/images';
 
 const categoryMap: Record<string, string> = {
   'domestic': '家政服务',
@@ -70,6 +71,14 @@ export default function ItemDetail() {
 
   const handleFollowChange = (newState: boolean) => {
     setIsFollowing(newState);
+  };
+
+  const handleBack = () => {
+    if (fromProfile) {
+      navigate(-1);
+      return;
+    }
+    navigate('/market');
   };
 
   const handleToggleFavorite = async () => {
@@ -138,7 +147,7 @@ export default function ItemDetail() {
       <div className="min-h-screen flex items-center justify-center">
         <div className="text-center">
           <p className="text-muted mb-4 font-bold">{error || '商品不存在'}</p>
-          <button onClick={() => navigate(fromProfile ? -1 : '/market')} className="px-8 py-3 bg-primary text-white rounded-2xl font-black">
+          <button onClick={handleBack} className="px-8 py-3 bg-primary text-white rounded-2xl font-black">
             返回闲置市场
           </button>
         </div>
@@ -146,17 +155,9 @@ export default function ItemDetail() {
     );
   }
 
-  // 解析images JSON字符串为数组
-  const getImages = (imgs: any): string[] => {
-    if (Array.isArray(imgs)) return imgs;
-    if (typeof imgs === 'string' && imgs.startsWith('[')) {
-      try { return JSON.parse(imgs); } catch { return []; }
-    }
-    return [];
-  };
-
   const categoryName = categoryMap[item.category] || item.category;
-  const images = getImages(item.images);
+  const images = parseImages(item.images);
+  const activeImage = images[activeImg] || images[0] || item.image || '';
 
   return (
     <div className="bg-[#fcfdff] min-h-screen pb-20">
@@ -178,7 +179,7 @@ export default function ItemDetail() {
       <div className="bg-white border-b border-hairline py-6 hidden md:block">
         <div className="max-w-[1280px] mx-auto px-6 flex items-center justify-between">
           <div className="flex items-center gap-3">
-             <button onClick={() => navigate(fromProfile ? -1 : '/market')} className="p-2 hover:bg-surface-soft rounded-xl transition-colors">
+             <button onClick={handleBack} className="p-2 hover:bg-surface-soft rounded-xl transition-colors">
                <ChevronLeft className="w-6 h-6" />
              </button>
              <div className="flex items-center gap-2 text-xs font-black text-muted uppercase tracking-widest">
@@ -215,7 +216,7 @@ export default function ItemDetail() {
                     animate={{ opacity: 1, scale: 1 }}
                     exit={{ opacity: 0, scale: 0.95 }}
                     transition={{ duration: 0.4 }}
-                    src={images[activeImg % images.length] || undefined}
+                    src={activeImage || undefined}
                     className="w-full h-full object-cover"
                     alt="Main"
                   />

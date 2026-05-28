@@ -3,11 +3,11 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import React, { useState, useEffect } from 'react';
-import { MessageSquare, Share2, MoreHorizontal, MapPin, Image as ImageIcon, TrendingUp, Users } from 'lucide-react';
+import React, { useState, useEffect, useRef } from 'react';
+import { MessageSquare, Share2, MoreHorizontal, MapPin, Image as ImageIcon, TrendingUp, Users, X, Loader2 } from 'lucide-react';
 import { motion } from 'motion/react';
 import { useNavigate } from 'react-router-dom';
-import { newsApi, userApi } from '../services/api';
+import { newsApi, userApi, fileApi } from '../services/api';
 import { FollowButton } from '../components/common/FollowButton';
 import { BackToTop } from '../components/common/BackToTop';
 import { PostItemActions } from '../components/common/PostItemActions';
@@ -16,6 +16,7 @@ import { Post, User } from '../types';
 import { getFollowState, setFollowState } from '../utils/followStorage';
 import { useToast } from '../context/ToastContext';
 import { useAuth } from '../context/AuthContext';
+import { LocationPicker } from '../components/common/LocationPicker';
 
 export default function News() {
   const navigate = useNavigate();
@@ -24,6 +25,11 @@ export default function News() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [postText, setPostText] = useState('');
+  const [postImages, setPostImages] = useState<string[]>([]);
+  const [isUploading, setIsUploading] = useState(false);
+  const [showLocationPicker, setShowLocationPicker] = useState(false);
+  const [postLocation, setPostLocation] = useState('');
+  const imageInputRef = useRef<HTMLInputElement>(null);
   const { showToast } = useToast();
   const [trending, setTrending] = useState<Array<{id: string, name: string, posts: string}>>([]);
   const [suggestedUsers, setSuggestedUsers] = useState<Array<{id: string, name: string, avatar: string, tag: string, followersCount: number, isFollowing: boolean}>>([]);
@@ -35,6 +41,27 @@ export default function News() {
       try { return JSON.parse(imgs); } catch { return []; }
     }
     return [];
+  };
+
+  // 解析内容中的 #话题# 标签
+  const parseContentWithHashtags = (content: string): React.ReactNode => {
+    const hashtagRegex = /#([^#]+)#/g;
+    const parts: React.ReactNode[] = [];
+    let lastIndex = 0;
+    let match;
+    while ((match = hashtagRegex.exec(content)) !== null) {
+      if (match.index > lastIndex) {
+        parts.push(content.slice(lastIndex, match.index));
+      }
+      parts.push(
+        <span key={match.index} className="text-yellow-500 font-black">{match[0]}</span>
+      );
+      lastIndex = match.index + match[0].length;
+    }
+    if (lastIndex < content.length) {
+      parts.push(content.slice(lastIndex));
+    }
+    return parts.length > 0 ? <>{parts}</> : content;
   };
 
   const handleSuggestedFollowChange = async (userId: string, newState: boolean) => {
@@ -117,13 +144,37 @@ export default function News() {
         title: postText.slice(0, 50),
         content: postText,
         category: '生活记录',
+        images: postImages.length > 0 ? JSON.stringify(postImages) : undefined,
+        location: postLocation || undefined,
       });
       setPostText('');
+      setPostImages([]);
+      setPostLocation('');
       const data = await newsApi.list();
       setPosts(data);
     } catch (err: any) {
       alert(err.message || '发布失败');
     }
+  };
+
+  const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setIsUploading(true);
+    try {
+      const url = await fileApi.upload(file);
+      setPostImages(prev => [...prev, url]);
+      showToast('图片上传成功', 'success');
+    } catch (err: any) {
+      showToast(err.message || '图片上传失败', 'error');
+    } finally {
+      setIsUploading(false);
+      if (imageInputRef.current) imageInputRef.current.value = '';
+    }
+  };
+
+  const removeImage = (index: number) => {
+    setPostImages(prev => prev.filter((_, i) => i !== index));
   };
 
   return (
@@ -139,22 +190,74 @@ export default function News() {
             <div className="bg-white border border-hairline rounded-3xl p-6 shadow-sm">
               <div className="flex gap-4">
                 <div className="w-12 h-12 rounded-2xl bg-surface-soft overflow-hidden border border-hairline shrink-0">
-                  <img src="https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&q=80&w=100" className="w-full h-full object-cover" alt="User avatar" />
+                  {currentUser?.avatar ? (
+                    <img src={currentUser.avatar} className="w-full h-full object-cover" alt="User avatar" />
+                  ) : (
+                    <div className="w-full h-full bg-primary/10 flex items-center justify-center text-primary font-black text-lg">
+                      {(currentUser?.name || '?')[0]}
+                    </div>
+                  )}
                 </div>
                 <div className="flex-1 space-y-4">
                   <textarea
                     value={postText}
                     onChange={(e) => setPostText(e.target.value)}
-                    placeholder="分享你的邻里发现..."
+                    placeholder="分享你的邻里发现... 输入#话题#添加标签"
                     className="w-full bg-transparent border-none p-2 focus:ring-0 text-sm font-medium text-ink placeholder:text-muted/60 resize-none min-h-[80px]"
                   />
+                  {/* 已上传图片预览 */}
+                  {postImages.length > 0 && (
+                    <div className="flex gap-2 flex-wrap">
+                      {postImages.map((url, i) => (
+                        <div key={i} className="relative w-20 h-20 rounded-xl overflow-hidden border border-hairline">
+                          <img src={url} className="w-full h-full object-cover" alt="Preview" />
+                          <button
+                            onClick={() => removeImage(i)}
+                            className="absolute top-1 right-1 p-1 bg-ink/60 text-white rounded-full hover:bg-red-500 transition-colors"
+                          >
+                            <X className="w-3 h-3" />
+                          </button>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                  {/* 地点展示 */}
+                  {postLocation && (
+                    <div className="flex items-center gap-2 bg-surface-soft rounded-xl px-3 py-2">
+                      <MapPin className="w-4 h-4 text-primary" />
+                      <span className="flex-1 text-xs font-medium text-ink">{postLocation}</span>
+                      <button onClick={() => setPostLocation('')} className="p-1 hover:bg-white rounded-full transition-colors">
+                        <X className="w-3 h-3 text-muted" />
+                      </button>
+                    </div>
+                  )}
                   <div className="flex items-center justify-between pt-4 border-t border-hairline">
                     <div className="flex items-center gap-3">
-                       <button className="flex items-center gap-1.5 p-2 hover:bg-surface-soft rounded-xl transition-all">
-                         <ImageIcon className="w-4 h-4 text-green-500" />
+                       <button
+                         onClick={() => setPostText(prev => prev + '#话题#')}
+                         className="flex items-center gap-1.5 p-2 hover:bg-surface-soft rounded-xl transition-all"
+                       >
+                         <span className="text-xs font-bold text-muted">#</span>
+                       </button>
+                       <input
+                         ref={imageInputRef}
+                         type="file"
+                         accept="image/*"
+                         onChange={handleImageUpload}
+                         className="hidden"
+                       />
+                       <button
+                         onClick={() => imageInputRef.current?.click()}
+                         disabled={isUploading}
+                         className="flex items-center gap-1.5 p-2 hover:bg-surface-soft rounded-xl transition-all disabled:opacity-50"
+                       >
+                         {isUploading ? <Loader2 className="w-4 h-4 text-green-500 animate-spin" /> : <ImageIcon className="w-4 h-4 text-green-500" />}
                          <span className="text-xs font-bold text-muted">图片</span>
                        </button>
-                       <button className="flex items-center gap-1.5 p-2 hover:bg-surface-soft rounded-xl transition-all">
+                       <button
+                         onClick={() => setShowLocationPicker(true)}
+                         className="flex items-center gap-1.5 p-2 hover:bg-surface-soft rounded-xl transition-all"
+                       >
                          <MapPin className="w-4 h-4 text-primary" />
                          <span className="text-xs font-bold text-muted">地点</span>
                        </button>
@@ -241,7 +344,7 @@ export default function News() {
 
                     <div className="space-y-4">
                       <p className="text-sm text-secondary font-medium leading-relaxed group-hover:text-ink transition-colors">
-                        {post.content}
+                        {parseContentWithHashtags(post.content)}
                       </p>
 
                       {(getImages(post.images) || []).length > 0 && (
@@ -315,6 +418,11 @@ export default function News() {
         </div>
       </div>
       <BackToTop />
+      <LocationPicker
+        isOpen={showLocationPicker}
+        onClose={() => setShowLocationPicker(false)}
+        onSelect={(location) => setPostLocation(location.name)}
+      />
     </div>
   );
 }

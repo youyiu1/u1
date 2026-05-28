@@ -30,4 +30,6 @@ public class User {
     private String profileVisible = "public";  // public/friends
     private String postsVisible = "public";      // public/friends
     private Boolean showLocation = true;         // 是否显示位置
+    private Double latitude;                      // 用户纬度
+    private Double longitude;                    // 用户经度
 }

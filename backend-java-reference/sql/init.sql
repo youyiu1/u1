@@ -82,6 +82,7 @@ CREATE TABLE t_comment (
     user_name VARCHAR(50) NOT NULL COMMENT '用户名',
     user_avatar VARCHAR(255) DEFAULT '' COMMENT '用户头像',
     content TEXT NOT NULL COMMENT '评论内容',
+    likes INT DEFAULT 0 COMMENT '点赞数',
     create_time DATETIME DEFAULT CURRENT_TIMESTAMP,
     INDEX idx_news_id (news_id),
     INDEX idx_user_id (user_id),
@@ -91,6 +92,20 @@ CREATE TABLE t_comment (
 -- ================================================
 -- 闲置物品表
 -- ================================================
+-- ================================================
+-- 评论点赞表
+-- ================================================
+DROP TABLE IF EXISTS t_comment_like;
+CREATE TABLE t_comment_like (
+    id BIGINT PRIMARY KEY AUTO_INCREMENT COMMENT '评论点赞ID',
+    comment_id BIGINT NOT NULL COMMENT '评论ID',
+    user_id VARCHAR(64) NOT NULL COMMENT '用户ID',
+    create_time DATETIME DEFAULT CURRENT_TIMESTAMP,
+    UNIQUE KEY uk_comment_user (comment_id, user_id),
+    INDEX idx_comment_id (comment_id),
+    INDEX idx_user_id (user_id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='评论点赞表';
+
 DROP TABLE IF EXISTS t_market_item;
 CREATE TABLE t_market_item (
     id BIGINT PRIMARY KEY AUTO_INCREMENT COMMENT '物品ID',

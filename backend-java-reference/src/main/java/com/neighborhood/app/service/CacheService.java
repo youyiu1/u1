@@ -36,6 +36,16 @@ public interface CacheService {
     void removeNewsLike(Long newsId, String userId);
     boolean isNewsLiked(Long newsId, String userId);
 
+    // ========== 评价点赞相关 ==========
+    void addReviewLike(Long reviewId, String userId);
+    void removeReviewLike(Long reviewId, String userId);
+    boolean isReviewLiked(Long reviewId, String userId);
+
+    // ========== 评论点赞相关 ==========
+    void addCommentLike(Long commentId, String userId);
+    void removeCommentLike(Long commentId, String userId);
+    boolean isCommentLiked(Long commentId, String userId);
+
     // ========== 收藏相关 ==========
     void addFavorite(String userId, String targetType, Long targetId);
     void removeFavorite(String userId, String targetType, Long targetId);

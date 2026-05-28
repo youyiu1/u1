@@ -1,5 +1,8 @@
+D:\下载文件\同城生活\backend-java-reference\src\main\java\com\neighborhood\app\utils\DistanceUtil.java
+D:\下载文件\同城生活\backend-java-reference\src\main\java\com\neighborhood\app\entity\Order.java
 D:\下载文件\同城生活\backend-java-reference\src\main\java\com\neighborhood\app\service\SearchService.java
 D:\下载文件\同城生活\backend-java-reference\src\main\java\com\neighborhood\app\config\JacksonConfig.java
+D:\下载文件\同城生活\backend-java-reference\src\main\java\com\neighborhood\app\common\SpringContext.java
 D:\下载文件\同城生活\backend-java-reference\src\main\java\com\neighborhood\app\controller\SearchController.java
 D:\下载文件\同城生活\backend-java-reference\src\main\java\com\neighborhood\app\entity\ServiceReview.java
 D:\下载文件\同城生活\backend-java-reference\src\main\java\com\neighborhood\app\entity\NewsVO.java
@@ -7,6 +10,8 @@ D:\下载文件\同城生活\backend-java-reference\src\main\java\com\neighborhood\app\c
 D:\下载文件\同城生活\backend-java-reference\src\main\java\com\neighborhood\app\common\Result.java
 D:\下载文件\同城生活\backend-java-reference\src\main\java\com\neighborhood\app\entity\MarketItemVO.java
 D:\下载文件\同城生活\backend-java-reference\src\main\java\com\neighborhood\app\config\WebConfig.java
+D:\下载文件\同城生活\backend-java-reference\src\main\java\com\neighborhood\app\service\ReviewLikeService.java
+D:\下载文件\同城生活\backend-java-reference\src\main\java\com\neighborhood\app\service\impl\ReviewLikeServiceImpl.java
 D:\下载文件\同城生活\backend-java-reference\src\main\java\com\neighborhood\app\mapper\CategoryMapper.java
 D:\下载文件\同城生活\backend-java-reference\src\main\java\com\neighborhood\app\service\ServiceModuleService.java
 D:\下载文件\同城生活\backend-java-reference\src\main\java\com\neighborhood\app\dto\PrivacySettings.java
@@ -30,7 +35,10 @@ D:\下载文件\同城生活\backend-java-reference\src\main\java\com\neighborhood\app\c
 D:\下载文件\同城生活\backend-java-reference\src\main\java\com\neighborhood\app\service\impl\MarketServiceImpl.java
 D:\下载文件\同城生活\backend-java-reference\src\main\java\com\neighborhood\app\entity\AuthResponse.java
 D:\下载文件\同城生活\backend-java-reference\src\main\java\com\neighborhood\app\service\MarketService.java
+D:\下载文件\同城生活\backend-java-reference\src\main\java\com\neighborhood\app\service\impl\CommentLikeServiceImpl.java
 D:\下载文件\同城生活\backend-java-reference\src\main\java\com\neighborhood\app\controller\FileController.java
+D:\下载文件\同城生活\backend-java-reference\src\main\java\com\neighborhood\app\entity\ReviewLike.java
+D:\下载文件\同城生活\backend-java-reference\src\main\java\com\neighborhood\app\controller\OrderController.java
 D:\下载文件\同城生活\backend-java-reference\src\main\java\com\neighborhood\app\service\MessageService.java
 D:\下载文件\同城生活\backend-java-reference\src\main\java\com\neighborhood\app\service\impl\UserServiceImpl.java
 D:\下载文件\同城生活\backend-java-reference\src\main\java\com\neighborhood\app\entity\Booking.java
@@ -40,9 +48,14 @@ D:\下载文件\同城生活\backend-java-reference\src\main\java\com\neighborhood\app\c
 D:\下载文件\同城生活\backend-java-reference\src\main\java\com\neighborhood\app\mapper\ServiceMapper.java
 D:\下载文件\同城生活\backend-java-reference\src\main\java\com\neighborhood\app\controller\NotificationController.java
 D:\下载文件\同城生活\backend-java-reference\src\main\java\com\neighborhood\app\mapper\MarketMapper.java
+D:\下载文件\同城生活\backend-java-reference\src\main\java\com\neighborhood\app\service\OrderService.java
+D:\下载文件\同城生活\backend-java-reference\src\main\java\com\neighborhood\app\service\CommentLikeService.java
 D:\下载文件\同城生活\backend-java-reference\src\main\java\com\neighborhood\app\service\impl\SearchServiceImpl.java
 D:\下载文件\同城生活\backend-java-reference\src\main\java\com\neighborhood\app\entity\Category.java
+D:\下载文件\同城生活\backend-java-reference\src\main\java\com\neighborhood\app\service\impl\OrderServiceImpl.java
 D:\下载文件\同城生活\backend-java-reference\src\main\java\com\neighborhood\app\mapper\BookingMapper.java
+D:\下载文件\同城生活\backend-java-reference\src\main\java\com\neighborhood\app\mapper\ReviewLikeMapper.java
+D:\下载文件\同城生活\backend-java-reference\src\main\java\com\neighborhood\app\mapper\CommentLikeMapper.java
 D:\下载文件\同城生活\backend-java-reference\src\main\java\com\neighborhood\app\controller\UserController.java
 D:\下载文件\同城生活\backend-java-reference\src\main\java\com\neighborhood\app\service\CategoryService.java
 D:\下载文件\同城生活\backend-java-reference\src\main\java\com\neighborhood\app\mapper\FavoriteMapper.java
@@ -53,6 +66,7 @@ D:\下载文件\同城生活\backend-java-reference\src\main\java\com\neighborhood\app\s
 D:\下载文件\同城生活\backend-java-reference\src\main\java\com\neighborhood\app\service\impl\FavoriteServiceImpl.java
 D:\下载文件\同城生活\backend-java-reference\src\main\java\com\neighborhood\app\service\EmailService.java
 D:\下载文件\同城生活\backend-java-reference\src\main\java\com\neighborhood\app\entity\Follow.java
+D:\下载文件\同城生活\backend-java-reference\src\main\java\com\neighborhood\app\mapper\OrderMapper.java
 D:\下载文件\同城生活\backend-java-reference\src\main\java\com\neighborhood\app\service\NewsService.java
 D:\下载文件\同城生活\backend-java-reference\src\main\java\com\neighborhood\app\entity\User.java
 D:\下载文件\同城生活\backend-java-reference\src\main\java\com\neighborhood\app\controller\ServiceController.java
@@ -65,12 +79,15 @@ D:\下载文件\同城生活\backend-java-reference\src\main\java\com\neighborhood\app\s
 D:\下载文件\同城生活\backend-java-reference\src\main\java\com\neighborhood\app\service\impl\CategoryServiceImpl.java
 D:\下载文件\同城生活\backend-java-reference\src\main\java\com\neighborhood\app\util\StringUtils.java
 D:\下载文件\同城生活\backend-java-reference\src\main\java\com\neighborhood\app\entity\ServiceDetailVO.java
+D:\下载文件\同城生活\backend-java-reference\src\main\java\com\neighborhood\app\entity\CommentLike.java
+D:\下载文件\同城生活\backend-java-reference\src\main\java\com\neighborhood\app\utils\RequestUserUtil.java
 D:\下载文件\同城生活\backend-java-reference\src\main\java\com\neighborhood\app\common\ResultUtils.java
 D:\下载文件\同城生活\backend-java-reference\src\main\java\com\neighborhood\app\service\FavoriteService.java
 D:\下载文件\同城生活\backend-java-reference\src\main\java\com\neighborhood\app\service\FileService.java
 D:\下载文件\同城生活\backend-java-reference\src\main\java\com\neighborhood\app\service\impl\MessageServiceImpl.java
 D:\下载文件\同城生活\backend-java-reference\src\main\java\com\neighborhood\app\entity\UserVO.java
 D:\下载文件\同城生活\backend-java-reference\src\main\java\com\neighborhood\app\service\UserService.java
+D:\下载文件\同城生活\backend-java-reference\src\main\java\com\neighborhood\app\utils\SpringUtil.java
 D:\下载文件\同城生活\backend-java-reference\src\main\java\com\neighborhood\app\entity\SearchResult.java
 D:\下载文件\同城生活\backend-java-reference\src\main\java\com\neighborhood\app\mapper\ServiceReviewMapper.java
 D:\下载文件\同城生活\backend-java-reference\src\main\java\com\neighborhood\app\mapper\CommentMapper.java

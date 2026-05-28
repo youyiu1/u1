@@ -21,7 +21,7 @@ import {
   CheckCircle2,
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
-import { userApi, newsApi, marketApi, serviceApi, favoriteApi, orderApi } from '../services/api';
+import { userApi, newsApi, marketApi, serviceApi, favoriteApi, orderApi, reviewApi } from '../services/api';
 import { FollowButton } from '../components/common/FollowButton';
 import { ReviewDialog } from '../components/common/ReviewDialog';
 import { useAuth } from '../context/AuthContext';

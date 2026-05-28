@@ -97,6 +97,8 @@ public class AuthInterceptor implements HandlerInterceptor {
                 || path.matches("/api/news/\\d+")
                 || path.matches("/api/news/\\d+/comments")
                 || path.matches("/api/news/\\d+/like")
+                || path.matches("/api/news/comment/\\d+/like")
+                || path.matches("/api/news/comment/\\d+/unlike")
                 || path.equals("/api/news/trending")
                 || path.equals("/api/market/list")
                 || path.matches("/api/market/\\d+")

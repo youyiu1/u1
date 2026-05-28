@@ -25,9 +25,9 @@ public interface ServiceReviewService extends IService<ServiceReview> {
     /**
      * 评价点赞
      */
-    boolean likeReview(Long reviewId);
+    boolean likeReview(Long reviewId, String userId);
     /**
      * 取消评价点赞
      */
-    boolean unlikeReview(Long reviewId);
+    boolean unlikeReview(Long reviewId, String userId);
 }

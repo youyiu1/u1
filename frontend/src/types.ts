@@ -167,6 +167,7 @@ export interface Comment {
   time?: string;
   createTime?: string;
   likes?: number;
+  isLiked?: boolean;
 }
 
 export interface Post {
@@ -205,4 +206,6 @@ export interface Post {
   isLiked?: boolean;
   isFavorited?: boolean;
   isFollowing?: boolean;
+  // 解析出的标签
+  tags?: string[];
 }

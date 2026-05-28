@@ -9,6 +9,7 @@ import { MapPin, Star, Trash2 } from 'lucide-react';
 import { Post, Item, Service } from '../../types';
 import { favoriteApi } from '../../services/api';
 import { useToast } from '../../context/ToastContext';
+import { getPrimaryImage, parseImages } from '../../utils/images';
 
 interface ProfileFavoriteItemProps {
   favorite: {
@@ -29,14 +30,6 @@ export const ProfileFavoriteItem: React.FC<ProfileFavoriteItemProps> = ({ favori
   const isNews = favorite.targetType === 'news';
   const isService = favorite.targetType === 'service';
   const isMarket = favorite.targetType === 'market';
-
-  const getImages = (imgs: any): string[] => {
-    if (Array.isArray(imgs)) return imgs;
-    if (typeof imgs === 'string' && imgs.startsWith('[')) {
-      try { return JSON.parse(imgs); } catch { return []; }
-    }
-    return [];
-  };
 
   const handleUnfavorite = async (e: React.MouseEvent) => {
     e.stopPropagation();
@@ -71,7 +64,7 @@ export const ProfileFavoriteItem: React.FC<ProfileFavoriteItemProps> = ({ favori
 
   if (isNews) {
     const post = data as Post;
-    const images = getImages(post.images);
+    const images = parseImages(post.images);
     return (
       <div
         onClick={handleClick}
@@ -102,7 +95,7 @@ export const ProfileFavoriteItem: React.FC<ProfileFavoriteItemProps> = ({ favori
   // market or service item
   const item = data as Item | Service;
   const isItemType = 'itemCondition' in item;
-  const images = getImages(item.images);
+  const primaryImage = getPrimaryImage((item as Item).images, item.image);
 
   return (
     <div
@@ -110,8 +103,8 @@ export const ProfileFavoriteItem: React.FC<ProfileFavoriteItemProps> = ({ favori
       className="bg-white border border-hairline rounded-2xl overflow-hidden hover:shadow-lg hover:border-primary/20 transition-all cursor-pointer group"
     >
       <div className="relative aspect-square bg-surface-soft">
-        {images.length > 0 ? (
-          <img src={images[0]} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" alt="" />
+        {primaryImage ? (
+          <img src={primaryImage} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" alt="" />
         ) : (
           <div className="w-full h-full flex items-center justify-center text-stone-400 text-xs">暂无图片</div>
         )}
