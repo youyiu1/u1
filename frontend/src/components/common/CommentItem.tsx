@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Heart } from 'lucide-react';
 import { motion } from 'motion/react';
@@ -18,7 +18,6 @@ export const CommentItem: React.FC<CommentItemProps> = ({ comment, currentUserId
   const [liking, setLiking] = useState(false);
   const [isLiked, setIsLiked] = useState(comment.isLiked ?? false);
   const [likes, setLikes] = useState(comment.likes ?? 0);
-  const isFirstRender = useRef(true);
 
   // 同步外部状态变化（父组件刷新数据后需要同步）
   useEffect(() => {
