@@ -22,10 +22,6 @@ export const CommentItem: React.FC<CommentItemProps> = ({ comment, currentUserId
 
   // 同步外部状态变化（父组件刷新数据后需要同步）
   useEffect(() => {
-    if (isFirstRender.current) {
-      isFirstRender.current = false;
-      return;
-    }
     setIsLiked(comment.isLiked ?? false);
     setLikes(comment.likes ?? 0);
   }, [comment.isLiked, comment.likes]);
