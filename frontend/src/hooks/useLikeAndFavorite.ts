@@ -4,6 +4,7 @@
  */
 
 import React, { useState, useCallback, useEffect, useRef } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { newsApi, favoriteApi } from '../services/api';
 import { useToast } from '../context/ToastContext';
 
@@ -28,6 +29,7 @@ export function useLikeAndFavorite(
   const [isLiking, setIsLiking] = useState(false);
   const [isFavoriting, setIsFavoriting] = useState(false);
   const { showToast } = useToast();
+  const navigate = useNavigate();
   const isMountedRef = useRef(true);
 
   useEffect(() => {
@@ -81,6 +83,7 @@ export function useLikeAndFavorite(
     const currentUser = JSON.parse(localStorage.getItem('neighborhood_user') || '{}');
     if (!currentUser.id) {
       showToast('请先登录', 'warning');
+      navigate('/login');
       return;
     }
 
@@ -103,7 +106,7 @@ export function useLikeAndFavorite(
     } finally {
       if (isMountedRef.current) setIsLiking(false);
     }
-  }, [postId, state.isLiked, state.likes, isLiking, options]);
+  }, [postId, state.isLiked, state.likes, isLiking, options, navigate, showToast]);
 
   const toggleFavorite = useCallback(async (e?: React.MouseEvent) => {
     if (e) {
@@ -116,6 +119,7 @@ export function useLikeAndFavorite(
     const currentUser = JSON.parse(localStorage.getItem('neighborhood_user') || '{}');
     if (!currentUser.id) {
       showToast('请先登录', 'warning');
+      navigate('/login');
       return;
     }
 
@@ -142,7 +146,7 @@ export function useLikeAndFavorite(
     } finally {
       if (isMountedRef.current) setIsFavoriting(false);
     }
-  }, [postId, state.isFavorited, state.collections, isFavoriting, options]);
+  }, [postId, state.isFavorited, state.collections, isFavoriting, options, navigate, showToast]);
 
   return {
     ...state,
