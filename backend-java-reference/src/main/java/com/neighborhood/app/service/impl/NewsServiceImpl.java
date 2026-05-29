@@ -145,6 +145,9 @@ public class NewsServiceImpl extends ServiceImpl<NewsMapper, News> implements Ne
     public void addComment(Long newsId, Comment comment) {
         comment.setNewsId(newsId);
         comment.setCreateTime(java.time.LocalDateTime.now());
+        if (comment.getParentId() == null || comment.getParentId() <= 0) {
+            comment.setParentId(0L);
+        }
         commentMapper.insert(comment);
         lambdaUpdate().eq(News::getId, newsId)
                 .setSql("comments_count = comments_count + 1")
@@ -196,7 +199,8 @@ public class NewsServiceImpl extends ServiceImpl<NewsMapper, News> implements Ne
         List<Comment> comments = commentMapper.selectList(
                 new QueryWrapper<Comment>()
                         .eq("news_id", newsId)
-                        .orderByDesc("create_time")
+                        .orderByAsc("parent_id")
+                        .orderByAsc("create_time")
                         .last("LIMIT " + limit + " OFFSET " + offset)
         );
         comments.forEach(c -> {

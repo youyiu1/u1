@@ -22,6 +22,8 @@ public class Comment {
     private Long id;
     @JsonSerialize(using = ToStringSerializer.class)
     private Long newsId;
+    @JsonSerialize(using = ToStringSerializer.class)
+    private Long parentId;
     private String userId;
     private String userName;
     private String userAvatar;
