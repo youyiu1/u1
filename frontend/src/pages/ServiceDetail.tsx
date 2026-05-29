@@ -231,8 +231,8 @@ export default function ServiceDetail() {
   useEffect(() => {
     const fetchService = async () => {
       try {
-        const location = await getCurrentLocation();
-        const data = await serviceApi.get(id, location?.latitude, location?.longitude);
+        // 先无定位加载详情，避免等待定位导致页面空转
+        const data = await serviceApi.get(id);
         setService(data);
         const currentUser = JSON.parse(localStorage.getItem('neighborhood_user') || '{}');
         const sid = data.seller?.id || (data as any).sellerId;
@@ -251,6 +251,13 @@ export default function ServiceDetail() {
             const favorited = await favoriteApi.check(currentUser.id, 'service', Number(id));
             setIsLiked(favorited);
           } catch {}
+        }
+
+        // 后台异步补距离，不阻塞首屏
+        const location = await getCurrentLocation();
+        if (location?.latitude != null && location?.longitude != null) {
+          const localized = await serviceApi.get(id, location.latitude, location.longitude);
+          setService(localized);
         }
       } catch (err: any) {
         setError(err.message || '加载失败');

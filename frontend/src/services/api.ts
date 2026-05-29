@@ -20,6 +20,14 @@ interface AuthResponse {
 }
 
 const TOKEN_KEY = 'auth_token';
+const inflightGetRequests = new Map<string, Promise<any>>();
+const API_SLOW_THRESHOLD_MS = 600;
+
+function isLocalDevRuntime(): boolean {
+  if (typeof window === 'undefined') return false;
+  const host = window.location.hostname;
+  return host === 'localhost' || host === '127.0.0.1';
+}
 
 export function getToken(): string | null {
   return localStorage.getItem(TOKEN_KEY);
@@ -45,6 +53,16 @@ function isAuthError(message: string): message is keyof typeof AUTH_ERROR_MESSAG
 }
 
 async function request<T>(url: string, options?: RequestInit): Promise<T> {
+  const method = options?.method?.toUpperCase() || 'GET';
+  const isGetWithoutBody = method === 'GET' && !options?.body;
+  const requestKey = isGetWithoutBody ? `${method}:${url}` : '';
+
+  if (isGetWithoutBody && inflightGetRequests.has(requestKey)) {
+    return inflightGetRequests.get(requestKey) as Promise<T>;
+  }
+
+  const doRequest = async (): Promise<T> => {
+  const startAt = typeof performance !== 'undefined' ? performance.now() : Date.now();
   const token = getToken();
   const res = await fetch(BASE_URL + url, {
     ...options,
@@ -74,7 +92,26 @@ async function request<T>(url: string, options?: RequestInit): Promise<T> {
   if (!json.success) {
     throw new Error(json.message || 'Request failed');
   }
+  if (isLocalDevRuntime()) {
+    const endAt = typeof performance !== 'undefined' ? performance.now() : Date.now();
+    const costMs = Math.round(endAt - startAt);
+    if (costMs >= API_SLOW_THRESHOLD_MS) {
+      // eslint-disable-next-line no-console
+      console.warn(`[API慢请求] ${method} ${url} ${costMs}ms`);
+    }
+  }
   return json.data;
+  };
+
+  if (!isGetWithoutBody) {
+    return doRequest();
+  }
+
+  const promise = doRequest().finally(() => {
+    inflightGetRequests.delete(requestKey);
+  });
+  inflightGetRequests.set(requestKey, promise);
+  return promise as Promise<T>;
 }
 
 // 用户相关

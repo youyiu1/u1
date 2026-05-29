@@ -5,6 +5,8 @@
 
 package com.neighborhood.app.utils;
 
+import java.util.Locale;
+
 public class DistanceUtil {
     private static final double EARTH_RADIUS = 6371.0; // 地球半径（公里）
 
@@ -17,6 +19,9 @@ public class DistanceUtil {
      * @return 距离（公里）
      */
     public static double calculateDistance(double lat1, double lng1, double lat2, double lng2) {
+        if (!isValidCoordinate(lat1, lng1) || !isValidCoordinate(lat2, lng2)) {
+            return Double.NaN;
+        }
         double latDistance = Math.toRadians(lat2 - lat1);
         double lngDistance = Math.toRadians(lng2 - lng1);
         double a = Math.sin(latDistance / 2) * Math.sin(latDistance / 2)
@@ -32,9 +37,22 @@ public class DistanceUtil {
      * @return 格式化后的字符串，如 "1.2km"
      */
     public static String formatDistance(double distance) {
-        if (distance < 1) {
-            return String.format("%.0fm", distance * 1000);
+        if (!Double.isFinite(distance) || distance < 0) {
+            return "距离未知";
         }
-        return String.format("%.1fkm", distance);
+        if (distance < 0.05) {
+            return "<50m";
+        }
+        if (distance < 1) {
+            return String.format(Locale.ROOT, "%.0fm", distance * 1000);
+        }
+        if (distance < 10) {
+            return String.format(Locale.ROOT, "%.1fkm", distance);
+        }
+        return String.format(Locale.ROOT, "%.0fkm", distance);
+    }
+
+    private static boolean isValidCoordinate(double lat, double lng) {
+        return lat >= -90 && lat <= 90 && lng >= -180 && lng <= 180;
     }
 }

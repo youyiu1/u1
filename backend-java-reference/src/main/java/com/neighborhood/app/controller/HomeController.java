@@ -8,7 +8,11 @@ package com.neighborhood.app.controller;
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.neighborhood.app.common.Result;
 import com.neighborhood.app.entity.Comment;
+import com.neighborhood.app.entity.MarketItem;
+import com.neighborhood.app.entity.News;
 import com.neighborhood.app.entity.NewsVO;
+import com.neighborhood.app.entity.MarketItemVO;
+import com.neighborhood.app.entity.ServiceEntity;
 import com.neighborhood.app.mapper.CommentMapper;
 import com.neighborhood.app.service.CacheService;
 import com.neighborhood.app.service.NewsService;
@@ -44,27 +48,59 @@ public class HomeController {
         // 缓存未命中，查询数据
         Map<String, Object> data = new HashMap<>();
 
-        // 获取热门动态（带评论头像）
-        List<NewsVO> hotNews = newsService.list().stream().limit(2).map(news -> {
-            NewsVO vo = newsService.getNewsVOById(news.getId());
-            if (vo != null) {
-                // 获取点赞最多的3条评论头像
-                List<Comment> topComments = commentMapper.selectList(
+        // 获取热门动态（避免 N+1：一次拿 VO，再批量查评论）
+        List<News> latestNews = newsService.lambdaQuery()
+                .orderByDesc(News::getCreateTime)
+                .last("LIMIT 2")
+                .list();
+
+        List<NewsVO> hotNews = latestNews.stream()
+                .map(news -> newsService.getNewsVOById(news.getId()))
+                .filter(Objects::nonNull)
+                .collect(Collectors.toList());
+
+        if (!hotNews.isEmpty()) {
+            List<Long> newsIds = hotNews.stream()
+                    .map(NewsVO::getId)
+                    .filter(Objects::nonNull)
+                    .collect(Collectors.toList());
+
+            List<Comment> allComments = commentMapper.selectList(
                     new QueryWrapper<Comment>()
-                        .eq("news_id", news.getId())
-                        .orderByDesc("likes")
-                        .last("LIMIT 3")
-                );
-                vo.setComments(topComments.stream()
-                    .filter(c -> c.getUserAvatar() != null && !c.getUserAvatar().isEmpty())
-                    .collect(Collectors.toList()));
+                            .in("news_id", newsIds)
+                            .orderByDesc("likes")
+                            .orderByDesc("create_time")
+            );
+
+            Map<Long, List<Comment>> commentsByNewsId = allComments.stream()
+                    .filter(c -> c.getNewsId() != null)
+                    .collect(Collectors.groupingBy(Comment::getNewsId));
+
+            for (NewsVO vo : hotNews) {
+                List<Comment> comments = commentsByNewsId.getOrDefault(vo.getId(), List.of()).stream()
+                        .filter(c -> c.getUserAvatar() != null && !c.getUserAvatar().isEmpty())
+                        .limit(3)
+                        .collect(Collectors.toList());
+                vo.setComments(comments);
             }
-            return vo;
-        }).collect(Collectors.toList());
+        }
         data.put("hotNews", hotNews);
 
-        data.put("hotMarket", marketService.list().stream().limit(4).toList());
-        data.put("hotServices", serviceModuleService.list().stream().limit(4).toList());
+        List<MarketItemVO> hotMarket = marketService.lambdaQuery()
+                .orderByDesc(MarketItem::getId)
+                .last("LIMIT 4")
+                .list()
+                .stream()
+                .map(item -> marketService.getMarketItemVOById(item.getId()))
+                .filter(Objects::nonNull)
+                .collect(Collectors.toList());
+        data.put("hotMarket", hotMarket);
+
+        List<ServiceEntity> hotServices = serviceModuleService.lambdaQuery()
+                .orderByDesc(ServiceEntity::getId)
+                .last("LIMIT 4")
+                .list();
+        data.put("hotServices", hotServices);
 
         // 存入缓存
         cacheService.cacheHomeIndex(data);

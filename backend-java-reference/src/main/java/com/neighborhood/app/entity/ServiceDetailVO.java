@@ -59,6 +59,7 @@ public class ServiceDetailVO {
         vo.setLongitude(service.getLongitude());
 
         // 计算距离
+        vo.setDistance(service.getDistance() == null || service.getDistance().isBlank() ? "距离未知" : service.getDistance());
         if (buyerLat != null && buyerLng != null && service.getLatitude() != null && service.getLongitude() != null) {
             double dist = com.neighborhood.app.utils.DistanceUtil.calculateDistance(
                 buyerLat, buyerLng, service.getLatitude(), service.getLongitude());

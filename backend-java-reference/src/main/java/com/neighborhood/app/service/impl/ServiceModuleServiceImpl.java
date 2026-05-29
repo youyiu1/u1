@@ -21,7 +21,11 @@ import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
 import java.time.format.DateTimeFormatter;
+import java.util.ArrayList;
+import java.util.Comparator;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 @Service
 @RequiredArgsConstructor
@@ -113,16 +117,59 @@ public class ServiceModuleServiceImpl extends ServiceImpl<ServiceMapper, Service
 
     @Override
     public List<ServiceEntity> listWithDistance(Double buyerLat, Double buyerLng) {
-        List<ServiceEntity> list = super.list();
-        if (buyerLat != null && buyerLng != null) {
+        List<ServiceEntity> source = list();
+        List<ServiceEntity> list = new ArrayList<>(source.size());
+        for (ServiceEntity item : source) {
+            ServiceEntity copied = new ServiceEntity();
+            copied.setId(item.getId());
+            copied.setTitle(item.getTitle());
+            copied.setDescription(item.getDescription());
+            copied.setCategory(item.getCategory());
+            copied.setPrice(item.getPrice());
+            copied.setSellerId(item.getSellerId());
+            copied.setRating(item.getRating());
+            copied.setReviews(item.getReviews());
+            copied.setDistance(item.getDistance());
+            copied.setUnit(item.getUnit());
+            copied.setHighlights(item.getHighlights());
+            copied.setLatitude(item.getLatitude());
+            copied.setLongitude(item.getLongitude());
+            copied.setImages(item.getImages());
+            list.add(copied);
+        }
+
+        if (buyerLat == null || buyerLng == null) {
             for (ServiceEntity service : list) {
-                if (service.getLatitude() != null && service.getLongitude() != null) {
-                    double dist = com.neighborhood.app.utils.DistanceUtil.calculateDistance(
-                        buyerLat, buyerLng, service.getLatitude(), service.getLongitude());
-                    service.setDistance(com.neighborhood.app.utils.DistanceUtil.formatDistance(dist));
+                if (service.getDistance() == null || service.getDistance().isBlank()) {
+                    service.setDistance("距离未知");
                 }
             }
+            return list;
         }
+
+        Map<Long, Double> distanceMap = new HashMap<>();
+        for (ServiceEntity service : list) {
+            Long serviceId = service.getId();
+            if (service.getLatitude() != null && service.getLongitude() != null) {
+                double dist = com.neighborhood.app.utils.DistanceUtil.calculateDistance(
+                        buyerLat, buyerLng, service.getLatitude(), service.getLongitude());
+                service.setDistance(com.neighborhood.app.utils.DistanceUtil.formatDistance(dist));
+                if (serviceId != null) {
+                    distanceMap.put(serviceId, dist);
+                }
+            } else {
+                service.setDistance("距离未知");
+            }
+        }
+
+        list.sort(Comparator.comparingDouble(service -> {
+            if (service.getId() == null) {
+                return Double.MAX_VALUE;
+            }
+            double distance = distanceMap.getOrDefault(service.getId(), Double.MAX_VALUE);
+            return Double.isFinite(distance) ? distance : Double.MAX_VALUE;
+        }));
+
         return list;
     }
 }

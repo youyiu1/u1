@@ -36,9 +36,16 @@ export default function ServiceList() {
   useEffect(() => {
     const fetchServices = async () => {
       try {
+        // 先无定位加载，保障首屏速度
+        const baseData = await serviceApi.list();
+        setServices(baseData);
+
+        // 定位成功后再增量刷新距离与排序
         const location = await getCurrentLocation();
-        const data = await serviceApi.list(location?.latitude, location?.longitude);
-        setServices(data);
+        if (location?.latitude != null && location?.longitude != null) {
+          const localizedData = await serviceApi.list(location.latitude, location.longitude);
+          setServices(localizedData);
+        }
       } catch (err: any) {
         setError(err.message || '加载失败');
       } finally {
@@ -52,6 +59,11 @@ export default function ServiceList() {
     (activeCategory === 'all' || s.category === activeCategory) &&
     s.title.toLowerCase().includes(searchQuery.toLowerCase())
   );
+
+  const displayDistance = (distance?: string) => {
+    if (!distance || !distance.trim()) return '距离未知';
+    return distance;
+  };
 
   // 解析highlights JSON字符串为数组
   const getHighlights = (h: any): string[] => {
@@ -173,7 +185,7 @@ export default function ServiceList() {
                     </div>
                     <div className="flex items-center gap-1.5 text-secondary">
                        <MapPin className="w-3 h-3 text-muted" />
-                       <span className="text-[10px] font-medium">{service.distance}</span>
+                       <span className="text-[10px] font-medium">{displayDistance(service.distance)}</span>
                     </div>
                   </div>
                 </div>

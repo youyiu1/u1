@@ -1,5 +1,6 @@
 package com.neighborhood.app.config;
 import com.neighborhood.app.interceptor.AuthInterceptor;
+import com.neighborhood.app.interceptor.PerformanceInterceptor;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
@@ -15,12 +16,16 @@ import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
 public class WebConfig implements WebMvcConfigurer {
 
     private final AuthInterceptor authInterceptor;
+    private final PerformanceInterceptor performanceInterceptor;
 
     @Override
     public void addInterceptors(InterceptorRegistry registry) {
         registry.addInterceptor(authInterceptor)
                 .addPathPatterns("/api/**")
                 .order(0);
+        registry.addInterceptor(performanceInterceptor)
+                .addPathPatterns("/api/**")
+                .order(1);
     }
 
     @Override
