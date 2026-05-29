@@ -36,6 +36,7 @@ import { ChangePasswordOverlay, NotificationSettingsOverlay, PrivacySettingsOver
 import { Post, Item, Service, User, Order } from '../types';
 import { getToken } from '../services/api';
 import { getFollowState, setFollowState } from '../utils/followStorage';
+import { getFallbackAvatar } from '../utils/avatar';
 
 export default function Profile() {
   const { username: paramUsername } = useParams();
@@ -51,12 +52,14 @@ export default function Profile() {
   const [services, setServices] = useState<Service[]>([]);
   const [following, setFollowing] = useState<User[]>([]);
   const [loading, setLoading] = useState(true);
+  const [tabLoading, setTabLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const loadedTabsRef = React.useRef<Set<string>>(new Set());
 
   // 收藏相关
   const [favorites, setFavorites] = useState<any[]>([]);
   const [favoriteItems, setFavoriteItems] = useState<Record<string, Post | Item | Service>>({});
-  const [activeFavoriteTab, setActiveFavoriteTab] = useState<'all' | 'news' | 'market'>('all');
+  const [activeFavoriteTab, setActiveFavoriteTab] = useState<'all' | 'news' | 'market' | 'service'>('all');
 
   const [activeTab, setActiveTab] = useState(() => searchParams.get('tab') || 'posts');
   const [passwordOverlayOpen, setPasswordOverlayOpen] = useState(false);
@@ -97,79 +100,128 @@ export default function Profile() {
   });
 
   useEffect(() => {
+    let cancelled = false;
     const fetchProfileData = async () => {
       if (!username) return;
+      setLoading(true);
+      setError(null);
+      loadedTabsRef.current.clear();
+      setPosts([]);
+      setItems([]);
+      setServices([]);
+      setFollowing([]);
+      setFavorites([]);
+      setFavoriteItems({});
+      setCompletedOrders([]);
+      setInProgressOrders([]);
+
       try {
-        let user;
+        let user: User;
         if (!paramUsername && getToken()) {
-          try {
-            user = await userApi.getCurrentUser();
-            setStats({ followers: user.followersCount || 0, isFollowing: false });
-          } catch (err: any) {
-            navigate('/login');
-            return;
-          }
+          user = await userApi.getCurrentUser();
+          if (cancelled) return;
+          setStats({ followers: user.followersCount || 0, isFollowing: false });
         } else {
           user = await userApi.getUserByName(username);
-          if (currentUser && user?.id) {
+          if (cancelled) return;
+
+          if (currentUser?.id && user?.id && currentUser.id !== user.id) {
             const saved = getFollowState(user.id);
             setStats({ followers: user.followersCount || 0, isFollowing: saved });
             if (!saved) {
-              try {
-                const following = await userApi.isFollowing(currentUser.id, user.id);
-                setStats({ followers: user.followersCount || 0, isFollowing: following });
-                setFollowState(user.id, following);
-              } catch {
-                setStats({ followers: user.followersCount || 0, isFollowing: false });
-              }
+              userApi.isFollowing(currentUser.id, user.id)
+                .then((following) => {
+                  if (cancelled) return;
+                  setStats({ followers: user.followersCount || 0, isFollowing: following });
+                  setFollowState(user.id, following);
+                })
+                .catch(() => {
+                  if (!cancelled) {
+                    setStats({ followers: user.followersCount || 0, isFollowing: false });
+                  }
+                });
             }
           } else {
             setStats({ followers: user.followersCount || 0, isFollowing: false });
           }
         }
         setProfileUser(user);
-
-        const userId = user.id;
-        if (userId) {
-          const [newsData, marketData, serviceData, followingData, favoriteList, completedData, inProgressData] = await Promise.all([
-            newsApi.getByUserId(userId).catch(() => []),
-            marketApi.getByUserId(userId).catch(() => []),
-            serviceApi.getByUserId(userId).catch(() => []),
-            userApi.getFollowingList(userId).catch(() => []),
-            isOwnProfile ? favoriteApi.list(userId).catch(() => []) : [],
-            isOwnProfile ? orderApi.completedList(userId).catch(() => []) : [],
-            isOwnProfile ? orderApi.inProgressList(userId).catch(() => []) : [],
-          ]);
-          setPosts(newsData);
-          setItems(marketData);
-          setServices(serviceData);
-          setFollowing(followingData);
-          setFavorites(favoriteList);
-          setCompletedOrders(completedData);
-          setInProgressOrders(inProgressData);
-
-          // 获取收藏项的完整数据
-          if (favoriteList.length > 0) {
-            const itemMap: Record<string, Post | Item | Service> = {};
-            const results = await Promise.all(
-              favoriteList.map((f: any) => {
-                const mapKey = `${f.targetType}-${f.targetId}`;
-                const api = f.targetType === 'news' ? newsApi : f.targetType === 'market' ? marketApi : serviceApi;
-                return api.get(f.targetId).then(item => ({ mapKey, item })).catch(() => null);
-              })
-            );
-            results.forEach(r => { if (r?.item) itemMap[r.mapKey] = r.item; });
-            setFavoriteItems(itemMap);
-          }
-        }
       } catch (err: any) {
-        setError(err.message || '加载失败');
+        if (!cancelled) {
+          if (!paramUsername && getToken()) {
+            navigate('/login');
+            return;
+          }
+          setError(err.message || '加载失败');
+        }
       } finally {
-        setLoading(false);
+        if (!cancelled) setLoading(false);
       }
     };
     fetchProfileData();
-  }, [username, currentUser, paramUsername]);
+    return () => {
+      cancelled = true;
+    };
+  }, [username, currentUser?.id, paramUsername, navigate]);
+
+  const loadTabData = React.useCallback(async (tabId: string, userId: string) => {
+    if (!userId || tabId === 'settings' || tabId === 'likes') return;
+    if ((tabId === 'bookmarks' || tabId === 'completed') && !isOwnProfile) return;
+
+    const loadKey = `${userId}:${tabId}`;
+    if (loadedTabsRef.current.has(loadKey)) return;
+
+    setTabLoading(true);
+    try {
+      if (tabId === 'posts') {
+        const newsData = await newsApi.getByUserId(userId).catch(() => []);
+        setPosts(newsData);
+      } else if (tabId === 'market') {
+        const [marketData, serviceData] = await Promise.all([
+          marketApi.getByUserId(userId).catch(() => []),
+          serviceApi.getByUserId(userId).catch(() => []),
+        ]);
+        setItems(marketData);
+        setServices(serviceData);
+      } else if (tabId === 'following') {
+        const followingData = await userApi.getFollowingList(userId).catch(() => []);
+        setFollowing(followingData);
+      } else if (tabId === 'completed') {
+        const [completedData, inProgressData] = await Promise.all([
+          orderApi.completedList(userId).catch(() => []),
+          orderApi.inProgressList(userId).catch(() => []),
+        ]);
+        setCompletedOrders(completedData);
+        setInProgressOrders(inProgressData);
+      } else if (tabId === 'bookmarks') {
+        const favoriteList = await favoriteApi.list(userId).catch(() => []);
+        setFavorites(favoriteList);
+
+        if (favoriteList.length > 0) {
+          const results = await Promise.all(
+            favoriteList.map((f: any) => {
+              const mapKey = `${f.targetType}-${f.targetId}`;
+              const api = f.targetType === 'news' ? newsApi : f.targetType === 'market' ? marketApi : serviceApi;
+              return api.get(f.targetId).then(item => ({ mapKey, item })).catch(() => null);
+            })
+          );
+          const itemMap: Record<string, Post | Item | Service> = {};
+          results.forEach(r => { if (r?.item) itemMap[r.mapKey] = r.item; });
+          setFavoriteItems(itemMap);
+        } else {
+          setFavoriteItems({});
+        }
+      }
+      loadedTabsRef.current.add(loadKey);
+    } finally {
+      setTabLoading(false);
+    }
+  }, [isOwnProfile]);
+
+  useEffect(() => {
+    if (!profileUser?.id || activeTab === 'settings') return;
+    loadTabData(activeTab, profileUser.id);
+  }, [activeTab, profileUser?.id, loadTabData]);
 
   const handleFollowChange = (isFollowing: boolean) => {
     if (!profileUser) return;
@@ -182,10 +234,17 @@ export default function Profile() {
   };
 
   const handleUnfavorite = (targetId: string) => {
-    setFavorites(prev => prev.filter(f => f.targetId !== targetId));
+    let removedType = '';
+    setFavorites(prev => prev.filter(f => {
+      const matched = String(f.targetId) === String(targetId);
+      if (matched) removedType = f.targetType;
+      return !matched;
+    }));
     setFavoriteItems(prev => {
       const next = { ...prev };
-      delete next[targetId];
+      if (removedType) {
+        delete next[`${removedType}-${targetId}`];
+      }
       return next;
     });
   };
@@ -200,7 +259,7 @@ export default function Profile() {
 
   const userData = profileUser || {
     name: username || '未知用户',
-    avatar: `https://ui-avatars.com/api/?name=${username}&background=random&size=200`,
+    avatar: getFallbackAvatar(username || '用户'),
     tag: '新晋邻居',
     isVerified: false,
     followersCount: 0,
@@ -282,6 +341,15 @@ export default function Profile() {
                       exit={{ opacity: 0, y: -10 }}
                       className="grid md:grid-cols-2 gap-4"
                     >
+                      {tabLoading && activeTab !== 'settings' && (
+                        <div className="col-span-2 py-16 text-center">
+                          <div className="w-7 h-7 border-4 border-primary/20 border-t-primary rounded-full animate-spin mx-auto mb-4" />
+                          <p className="text-xs font-bold text-muted">正在加载内容...</p>
+                        </div>
+                      )}
+
+                      {!tabLoading && (
+                        <>
                        {activeTab === 'posts' && (
                          posts.length > 0 ? (
                            <div className="space-y-3">
@@ -442,8 +510,8 @@ export default function Profile() {
                                {following.map(user => (
                                  <div key={user.id} className="bg-white p-4 rounded-2xl border border-hairline text-center cursor-pointer hover:border-primary/30 transition-colors"
                                    onClick={() => navigate(`/profile/${user.name}`)}>
-                                   <img src={user.avatar || `https://ui-avatars.com/api/?name=${user.name}&size=100`}
-                                     className="w-16 h-16 rounded-xl object-cover mx-auto mb-3 border border-hairline" alt={user.name} />
+                                  <img src={user.avatar || getFallbackAvatar(user.name)}
+                                    className="w-16 h-16 rounded-xl object-cover mx-auto mb-3 border border-hairline" alt={user.name} />
                                    <p className="font-bold text-sm text-ink truncate">{user.name}</p>
                                    {user.tag && <p className="text-xs text-primary mt-1">{user.tag}</p>}
                                  </div>
@@ -519,14 +587,16 @@ export default function Profile() {
                          </div>
                        )}
 
-                       {activeTab !== 'posts' && activeTab !== 'market' && activeTab !== 'completed' && activeTab !== 'following' && activeTab !== 'settings' && (
-                         <div className="col-span-2 py-20 text-center space-y-4">
+                        {activeTab !== 'posts' && activeTab !== 'market' && activeTab !== 'completed' && activeTab !== 'following' && activeTab !== 'settings' && (
+                          <div className="col-span-2 py-20 text-center space-y-4">
                             <div className="w-16 h-16 bg-surface-soft rounded-full flex items-center justify-center mx-auto">
                               <Settings className="w-6 h-6 text-muted" />
                             </div>
                             <p className="text-sm text-muted font-bold">暂时还没有公开的内容...</p>
-                         </div>
-                       )}
+                          </div>
+                        )}
+                        </>
+                      )}
                     </motion.div>
                  </AnimatePresence>
                </div>

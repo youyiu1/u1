@@ -95,6 +95,10 @@ public class FavoriteServiceImpl extends ServiceImpl<FavoriteMapper, Favorite> i
                 .eq("user_id", userId)
                 .eq("target_type", targetType)
                 .eq("target_id", targetId);
-        return count(wrapper) > 0;
+        boolean favorited = count(wrapper) > 0;
+        if (favorited) {
+            cacheService.addFavorite(userId, targetType, targetId);
+        }
+        return favorited;
     }
 }

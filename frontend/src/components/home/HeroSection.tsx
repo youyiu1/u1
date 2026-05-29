@@ -3,15 +3,16 @@ import { motion } from 'motion/react';
 
 const WORDS = ['生活灵感.', '邻里温情.', '社区动态.', '身边故事.', '同城生活.'];
 
-const TYPE_SPEED = 150;
-const DELETE_SPEED = 80;
-const PAUSE_DURATION = 2500;
+const TYPE_SPEED = 220;
+const DELETE_SPEED = 120;
+const PAUSE_DURATION = 3200;
 
 export const HeroSection: React.FC = () => {
   const [currentIndex, setCurrentIndex] = useState(0);
   const [displayText, setDisplayText] = useState('');
   const [isDeleting, setIsDeleting] = useState(false);
   const pauseTimeoutRef = useRef<ReturnType<typeof setTimeout>>();
+  const frameRef = useRef<ReturnType<typeof setTimeout>>();
 
   const clearTimers = useCallback(() => {
     if (pauseTimeoutRef.current) {
@@ -26,13 +27,17 @@ export const HeroSection: React.FC = () => {
     const tick = () => {
       if (!isDeleting) {
         if (displayText.length < currentWord.length) {
-          setDisplayText(currentWord.slice(0, displayText.length + 1));
+          frameRef.current = setTimeout(() => {
+            setDisplayText(currentWord.slice(0, displayText.length + 1));
+          }, 0);
         } else {
           pauseTimeoutRef.current = setTimeout(() => setIsDeleting(true), PAUSE_DURATION);
         }
       } else {
         if (displayText.length > 0) {
-          setDisplayText(displayText.slice(0, -1));
+          frameRef.current = setTimeout(() => {
+            setDisplayText(displayText.slice(0, -1));
+          }, 0);
         } else {
           setIsDeleting(false);
           setCurrentIndex((prev) => (prev + 1) % WORDS.length);
@@ -43,6 +48,7 @@ export const HeroSection: React.FC = () => {
     const timeout = setTimeout(tick, isDeleting ? DELETE_SPEED : TYPE_SPEED);
     return () => {
       clearTimeout(timeout);
+      if (frameRef.current) clearTimeout(frameRef.current);
       clearTimers();
     };
   }, [displayText, isDeleting, currentIndex, clearTimers]);
@@ -61,8 +67,8 @@ export const HeroSection: React.FC = () => {
 
         <h1 className="text-6xl md:text-9xl font-black text-ink tracking-tighter leading-[0.85] mb-16">
           发现身边的<br />
-          <span className="text-transparent bg-clip-text bg-gradient-to-r from-primary to-primary-light italic pr-4">
-            {displayText}<span className="animate-pulse">|</span>
+            <span className="text-transparent bg-clip-text bg-gradient-to-r from-primary to-primary-light italic pr-4">
+            {displayText}<span className="inline-block animate-pulse">|</span>
           </span>
         </h1>
 

@@ -358,14 +358,13 @@ export const searchApi = {
   all: (keyword: string) => request<{ services: Service[]; items: Item[]; posts: Post[] }>(`/search?keyword=${encodeURIComponent(keyword)}`),
 };
 
-// 文件上传 - 直接请求后端，绕过Vite代理（代理处理multipart有问题）
+// 文件上传
 export const fileApi = {
   upload: (file: File) => {
     const token = getToken();
     const formData = new FormData();
     formData.append('file', file);
-    // 绕过代理，直接请求后端8080
-    return fetch('http://localhost:8080/api/file/upload', {
+    return fetch(`${BASE_URL}/file/upload`, {
       method: 'POST',
       headers: token ? { 'Authorization': `Bearer ${token}` } : {},
       body: formData,

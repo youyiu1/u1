@@ -33,9 +33,10 @@ public class OrderServiceImpl extends ServiceImpl<OrderMapper, Order> implements
     @Override
     public List<Order> listCompletedByUserId(String userId) {
         return lambdaQuery()
-                .eq(Order::getBuyerId, userId)
-                .or()
-                .eq(Order::getSellerId, userId)
+                .and(wrapper -> wrapper
+                        .eq(Order::getBuyerId, userId)
+                        .or()
+                        .eq(Order::getSellerId, userId))
                 .eq(Order::getStatus, "completed")
                 .orderByDesc(Order::getCreateTime)
                 .list();
@@ -44,9 +45,10 @@ public class OrderServiceImpl extends ServiceImpl<OrderMapper, Order> implements
     @Override
     public List<Order> listInProgressByUserId(String userId) {
         return lambdaQuery()
-                .eq(Order::getBuyerId, userId)
-                .or()
-                .eq(Order::getSellerId, userId)
+                .and(wrapper -> wrapper
+                        .eq(Order::getBuyerId, userId)
+                        .or()
+                        .eq(Order::getSellerId, userId))
                 .eq(Order::getStatus, "in_progress")
                 .orderByDesc(Order::getCreateTime)
                 .list();

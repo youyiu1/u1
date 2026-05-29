@@ -8,11 +8,11 @@
  * @returns Promise<{latitude: number, longitude: number} | null>
  */
 const LOCATION_CACHE_KEY = 'cached_location_v1';
-const LOCATION_CACHE_TTL_MS = 5 * 60 * 1000;
+const LOCATION_CACHE_TTL_MS = 24 * 60 * 60 * 1000;
 
 type LocationPoint = { latitude: number; longitude: number };
 
-function readCachedLocation(): LocationPoint | null {
+export function readCachedLocation(): LocationPoint | null {
   try {
     const raw = sessionStorage.getItem(LOCATION_CACHE_KEY);
     if (!raw) return null;
@@ -71,4 +71,14 @@ export async function getCurrentLocation(maxWaitMs = 1800): Promise<LocationPoin
       { enableHighAccuracy: false, timeout: maxWaitMs }
     );
   });
+}
+
+export async function getGeolocationPermissionState(): Promise<PermissionState | 'unsupported'> {
+  if (!navigator.permissions?.query) return 'unsupported';
+  try {
+    const result = await navigator.permissions.query({ name: 'geolocation' as PermissionName });
+    return result.state;
+  } catch {
+    return 'unsupported';
+  }
 }

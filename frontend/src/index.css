@@ -1,8 +1,7 @@
-@import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap');
 @import "tailwindcss";
 
 @theme {
-  --font-sans: "Plus Jakarta Sans", ui-sans-serif, system-ui, sans-serif;
+  --font-sans: "PingFang SC", "Microsoft YaHei", "Noto Sans SC", "Hiragino Sans GB", "Segoe UI", -apple-system, system-ui, sans-serif;
   
   --color-primary: #ff385c;
   --color-primary-hover: #e00b41;
@@ -25,5 +24,12 @@
 @layer base {
   body {
     @apply text-ink antialiased font-sans bg-white;
+  }
+}
+
+@layer utilities {
+  .content-visibility-auto {
+    content-visibility: auto;
+    contain-intrinsic-size: 1px 520px;
   }
 }

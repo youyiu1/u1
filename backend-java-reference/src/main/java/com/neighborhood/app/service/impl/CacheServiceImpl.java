@@ -21,6 +21,9 @@ public class CacheServiceImpl implements CacheService {
 
     private final RedisTemplate<String, Object> redisTemplate;
     private final org.springframework.data.redis.core.StringRedisTemplate stringRedisTemplate;
+    private static final long FAVORITE_CACHE_TTL_DAYS = 30;
+    private static final long REVIEW_LIKE_CACHE_TTL_DAYS = 30;
+    private static final long COMMENT_LIKE_CACHE_TTL_DAYS = 30;
 
     @Override
     public void cacheUser(String userId, Object user) {
@@ -316,7 +319,11 @@ public class CacheServiceImpl implements CacheService {
     @Override
     public void addFavorite(String userId, String targetType, Long targetId) {
         try {
+            if (isBlank(userId) || isBlank(targetType) || targetId == null || targetId <= 0) {
+                return;
+            }
             stringRedisTemplate.opsForSet().add(FAVORITE_KEY, userId + ":" + targetType + ":" + targetId);
+            stringRedisTemplate.expire(FAVORITE_KEY, FAVORITE_CACHE_TTL_DAYS, TimeUnit.DAYS);
         } catch (Exception e) {
             log.error("添加收藏失败: userId={}, targetType={}, targetId={}", userId, targetType, targetId, e);
         }
@@ -325,7 +332,11 @@ public class CacheServiceImpl implements CacheService {
     @Override
     public void removeFavorite(String userId, String targetType, Long targetId) {
         try {
+            if (isBlank(userId) || isBlank(targetType) || targetId == null || targetId <= 0) {
+                return;
+            }
             stringRedisTemplate.opsForSet().remove(FAVORITE_KEY, userId + ":" + targetType + ":" + targetId);
+            stringRedisTemplate.expire(FAVORITE_KEY, FAVORITE_CACHE_TTL_DAYS, TimeUnit.DAYS);
         } catch (Exception e) {
             log.error("取消收藏失败: userId={}, targetType={}, targetId={}", userId, targetType, targetId, e);
         }
@@ -334,6 +345,9 @@ public class CacheServiceImpl implements CacheService {
     @Override
     public boolean isFavorited(String userId, String targetType, Long targetId) {
         try {
+            if (isBlank(userId) || isBlank(targetType) || targetId == null || targetId <= 0) {
+                return false;
+            }
             return Boolean.TRUE.equals(stringRedisTemplate.opsForSet().isMember(FAVORITE_KEY, userId + ":" + targetType + ":" + targetId));
         } catch (Exception e) {
             log.error("检查收藏状态失败: userId={}, targetType={}, targetId={}", userId, targetType, targetId, e);
@@ -346,7 +360,11 @@ public class CacheServiceImpl implements CacheService {
     @Override
     public void addReviewLike(Long reviewId, String userId) {
         try {
+            if (reviewId == null || reviewId <= 0 || isBlank(userId)) {
+                return;
+            }
             stringRedisTemplate.opsForSet().add(REVIEW_LIKE_KEY + reviewId, userId);
+            stringRedisTemplate.expire(REVIEW_LIKE_KEY + reviewId, REVIEW_LIKE_CACHE_TTL_DAYS, TimeUnit.DAYS);
         } catch (Exception e) {
             log.error("添加评价点赞失败: reviewId={}, userId={}", reviewId, userId, e);
         }
@@ -355,7 +373,11 @@ public class CacheServiceImpl implements CacheService {
     @Override
     public void removeReviewLike(Long reviewId, String userId) {
         try {
+            if (reviewId == null || reviewId <= 0 || isBlank(userId)) {
+                return;
+            }
             stringRedisTemplate.opsForSet().remove(REVIEW_LIKE_KEY + reviewId, userId);
+            stringRedisTemplate.expire(REVIEW_LIKE_KEY + reviewId, REVIEW_LIKE_CACHE_TTL_DAYS, TimeUnit.DAYS);
         } catch (Exception e) {
             log.error("取消评价点赞失败: reviewId={}, userId={}", reviewId, userId, e);
         }
@@ -364,6 +386,9 @@ public class CacheServiceImpl implements CacheService {
     @Override
     public boolean isReviewLiked(Long reviewId, String userId) {
         try {
+            if (reviewId == null || reviewId <= 0 || isBlank(userId)) {
+                return false;
+            }
             return Boolean.TRUE.equals(stringRedisTemplate.opsForSet().isMember(REVIEW_LIKE_KEY + reviewId, userId));
         } catch (Exception e) {
             log.error("检查评价点赞状态失败: reviewId={}, userId={}", reviewId, userId, e);
@@ -376,7 +401,11 @@ public class CacheServiceImpl implements CacheService {
     @Override
     public void addCommentLike(Long commentId, String userId) {
         try {
+            if (commentId == null || commentId <= 0 || isBlank(userId)) {
+                return;
+            }
             stringRedisTemplate.opsForSet().add(COMMENT_LIKE_KEY + commentId, userId);
+            stringRedisTemplate.expire(COMMENT_LIKE_KEY + commentId, COMMENT_LIKE_CACHE_TTL_DAYS, TimeUnit.DAYS);
         } catch (Exception e) {
             log.error("添加评论点赞失败: commentId={}, userId={}", commentId, userId, e);
         }
@@ -385,7 +414,11 @@ public class CacheServiceImpl implements CacheService {
     @Override
     public void removeCommentLike(Long commentId, String userId) {
         try {
+            if (commentId == null || commentId <= 0 || isBlank(userId)) {
+                return;
+            }
             stringRedisTemplate.opsForSet().remove(COMMENT_LIKE_KEY + commentId, userId);
+            stringRedisTemplate.expire(COMMENT_LIKE_KEY + commentId, COMMENT_LIKE_CACHE_TTL_DAYS, TimeUnit.DAYS);
         } catch (Exception e) {
             log.error("取消评论点赞失败: commentId={}, userId={}", commentId, userId, e);
         }
@@ -394,6 +427,9 @@ public class CacheServiceImpl implements CacheService {
     @Override
     public boolean isCommentLiked(Long commentId, String userId) {
         try {
+            if (commentId == null || commentId <= 0 || isBlank(userId)) {
+                return false;
+            }
             return Boolean.TRUE.equals(stringRedisTemplate.opsForSet().isMember(COMMENT_LIKE_KEY + commentId, userId));
         } catch (Exception e) {
             log.error("检查评论点赞状态失败: commentId={}, userId={}", commentId, userId, e);
@@ -435,4 +471,8 @@ public class CacheServiceImpl implements CacheService {
 
     // 收藏 Redis Set，key = "favorites"，value = "userId:targetType:targetId" 集合
     private static final String FAVORITE_KEY = "favorites";
+
+    private boolean isBlank(String value) {
+        return value == null || value.trim().isEmpty();
+    }
 }

@@ -6,6 +6,7 @@ import { Comment } from '../../types';
 import { newsApi } from '../../services/api';
 import { useToast } from '../../context/ToastContext';
 import { formatDateTime } from '../../utils/dateTime';
+import { getFallbackAvatar } from '../../utils/avatar';
 
 interface CommentItemProps {
   comment: Comment;
@@ -31,7 +32,7 @@ export const CommentItem: React.FC<CommentItemProps> = ({
   const [likes, setLikes] = useState(comment.likes ?? 0);
 
   const userName = comment.userName || comment.user || '邻居用户';
-  const avatar = comment.userAvatar || comment.avatar || `https://ui-avatars.com/api/?name=${encodeURIComponent(userName)}&background=random`;
+  const avatar = comment.userAvatar || comment.avatar || getFallbackAvatar(userName);
   const content = comment.content || comment.text || '';
   const commentTime = formatDateTime(comment.createTime || comment.time, '刚刚');
 

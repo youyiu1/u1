@@ -4,7 +4,6 @@
  */
 
 import React from 'react';
-import { motion } from 'motion/react';
 import { useNavigate } from 'react-router-dom';
 import { Post } from '../../types';
 import { LikeButton } from '../common/LikeButton';
@@ -39,18 +38,14 @@ export const HomePostCard: React.FC<HomePostCardProps> = ({ post, idx }) => {
   const comments = (post.comments || []).slice(0, 3);
 
   return (
-    <motion.div
-      initial={{ opacity: 0, scale: 0.95, y: 20 }}
-      whileInView={{ opacity: 1, scale: 1, y: 0 }}
-      viewport={{ once: true }}
-      transition={{ delay: idx * 0.2, duration: 0.8, ease: [0.16, 1, 0.3, 1] }}
-      className="flex flex-col bg-white border border-hairline rounded-[48px] p-10 hover:shadow-premium transition-all duration-700 group h-full cursor-pointer"
+    <div
+      className="flex flex-col bg-white border border-hairline rounded-[48px] p-10 hover:shadow-lg transition-shadow duration-300 group h-full cursor-pointer content-visibility-auto"
       onClick={() => navigate(`/news/${post.id}`)}
     >
       <div className="flex items-center gap-6 mb-10" onClick={e => { e.stopPropagation(); navigate(`/profile/${authorName}`); }}>
         <div className="relative">
           {avatarSrc ? (
-            <img src={avatarSrc} alt={authorName} className="w-16 h-16 rounded-full object-cover ring-2 ring-hairline ring-offset-4 group-hover:ring-primary/30 transition-all duration-700" />
+            <img src={avatarSrc} alt={authorName} loading="lazy" decoding="async" className="w-16 h-16 rounded-full object-cover ring-2 ring-hairline ring-offset-4 group-hover:ring-primary/30 transition-colors duration-300" />
           ) : (
             <div className="w-16 h-16 rounded-full bg-stone-200 flex items-center justify-center text-stone-400 font-bold text-xl">
               {authorName.charAt(0)}
@@ -70,7 +65,7 @@ export const HomePostCard: React.FC<HomePostCardProps> = ({ post, idx }) => {
 
       {(images.length ?? 0) > 0 && images[0] && (
         <div className="aspect-[16/9] rounded-[32px] overflow-hidden mb-10 shadow-inner bg-stone-100">
-          <img src={images[0]} alt="Post content" className="w-full h-full object-cover grayscale-[0.2] group-hover:grayscale-0 group-hover:scale-105 transition-all duration-1000 ease-[0.16,1,0.3,1]" />
+          <img src={images[0]} alt="Post content" loading="lazy" decoding="async" className="w-full h-full object-cover" />
         </div>
       )}
 
@@ -92,6 +87,6 @@ export const HomePostCard: React.FC<HomePostCardProps> = ({ post, idx }) => {
           </div>
         )}
       </div>
-    </motion.div>
+    </div>
   );
 };

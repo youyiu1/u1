@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, useCallback, useEffect, ReactNode } from 'react';
+﻿import React, { createContext, useContext, useState, useCallback, useEffect, ReactNode } from 'react';
 import { Message, ChatPartner } from '../types';
 import { chatApi, userApi } from '../services/api';
 import { useAuth } from './AuthContext';
@@ -28,10 +28,10 @@ export const ChatProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   const [messages, setMessages] = useState<Record<string, Message[]>>({});
   const [unreadMessages, setUnreadMessages] = useState<Record<string, number>>({});
 
-  // 计算总未读数
+  // 璁＄畻鎬绘湭璇绘暟
   const unreadCount = Object.values(unreadMessages).reduce((a: number, b: number) => a + b, 0);
 
-  // 加载指定对话
+  // 鍔犺浇鎸囧畾瀵硅瘽
   const loadConversation = useCallback(async (partnerId: string) => {
     if (!user?.id) return;
     try {
@@ -42,7 +42,7 @@ export const ChatProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     }
   }, [user?.id]);
 
-  // 标记会话已读
+  // 鏍囪浼氳瘽宸茶
   const markChatRead = useCallback(async (partnerId: string) => {
     if (!user?.id) return;
     try {
@@ -53,7 +53,7 @@ export const ChatProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     }
   }, [user?.id]);
 
-  // 加载会话列表
+  // 鍔犺浇浼氳瘽鍒楄〃
   const refreshConversations = useCallback(async () => {
     if (!user?.id) return;
     try {
@@ -76,7 +76,6 @@ export const ChatProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         }
       });
 
-      // 获取每个伙伴的用户信息
       const partnerList: ChatPartner[] = [];
       const unreadMap: Record<string, number> = {};
       for (const conv of conversationMap.values()) {
@@ -85,7 +84,7 @@ export const ChatProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
           try {
             partnerUser = await userApi.getUser(conv.partner.id);
           } catch {
-            // 如果用ID查不到，尝试用ID当用户名查（兼容旧数据）
+            // 濡傛灉鐢↖D鏌ヤ笉鍒帮紝灏濊瘯鐢↖D褰撶敤鎴峰悕鏌ワ紙鍏煎鏃ф暟鎹級
             partnerUser = await userApi.getUserByName(conv.partner.id);
           }
           conv.partner.name = partnerUser.name;
@@ -105,77 +104,61 @@ export const ChatProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     }
   }, [user?.id]);
 
-  // 创建或获取对话（不发初始消息，只创建会话条目）
   const getOrCreateConversation = useCallback(async (partner: ChatPartner): Promise<ChatPartner | null> => {
     if (!user?.id) return null;
     try {
-      // 先刷新会话列表，检查是否已存在对话
       const allMessages = await chatApi.getConversations();
       const existingConv = allMessages.find((msg: Message) => {
-        const pid = msg.senderId === user.id ? msg.receiverId : msg.senderId;
-        return pid === partner.id;
+        const partnerId = msg.senderId === user.id ? msg.receiverId : msg.senderId;
+        return partnerId === partner.id;
       });
 
-      // 获取完整的用户信息（包含在线状态等）
+      let partnerUser;
       try {
-        let partnerUser;
-        try {
-          partnerUser = await userApi.getUser(partner.id);
-        } catch {
-          partnerUser = await userApi.getUserByName(partner.id);
-        }
-        const fullPartner: ChatPartner = {
-          id: partner.id,
-          name: partnerUser.name || partner.name,
-          avatar: partnerUser.avatar || partner.avatar,
-          isOnline: partnerUser.isOnline || false,
-          lastMessage: existingConv?.content || ''
-        };
+        partnerUser = await userApi.getUser(partner.id);
+      } catch {
+        partnerUser = await userApi.getUserByName(partner.id);
+      }
 
-        if (existingConv) {
-          // 已有对话，直接返回
-          return fullPartner;
-        }
+      const fullPartner: ChatPartner = {
+        id: partner.id,
+        name: partnerUser.name || partner.name,
+        avatar: partnerUser.avatar || partner.avatar,
+        isOnline: partnerUser.isOnline || false,
+        lastMessage: existingConv?.content || '',
+      };
 
-        // 不存在对话，发送初始消息创建
+      if (!existingConv) {
         await chatApi.sendMessage(partner.id, '你好，我想了解一下');
         fullPartner.lastMessage = '你好，我想了解一下';
-
-        // 刷新会话列表确保新对话显示
         await refreshConversations();
-
-        return fullPartner;
-      } catch (e) {
-        console.error('Failed to get partner info:', e);
-        return partner;
       }
+
+      return fullPartner;
     } catch (err) {
       console.error('Failed to get or create conversation:', err);
-      return null;
+      return partner;
     }
   }, [user?.id, refreshConversations]);
 
-  // 打开聊天
+  // 鎵撳紑鑱婂ぉ
   const openChat = useCallback(async (partner?: ChatPartner) => {
     if (!getToken()) return; // 未登录不打开聊天
+    setIsChatOpen(true);
     if (partner) {
-      // 立即创建对话（如果不存在）
+      setActivePartner(partner);
+      setMessages(prev => ({ ...prev, [partner.id]: prev[partner.id] || [] }));
       const convPartner = await getOrCreateConversation(partner);
       if (convPartner) {
         setActivePartner(convPartner);
         markChatRead(convPartner.id);
-        setIsChatOpen(true);
         loadConversation(convPartner.id);
       }
     } else if (partners.length > 0) {
-      // 无参数时自动选择第一个会话
       const firstPartner = partners[0];
       setActivePartner(firstPartner);
       markChatRead(firstPartner.id);
-      setIsChatOpen(true);
       loadConversation(firstPartner.id);
-    } else {
-      setIsChatOpen(true);
     }
   }, [partners, markChatRead, loadConversation, getOrCreateConversation, refreshConversations]);
 
@@ -184,14 +167,13 @@ export const ChatProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     setActivePartner(null);
   };
 
-  // 初始加载会话列表（仅当用户已登录且有token时）
+  // 鍒濆鍔犺浇浼氳瘽鍒楄〃锛堜粎褰撶敤鎴峰凡鐧诲綍涓旀湁token鏃讹級
   useEffect(() => {
     if (user?.id && getToken()) {
       refreshConversations();
     }
   }, [user?.id, refreshConversations]);
 
-  // 当 activePartner 改变时加载对话
   useEffect(() => {
     if (activePartner && isChatOpen && getToken()) {
       loadConversation(activePartner.id);

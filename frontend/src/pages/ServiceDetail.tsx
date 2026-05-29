@@ -30,7 +30,7 @@ import { useNotification } from '../context/NotificationContext';
 import { useToast } from '../context/ToastContext';
 import { useAuthCheck } from '../context/useAuthCheck';
 import { serviceApi, userApi, favoriteApi, notificationApi, chatApi, reviewApi } from '../services/api';
-import { getCurrentLocation } from '../utils/location';
+import { readCachedLocation } from '../utils/location';
 import { FollowButton } from '../components/common/FollowButton';
 import { ConfirmDialog } from '../components/common/ConfirmDialog';
 import { ServiceDetail as ServiceDetailType, Review } from '../types';
@@ -47,12 +47,12 @@ function ReviewSection({ serviceId, rating }: { serviceId: string; rating: numbe
     const fetchReviews = async () => {
       try {
         const data = await serviceApi.getReviews(serviceId);
-        // 从 API 数据初始化点赞状态（如果 API 没返回 isLiked，全部设为 false）
+        // 浠?API 鏁版嵁鍒濆鍖栫偣璧炵姸鎬侊紙濡傛灉 API 娌¤繑鍥?isLiked锛屽叏閮ㄨ涓?false锛?
         const likedIds = data.filter((r: Review) => r.isLiked).map((r: Review) => r.id);
         setLikedReviews(new Set(likedIds));
         setReviews(data);
       } catch (err) {
-        console.error('获取评价失败', err);
+        console.error('鑾峰彇评价澶辫触', err);
       }
     };
     fetchReviews();
@@ -68,7 +68,7 @@ function ReviewSection({ serviceId, rating }: { serviceId: string; rating: numbe
     const prevReviews = reviews;
     setLikeLoading(reviewId);
 
-    // 乐观更新
+    // 涔愯鏇存柊
     setLikedReviews(prev => {
       const next = wasLiked
         ? new Set([...prev].filter(id => id !== reviewId))
@@ -91,7 +91,7 @@ function ReviewSection({ serviceId, rating }: { serviceId: string; rating: numbe
         await reviewApi.likeReview(reviewId);
       }
     } catch {
-      // 回滚：用 functional update 确保拿到的是点击前的状态
+      // 鍥炴粴锛氱敤 functional update 纭繚鎷垮埌鐨勬槸鐐瑰嚮鍓嶇殑鐘舵€?
       setLikedReviews(prev => {
         const next = wasLiked
           ? new Set([...prev, reviewId])
@@ -170,9 +170,9 @@ function ReviewSection({ serviceId, rating }: { serviceId: string; rating: numbe
 export default function ServiceDetail() {
   const { id } = useParams();
   const navigate = useNavigate();
-  const location = useLocation();
+  const routeLocation = useLocation();
   const { openChat } = useChat();
-  const fromProfile = location.state?.from;
+  const fromProfile = routeLocation.state?.from;
 
   const [service, setService] = useState<ServiceDetailType | null>(null);
   const [loading, setLoading] = useState(true);
@@ -193,7 +193,7 @@ export default function ServiceDetail() {
   const { user } = useAuth();
   const { showToast } = useToast();
 
-  // 是否是自己的服务
+  // 鏄惁鏄嚜宸辩殑鏈嶅姟
   const sellerId = service?.seller?.id || (service as any)?.sellerId;
   const isOwnService = user?.id && user.id === sellerId;
 
@@ -231,7 +231,6 @@ export default function ServiceDetail() {
   useEffect(() => {
     const fetchService = async () => {
       try {
-        // 先无定位加载详情，避免等待定位导致页面空转
         const data = await serviceApi.get(id);
         setService(data);
         const currentUser = JSON.parse(localStorage.getItem('neighborhood_user') || '{}');
@@ -246,7 +245,7 @@ export default function ServiceDetail() {
               setFollowState(sid, following);
             } catch {}
           }
-          // 获取初始收藏状态
+          // 鑾峰彇鍒濆鏀惰棌鐘舵€?
           try {
             const favorited = await favoriteApi.check(currentUser.id, 'service', Number(id));
             setIsLiked(favorited);
@@ -254,9 +253,9 @@ export default function ServiceDetail() {
         }
 
         // 后台异步补距离，不阻塞首屏
-        const location = await getCurrentLocation();
-        if (location?.latitude != null && location?.longitude != null) {
-          const localized = await serviceApi.get(id, location.latitude, location.longitude);
+        const cachedLocation = readCachedLocation();
+        if (cachedLocation?.latitude != null && cachedLocation?.longitude != null) {
+          const localized = await serviceApi.get(id, cachedLocation.latitude, cachedLocation.longitude);
           setService(localized);
         }
       } catch (err: any) {
@@ -302,7 +301,7 @@ export default function ServiceDetail() {
       setBookingSuccess(true);
       increaseUnread();
       window.dispatchEvent(new Event('notification-created'));
-      // 发送通知和消息给卖家（通知内容包含预约信息用于后续处理）
+      // 鍙戦€侀€氱煡鍜屾秷鎭粰鍗栧锛堥€氱煡鍐呭鍖呭惈棰勭害淇℃伅鐢ㄤ簬鍚庣画澶勭悊锛?
       try {
         await notificationApi.send(
           sellerId,
@@ -507,7 +506,7 @@ export default function ServiceDetail() {
                    )}
                  </div>
                  <p className="text-secondary font-medium leading-relaxed max-w-lg mb-4">
-                   "致力于为邻居提供五星级的管家式服务，细节决定品质。每一次服务都是我诚信的积累。"
+                   "致力于为邻居提供五星级的管家式服务，细节决定品质。每一次服务都是我诚信的积累。
                  </p>
                  <div className="flex items-center justify-center md:justify-start gap-8">
                    <div>
@@ -704,3 +703,4 @@ export default function ServiceDetail() {
     </div>
   );
 }
+

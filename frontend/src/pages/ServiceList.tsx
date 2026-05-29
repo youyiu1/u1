@@ -7,7 +7,7 @@ import React, { useState, useEffect } from 'react';
 import { Search, Star, MapPin, CheckCircle2, Heart, Sparkles, Clock, ShieldCheck, Wrench, Brush, Scissors, Dumbbell, Plus } from 'lucide-react';
 import { motion } from 'motion/react';
 import { serviceApi } from '../services/api';
-import { getCurrentLocation } from '../utils/location';
+import { getCurrentLocation, getGeolocationPermissionState, readCachedLocation } from '../utils/location';
 import { useNavigate } from 'react-router-dom';
 import { useAuthCheck } from '../context/useAuthCheck';
 import { usePublish } from '../context/PublishContext';
@@ -32,18 +32,20 @@ export default function ServiceList() {
   const [error, setError] = useState<string | null>(null);
   const [activeCategory, setActiveCategory] = useState('all');
   const [searchQuery, setSearchQuery] = useState('');
+  const [nearbyEnabled, setNearbyEnabled] = useState(false);
+  const [locating, setLocating] = useState(false);
+  const [locationTip, setLocationTip] = useState('');
 
   useEffect(() => {
     const fetchServices = async () => {
       try {
-        // 先无定位加载，保障首屏速度
         const baseData = await serviceApi.list();
         setServices(baseData);
 
-        // 定位成功后再增量刷新距离与排序
-        const location = await getCurrentLocation();
-        if (location?.latitude != null && location?.longitude != null) {
-          const localizedData = await serviceApi.list(location.latitude, location.longitude);
+        const cachedLocation = readCachedLocation();
+        if (cachedLocation) {
+          setNearbyEnabled(true);
+          const localizedData = await serviceApi.list(cachedLocation.latitude, cachedLocation.longitude);
           setServices(localizedData);
         }
       } catch (err: any) {
@@ -55,6 +57,31 @@ export default function ServiceList() {
     fetchServices();
   }, []);
 
+  const enableNearbySort = async () => {
+    if (locating) return;
+    setLocating(true);
+    setLocationTip('');
+    try {
+      const permission = await getGeolocationPermissionState();
+      if (permission === 'denied') {
+        setLocationTip('浏览器已禁止定位，请在浏览器设置里开启，或使用默认排序。');
+        return;
+      }
+      const location = await getCurrentLocation(5000);
+      if (!location) {
+        setLocationTip('暂时无法获取位置，已保持默认排序。');
+        return;
+      }
+      const localizedData = await serviceApi.list(location.latitude, location.longitude);
+      setServices(localizedData);
+      setNearbyEnabled(true);
+      setLocationTip('已开启附近排序。');
+    } catch {
+      setLocationTip('定位失败，已保持默认排序。');
+    } finally {
+      setLocating(false);
+    }
+  };
   const filteredServices = services.filter(s =>
     (activeCategory === 'all' || s.category === activeCategory) &&
     s.title.toLowerCase().includes(searchQuery.toLowerCase())
@@ -65,7 +92,7 @@ export default function ServiceList() {
     return distance;
   };
 
-  // 解析highlights JSON字符串为数组
+  // 瑙ｆ瀽highlights JSON瀛楃涓蹭负鏁扮粍
   const getHighlights = (h: any): string[] => {
     if (Array.isArray(h)) return h;
     if (typeof h === 'string' && h.startsWith('[')) {
@@ -80,7 +107,7 @@ export default function ServiceList() {
         <div className="max-w-[1280px] mx-auto px-6 md:px-20">
            <div className="flex flex-col md:flex-row gap-6 items-end justify-between">
              <div className="flex-1 max-w-2xl">
-               <h1 className="text-3xl font-bold text-ink mb-6">发现周边的专业服务</h1>
+               <h1 className="text-3xl font-bold text-ink mb-6">发现身边的专业服务</h1>
                <div className="relative group">
                  <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
                    <Search className="w-5 h-5 text-muted group-focus-within:text-primary transition-colors" />
@@ -123,7 +150,24 @@ export default function ServiceList() {
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-8">
           <div>
             <h2 className="text-xl font-bold text-ink">精选服务商</h2>
-            <p className="text-xs text-muted mt-1">覆盖全城，专业、准时、省心</p>
+            <p className="text-xs text-muted mt-1">
+              {nearbyEnabled ? '已按你的位置优先展示附近服务' : '默认按同城服务展示，不会自动获取定位'}
+            </p>
+          </div>
+          <div className="flex flex-col md:items-end gap-2">
+            <button
+              onClick={enableNearbySort}
+              disabled={locating}
+              className={`px-5 py-2.5 rounded-xl text-xs font-black transition-all flex items-center gap-2 ${
+                nearbyEnabled
+                  ? 'bg-primary/5 text-primary border border-primary/10'
+                  : 'bg-white border border-hairline text-secondary hover:border-primary/30 hover:text-primary'
+              } disabled:opacity-60`}
+            >
+              <MapPin className="w-4 h-4" />
+              {locating ? '定位中...' : nearbyEnabled ? '附近排序已开启' : '开启附近排序'}
+            </button>
+            {locationTip && <span className="text-[10px] text-muted font-bold">{locationTip}</span>}
           </div>
         </div>
 
@@ -198,3 +242,4 @@ export default function ServiceList() {
     </div>
   );
 }
+

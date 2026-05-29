@@ -9,7 +9,6 @@ import { X, Camera, CheckCircle2, Loader2 } from 'lucide-react';
 import { userApi, fileApi } from '../../services/api';
 import { useAuth } from '../../context/AuthContext';
 import { User } from '../../types';
-import { getToken } from '../../services/api';
 
 interface EditProfileOverlayProps {
   isOpen: boolean;
@@ -62,15 +61,7 @@ export const EditProfileOverlay: React.FC<EditProfileOverlayProps> = ({ isOpen, 
     try {
       let avatarUrl = avatar;
       if (avatarFile) {
-        const res = await fetch('http://localhost:8080/api/file/upload', {
-          method: 'POST',
-          headers: getToken() ? { 'Authorization': `Bearer ${getToken()}` } : {},
-          body: createFormDataWithFile(avatarFile),
-        });
-        const json = await res.json();
-        if (json.success) {
-          avatarUrl = json.data;
-        }
+        avatarUrl = await fileApi.upload(avatarFile);
       }
 
       const updatedUser = {
@@ -97,12 +88,6 @@ export const EditProfileOverlay: React.FC<EditProfileOverlayProps> = ({ isOpen, 
     } finally {
       setIsSubmitting(false);
     }
-  };
-
-  const createFormDataWithFile = (file: File): FormData => {
-    const formData = new FormData();
-    formData.append('file', file);
-    return formData;
   };
 
   return (

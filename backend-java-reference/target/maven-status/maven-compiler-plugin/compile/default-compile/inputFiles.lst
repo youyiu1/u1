@@ -49,6 +49,7 @@ D:\下载文件\同城生活\backend-java-reference\src\main\java\com\neighborhood\app\m
 D:\下载文件\同城生活\backend-java-reference\src\main\java\com\neighborhood\app\controller\NotificationController.java
 D:\下载文件\同城生活\backend-java-reference\src\main\java\com\neighborhood\app\mapper\MarketMapper.java
 D:\下载文件\同城生活\backend-java-reference\src\main\java\com\neighborhood\app\service\OrderService.java
+D:\下载文件\同城生活\backend-java-reference\src\main\java\com\neighborhood\app\interceptor\PerformanceInterceptor.java
 D:\下载文件\同城生活\backend-java-reference\src\main\java\com\neighborhood\app\service\CommentLikeService.java
 D:\下载文件\同城生活\backend-java-reference\src\main\java\com\neighborhood\app\service\impl\SearchServiceImpl.java
 D:\下载文件\同城生活\backend-java-reference\src\main\java\com\neighborhood\app\entity\Category.java

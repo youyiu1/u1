@@ -293,11 +293,13 @@ export default function ItemDetail() {
                 </span>
               </div>
               <div className="w-full h-80 rounded-3xl overflow-hidden grayscale contrast-[0.9] opacity-90 border border-hairline">
-                 <img
-                  src="https://images.unsplash.com/photo-1524661135-423995f22d0b?auto=format&fit=crop&q=80&w=1200"
-                  className="w-full h-full object-cover"
-                  alt="Location"
-                 />
+                 <div className="w-full h-full bg-[radial-gradient(circle_at_20%_30%,_rgba(255,56,92,0.18),_transparent_35%),radial-gradient(circle_at_80%_20%,_rgba(74,144,226,0.18),_transparent_35%),radial-gradient(circle_at_70%_75%,_rgba(80,195,142,0.2),_transparent_40%),linear-gradient(135deg,_#f7f7f7_0%,_#ececec_100%)] flex items-center justify-center">
+                  <div className="text-center">
+                    <MapPin className="w-8 h-8 text-primary mx-auto mb-2" />
+                    <p className="text-xs font-black text-ink uppercase tracking-widest">附近位置示意</p>
+                    <p className="text-[11px] font-bold text-muted mt-1">{item.location}</p>
+                  </div>
+                 </div>
               </div>
             </div>
           </div>

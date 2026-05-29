@@ -55,18 +55,21 @@ export const HeaderNotifications: React.FC = () => {
     fetchNotifications();
   }, [user?.id, refreshTrigger]);
 
-  // 每次打开通知面板时刷新
+  // 每次打开通知面板时刷新（延后一帧，避免和入场动画抢主线程）
   useEffect(() => {
     if (!showNotifications || !user?.id) return;
-    const fetchNotifications = async () => {
-      try {
-        const data = await notificationApi.list(user.id);
-        setNotifications(data);
-      } catch (err) {
-        console.error('Failed to fetch notifications:', err);
-      }
-    };
-    fetchNotifications();
+    const timer = window.setTimeout(() => {
+      const fetchNotifications = async () => {
+        try {
+          const data = await notificationApi.list(user.id);
+          setNotifications(data);
+        } catch (err) {
+          console.error('Failed to fetch notifications:', err);
+        }
+      };
+      fetchNotifications();
+    }, 80);
+    return () => window.clearTimeout(timer);
   }, [showNotifications, user?.id]);
 
   const handleMarkAllRead = () => {
@@ -191,11 +194,12 @@ export const HeaderNotifications: React.FC = () => {
               style={{ pointerEvents: 'auto' }}
             />
             <motion.div
-              initial={{ opacity: 0, y: 10, scale: 0.95 }}
-              animate={{ opacity: 1, y: 0, scale: 1 }}
-              exit={{ opacity: 0, y: 10, scale: 0.95 }}
+              initial={{ opacity: 0, x: 24 }}
+              animate={{ opacity: 1, x: 0 }}
+              exit={{ opacity: 0, x: 24 }}
+              transition={{ duration: 0.2, ease: 'easeOut' }}
               onClick={(e) => e.stopPropagation()}
-              className="absolute right-0 top-full mt-3 w-80 bg-white border border-hairline rounded-[32px] shadow-premium z-20 overflow-hidden"
+              className="absolute right-0 top-full mt-3 w-80 bg-white border border-hairline rounded-[32px] shadow-premium z-20 overflow-hidden transform-gpu will-change-transform"
               style={{ pointerEvents: 'auto' }}
             >
               <div className="p-6 border-b border-hairline flex items-center justify-between">

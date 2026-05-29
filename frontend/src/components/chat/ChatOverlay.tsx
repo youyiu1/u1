@@ -1,11 +1,10 @@
-import React, { useState, useEffect, useRef, useContext } from 'react';
-import { motion } from 'motion/react';
+import React, { useState, useEffect, useRef, useContext, useMemo } from 'react';
+import { motion, AnimatePresence } from 'motion/react';
 import {
   X,
   Send,
   Smile,
   Image as ImageIcon,
-  MoreHorizontal,
   Search,
   MessageSquare,
   ChevronLeft
@@ -18,6 +17,7 @@ export const ChatOverlay: React.FC = () => {
   const { user } = useContext(AuthContext);
   const [inputText, setInputText] = useState('');
   const [showContacts, setShowContacts] = useState(true);
+  const [switchingPartnerId, setSwitchingPartnerId] = useState<string | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   // 每次打开聊天面板时重置为会话列表
@@ -27,15 +27,22 @@ export const ChatOverlay: React.FC = () => {
     }
   }, [isChatOpen]);
 
-  const scrollToBottom = () => {
-    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
-  };
+  const currentMessages = useMemo(
+    () => (activePartner ? (messages[activePartner.id] || []) : []),
+    [activePartner, messages]
+  );
 
   useEffect(() => {
     if (isChatOpen) {
-      scrollToBottom();
+      messagesEndRef.current?.scrollIntoView({ behavior: 'auto' });
     }
-  }, [messages, isChatOpen]);
+  }, [currentMessages.length, isChatOpen]);
+
+  useEffect(() => {
+    if (activePartner?.id && switchingPartnerId === activePartner.id && Object.prototype.hasOwnProperty.call(messages, activePartner.id)) {
+      setSwitchingPartnerId(null);
+    }
+  }, [activePartner?.id, messages, switchingPartnerId]);
 
   const handleSend = () => {
     if (inputText.trim() && activePartner) {
@@ -45,6 +52,7 @@ export const ChatOverlay: React.FC = () => {
   };
 
   const handleSelectContact = (partner: typeof partners[0]) => {
+    setSwitchingPartnerId(partner.id);
     openChat(partner);
     setShowContacts(false);
   };
@@ -53,20 +61,26 @@ export const ChatOverlay: React.FC = () => {
     setShowContacts(true);
   };
 
-  if (!isChatOpen) return null;
-
-  const currentMessages = activePartner ? (messages[activePartner.id] || []) : [];
-
   return (
-    <div className="fixed inset-0 z-[60] flex items-end sm:items-center justify-end p-4">
-      <div className="absolute inset-0 bg-ink/40 backdrop-blur-sm" onClick={closeChat} />
+    <AnimatePresence>
+      {isChatOpen && (
+        <div className="fixed inset-0 z-[60] flex items-end sm:items-center justify-end p-3 sm:p-4">
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.16 }}
+            className="absolute inset-0 bg-ink/25"
+            onClick={closeChat}
+          />
 
-      <motion.div
-        initial={{ opacity: 0, x: 100 }}
-        animate={{ opacity: 1, x: 0 }}
-        exit={{ opacity: 0, x: 100 }}
-        className="relative w-full max-w-md h-[600px] bg-white rounded-[40px] shadow-2xl overflow-hidden pointer-events-auto border border-hairline flex flex-col"
-      >
+          <motion.div
+            initial={{ x: '100%' }}
+            animate={{ x: 0 }}
+            exit={{ x: '100%' }}
+            transition={{ type: 'tween', duration: 0.22, ease: [0.22, 1, 0.36, 1] }}
+            className="relative w-full sm:max-w-md h-[72vh] max-h-[580px] sm:h-[560px] bg-white rounded-[32px] sm:rounded-[40px] shadow-2xl overflow-hidden pointer-events-auto border border-hairline flex flex-col transform-gpu will-change-transform contain-layout"
+          >
         {/* Header */}
         <header className="p-6 border-b border-hairline flex items-center justify-between bg-white/90 backdrop-blur-md">
           <div className="flex items-center gap-3">
@@ -116,7 +130,7 @@ export const ChatOverlay: React.FC = () => {
             </div>
 
             {/* Contact List */}
-            <div className="flex-1 overflow-y-auto no-scrollbar p-2 space-y-1">
+              <div className="flex-1 overflow-y-auto no-scrollbar p-2 space-y-1 overscroll-contain">
               {partners.length === 0 ? (
                 <div className="flex flex-col items-center justify-center h-full text-center px-6 py-12">
                   <div className="w-16 h-16 bg-surface-soft rounded-full flex items-center justify-center mb-4">
@@ -126,7 +140,7 @@ export const ChatOverlay: React.FC = () => {
                   <p className="text-[11px] text-muted font-medium">点击沟通按钮即可开始对话</p>
                 </div>
               ) : (
-                partners.map(p => (
+                partners.slice(0, 60).map(p => (
                   <button
                     key={p.id}
                     onClick={() => handleSelectContact(p)}
@@ -157,15 +171,20 @@ export const ChatOverlay: React.FC = () => {
         ) : (
           <>
             {/* Message List */}
-            <div className="flex-1 overflow-y-auto no-scrollbar p-6 space-y-6">
-              {currentMessages.map((msg, idx) => {
+            <div className="flex-1 overflow-y-auto no-scrollbar p-6 space-y-5 overscroll-contain">
+              {switchingPartnerId ? (
+                <div className="h-full flex items-center justify-center text-xs font-bold text-muted">
+                  加载对话中...
+                </div>
+              ) : currentMessages.length === 0 ? (
+                <div className="h-full flex items-center justify-center text-xs font-bold text-muted">
+                  暂无聊天记录
+                </div>
+              ) : currentMessages.slice(-80).map((msg) => {
                 const isMe = msg.senderId === user?.id;
                 return (
-                  <motion.div
+                  <div
                     key={msg.id}
-                    initial={{ opacity: 0, y: 10, scale: 0.95 }}
-                    animate={{ opacity: 1, y: 0, scale: 1 }}
-                    transition={{ delay: idx * 0.05 }}
                     className={`flex ${isMe ? 'justify-end' : 'justify-start'}`}
                   >
                     <div className={`max-w-[80%] space-y-1 ${isMe ? 'items-end' : 'items-start'} flex flex-col`}>
@@ -180,7 +199,7 @@ export const ChatOverlay: React.FC = () => {
                         {msg.createTime ? new Date(msg.createTime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : msg.timestamp}
                       </span>
                     </div>
-                  </motion.div>
+                  </div>
                 );
               })}
               <div ref={messagesEndRef} />
@@ -210,9 +229,7 @@ export const ChatOverlay: React.FC = () => {
                     placeholder="发送你的邻里温情..."
                     className="flex-1 bg-transparent border-none p-2 focus:ring-0 text-sm font-medium placeholder:text-muted/40 min-h-[44px] max-h-32 resize-none no-scrollbar"
                   />
-                  <motion.button
-                    whileHover={{ scale: 1.05 }}
-                    whileTap={{ scale: 0.95 }}
+                  <button
                     onClick={handleSend}
                     disabled={!inputText.trim()}
                     className={`w-11 h-11 rounded-full flex items-center justify-center transition-all ${
@@ -222,13 +239,15 @@ export const ChatOverlay: React.FC = () => {
                     }`}
                   >
                     <Send className="w-5 h-5 ml-0.5" />
-                  </motion.button>
+                  </button>
                 </div>
               </div>
             </footer>
           </>
         )}
-      </motion.div>
-    </div>
+          </motion.div>
+        </div>
+      )}
+    </AnimatePresence>
   );
 };

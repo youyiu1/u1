@@ -6,7 +6,6 @@
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Star } from 'lucide-react';
-import { motion } from 'motion/react';
 import { Service, Item } from '../../types';
 
 import { LikeButton } from './LikeButton';
@@ -32,21 +31,18 @@ export const GlobalCard: React.FC<CardProps> = ({ type, data }) => {
   };
 
   return (
-    <motion.div
-      initial={{ opacity: 0, y: 10 }}
-      whileInView={{ opacity: 1, y: 0 }}
-      viewport={{ once: true }}
-      className="group cursor-pointer"
-    >
+    <div className="group cursor-pointer content-visibility-auto">
       <div onClick={() => navigate(`/${isService ? 'service' : 'item'}/${data.id}`, { state: { from: '/' } })}>
-        <div className="aspect-[4/5] overflow-hidden mb-6 relative rounded-[32px] bg-stone-100 shadow-inner group-hover:shadow-premium transition-all duration-700 ease-[0.16,1,0.3,1]">
+        <div className="aspect-[4/5] overflow-hidden mb-6 relative rounded-[32px] bg-stone-100 shadow-inner transition-shadow duration-300 ease-out">
           <img
             src={getImages(data.images)?.[0] || null}
             alt={data.title}
-            className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-1000 ease-[0.16,1,0.3,1]"
+            loading="lazy"
+            decoding="async"
+            className="w-full h-full object-cover"
           />
           
-          <div className="absolute inset-0 bg-ink opacity-0 group-hover:opacity-10 transition-opacity duration-700" />
+          <div className="absolute inset-0 bg-ink opacity-0 group-hover:opacity-5 transition-opacity duration-200" />
 
           <div className="absolute inset-0 flex items-end justify-start p-6 opacity-0 group-hover:opacity-100 transition-opacity duration-500 pointer-events-none">
              <div className="px-4 py-2 bg-white/80 backdrop-blur-md rounded-full text-[10px] font-black uppercase tracking-widest text-ink shadow-sm">
@@ -54,7 +50,7 @@ export const GlobalCard: React.FC<CardProps> = ({ type, data }) => {
              </div>
           </div>
 
-          <div className="absolute top-6 right-6 p-4 rounded-full backdrop-blur-xl transition-all duration-700 shadow-xl scale-90 group-hover:scale-100 opacity-0 group-hover:opacity-100 bg-white/60 hover:bg-white">
+          <div className="absolute top-6 right-6 p-4 rounded-full transition-opacity duration-200 shadow-lg opacity-0 group-hover:opacity-100 bg-white/80 hover:bg-white">
             <LikeButton showCount={false} size="sm" />
           </div>
         </div>
@@ -84,6 +80,6 @@ export const GlobalCard: React.FC<CardProps> = ({ type, data }) => {
           </div>
         </div>
       </div>
-    </motion.div>
+    </div>
   );
 };

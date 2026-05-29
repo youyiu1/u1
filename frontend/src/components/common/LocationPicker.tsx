@@ -117,9 +117,9 @@ export function LocationPicker({ isOpen, onClose, onSelect }: LocationPickerProp
               </div>
               {openDropdown === 'province' && (
                 <div className="mt-2 bg-white border border-hairline rounded-xl shadow-lg max-h-48 overflow-y-auto">
-                  {provinces.map(p => (
+                  {provinces.map((p, idx) => (
                     <button
-                      key={p.name}
+                      key={`province-${p.name || 'empty'}-${idx}`}
                       onClick={() => handleProvinceSelect(p.name)}
                       className="w-full px-4 py-3 text-left text-sm font-medium hover:bg-surface-soft transition-colors flex items-center justify-between"
                     >
@@ -150,9 +150,9 @@ export function LocationPicker({ isOpen, onClose, onSelect }: LocationPickerProp
               </div>
               {openDropdown === 'city' && (
                 <div className="mt-2 bg-white border border-hairline rounded-xl shadow-lg max-h-48 overflow-y-auto">
-                  {cities.map(c => (
+                  {cities.map((c, idx) => (
                     <button
-                      key={c}
+                      key={`city-${c || 'empty'}-${idx}`}
                       onClick={() => handleCitySelect(c)}
                       className="w-full px-4 py-3 text-left text-sm font-medium hover:bg-surface-soft transition-colors flex items-center justify-between"
                     >

@@ -5,11 +5,11 @@ import { MessageCircle } from 'lucide-react';
 
 export const CommunityBanner: React.FC = () => {
   const navigate = useNavigate();
-  const images = [
-    "https://images.unsplash.com/photo-1517486808906-6ca8b3f04846?auto=format&fit=crop&q=80&w=400",
-    "https://images.unsplash.com/photo-1554118811-1e0d58224f24?auto=format&fit=crop&q=80&w=400",
-    "https://images.unsplash.com/photo-1533174072545-7a4b6ad7a6c3?auto=format&fit=crop&q=80&w=400",
-    "https://images.unsplash.com/photo-1516062423079-7ca13cdc7f5a?auto=format&fit=crop&q=80&w=400"
+  const cards = [
+    { title: '邻里互助', bg: 'linear-gradient(135deg, #ff7d94 0%, #ff385c 100%)' },
+    { title: '生活分享', bg: 'linear-gradient(135deg, #50c38e 0%, #2fa56d 100%)' },
+    { title: '同城服务', bg: 'linear-gradient(135deg, #4a90e2 0%, #316fba 100%)' },
+    { title: '即时交流', bg: 'linear-gradient(135deg, #ffb900 0%, #ff8f00 100%)' },
   ];
 
   return (
@@ -38,13 +38,16 @@ export const CommunityBanner: React.FC = () => {
           </div>
         </div>
         <div className="flex-1 grid grid-cols-2 gap-4 relative z-10 w-full md:w-auto">
-          {images.map((img, i) => (
+          {cards.map((card, i) => (
             <motion.div 
               key={i} 
               whileHover={{ scale: 1.05 }}
-              className="rounded-3xl overflow-hidden aspect-square border-4 border-white/10 shadow-2xl"
+              className="rounded-3xl overflow-hidden aspect-square border-4 border-white/10 shadow-2xl p-4 flex items-end"
+              style={{ background: card.bg }}
             >
-              <img src={img} className="w-full h-full object-cover" alt="Community" />
+              <span className="text-white text-xs font-black tracking-widest uppercase bg-black/20 px-2.5 py-1 rounded-lg">
+                {card.title}
+              </span>
             </motion.div>
           ))}
         </div>

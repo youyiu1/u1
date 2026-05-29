@@ -4,10 +4,12 @@ import { User as UserIcon, Settings, LogOut } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { useAuth } from '../../context/AuthContext';
 import { getToken } from '../../services/api';
+import { getFallbackAvatar } from '../../utils/avatar';
 
 export const HeaderUserMenu: React.FC = () => {
   const { user, isAuthenticated, logout } = useAuth();
   const [showUserMenu, setShowUserMenu] = useState(false);
+  const fallbackAvatar = getFallbackAvatar(user?.name);
 
   // 同时检查 user 和 token
   const isLoggedIn = isAuthenticated && !!getToken();
@@ -37,8 +39,11 @@ export const HeaderUserMenu: React.FC = () => {
       >
         <div className="w-10 h-10 rounded-xl bg-surface-soft border border-hairline overflow-hidden shadow-sm">
           <img
-            src={user?.avatar || ''}
-            onError={(e) => e.currentTarget.src = `https://ui-avatars.com/api/?name=${user?.name}&background=random`}
+            src={user?.avatar || fallbackAvatar}
+            onError={(e) => {
+              e.currentTarget.onerror = null;
+              e.currentTarget.src = fallbackAvatar;
+            }}
             className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-300"
             alt="Profile"
           />

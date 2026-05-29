@@ -207,7 +207,7 @@ export const PublishOverlay: React.FC<PublishOverlayProps> = ({ isOpen, onClose,
   return (
     <AnimatePresence>
       {isOpen && (
-        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 md:p-6 overflow-y-auto">
+        <div key="publish-overlay" className="fixed inset-0 z-[100] flex items-center justify-center p-4 md:p-6 overflow-y-auto">
           {/* Backdrop */}
           <motion.div
             initial={{ opacity: 0 }}
@@ -343,10 +343,10 @@ export const PublishOverlay: React.FC<PublishOverlayProps> = ({ isOpen, onClose,
                                <div className="flex items-center gap-2">
                                   <span className="text-[10px] font-black text-muted uppercase tracking-widest">成色:</span>
                                   <div className="flex gap-2">
-                                     {['全新', '几乎全新', '九成新', '七成新', '坏件/拆解'].map(c => (
-                                       <button
-                                         key={c}
-                                         onClick={() => setCondition(c)}
+                                    {['全新', '几乎全新', '九成新', '七成新', '坏件/拆解'].map((c, idx) => (
+                                      <button
+                                        key={`condition-${c || 'empty'}-${idx}`}
+                                        onClick={() => setCondition(c)}
                                          className={`px-3 py-1 rounded-lg text-[10px] font-bold transition-all ${
                                            condition === c ? 'bg-accent-gold text-white shadow-md' : 'bg-white text-muted border border-hairline'
                                          }`}
@@ -368,9 +368,9 @@ export const PublishOverlay: React.FC<PublishOverlayProps> = ({ isOpen, onClose,
                                     </button>
                                     {marketCategoryOpen && (
                                       <div className="absolute top-full left-0 mt-1 bg-white rounded-xl shadow-lg border border-hairline z-10 overflow-hidden">
-                                        {MARKET_CATEGORIES.map(c => (
+                                        {MARKET_CATEGORIES.map((c, idx) => (
                                           <button
-                                            key={c.value}
+                                            key={`market-category-${c.value || 'empty'}-${idx}`}
                                             onClick={() => { setMarketCategory(c.value); setMarketCategoryOpen(false); }}
                                             className={`block w-full px-4 py-2 text-[10px] font-bold text-left hover:bg-surface-soft transition-all ${marketCategory === c.value ? 'text-primary bg-primary/5' : 'text-ink'}`}
                                           >
@@ -419,9 +419,9 @@ export const PublishOverlay: React.FC<PublishOverlayProps> = ({ isOpen, onClose,
                                     </button>
                                     {serviceCategoryOpen && (
                                       <div className="absolute top-full left-0 mt-1 bg-white rounded-xl shadow-lg border border-hairline z-10 overflow-hidden">
-                                        {SERVICE_CATEGORIES.map(c => (
+                                        {SERVICE_CATEGORIES.map((c, idx) => (
                                           <button
-                                            key={c.value}
+                                            key={`service-category-${c.value || 'empty'}-${idx}`}
                                             onClick={() => { setServiceCategory(c.value); setServiceCategoryOpen(false); }}
                                             className={`block w-full px-4 py-2 text-[10px] font-bold text-left hover:bg-surface-soft transition-all ${serviceCategory === c.value ? 'text-primary bg-primary/5' : 'text-ink'}`}
                                           >
@@ -435,9 +435,9 @@ export const PublishOverlay: React.FC<PublishOverlayProps> = ({ isOpen, onClose,
                                <div className="flex items-center gap-2">
                                   <span className="text-[10px] font-black text-muted uppercase tracking-widest">单位:</span>
                                   <div className="flex gap-2">
-                                     {['次', '小时', '月', '件'].map(u => (
+                                     {['次', '小时', '月', '件'].map((u, idx) => (
                                        <button
-                                         key={u}
+                                         key={`service-unit-${u || 'empty'}-${idx}`}
                                          onClick={() => setServiceUnit(u)}
                                          className={`px-3 py-1 rounded-lg text-[10px] font-bold transition-all ${
                                            serviceUnit === u ? 'bg-accent-green text-white shadow-md' : 'bg-white text-muted border border-hairline'
@@ -462,9 +462,9 @@ export const PublishOverlay: React.FC<PublishOverlayProps> = ({ isOpen, onClose,
                             <div className="flex items-start gap-2 border-t border-dashed border-hairline pt-4 mt-4">
                                <span className="text-[10px] font-black text-muted uppercase tracking-widest pt-1">服务特点:</span>
                                <div className="flex flex-wrap gap-2">
-                                  {SERVICE_HIGHLIGHTS.map(h => (
+                                  {SERVICE_HIGHLIGHTS.map((h, idx) => (
                                     <button
-                                      key={h}
+                                      key={`service-highlight-${h || 'empty'}-${idx}`}
                                       onClick={() => setServiceHighlights(prev =>
                                         prev.includes(h) ? prev.filter(x => x !== h) : [...prev, h]
                                       )}
@@ -485,9 +485,9 @@ export const PublishOverlay: React.FC<PublishOverlayProps> = ({ isOpen, onClose,
                             <div className="flex items-center gap-4 border-b border-hairline pb-4 overflow-x-auto no-scrollbar py-1">
                                <span className="text-[10px] font-black text-muted uppercase tracking-widest whitespace-nowrap">分类标签:</span>
                                <div className="flex gap-2">
-                                  {['生活记录', '同城发现', '探店动态', '邻里闲情', '物业反馈'].map(t => (
+                                  {['生活记录', '同城发现', '探店动态', '邻里闲情', '物业反馈'].map((t, idx) => (
                                     <button
-                                      key={t}
+                                      key={`news-type-${t || 'empty'}-${idx}`}
                                       onClick={() => setNewsType(t)}
                                       className={`px-4 py-1.5 rounded-xl text-[10px] font-black uppercase tracking-widest whitespace-nowrap transition-all ${
                                         newsType === t ? 'bg-accent-blue text-white shadow-md' : 'bg-white text-muted border border-hairline'
@@ -615,11 +615,15 @@ export const PublishOverlay: React.FC<PublishOverlayProps> = ({ isOpen, onClose,
         </div>
       )}
 
-      <LocationPicker
-        isOpen={locationPickerOpen}
-        onClose={() => setLocationPickerOpen(false)}
-        onSelect={(loc) => setPublishLocation(loc.name)}
-      />
+      {locationPickerOpen && (
+        <React.Fragment key="location-picker">
+          <LocationPicker
+            isOpen={locationPickerOpen}
+            onClose={() => setLocationPickerOpen(false)}
+            onSelect={(loc) => setPublishLocation(loc.name)}
+          />
+        </React.Fragment>
+      )}
     </AnimatePresence>
   );
 };
