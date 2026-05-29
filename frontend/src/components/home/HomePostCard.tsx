@@ -8,6 +8,7 @@ import { motion } from 'motion/react';
 import { useNavigate } from 'react-router-dom';
 import { Post } from '../../types';
 import { LikeButton } from '../common/LikeButton';
+import { formatDateTime } from '../../utils/dateTime';
 
 interface HomePostCardProps {
   post: Post;
@@ -22,7 +23,7 @@ export const HomePostCard: React.FC<HomePostCardProps> = ({ post, idx }) => {
   const authorAvatar = post.author?.avatar || post.authorAvatar || '';
   const authorVerified = post.author?.verified ?? post.authorVerified ?? false;
   const avatarSrc = authorAvatar || null;
-  const postTime = post.time || post.createTime || '';
+  const postTime = formatDateTime(post.time || post.createTime, '刚刚');
 
   // 解析images JSON字符串为数组
   const getImages = (imgs: any): string[] => {

@@ -35,12 +35,13 @@ public class Comment {
 
     public Comment() {}
 
-    public Comment(Long newsId, String userId, String userName, String userAvatar, String content) {
-        this.newsId = newsId;
-        this.userId = userId;
-        this.userName = userName;
-        this.userAvatar = userAvatar;
-        this.content = content;
-        this.createTime = LocalDateTime.now();
+
+
+    public Long getParentId() {
+        return parentId;
+    }
+
+    public void setParentId(Long parentId) {
+        this.parentId = parentId;
     }
 }

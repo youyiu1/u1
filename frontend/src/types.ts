@@ -158,6 +158,7 @@ export interface ReviewFormData {
 
 export interface Comment {
   id: string;
+  parentId?: string;
   user?: string;
   userName?: string;
   userAvatar?: string;

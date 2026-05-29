@@ -3,19 +3,21 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import React, { useRef, useState, useEffect } from 'react';
+import React, { useMemo, useRef, useState, useEffect } from 'react';
 import { useParams, useNavigate, useLocation } from 'react-router-dom';
-import { ChevronLeft, MessageSquare, Heart, Share2, Bookmark, MapPin, MoreHorizontal } from 'lucide-react';
+import { ChevronLeft, MessageSquare, Heart, Share2, Bookmark, MoreHorizontal } from 'lucide-react';
 import { motion } from 'motion/react';
-import { newsApi, userApi, favoriteApi } from '../services/api';
+import { newsApi } from '../services/api';
 import { FollowButton } from '../components/common/FollowButton';
 import { CommentItem } from '../components/common/CommentItem';
 import { Post, Comment } from '../types';
 import { useAuth } from '../context/AuthContext';
 import { useToast } from '../context/ToastContext';
 import { useLikeAndFavorite } from '../hooks/useLikeAndFavorite';
+import { formatDateTime } from '../utils/dateTime';
 
-const FOLLOW_KEY = 'follow_states_v2';
+const REPLY_COLLAPSE_COUNT = 3;
+const COMMENT_FETCH_LIMIT = 200;
 
 export default function NewsDetail() {
   const { id } = useParams();
@@ -30,7 +32,8 @@ export default function NewsDetail() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [commentText, setCommentText] = useState('');
-  const [isLoadingMore, setIsLoadingMore] = useState(false);
+  const [replyTarget, setReplyTarget] = useState<Comment | null>(null);
+  const [expandedReplies, setExpandedReplies] = useState<Record<string, boolean>>({});
   const [isFollowed, setIsFollowed] = useState(false);
   const commentInputRef = useRef<HTMLTextAreaElement | null>(null);
 
@@ -56,8 +59,7 @@ export default function NewsDetail() {
   const authorName = post?.author?.name || (post as any)?.authorName || '';
   const authorAvatar = post?.author?.avatar || (post as any)?.authorAvatar || '';
   const authorVerified = post?.author?.verified ?? (post as any)?.authorVerified ?? false;
-  const authorTag = post?.author?.tag || (post as any)?.authorTag || '';
-  const postTime = post?.time || (post as any)?.createTime || '';
+  const postTime = formatDateTime(post?.time || (post as any)?.createTime, '刚刚');
   const isOwnPost = user?.id && user.id === authorId;
 
   const getImages = (imgs: any): string[] => {
@@ -66,21 +68,6 @@ export default function NewsDetail() {
       try { return JSON.parse(imgs); } catch { return []; }
     }
     return [];
-  };
-
-  const getFollowState = (key: string) => {
-    try {
-      const saved = JSON.parse(localStorage.getItem(FOLLOW_KEY) || '{}');
-      return saved[key] ?? false;
-    } catch { return false; }
-  };
-
-  const setFollowState = (key: string, value: boolean) => {
-    try {
-      const saved = JSON.parse(localStorage.getItem(FOLLOW_KEY) || '{}');
-      saved[key] = value;
-      localStorage.setItem(FOLLOW_KEY, JSON.stringify(saved));
-    } catch {}
   };
 
   const handleFollowChange = (newState: boolean) => {
@@ -98,7 +85,7 @@ export default function NewsDetail() {
   const fetchComments = async () => {
     if (!id) return;
     try {
-      const commentData = await newsApi.getComments(id as string, 20, 0, user?.id);
+      const commentData = await newsApi.getComments(id as string, COMMENT_FETCH_LIMIT, 0, user?.id);
       setComments(commentData);
     } catch (err: any) {
       showToast(err.message || '评论加载失败', 'error');
@@ -128,33 +115,164 @@ export default function NewsDetail() {
     fetchComments();
   }, [id, user?.id]);
 
+  const commentsById = useMemo(() => {
+    const map = new Map<string, Comment>();
+    comments.forEach((comment) => {
+      map.set(String(comment.id), comment);
+    });
+    return map;
+  }, [comments]);
+
+  const repliesByParentId = useMemo(() => {
+    const map = new Map<string, Comment[]>();
+    const getParentId = (comment: Comment): string => {
+      const rawParentId = comment.parentId ?? (comment as any).parent_id;
+      return rawParentId ? String(rawParentId) : '0';
+    };
+    comments.forEach((comment) => {
+      const parentId = getParentId(comment);
+      if (parentId === '0') return;
+      if (!map.has(parentId)) {
+        map.set(parentId, []);
+      }
+      map.get(parentId)!.push(comment);
+    });
+    return map;
+  }, [comments]);
+
+  const directParentByChildId = useMemo(() => {
+    const map = new Map<string, string>();
+    comments.forEach((comment) => {
+      const rawParentId = comment.parentId ?? (comment as any).parent_id;
+      if (rawParentId) {
+        map.set(String(comment.id), String(rawParentId));
+      }
+    });
+    return map;
+  }, [comments]);
+
+  const rootComments = useMemo(() => (
+    comments.filter((comment) => {
+      const rawParentId = comment.parentId ?? (comment as any).parent_id;
+      const parentId = rawParentId ? String(rawParentId) : '0';
+      return parentId === '0' || !commentsById.has(parentId);
+    })
+  ), [comments, commentsById]);
+
   const handleCommentLikeChange = (commentId: string, isLiked: boolean, likes: number) => {
     setComments(prev =>
       prev.map(c => c.id === commentId ? { ...c, isLiked, likes } : c)
     );
   };
 
-  const handleReply = (targetName: string) => {
+  const handleReply = (targetComment: Comment) => {
+    const targetName = targetComment.userName || targetComment.user || '邻居用户';
     const mention = `@${targetName} `;
-    setCommentText(prev => `${prev}${prev.length > 0 && !prev.endsWith(' ') ? ' ' : ''}${mention}`);
+    setReplyTarget(targetComment);
+    setCommentText((prev) => (prev.trim() ? prev : mention));
     requestAnimationFrame(() => commentInputRef.current?.focus());
+  };
+
+  const toggleReplies = (commentId: string) => {
+    setExpandedReplies((prev) => ({
+      ...prev,
+      [commentId]: !prev[commentId],
+    }));
   };
 
   const handleAddComment = async () => {
     if (!commentText.trim() || !user) return;
+    const replyParentId = replyTarget ? String(replyTarget.id) : null;
     try {
       await newsApi.addComment(id as string, {
         content: commentText,
         userId: user.id,
         userName: user.name,
         userAvatar: user.avatar,
+        parentId: replyParentId ?? undefined,
       });
       setCommentText('');
+      setReplyTarget(null);
+      if (replyParentId) {
+        setExpandedReplies((prev) => ({
+          ...prev,
+          [replyParentId]: true,
+        }));
+      }
       await fetchComments();
       showToast('评论成功', 'success');
     } catch (err: any) {
       showToast(err.message || '评论失败', 'error');
     }
+  };
+
+  const findTopLevelParentId = (commentId: string): string => {
+    let current = commentId;
+    let parentId = directParentByChildId.get(current);
+    while (parentId && parentId !== '0' && commentsById.has(parentId)) {
+      const next = directParentByChildId.get(parentId);
+      if (!next || next === '0') {
+        return parentId;
+      }
+      current = parentId;
+      parentId = next;
+    }
+    return commentId;
+  };
+
+  const flatRepliesByRootId = useMemo(() => {
+    const map = new Map<string, Comment[]>();
+    comments.forEach((comment) => {
+      const id = String(comment.id);
+      const rawParentId = comment.parentId ?? (comment as any).parent_id;
+      const parentId = rawParentId ? String(rawParentId) : '0';
+      if (parentId === '0') return;
+      if (!commentsById.has(parentId)) return;
+      const topRootId = findTopLevelParentId(id);
+      if (!map.has(topRootId)) {
+        map.set(topRootId, []);
+      }
+      map.get(topRootId)!.push(comment);
+    });
+    return map;
+  }, [comments, commentsById, directParentByChildId]);
+
+  const renderCommentNode = (comment: Comment, depth = 0): React.ReactNode => {
+    const commentId = String(comment.id);
+    const replies = depth === 0 ? (flatRepliesByRootId.get(commentId) || []) : [];
+    const isExpanded = expandedReplies[commentId] ?? false;
+    const visibleReplies = isExpanded ? replies : [];
+
+    return (
+      <div
+        key={commentId}
+        className={depth > 0 ? 'ml-4 pl-2 border-l border-hairline/70' : undefined}
+      >
+        <CommentItem
+          comment={comment}
+          currentUserId={user?.id}
+          onLikeChange={handleCommentLikeChange}
+          onAfterLike={fetchComments}
+          onReply={handleReply}
+          compact={depth > 0}
+        />
+        {replies.length > 0 && (
+          <div className="mt-0.5">
+            <button
+              onClick={() => toggleReplies(commentId)}
+              className="block mx-auto text-[11px] font-bold text-primary hover:opacity-70 transition-opacity"
+            >
+              {isExpanded ? '收起回复' : `更多回复 (${replies.length})`}
+            </button>
+            {visibleReplies.length > 0 && (
+              <div className="space-y-2 mt-1">
+                {visibleReplies.map((reply) => renderCommentNode(reply, 1))}
+              </div>
+            )}
+          </div>
+        )}
+      </div>
+    );
   };
 
   if (loading) {
@@ -263,16 +381,7 @@ export default function NewsDetail() {
               <h3 className="text-base font-black text-ink mb-6">评论 ({comments.length})</h3>
               <div className="space-y-4">
                 {comments.length > 0 ? (
-                  comments.map((comment) => (
-                    <CommentItem
-                      key={comment.id}
-                      comment={comment}
-                      currentUserId={user?.id}
-                      onLikeChange={handleCommentLikeChange}
-                      onAfterLike={fetchComments}
-                      onReply={handleReply}
-                    />
-                  ))
+                  rootComments.map((comment) => renderCommentNode(comment))
                 ) : (
                   <div className="py-16 text-center bg-surface-soft rounded-3xl border border-dashed border-hairline">
                     <MessageSquare className="w-10 h-10 text-hairline mx-auto mb-4" />
@@ -317,12 +426,25 @@ export default function NewsDetail() {
             </button>
           </div>
 
+          {replyTarget && (
+            <div className="mt-4 mb-2 px-3 py-2 rounded-xl bg-surface-soft border border-hairline flex items-center justify-between">
+              <span className="text-xs font-bold text-muted">
+                正在回复 {replyTarget.userName || replyTarget.user || '邻居用户'}
+              </span>
+              <button
+                onClick={() => setReplyTarget(null)}
+                className="text-xs font-bold text-primary hover:opacity-70 transition-opacity"
+              >
+                取消
+              </button>
+            </div>
+          )}
           <div className="flex items-center gap-3 mt-4 bg-surface-soft rounded-2xl px-4 py-2.5 border border-hairline focus-within:border-primary/40 focus-within:bg-white transition-all">
             <textarea
               ref={commentInputRef}
               value={commentText}
               onChange={(e) => setCommentText(e.target.value)}
-              placeholder="写评论..."
+              placeholder={replyTarget ? '写回复...' : '写评论...'}
               className="flex-1 bg-transparent border-none p-0 focus:ring-0 text-sm font-medium placeholder:text-muted/60 resize-none min-h-[24px] max-h-24 outline-none"
               rows={1}
             />

@@ -17,6 +17,7 @@ import { getFollowState, setFollowState } from '../utils/followStorage';
 import { useToast } from '../context/ToastContext';
 import { useAuth } from '../context/AuthContext';
 import { LocationPicker } from '../components/common/LocationPicker';
+import { formatDateTime } from '../utils/dateTime';
 
 export default function News() {
   const navigate = useNavigate();
@@ -289,7 +290,7 @@ export default function News() {
                   const authorId = post.author?.id || post.authorId || '';
                   const authorName = post.author?.name || post.authorName || '匿名用户';
                   const authorAvatar = post.author?.avatar || post.authorAvatar || '';
-                  const postTime = post.time || post.createTime || '';
+                  const postTime = formatDateTime(post.time || post.createTime, '刚刚');
                   return (
                   <article
                     key={post.id}

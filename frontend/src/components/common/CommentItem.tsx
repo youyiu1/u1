@@ -5,13 +5,15 @@ import { motion } from 'motion/react';
 import { Comment } from '../../types';
 import { newsApi } from '../../services/api';
 import { useToast } from '../../context/ToastContext';
+import { formatDateTime } from '../../utils/dateTime';
 
 interface CommentItemProps {
   comment: Comment;
   currentUserId?: string;
   onLikeChange?: (commentId: string, isLiked: boolean, likes: number) => void;
   onAfterLike?: () => void | Promise<void>;
-  onReply?: (userName: string) => void;
+  onReply?: (comment: Comment) => void;
+  compact?: boolean;
 }
 
 export const CommentItem: React.FC<CommentItemProps> = ({
@@ -20,6 +22,7 @@ export const CommentItem: React.FC<CommentItemProps> = ({
   onLikeChange,
   onAfterLike,
   onReply,
+  compact = false,
 }) => {
   const navigate = useNavigate();
   const { showToast } = useToast();
@@ -30,7 +33,7 @@ export const CommentItem: React.FC<CommentItemProps> = ({
   const userName = comment.userName || comment.user || '邻居用户';
   const avatar = comment.userAvatar || comment.avatar || `https://ui-avatars.com/api/?name=${encodeURIComponent(userName)}&background=random`;
   const content = comment.content || comment.text || '';
-  const commentTime = comment.createTime || comment.time || '刚刚';
+  const commentTime = formatDateTime(comment.createTime || comment.time, '刚刚');
 
   useEffect(() => {
     setIsLiked(comment.isLiked ?? false);
@@ -66,50 +69,60 @@ export const CommentItem: React.FC<CommentItemProps> = ({
     <motion.div
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
-      className="flex gap-5 group p-6 rounded-[32px] hover:bg-surface-soft transition-all text-left border border-transparent hover:border-hairline"
+      onClick={() => onReply?.(comment)}
+      className={`group transition-all text-left border border-transparent hover:border-hairline cursor-pointer ${
+        compact
+          ? 'flex gap-2.5 p-2.5 rounded-xl hover:bg-surface-soft/70'
+          : 'flex gap-5 px-6 pt-5 pb-2 rounded-[32px] hover:bg-surface-soft'
+      }`}
     >
       <div
         className="cursor-pointer shrink-0 relative overflow-hidden rounded-2xl"
-        onClick={() => navigate(`/profile/${userName}`)}
+        onClick={(e) => {
+          e.stopPropagation();
+          navigate(`/profile/${userName}`);
+        }}
       >
         <img
           src={avatar}
-          className="w-12 h-12 border border-hairline object-cover transition-transform group-hover:scale-110"
+          className={`${compact ? 'w-7 h-7 rounded-md' : 'w-12 h-12'} border border-hairline object-cover transition-transform group-hover:scale-110`}
           alt={userName}
         />
       </div>
       <div className="flex-1">
-        <div className="flex items-center justify-between mb-2">
+        <div className={`flex items-start justify-between ${compact ? 'mb-0.5' : 'mb-2'}`}>
           <div className="flex items-center gap-2">
             <span
-              className="font-black text-sm text-ink cursor-pointer hover:text-primary transition-colors"
-              onClick={() => navigate(`/profile/${userName}`)}
+              className={`${compact ? 'text-[11px]' : 'text-sm'} font-black text-ink cursor-pointer hover:text-primary transition-colors`}
+              onClick={(e) => {
+                e.stopPropagation();
+                navigate(`/profile/${userName}`);
+              }}
             >
               {userName}
             </span>
-            <span className="px-1.5 py-0.5 bg-hairline/30 rounded text-[8px] font-black text-muted uppercase">Level 3</span>
+            {!compact && (
+              <span className="px-1.5 py-0.5 bg-hairline/30 rounded text-[8px] font-black text-muted uppercase">Level 3</span>
+            )}
           </div>
-          <span className="text-[10px] text-muted font-bold">{commentTime}</span>
+          <div className="flex flex-col items-end gap-1">
+            <span className={`${compact ? 'text-[8px]' : 'text-[10px]'} text-muted font-bold`}>{commentTime}</span>
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                handleLike();
+              }}
+              disabled={liking}
+              className={`flex items-center gap-1 ${compact ? 'text-[9px]' : 'text-[10px]'} font-black uppercase tracking-widest transition-colors disabled:opacity-50 ${isLiked ? 'text-red-500' : 'text-muted hover:text-red-500'}`}
+            >
+              <Heart className={`${compact ? 'w-2.5 h-2.5' : 'w-3 h-3'} ${isLiked ? 'fill-current' : ''}`} />
+              {likes}
+            </button>
+          </div>
         </div>
-        <p className="text-sm text-secondary leading-relaxed mb-4 font-medium">
+        <p className={`${compact ? 'text-[11px] leading-snug mb-1' : 'text-sm leading-relaxed mb-1.5'} text-secondary font-medium`}>
           {content}
         </p>
-        <div className="flex items-center gap-6">
-          <button
-            onClick={() => onReply?.(userName)}
-            className="text-[10px] font-black text-primary uppercase tracking-widest hover:opacity-70 transition-opacity"
-          >
-            回复
-          </button>
-          <button
-            onClick={handleLike}
-            disabled={liking}
-            className={`flex items-center gap-1.5 text-[10px] font-black uppercase tracking-widest transition-colors disabled:opacity-50 ${isLiked ? 'text-red-500' : 'text-muted hover:text-red-500'}`}
-          >
-            <Heart className={`w-3 h-3 ${isLiked ? 'fill-current' : ''}`} />
-            {likes}
-          </button>
-        </div>
       </div>
     </motion.div>
   );

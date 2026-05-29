@@ -35,6 +35,7 @@ import { FollowButton } from '../components/common/FollowButton';
 import { ConfirmDialog } from '../components/common/ConfirmDialog';
 import { ServiceDetail as ServiceDetailType, Review } from '../types';
 import { getFollowState, setFollowState } from '../utils/followStorage';
+import { formatDateTime } from '../utils/dateTime';
 
 function ReviewSection({ serviceId, rating }: { serviceId: string; rating: number }) {
   const [reviews, setReviews] = useState<Review[]>([]);
@@ -141,7 +142,7 @@ function ReviewSection({ serviceId, rating }: { serviceId: string; rating: numbe
                           />
                         ))}
                       </div>
-                      <span className="text-[10px] font-bold text-muted uppercase tracking-widest">{review.createTime}</span>
+                      <span className="text-[10px] font-bold text-muted uppercase tracking-widest">{formatDateTime(review.createTime, '刚刚')}</span>
                     </div>
                   </div>
                 </div>

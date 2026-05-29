@@ -158,7 +158,7 @@ export const newsApi = {
   getComments: (id: string, limit = 20, offset = 0, userId?: string) =>
     request<Comment[]>(`/news/${id}/comments?limit=${limit}&offset=${offset}${userId ? `&userId=${encodeURIComponent(userId)}` : ''}`),
 
-  addComment: (id: string, comment: { content: string; userId: string; userName: string; userAvatar: string }) =>
+  addComment: (id: string, comment: { content: string; userId: string; userName: string; userAvatar: string; parentId?: string }) =>
     request<boolean>(`/news/${id}/comment`, {
       method: 'POST',
       body: JSON.stringify(comment),

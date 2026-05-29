@@ -20,6 +20,7 @@ import com.neighborhood.app.service.CacheService;
 import com.neighborhood.app.service.CommentLikeService;
 import com.neighborhood.app.service.NewsService;
 import lombok.RequiredArgsConstructor;
+import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import java.util.List;
@@ -35,6 +36,7 @@ public class NewsServiceImpl extends ServiceImpl<NewsMapper, News> implements Ne
     private final UserMapper userMapper;
     private final FollowMapper followMapper;
     private final CommentLikeService commentLikeService;
+    private final JdbcTemplate jdbcTemplate;
 
     /**
      * 设置当前用户点赞/收藏状态
@@ -143,10 +145,17 @@ public class NewsServiceImpl extends ServiceImpl<NewsMapper, News> implements Ne
     @Override
     @Transactional
     public void addComment(Long newsId, Comment comment) {
+        ensureCommentParentColumnExists();
         comment.setNewsId(newsId);
         comment.setCreateTime(java.time.LocalDateTime.now());
-        if (comment.getParentId() == null || comment.getParentId() <= 0) {
+        Long parentId = comment.getParentId();
+        if (parentId == null || parentId <= 0) {
             comment.setParentId(0L);
+        } else {
+            Comment parentComment = commentMapper.selectById(parentId);
+            if (parentComment == null || !newsId.equals(parentComment.getNewsId())) {
+                comment.setParentId(0L);
+            }
         }
         commentMapper.insert(comment);
         lambdaUpdate().eq(News::getId, newsId)
@@ -196,12 +205,14 @@ public class NewsServiceImpl extends ServiceImpl<NewsMapper, News> implements Ne
     }
 
     public List<Comment> getCommentsByNewsId(Long newsId, int limit, int offset, String userId) {
+        ensureCommentParentColumnExists();
+        int safeLimit = Math.max(1, Math.min(limit, 200));
+        int safeOffset = Math.max(0, offset);
         List<Comment> comments = commentMapper.selectList(
                 new QueryWrapper<Comment>()
                         .eq("news_id", newsId)
-                        .orderByAsc("parent_id")
                         .orderByAsc("create_time")
-                        .last("LIMIT " + limit + " OFFSET " + offset)
+                        .last("LIMIT " + safeLimit + " OFFSET " + safeOffset)
         );
         comments.forEach(c -> {
             if (c.getId() == null) {
@@ -209,14 +220,33 @@ public class NewsServiceImpl extends ServiceImpl<NewsMapper, News> implements Ne
                 c.setIsLiked(false);
                 return;
             }
-            c.setLikes((int) commentLikeService.countLikes(c.getId()));
+            try {
+                c.setLikes((int) commentLikeService.countLikes(c.getId()));
+            } catch (Exception e) {
+                c.setLikes(c.getLikes() == null ? 0 : c.getLikes());
+            }
             if (userId != null && !userId.isEmpty()) {
-                c.setIsLiked(commentLikeService.isLiked(c.getId(), userId));
+                try {
+                    c.setIsLiked(commentLikeService.isLiked(c.getId(), userId));
+                } catch (Exception e) {
+                    c.setIsLiked(false);
+                }
             } else {
                 c.setIsLiked(false);
             }
         });
         return comments;
+    }
+
+    private void ensureCommentParentColumnExists() {
+        try {
+            jdbcTemplate.execute("ALTER TABLE t_comment ADD COLUMN parent_id BIGINT DEFAULT 0 COMMENT '父评论ID'");
+        } catch (Exception ignored) {
+        }
+        try {
+            jdbcTemplate.execute("CREATE INDEX idx_parent_id ON t_comment(parent_id)");
+        } catch (Exception ignored) {
+        }
     }
 
     @Override

@@ -28,17 +28,21 @@ public class CommentLikeServiceImpl extends ServiceImpl<CommentLikeMapper, Comme
     private final CommentMapper commentMapper;
 
     private void ensureLikeTableExists() {
-        jdbcTemplate.execute(
-                "CREATE TABLE IF NOT EXISTS t_comment_like (" +
-                        "id BIGINT PRIMARY KEY AUTO_INCREMENT COMMENT 'comment like id'," +
-                        "comment_id BIGINT NOT NULL COMMENT 'comment id'," +
-                        "user_id VARCHAR(64) NOT NULL COMMENT 'user id'," +
-                        "create_time DATETIME DEFAULT CURRENT_TIMESTAMP," +
-                        "UNIQUE KEY uk_comment_user (comment_id, user_id)," +
-                        "INDEX idx_comment_id (comment_id)," +
-                        "INDEX idx_user_id (user_id)" +
-                        ") ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='comment like table'"
-        );
+        try {
+            jdbcTemplate.execute(
+                    "CREATE TABLE IF NOT EXISTS t_comment_like (" +
+                            "id BIGINT PRIMARY KEY AUTO_INCREMENT COMMENT 'comment like id'," +
+                            "comment_id BIGINT NOT NULL COMMENT 'comment id'," +
+                            "user_id VARCHAR(64) NOT NULL COMMENT 'user id'," +
+                            "create_time DATETIME DEFAULT CURRENT_TIMESTAMP," +
+                            "UNIQUE KEY uk_comment_user (comment_id, user_id)," +
+                            "INDEX idx_comment_id (comment_id)," +
+                            "INDEX idx_user_id (user_id)" +
+                            ") ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='comment like table'"
+            );
+        } catch (Exception ignored) {
+            // 读接口不因建表权限问题失败，后续查询自行兜底
+        }
     }
 
     @Override
@@ -88,23 +92,31 @@ public class CommentLikeServiceImpl extends ServiceImpl<CommentLikeMapper, Comme
     @Override
     public boolean isLiked(Long commentId, String userId) {
         ensureLikeTableExists();
-        boolean liked = lambdaQuery()
-                .eq(CommentLike::getCommentId, commentId)
-                .eq(CommentLike::getUserId, userId)
-                .count() > 0;
-        if (liked) {
-            cacheService.addCommentLike(commentId, userId);
-        } else {
-            cacheService.removeCommentLike(commentId, userId);
+        try {
+            boolean liked = lambdaQuery()
+                    .eq(CommentLike::getCommentId, commentId)
+                    .eq(CommentLike::getUserId, userId)
+                    .count() > 0;
+            if (liked) {
+                cacheService.addCommentLike(commentId, userId);
+            } else {
+                cacheService.removeCommentLike(commentId, userId);
+            }
+            return liked;
+        } catch (Exception e) {
+            return false;
         }
-        return liked;
     }
 
     @Override
     public long countLikes(Long commentId) {
         ensureLikeTableExists();
-        return lambdaQuery()
-                .eq(CommentLike::getCommentId, commentId)
-                .count();
+        try {
+            return lambdaQuery()
+                    .eq(CommentLike::getCommentId, commentId)
+                    .count();
+        } catch (Exception e) {
+            return 0L;
+        }
     }
 }
