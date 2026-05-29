@@ -93,45 +93,17 @@ export const HeaderNotifications: React.FC = () => {
     return n.title === '新预约请求';
   };
 
-  // 解析通知内容获取预约信息
-  const parseBookingInfo = (content: string) => {
-    // 内容格式: "用户 xxx 预约了您的服务「xxx」，时间：xxx xxx"
-    const match = content.match(/用户 (.+?) 预约了您的服务「(.+?)」，时间：(.+?) (.+?)$/);
-    if (match) {
-      return {
-        userName: match[1],
-        serviceTitle: match[2],
-        bookingDate: match[3],
-        bookingTime: match[4],
-      };
-    }
-    return null;
-  };
-
   const handleAccept = async (n: Notification) => {
     if (!user) return;
     setProcessingId(n.id);
     try {
-      const info = parseBookingInfo(n.content);
-      if (info) {
-        // 从通知中提取buyerId（需要通知包含userId，这里简化处理）
-        // 实际应该从notification.relatedBookingId获取
-        await notificationApi.process({
-          notificationId: n.id,
-          accept: true,
-          buyerId: '', // 服务端可以通过notification获取
-          sellerId: user.id,
-          serviceId: '',
-          serviceTitle: info.serviceTitle,
-          price: '',
-          bookingDate: info.bookingDate,
-          bookingTime: info.bookingTime,
-          duration: 1,
-        });
-        // 刷新通知列表
-        const data = await notificationApi.list(user.id);
-        setNotifications(data);
-      }
+      await notificationApi.process({
+        notificationId: n.id,
+        accept: true,
+        sellerId: user.id,
+      });
+      const data = await notificationApi.list(user.id);
+      setNotifications(data);
     } catch (err) {
       console.error('Failed to accept booking:', err);
     }
@@ -142,24 +114,13 @@ export const HeaderNotifications: React.FC = () => {
     if (!user) return;
     setProcessingId(n.id);
     try {
-      const info = parseBookingInfo(n.content);
-      if (info) {
-        await notificationApi.process({
-          notificationId: n.id,
-          accept: false,
-          buyerId: '',
-          sellerId: user.id,
-          serviceId: '',
-          serviceTitle: info.serviceTitle,
-          price: '',
-          bookingDate: info.bookingDate,
-          bookingTime: info.bookingTime,
-          duration: 1,
-        });
-        // 刷新通知列表
-        const data = await notificationApi.list(user.id);
-        setNotifications(data);
-      }
+      await notificationApi.process({
+        notificationId: n.id,
+        accept: false,
+        sellerId: user.id,
+      });
+      const data = await notificationApi.list(user.id);
+      setNotifications(data);
     } catch (err) {
       console.error('Failed to reject booking:', err);
     }

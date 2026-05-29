@@ -44,7 +44,11 @@ export const ChangePasswordOverlay: React.FC<ChangePasswordOverlayProps> = ({ is
     setIsSubmitting(true);
 
     try {
-      await userApi.changePassword(oldPassword, newPassword);
+      const success = await userApi.changePassword(oldPassword, newPassword);
+      if (!success) {
+        setError('当前密码不正确');
+        return;
+      }
 
       setIsSuccess(true);
       setTimeout(() => {
@@ -321,7 +325,11 @@ export const PrivacySettingsOverlay: React.FC<PrivacySettingsOverlayProps> = ({ 
   const handleSave = async () => {
     setIsSubmitting(true);
     try {
-      await userApi.updatePrivacy(settings);
+      const success = await userApi.updatePrivacy(settings);
+      if (!success) {
+        console.error('保存隐私设置失败');
+        return;
+      }
       // 更新本地用户信息
       if (user) {
         (user as any).profileVisible = settings.profileVisible;

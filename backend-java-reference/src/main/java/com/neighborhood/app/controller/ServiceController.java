@@ -8,9 +8,11 @@ package com.neighborhood.app.controller;
 import com.neighborhood.app.entity.ServiceEntity;
 import com.neighborhood.app.entity.ServiceDetailVO;
 import com.neighborhood.app.entity.ServiceReview;
+import com.neighborhood.app.entity.User;
 import com.neighborhood.app.service.ServiceModuleService;
 import com.neighborhood.app.service.ServiceReviewService;
 import com.neighborhood.app.service.NotificationService;
+import com.neighborhood.app.service.UserService;
 import com.neighborhood.app.common.Result;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
@@ -30,6 +32,8 @@ public class ServiceController {
     private ServiceReviewService serviceReviewService;
     @Autowired
     private NotificationService notificationService;
+    @Autowired
+    private UserService userService;
 
     @GetMapping("/list")
     public Result<List<ServiceEntity>> list(
@@ -136,7 +140,7 @@ public class ServiceController {
     @PostMapping("/book")
     public Result<Boolean> book(@RequestBody BookingRequest request) {
         Long serviceId = Long.parseLong(request.getServiceId());
-        boolean success = serviceModuleService.book(
+        Long bookingId = serviceModuleService.book(
             serviceId,
             request.getBuyerId(),
             request.getSellerId(),
@@ -144,9 +148,11 @@ public class ServiceController {
             request.getBookingTime(),
             request.getDuration()
         );
-        if (success) {
+        if (bookingId != null) {
             ServiceEntity service = serviceModuleService.getById(serviceId);
             String serviceName = service != null ? service.getTitle() : "";
+            User buyer = userService.getById(request.getBuyerId());
+            String buyerName = buyer != null ? buyer.getName() : "用户";
             // 通知买家
             notificationService.saveNotification(
                 request.getBuyerId(),
@@ -155,14 +161,15 @@ public class ServiceController {
                 serviceName
             );
             // 通知卖家
-            notificationService.saveNotification(
+            notificationService.saveNotificationWithBooking(
                 request.getSellerId(),
-                "新预约通知",
-                "您有新的服务预约，请及时处理。",
-                serviceName
+                "新预约请求",
+                "用户 " + buyerName + " 预约了您的服务「" + serviceName + "」，时间：" + request.getBookingDate() + " " + request.getBookingTime(),
+                serviceName,
+                bookingId
             );
         }
-        return Result.ok(success);
+        return Result.ok(bookingId != null);
     }
 
     public static class BookingRequest {

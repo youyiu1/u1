@@ -90,7 +90,7 @@ public class ServiceModuleServiceImpl extends ServiceImpl<ServiceMapper, Service
     }
 
     @Override
-    public boolean book(Long serviceId, String buyerId, String sellerId, String bookingDate, String bookingTime, Integer duration) {
+    public Long book(Long serviceId, String buyerId, String sellerId, String bookingDate, String bookingTime, Integer duration) {
         Booking booking = new Booking();
         booking.setServiceId(serviceId);
         booking.setBuyerId(buyerId);
@@ -104,7 +104,7 @@ public class ServiceModuleServiceImpl extends ServiceImpl<ServiceMapper, Service
         booking.setStatus("pending");
         booking.setCreateTime(LocalDateTime.now());
         booking.setUpdateTime(LocalDateTime.now());
-        return bookingMapper.insert(booking) > 0;
+        return bookingMapper.insert(booking) > 0 ? booking.getId() : null;
     }
 
     @Override

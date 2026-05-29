@@ -279,14 +279,14 @@ export const notificationApi = {
   process: (params: {
     notificationId: string;
     accept: boolean;
-    buyerId: string;
-    sellerId: string;
-    serviceId: string;
-    serviceTitle: string;
-    price: string;
-    bookingDate: string;
-    bookingTime: string;
-    duration: number;
+    buyerId?: string;
+    sellerId?: string;
+    serviceId?: string;
+    serviceTitle?: string;
+    price?: string;
+    bookingDate?: string;
+    bookingTime?: string;
+    duration?: number;
   }) =>
     request<boolean>('/notification/process', {
       method: 'POST',

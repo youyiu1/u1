@@ -29,7 +29,7 @@ import { useAuth } from '../context/AuthContext';
 import { useNotification } from '../context/NotificationContext';
 import { useToast } from '../context/ToastContext';
 import { useAuthCheck } from '../context/useAuthCheck';
-import { serviceApi, userApi, favoriteApi, notificationApi, chatApi, reviewApi } from '../services/api';
+import { serviceApi, userApi, favoriteApi, chatApi, reviewApi } from '../services/api';
 import { readCachedLocation } from '../utils/location';
 import { FollowButton } from '../components/common/FollowButton';
 import { ConfirmDialog } from '../components/common/ConfirmDialog';
@@ -301,14 +301,8 @@ export default function ServiceDetail() {
       setBookingSuccess(true);
       increaseUnread();
       window.dispatchEvent(new Event('notification-created'));
-      // 鍙戦€侀€氱煡鍜屾秷鎭粰鍗栧锛堥€氱煡鍐呭鍖呭惈棰勭害淇℃伅鐢ㄤ簬鍚庣画澶勭悊锛?
+      // 后端已创建预约通知，这里只补一条私信方便双方沟通
       try {
-        await notificationApi.send(
-          sellerId,
-          '新预约请求',
-          `用户 ${user.name} 预约了您的服务「${service.title}」，时间：${bookingDate} ${bookingTime}`,
-          service.title
-        );
         await chatApi.sendMessage(sellerId, `您好，我想预约您的服务「${service.title}」，预约时间：${bookingDate} ${bookingTime}，时长：${duration}小时。请确认是否可接单。`);
       } catch {}
     } catch (err: any) {

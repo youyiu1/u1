@@ -10,10 +10,12 @@ import com.neighborhood.app.common.SpringContext;
 import com.neighborhood.app.entity.Booking;
 import com.neighborhood.app.entity.Notification;
 import com.neighborhood.app.entity.Order;
+import com.neighborhood.app.entity.ServiceEntity;
 import com.neighborhood.app.mapper.NotificationMapper;
 import com.neighborhood.app.mapper.BookingMapper;
 import com.neighborhood.app.service.NotificationService;
 import com.neighborhood.app.service.OrderService;
+import com.neighborhood.app.service.ServiceModuleService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
@@ -96,14 +98,34 @@ public class NotificationServiceImpl extends ServiceImpl<NotificationMapper, Not
         if (notification == null || notification.getIsProcessed()) {
             return false;
         }
-        // 如果buyerId为空，从通知中获取（通知的userId就是买家）
-        String actualBuyerId = (buyerId == null || buyerId.isEmpty()) ? notification.getUserId() : buyerId;
-        // 如果serviceTitle为空，从通知的serviceName获取
-        String actualServiceTitle = (serviceTitle == null || serviceTitle.isEmpty()) ? notification.getServiceName() : serviceTitle;
-        // 如果price为空，设置为占位符
-        BigDecimal actualPrice = (price == null || price.isEmpty()) ? BigDecimal.ZERO : new BigDecimal(price);
-        // 如果duration为空，设置为1
-        int actualDuration = (duration == null || duration == 0) ? 1 : duration;
+
+        Booking booking = null;
+        if (notification.getRelatedBookingId() != null) {
+            BookingMapper bookingMapper = SpringContext.getBean(BookingMapper.class);
+            booking = bookingMapper.selectById(notification.getRelatedBookingId());
+        }
+
+        ServiceEntity service = null;
+        Long actualServiceId = serviceId;
+        if (booking != null && booking.getServiceId() != null) {
+            actualServiceId = booking.getServiceId();
+        }
+        if (actualServiceId != null) {
+            ServiceModuleService serviceModuleService = SpringContext.getBean(ServiceModuleService.class);
+            service = serviceModuleService.getById(actualServiceId);
+        }
+
+        String actualBuyerId = booking != null ? booking.getBuyerId() : buyerId;
+        String actualSellerId = booking != null ? booking.getSellerId() : sellerId;
+        String actualServiceTitle = service != null ? service.getTitle() : ((serviceTitle == null || serviceTitle.isEmpty()) ? notification.getServiceName() : serviceTitle);
+        BigDecimal actualPrice = service != null && service.getPrice() != null ? service.getPrice() : ((price == null || price.isEmpty()) ? BigDecimal.ZERO : new BigDecimal(price));
+        String actualBookingDate = booking != null && booking.getBookingDate() != null ? booking.getBookingDate().toLocalDate().toString() : bookingDate;
+        String actualBookingTime = booking != null ? booking.getBookingTime() : bookingTime;
+        int actualDuration = booking != null && booking.getDuration() != null ? booking.getDuration() : ((duration == null || duration == 0) ? 1 : duration);
+
+        if (actualBuyerId == null || actualSellerId == null || actualServiceId == null || actualBookingDate == null || actualBookingTime == null) {
+            return false;
+        }
 
         if (accept) {
             // 创建订单
@@ -111,15 +133,15 @@ public class NotificationServiceImpl extends ServiceImpl<NotificationMapper, Not
             Order order = new Order();
             order.setBookingId(notification.getRelatedBookingId());
             order.setBuyerId(actualBuyerId);
-            order.setSellerId(sellerId);
-            order.setServiceId(serviceId);
+            order.setSellerId(actualSellerId);
+            order.setServiceId(actualServiceId);
             order.setServiceTitle(actualServiceTitle);
             order.setPrice(actualPrice);
             order.setBookingDate(LocalDateTime.of(
-                LocalDate.parse(bookingDate, DateTimeFormatter.ISO_LOCAL_DATE),
-                LocalTime.parse(bookingTime, DateTimeFormatter.ISO_LOCAL_TIME)
+                LocalDate.parse(actualBookingDate, DateTimeFormatter.ISO_LOCAL_DATE),
+                LocalTime.parse(actualBookingTime, DateTimeFormatter.ISO_LOCAL_TIME)
             ));
-            order.setBookingTime(bookingTime);
+            order.setBookingTime(actualBookingTime);
             order.setDuration(actualDuration);
             order.setStatus("confirmed");
             order.setCreateTime(LocalDateTime.now());
@@ -136,14 +158,16 @@ public class NotificationServiceImpl extends ServiceImpl<NotificationMapper, Not
                 BookingMapper bookingMapper = SpringContext.getBean(BookingMapper.class);
                 com.baomidou.mybatisplus.core.conditions.update.LambdaUpdateWrapper<Booking> wrapper =
                     new com.baomidou.mybatisplus.core.conditions.update.LambdaUpdateWrapper<>();
-                wrapper.eq(Booking::getId, notification.getRelatedBookingId()).set(Booking::getStatus, "confirmed");
+                wrapper.eq(Booking::getId, notification.getRelatedBookingId())
+                        .set(Booking::getStatus, "confirmed")
+                        .set(Booking::getUpdateTime, LocalDateTime.now());
                 bookingMapper.update(null, wrapper);
             }
             // 发送确认通知给买家
             Notification confirmNotification = new Notification();
             confirmNotification.setUserId(actualBuyerId);
             confirmNotification.setTitle("预约已确认");
-            confirmNotification.setContent("您的服务预约「" + actualServiceTitle + "」已通过服务商确认，请按时到达。预约时间：" + bookingDate + " " + bookingTime);
+            confirmNotification.setContent("您的服务预约「" + actualServiceTitle + "」已通过服务商确认，请按时到达。预约时间：" + actualBookingDate + " " + actualBookingTime);
             confirmNotification.setServiceName(actualServiceTitle);
             confirmNotification.setTime(LocalDateTime.now());
             confirmNotification.setIsRead(false);
@@ -169,7 +193,9 @@ public class NotificationServiceImpl extends ServiceImpl<NotificationMapper, Not
                 BookingMapper bookingMapper = SpringContext.getBean(BookingMapper.class);
                 com.baomidou.mybatisplus.core.conditions.update.LambdaUpdateWrapper<Booking> wrapper =
                     new com.baomidou.mybatisplus.core.conditions.update.LambdaUpdateWrapper<>();
-                wrapper.eq(Booking::getId, notification.getRelatedBookingId()).set(Booking::getStatus, "cancelled");
+                wrapper.eq(Booking::getId, notification.getRelatedBookingId())
+                        .set(Booking::getStatus, "cancelled")
+                        .set(Booking::getUpdateTime, LocalDateTime.now());
                 bookingMapper.update(null, wrapper);
             }
         }

@@ -204,3 +204,61 @@ INSERT INTO t_market_item (title, description, price, item_condition, image, ima
 ('德龙 (De''Longhi) 意式半自动咖啡机 - 95成新', '成色很好，用了不到半年�?, 3200.00, '95成新', '/api/file/44dc84a59ccd486b9b0a383c556c9d9b.jpg', '["/api/file/44dc84a59ccd486b9b0a383c556c9d9b.jpg"]', 'u002', 'market', 5480.00, '浦东新区', 1, 1),
 ('Nintendo Switch 日版蓝红 - 带健身环', '吃灰半年，全套包装齐全�?, 1800.00, '99�?, '/api/file/d0f83c5066454d7c958a3fb0e954c5a2.jpg', '["/api/file/d0f83c5066454d7c958a3fb0e954c5a2.jpg"]', 'u003', 'market', 2400.00, '徐汇�?, 1, 1);
 
+
+-- ================================================
+-- Booking / notification / order compatibility patch
+-- Added for service booking -> notification -> order workflow
+-- ================================================
+
+SET @booking_notification_col := (
+  SELECT COUNT(1)
+  FROM information_schema.columns
+  WHERE table_schema = DATABASE()
+    AND table_name = 't_booking'
+    AND column_name = 'notification_id'
+);
+SET @booking_notification_sql := IF(
+  @booking_notification_col = 0,
+  'ALTER TABLE t_booking ADD COLUMN notification_id BIGINT COMMENT ''related notification id''',
+  'SELECT 1'
+);
+PREPARE stmt FROM @booking_notification_sql; EXECUTE stmt; DEALLOCATE PREPARE stmt;
+
+CREATE TABLE IF NOT EXISTS t_notification (
+    id BIGINT PRIMARY KEY COMMENT 'notification id',
+    user_id VARCHAR(64) NOT NULL COMMENT 'receiver user id',
+    title VARCHAR(200) NOT NULL COMMENT 'title',
+    content TEXT NOT NULL COMMENT 'content',
+    service_name VARCHAR(200) DEFAULT '' COMMENT 'service name',
+    time DATETIME DEFAULT CURRENT_TIMESTAMP COMMENT 'notification time',
+    is_read TINYINT(1) DEFAULT 0 COMMENT 'read flag',
+    is_processed TINYINT(1) DEFAULT 0 COMMENT 'processed flag',
+    order_id BIGINT COMMENT 'related order id',
+    related_booking_id BIGINT COMMENT 'related booking id',
+    INDEX idx_notify_user_time (user_id, time),
+    INDEX idx_notify_booking (related_booking_id),
+    INDEX idx_notify_order (order_id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='notification table';
+
+CREATE TABLE IF NOT EXISTS t_order (
+    id BIGINT PRIMARY KEY COMMENT 'order id',
+    booking_id BIGINT COMMENT 'related booking id',
+    buyer_id VARCHAR(64) NOT NULL COMMENT 'buyer user id',
+    seller_id VARCHAR(64) NOT NULL COMMENT 'seller user id',
+    service_id BIGINT COMMENT 'service id',
+    service_title VARCHAR(200) COMMENT 'service title',
+    price DECIMAL(10,2) COMMENT 'price',
+    booking_date DATETIME COMMENT 'booking date',
+    booking_time VARCHAR(50) COMMENT 'booking time',
+    duration INT DEFAULT 1 COMMENT 'duration hours',
+    status VARCHAR(20) DEFAULT 'pending' COMMENT 'pending confirmed in_progress completed cancelled',
+    completed_time DATETIME COMMENT 'completed time',
+    create_time DATETIME DEFAULT CURRENT_TIMESTAMP,
+    update_time DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    INDEX idx_buyer_id (buyer_id),
+    INDEX idx_seller_id (seller_id),
+    INDEX idx_service_id (service_id),
+    INDEX idx_status_time (status, create_time DESC),
+    INDEX idx_buyer_status_ctime (buyer_id, status, create_time),
+    INDEX idx_seller_status_ctime (seller_id, status, create_time)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='order table';
