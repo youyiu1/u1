@@ -60,9 +60,7 @@ public class CommentLikeServiceImpl extends ServiceImpl<CommentLikeMapper, Comme
             if (!saved) {
                 return false;
             }
-            commentMapper.update(null, new LambdaUpdateWrapper<Comment>()
-                    .eq(Comment::getId, commentId)
-                    .setSql("likes = GREATEST(COALESCE(likes, 0) + 1, 0)"));
+            updateCommentLikes(commentId, 1);
             cacheService.addCommentLike(commentId, userId);
             return true;
         } catch (Exception e) {
@@ -74,17 +72,11 @@ public class CommentLikeServiceImpl extends ServiceImpl<CommentLikeMapper, Comme
     @Transactional
     public boolean unlike(Long commentId, String userId) {
         ensureLikeTableExists();
-        int deleted = baseMapper.delete(
-                new LambdaQueryWrapper<CommentLike>()
-                        .eq(CommentLike::getCommentId, commentId)
-                        .eq(CommentLike::getUserId, userId)
-        );
+        int deleted = baseMapper.delete(commentLikeQuery(commentId, userId));
         if (deleted <= 0) {
             return false;
         }
-        commentMapper.update(null, new LambdaUpdateWrapper<Comment>()
-                .eq(Comment::getId, commentId)
-                .setSql("likes = GREATEST(COALESCE(likes, 0) - 1, 0)"));
+        updateCommentLikes(commentId, -1);
         cacheService.removeCommentLike(commentId, userId);
         return true;
     }
@@ -93,10 +85,7 @@ public class CommentLikeServiceImpl extends ServiceImpl<CommentLikeMapper, Comme
     public boolean isLiked(Long commentId, String userId) {
         ensureLikeTableExists();
         try {
-            boolean liked = lambdaQuery()
-                    .eq(CommentLike::getCommentId, commentId)
-                    .eq(CommentLike::getUserId, userId)
-                    .count() > 0;
+            boolean liked = count(commentLikeQuery(commentId, userId)) > 0;
             if (liked) {
                 cacheService.addCommentLike(commentId, userId);
             } else {
@@ -118,5 +107,20 @@ public class CommentLikeServiceImpl extends ServiceImpl<CommentLikeMapper, Comme
         } catch (Exception e) {
             return 0L;
         }
+    }
+
+    private LambdaQueryWrapper<CommentLike> commentLikeQuery(Long commentId, String userId) {
+        return new LambdaQueryWrapper<CommentLike>()
+                .eq(CommentLike::getCommentId, commentId)
+                .eq(CommentLike::getUserId, userId);
+    }
+
+    private void updateCommentLikes(Long commentId, int delta) {
+        String expression = delta > 0
+                ? "likes = GREATEST(COALESCE(likes, 0) + 1, 0)"
+                : "likes = GREATEST(COALESCE(likes, 0) - 1, 0)";
+        commentMapper.update(null, new LambdaUpdateWrapper<Comment>()
+                .eq(Comment::getId, commentId)
+                .setSql(expression));
     }
 }

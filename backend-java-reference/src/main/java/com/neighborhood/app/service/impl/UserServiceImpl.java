@@ -45,7 +45,7 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements Us
 
     @Override
     public User login(String email, String password) {
-        return getOne(new QueryWrapper<User>().eq("email", email).eq("password", password));
+        return getOne(userQuery().eq("email", email).eq("password", password));
     }
 
     @Override
@@ -63,7 +63,7 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements Us
 
     @Override
     public User getByName(String name) {
-        return getOne(new QueryWrapper<User>().eq("name", name));
+        return getOne(userQuery().eq("name", name));
     }
 
     @Override
@@ -83,10 +83,7 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements Us
     @Override
     @Transactional
     public boolean unfollow(String followerId, String followingId) {
-        QueryWrapper<Follow> wrapper = new QueryWrapper<Follow>()
-                .eq("follower_id", followerId)
-                .eq("following_id", followingId);
-        if (followMapper.delete(wrapper) == 0) {
+        if (followMapper.delete(followQuery(followerId, followingId)) == 0) {
             return false;
         }
         updateUserCounts(followerId, followingId, -1, -1);
@@ -97,11 +94,7 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements Us
 
     @Override
     public boolean isFollowing(String followerId, String followingId) {
-        return followMapper.selectCount(
-                new QueryWrapper<Follow>()
-                        .eq("follower_id", followerId)
-                        .eq("following_id", followingId)
-        ) > 0;
+        return followMapper.selectCount(followQuery(followerId, followingId)) > 0;
     }
 
     @Override
@@ -170,9 +163,7 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements Us
     @Override
     public List<User> getFollowingList(String userId) {
         // 获取该用户关注的所有用户ID
-        List<Follow> follows = followMapper.selectList(
-                new QueryWrapper<Follow>().eq("follower_id", userId)
-        );
+        List<Follow> follows = followMapper.selectList(followerQuery(userId));
         if (follows.isEmpty()) {
             return List.of();
         }
@@ -185,9 +176,7 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements Us
     @Override
     public List<User> getSuggestedUsers(String currentUserId, int limit) {
         // 获取当前用户已关注的所有用户ID
-        List<Follow> follows = followMapper.selectList(
-                new QueryWrapper<Follow>().eq("follower_id", currentUserId)
-        );
+        List<Follow> follows = followMapper.selectList(followerQuery(currentUserId));
         List<String> excludeIds = follows.stream()
                 .map(Follow::getFollowingId)
                 .collect(Collectors.toList());
@@ -199,5 +188,19 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements Us
                 .orderByDesc(User::getFollowersCount)
                 .last("LIMIT " + limit)
                 .list();
+    }
+
+    private QueryWrapper<User> userQuery() {
+        return new QueryWrapper<>();
+    }
+
+    private QueryWrapper<Follow> followQuery(String followerId, String followingId) {
+        return new QueryWrapper<Follow>()
+                .eq("follower_id", followerId)
+                .eq("following_id", followingId);
+    }
+
+    private QueryWrapper<Follow> followerQuery(String followerId) {
+        return new QueryWrapper<Follow>().eq("follower_id", followerId);
     }
 }

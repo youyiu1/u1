@@ -8,6 +8,7 @@ import { useSearchParams, Link, useNavigate } from 'react-router-dom';
 import { Search as SearchIcon, ChevronRight, Star, MapPin, ThumbsUp, MessageCircle } from 'lucide-react';
 import { searchApi } from '../services/api';
 import { Service, Item, Post } from '../types';
+import { getPrimaryImage, parseImages } from '../utils/images';
 
 export default function SearchPage() {
   const [searchParams, setSearchParams] = useSearchParams();
@@ -43,23 +44,8 @@ export default function SearchPage() {
     }
   };
 
-  const getHighlights = (h: any): string[] => {
-    if (Array.isArray(h)) return h;
-    if (typeof h === 'string' && h.startsWith('[')) {
-      try { return JSON.parse(h); } catch { return []; }
-    }
-    return [];
-  };
-
-  const getImages = (imgs: any): string[] => {
-    if (Array.isArray(imgs)) return imgs;
-    if (typeof imgs === 'string' && imgs.startsWith('[')) {
-      try { return JSON.parse(imgs); } catch { return []; }
-    }
-    return [];
-  };
-
   const totalResults = results ? results.services.length + results.items.length + results.posts.length : 0;
+  const itemImage = (item: Item) => getPrimaryImage(item.images, item.image);
 
   return (
     <div className="min-h-screen bg-surface-soft">
@@ -124,7 +110,7 @@ export default function SearchPage() {
                       <div className="p-5">
                         <h4 className="font-bold text-ink mb-2">{service.title}</h4>
                         <div className="flex flex-wrap gap-1 mb-3">
-                          {getHighlights(service.highlights).slice(0, 3).map((h, i) => (
+                          {parseImages(service.highlights).slice(0, 3).map((h, i) => (
                             <span key={i} className="text-[10px] text-secondary bg-surface-soft px-2 py-0.5 rounded">
                               {h}
                             </span>
@@ -154,8 +140,8 @@ export default function SearchPage() {
                       className="bg-white border border-hairline rounded-3xl overflow-hidden hover:shadow-xl transition-all cursor-pointer"
                     >
                       <div className="relative h-40 overflow-hidden">
-                        {getImages(item.images)[0] ? (
-                          <img src={getImages(item.images)[0]} className="w-full h-full object-cover" alt={item.title} />
+                        {itemImage(item) ? (
+                          <img src={itemImage(item)} className="w-full h-full object-cover" alt={item.title} />
                         ) : (
                           <div className="w-full h-full bg-stone-200" />
                         )}

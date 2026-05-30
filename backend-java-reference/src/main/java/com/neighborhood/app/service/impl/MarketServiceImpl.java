@@ -7,7 +7,7 @@ package com.neighborhood.app.service.impl;
 
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.neighborhood.app.entity.MarketItem;
-import com.neighborhood.app.entity.MarketItemVO;
+import com.neighborhood.app.vo.MarketItemVO;
 import com.neighborhood.app.entity.User;
 import com.neighborhood.app.mapper.MarketMapper;
 import com.neighborhood.app.mapper.UserMapper;

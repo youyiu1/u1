@@ -6,6 +6,7 @@
 import React, { useState, useCallback, useEffect, useRef } from 'react';
 import { userApi } from '../services/api';
 import { useToast } from '../context/ToastContext';
+import { getStoredUser } from '../utils/authStorage';
 import { getFollowState, setFollowState } from '../utils/followStorage';
 
 interface UseFollowOptions {
@@ -43,8 +44,8 @@ export function useFollow({ targetId, initialState, onFollowChange }: UseFollowO
   const toggleFollow = useCallback(async () => {
     if (!targetId || isLoading) return;
 
-    const currentUser = JSON.parse(localStorage.getItem('neighborhood_user') || '{}');
-    if (!currentUser.id) {
+    const currentUser = getStoredUser();
+    if (!currentUser?.id) {
       showToast('请先登录', 'warning');
       return;
     }

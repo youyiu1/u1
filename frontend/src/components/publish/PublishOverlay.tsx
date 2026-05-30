@@ -566,7 +566,7 @@ export const PublishOverlay: React.FC<PublishOverlayProps> = ({ isOpen, onClose,
                           {images.length > 0 && (
                             <div className="flex gap-2 overflow-x-auto pb-2">
                               {images.map((img, idx) => (
-                                <div key={idx} className="relative shrink-0 w-16 h-16 rounded-xl overflow-hidden border border-hairline">
+                                <div key={`${img}-${idx}`} className="relative shrink-0 w-16 h-16 rounded-xl overflow-hidden border border-hairline">
                                   <img src={img} className="w-full h-full object-cover" alt="" />
                                   <button
                                     onClick={() => setImages(prev => prev.filter((_, i) => i !== idx))}

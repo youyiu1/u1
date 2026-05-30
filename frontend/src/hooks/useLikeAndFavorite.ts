@@ -7,6 +7,7 @@ import React, { useState, useCallback, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { newsApi, favoriteApi } from '../services/api';
 import { useToast } from '../context/ToastContext';
+import { getStoredUser } from '../utils/authStorage';
 
 interface UseLikeAndFavoriteOptions {
   onLikeChange?: (isLiked: boolean, likes: number) => void;
@@ -80,8 +81,8 @@ export function useLikeAndFavorite(
 
     if (isLiking) return;
 
-    const currentUser = JSON.parse(localStorage.getItem('neighborhood_user') || '{}');
-    if (!currentUser.id) {
+    const currentUser = getStoredUser();
+    if (!currentUser?.id) {
       showToast('请先登录', 'warning');
       navigate('/login');
       return;
@@ -116,8 +117,8 @@ export function useLikeAndFavorite(
 
     if (isFavoriting) return;
 
-    const currentUser = JSON.parse(localStorage.getItem('neighborhood_user') || '{}');
-    if (!currentUser.id) {
+    const currentUser = getStoredUser();
+    if (!currentUser?.id) {
       showToast('请先登录', 'warning');
       navigate('/login');
       return;

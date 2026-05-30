@@ -5,8 +5,10 @@
 
 package com.neighborhood.app.controller;
 
+import com.neighborhood.app.dto.AddReviewRequest;
+import com.neighborhood.app.dto.BookingRequest;
 import com.neighborhood.app.entity.ServiceEntity;
-import com.neighborhood.app.entity.ServiceDetailVO;
+import com.neighborhood.app.vo.ServiceDetailVO;
 import com.neighborhood.app.entity.ServiceReview;
 import com.neighborhood.app.entity.User;
 import com.neighborhood.app.service.ServiceModuleService;
@@ -19,8 +21,6 @@ import org.springframework.web.bind.annotation.*;
 import jakarta.servlet.http.HttpServletRequest;
 import java.util.List;
 import java.util.Map;
-import java.util.HashMap;
-import java.util.stream.Collectors;
 
 @RestController
 @RequestMapping("/api/service")
@@ -69,20 +69,9 @@ public class ServiceController {
         if (userId != null) {
             return Result.ok(serviceReviewService.getByServiceIdWithLikeStatus(id, userId));
         }
-        return Result.ok(serviceReviewService.getByServiceId(id).stream().map(r -> {
-            java.util.Map<String, Object> map = new java.util.HashMap<>();
-            map.put("id", r.getId());
-            map.put("serviceId", r.getServiceId());
-            map.put("userId", r.getUserId());
-            map.put("userName", r.getUserName());
-            map.put("userAvatar", r.getUserAvatar());
-            map.put("rating", r.getRating());
-            map.put("content", r.getContent());
-            map.put("likes", r.getLikes());
-            map.put("createTime", r.getCreateTime());
-            map.put("isLiked", false);
-            return map;
-        }).collect(java.util.stream.Collectors.toList()));
+        return Result.ok(serviceReviewService.getByServiceId(id).stream()
+                .map(this::toReviewResponse)
+                .toList());
     }
 
     /**
@@ -172,43 +161,19 @@ public class ServiceController {
         return Result.ok(bookingId != null);
     }
 
-    public static class BookingRequest {
-        private String serviceId;
-        private String buyerId;
-        private String sellerId;
-        private String bookingDate;
-        private String bookingTime;
-        private Integer duration;
-
-        public String getServiceId() { return serviceId; }
-        public void setServiceId(String serviceId) { this.serviceId = serviceId; }
-        public String getBuyerId() { return buyerId; }
-        public void setBuyerId(String buyerId) { this.buyerId = buyerId; }
-        public String getSellerId() { return sellerId; }
-        public void setSellerId(String sellerId) { this.sellerId = sellerId; }
-        public String getBookingDate() { return bookingDate; }
-        public void setBookingDate(String bookingDate) { this.bookingDate = bookingDate; }
-        public String getBookingTime() { return bookingTime; }
-        public void setBookingTime(String bookingTime) { this.bookingTime = bookingTime; }
-        public Integer getDuration() { return duration; }
-        public void setDuration(Integer duration) { this.duration = duration; }
-    }
-
-    public static class AddReviewRequest {
-        private String userId;
-        private String userName;
-        private String userAvatar;
-        private Integer rating;
-        private String content;
-        public String getUserId() { return userId; }
-        public void setUserId(String userId) { this.userId = userId; }
-        public String getUserName() { return userName; }
-        public void setUserName(String userName) { this.userName = userName; }
-        public String getUserAvatar() { return userAvatar; }
-        public void setUserAvatar(String userAvatar) { this.userAvatar = userAvatar; }
-        public Integer getRating() { return rating; }
-        public void setRating(Integer rating) { this.rating = rating; }
-        public String getContent() { return content; }
-        public void setContent(String content) { this.content = content; }
+    private Map<String, Object> toReviewResponse(ServiceReview review) {
+        Map<String, Object> map = new java.util.HashMap<>();
+        map.put("id", review.getId());
+        map.put("serviceId", review.getServiceId());
+        map.put("userId", review.getUserId());
+        map.put("userName", review.getUserName());
+        map.put("userAvatar", review.getUserAvatar());
+        map.put("rating", review.getRating());
+        map.put("content", review.getContent());
+        map.put("likes", review.getLikes());
+        map.put("createTime", review.getCreateTime());
+        map.put("isLiked", false);
+        return map;
     }
 }
+

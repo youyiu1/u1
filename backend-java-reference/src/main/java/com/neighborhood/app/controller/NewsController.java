@@ -5,21 +5,19 @@
 
 package com.neighborhood.app.controller;
 
+import com.neighborhood.app.dto.CommentRequest;
 import com.neighborhood.app.entity.News;
-import com.neighborhood.app.entity.NewsVO;
+import com.neighborhood.app.vo.NewsVO;
 import com.neighborhood.app.entity.Comment;
 import com.neighborhood.app.service.NewsService;
 import com.neighborhood.app.service.CommentLikeService;
 import com.neighborhood.app.utils.RequestUserUtil;
 import com.neighborhood.app.common.Result;
 import jakarta.servlet.http.HttpServletRequest;
-import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
 import java.util.List;
-import java.util.Map;
 
-@Slf4j
 @RestController
 @RequestMapping("/api/news")
 public class NewsController {
@@ -135,42 +133,15 @@ public class NewsController {
      * 发布评论/回复（支持 parentId 和 parent_id）
      */
     @PostMapping("/{id}/comment")
-    public Result<Void> addComment(@PathVariable Long id, @RequestBody Map<String, Object> payload) {
+    public Result<Void> addComment(@PathVariable Long id, @RequestBody CommentRequest request) {
         Comment comment = new Comment();
-        comment.setContent(asString(payload.get("content")));
-        comment.setUserId(asString(payload.get("userId")));
-        comment.setUserName(asString(payload.get("userName")));
-        comment.setUserAvatar(asString(payload.get("userAvatar")));
-        Long parentId = parseLongId(payload.get("parentId"));
-        if (parentId == null) {
-            parentId = parseLongId(payload.get("parent_id"));
-        }
-        comment.setParentId(parentId);
+        comment.setContent(request.getContent());
+        comment.setUserId(request.getUserId());
+        comment.setUserName(request.getUserName());
+        comment.setUserAvatar(request.getUserAvatar());
+        comment.setParentId(request.getParentId());
         newsService.addComment(id, comment);
         return Result.ok();
-    }
-
-    private String asString(Object raw) {
-        return raw == null ? null : String.valueOf(raw);
-    }
-
-    private Long parseLongId(Object raw) {
-        if (raw == null) {
-            return null;
-        }
-        if (raw instanceof Number) {
-            return ((Number) raw).longValue();
-        }
-        String value = String.valueOf(raw).trim();
-        if (value.isEmpty()) {
-            return null;
-        }
-        try {
-            return Long.parseLong(value);
-        } catch (NumberFormatException ex) {
-            log.warn("评论parentId解析失败: {}", value);
-            return null;
-        }
     }
 
     /**
@@ -190,3 +161,4 @@ public class NewsController {
         return Result.ok(newsService.deleteById(id, userId));
     }
 }
+

@@ -7,6 +7,7 @@ import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { X, Lock, Bell, Eye, ShieldCheck, CheckCircle2, Loader2 } from 'lucide-react';
 import { userApi } from '../../services/api';
+import { setStoredUser } from '../../utils/authStorage';
 import { useAuth } from '../../context/AuthContext';
 
 interface ChangePasswordOverlayProps {
@@ -335,7 +336,7 @@ export const PrivacySettingsOverlay: React.FC<PrivacySettingsOverlayProps> = ({ 
         (user as any).profileVisible = settings.profileVisible;
         (user as any).postsVisible = settings.postsVisible;
         (user as any).showLocation = settings.showLocation;
-        localStorage.setItem('neighborhood_user', JSON.stringify(user));
+        setStoredUser(user);
       }
       onClose();
     } catch (err) {

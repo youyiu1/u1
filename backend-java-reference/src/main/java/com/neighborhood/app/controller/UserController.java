@@ -5,9 +5,12 @@
 
 package com.neighborhood.app.controller;
 
+import com.neighborhood.app.dto.ChangePasswordRequest;
+import com.neighborhood.app.dto.FollowRequest;
+import com.neighborhood.app.dto.RegisterRequest;
 import com.neighborhood.app.entity.User;
-import com.neighborhood.app.entity.UserVO;
-import com.neighborhood.app.entity.AuthResponse;
+import com.neighborhood.app.vo.UserVO;
+import com.neighborhood.app.dto.AuthResponse;
 import com.neighborhood.app.dto.PrivacySettings;
 import com.neighborhood.app.service.UserService;
 import com.neighborhood.app.service.EmailService;
@@ -157,41 +160,5 @@ public class UserController {
     @PostMapping("/privacy")
     public Result<Boolean> updatePrivacy(@RequestAttribute String userId, @RequestBody PrivacySettings settings) {
         return Result.ok(userService.updatePrivacy(userId, settings));
-    }
-
-    public static class FollowRequest {
-        private String followerId;
-        private String followingId;
-
-        public String getFollowerId() { return followerId; }
-        public void setFollowerId(String followerId) { this.followerId = followerId; }
-        public String getFollowingId() { return followingId; }
-        public void setFollowingId(String followingId) { this.followingId = followingId; }
-    }
-
-    public static class RegisterRequest {
-        private String name;
-        private String email;
-        private String password;
-        private String code;
-
-        public String getName() { return name; }
-        public void setName(String name) { this.name = name; }
-        public String getEmail() { return email; }
-        public void setEmail(String email) { this.email = email; }
-        public String getPassword() { return password; }
-        public void setPassword(String password) { this.password = password; }
-        public String getCode() { return code; }
-        public void setCode(String code) { this.code = code; }
-    }
-
-    public static class ChangePasswordRequest {
-        private String oldPassword;
-        private String newPassword;
-
-        public String getOldPassword() { return oldPassword; }
-        public void setOldPassword(String oldPassword) { this.oldPassword = oldPassword; }
-        public String getNewPassword() { return newPassword; }
-        public void setNewPassword(String newPassword) { this.newPassword = newPassword; }
     }
 }

@@ -5,6 +5,7 @@
 
 package com.neighborhood.app.controller;
 
+import com.neighborhood.app.dto.SendMessageRequest;
 import com.neighborhood.app.entity.Message;
 import com.neighborhood.app.service.MessageService;
 import com.neighborhood.app.common.Result;
@@ -64,15 +65,5 @@ public class MessageController {
             @RequestAttribute String userId,
             @PathVariable String partnerId) {
         return Result.ok(messageService.markConversationRead(userId, partnerId));
-    }
-
-    public static class SendMessageRequest {
-        private String receiverId;
-        private String content;
-
-        public String getReceiverId() { return receiverId; }
-        public void setReceiverId(String receiverId) { this.receiverId = receiverId; }
-        public String getContent() { return content; }
-        public void setContent(String content) { this.content = content; }
     }
 }

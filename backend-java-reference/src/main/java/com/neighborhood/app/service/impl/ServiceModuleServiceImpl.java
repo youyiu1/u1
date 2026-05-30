@@ -8,7 +8,7 @@ package com.neighborhood.app.service.impl;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.neighborhood.app.entity.Booking;
 import com.neighborhood.app.entity.ServiceEntity;
-import com.neighborhood.app.entity.ServiceDetailVO;
+import com.neighborhood.app.vo.ServiceDetailVO;
 import com.neighborhood.app.entity.User;
 import com.neighborhood.app.mapper.BookingMapper;
 import com.neighborhood.app.mapper.ServiceMapper;
@@ -120,46 +120,19 @@ public class ServiceModuleServiceImpl extends ServiceImpl<ServiceMapper, Service
         List<ServiceEntity> source = list();
         List<ServiceEntity> list = new ArrayList<>(source.size());
         for (ServiceEntity item : source) {
-            ServiceEntity copied = new ServiceEntity();
-            copied.setId(item.getId());
-            copied.setTitle(item.getTitle());
-            copied.setDescription(item.getDescription());
-            copied.setCategory(item.getCategory());
-            copied.setPrice(item.getPrice());
-            copied.setSellerId(item.getSellerId());
-            copied.setRating(item.getRating());
-            copied.setReviews(item.getReviews());
-            copied.setDistance(item.getDistance());
-            copied.setUnit(item.getUnit());
-            copied.setHighlights(item.getHighlights());
-            copied.setLatitude(item.getLatitude());
-            copied.setLongitude(item.getLongitude());
-            copied.setImages(item.getImages());
-            list.add(copied);
+            list.add(copyForDistance(item));
         }
 
         if (buyerLat == null || buyerLng == null) {
             for (ServiceEntity service : list) {
-                if (service.getDistance() == null || service.getDistance().isBlank()) {
-                    service.setDistance("距离未知");
-                }
+                fillUnknownDistance(service);
             }
             return list;
         }
 
         Map<Long, Double> distanceMap = new HashMap<>();
         for (ServiceEntity service : list) {
-            Long serviceId = service.getId();
-            if (service.getLatitude() != null && service.getLongitude() != null) {
-                double dist = com.neighborhood.app.utils.DistanceUtil.calculateDistance(
-                        buyerLat, buyerLng, service.getLatitude(), service.getLongitude());
-                service.setDistance(com.neighborhood.app.utils.DistanceUtil.formatDistance(dist));
-                if (serviceId != null) {
-                    distanceMap.put(serviceId, dist);
-                }
-            } else {
-                service.setDistance("距离未知");
-            }
+            applyDistance(service, buyerLat, buyerLng, distanceMap);
         }
 
         list.sort(Comparator.comparingDouble(service -> {
@@ -172,4 +145,44 @@ public class ServiceModuleServiceImpl extends ServiceImpl<ServiceMapper, Service
 
         return list;
     }
+
+    private ServiceEntity copyForDistance(ServiceEntity item) {
+        ServiceEntity copied = new ServiceEntity();
+        copied.setId(item.getId());
+        copied.setTitle(item.getTitle());
+        copied.setDescription(item.getDescription());
+        copied.setCategory(item.getCategory());
+        copied.setPrice(item.getPrice());
+        copied.setSellerId(item.getSellerId());
+        copied.setRating(item.getRating());
+        copied.setReviews(item.getReviews());
+        copied.setDistance(item.getDistance());
+        copied.setUnit(item.getUnit());
+        copied.setHighlights(item.getHighlights());
+        copied.setLatitude(item.getLatitude());
+        copied.setLongitude(item.getLongitude());
+        copied.setImages(item.getImages());
+        return copied;
+    }
+
+    private void fillUnknownDistance(ServiceEntity service) {
+        if (service.getDistance() == null || service.getDistance().isBlank()) {
+            service.setDistance("距离未知");
+        }
+    }
+
+    private void applyDistance(ServiceEntity service, Double buyerLat, Double buyerLng, Map<Long, Double> distanceMap) {
+        if (service.getLatitude() == null || service.getLongitude() == null) {
+            service.setDistance("距离未知");
+            return;
+        }
+
+        double dist = com.neighborhood.app.utils.DistanceUtil.calculateDistance(
+                buyerLat, buyerLng, service.getLatitude(), service.getLongitude());
+        service.setDistance(com.neighborhood.app.utils.DistanceUtil.formatDistance(dist));
+        if (service.getId() != null) {
+            distanceMap.put(service.getId(), dist);
+        }
+    }
 }
+

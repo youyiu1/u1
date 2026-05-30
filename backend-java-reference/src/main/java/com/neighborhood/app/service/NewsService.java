@@ -8,7 +8,7 @@ package com.neighborhood.app.service;
 import com.baomidou.mybatisplus.extension.service.IService;
 import com.neighborhood.app.entity.Comment;
 import com.neighborhood.app.entity.News;
-import com.neighborhood.app.entity.NewsVO;
+import com.neighborhood.app.vo.NewsVO;
 
 import java.util.List;
 
@@ -45,3 +45,4 @@ public interface NewsService extends IService<News> {
 
     boolean deleteById(Long id, String userId);
 }
+

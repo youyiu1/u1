@@ -8,6 +8,7 @@ import { useNavigate } from 'react-router-dom';
 import { Post } from '../../types';
 import { LikeButton } from '../common/LikeButton';
 import { formatDateTime } from '../../utils/dateTime';
+import { parseImages } from '../../utils/images';
 
 interface HomePostCardProps {
   post: Post;
@@ -24,15 +25,7 @@ export const HomePostCard: React.FC<HomePostCardProps> = ({ post, idx }) => {
   const avatarSrc = authorAvatar || null;
   const postTime = formatDateTime(post.time || post.createTime, '刚刚');
 
-  // 解析images JSON字符串为数组
-  const getImages = (imgs: any): string[] => {
-    if (Array.isArray(imgs)) return imgs;
-    if (typeof imgs === 'string' && imgs.startsWith('[')) {
-      try { return JSON.parse(imgs); } catch { return []; }
-    }
-    return [];
-  };
-  const images = getImages(post.images);
+  const images = parseImages(post.images);
 
   // 评论列表（带用户名用于跳转）
   const comments = (post.comments || []).slice(0, 3);

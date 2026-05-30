@@ -3,10 +3,12 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-package com.neighborhood.app.entity;
+package com.neighborhood.app.vo;
 
 import com.fasterxml.jackson.databind.annotation.JsonSerialize;
 import com.fasterxml.jackson.databind.ser.std.ToStringSerializer;
+import com.neighborhood.app.entity.MarketItem;
+import com.neighborhood.app.entity.User;
 import lombok.Data;
 import lombok.experimental.Accessors;
 import java.math.BigDecimal;

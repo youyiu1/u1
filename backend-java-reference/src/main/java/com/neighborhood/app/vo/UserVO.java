@@ -3,8 +3,9 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-package com.neighborhood.app.entity;
+package com.neighborhood.app.vo;
 
+import com.neighborhood.app.entity.User;
 import lombok.Data;
 
 @Data
@@ -39,3 +40,4 @@ public class UserVO {
         return vo;
     }
 }
+

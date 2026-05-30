@@ -7,6 +7,7 @@ import React from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Star } from 'lucide-react';
 import { Service, Item } from '../../types';
+import { getPrimaryImage } from '../../utils/images';
 
 import { LikeButton } from './LikeButton';
 
@@ -21,21 +22,12 @@ export const GlobalCard: React.FC<CardProps> = ({ type, data }) => {
   const service = data as Service;
   const item = data as Item;
 
-  // 解析images JSON字符串为数组
-  const getImages = (imgs: any): string[] => {
-    if (Array.isArray(imgs)) return imgs;
-    if (typeof imgs === 'string' && imgs.startsWith('[')) {
-      try { return JSON.parse(imgs); } catch { return []; }
-    }
-    return [];
-  };
-
   return (
     <div className="group cursor-pointer content-visibility-auto">
       <div onClick={() => navigate(`/${isService ? 'service' : 'item'}/${data.id}`, { state: { from: '/' } })}>
         <div className="aspect-[4/5] overflow-hidden mb-6 relative rounded-[32px] bg-stone-100 shadow-inner transition-shadow duration-300 ease-out">
           <img
-            src={getImages(data.images)?.[0] || null}
+            src={getPrimaryImage(data.images) || undefined}
             alt={data.title}
             loading="lazy"
             decoding="async"

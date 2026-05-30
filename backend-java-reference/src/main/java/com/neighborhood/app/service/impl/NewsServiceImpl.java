@@ -10,7 +10,7 @@ import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.neighborhood.app.entity.Comment;
 import com.neighborhood.app.entity.Follow;
 import com.neighborhood.app.entity.News;
-import com.neighborhood.app.entity.NewsVO;
+import com.neighborhood.app.vo.NewsVO;
 import com.neighborhood.app.entity.User;
 import com.neighborhood.app.mapper.CommentMapper;
 import com.neighborhood.app.mapper.FollowMapper;
@@ -303,3 +303,4 @@ public class NewsServiceImpl extends ServiceImpl<NewsMapper, News> implements Ne
         return result;
     }
 }
+

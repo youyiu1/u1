@@ -6,6 +6,7 @@
 package com.neighborhood.app.service.impl;
 
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
+import com.baomidou.mybatisplus.extension.conditions.query.LambdaQueryChainWrapper;
 import com.neighborhood.app.entity.Order;
 import com.neighborhood.app.mapper.OrderMapper;
 import com.neighborhood.app.service.OrderService;
@@ -22,21 +23,14 @@ public class OrderServiceImpl extends ServiceImpl<OrderMapper, Order> implements
 
     @Override
     public List<Order> listByUserId(String userId) {
-        return lambdaQuery()
-                .eq(Order::getBuyerId, userId)
-                .or()
-                .eq(Order::getSellerId, userId)
+        return userOrderQuery(userId)
                 .orderByDesc(Order::getCreateTime)
                 .list();
     }
 
     @Override
     public List<Order> listCompletedByUserId(String userId) {
-        return lambdaQuery()
-                .and(wrapper -> wrapper
-                        .eq(Order::getBuyerId, userId)
-                        .or()
-                        .eq(Order::getSellerId, userId))
+        return userOrderQuery(userId)
                 .eq(Order::getStatus, "completed")
                 .orderByDesc(Order::getCreateTime)
                 .list();
@@ -44,11 +38,7 @@ public class OrderServiceImpl extends ServiceImpl<OrderMapper, Order> implements
 
     @Override
     public List<Order> listInProgressByUserId(String userId) {
-        return lambdaQuery()
-                .and(wrapper -> wrapper
-                        .eq(Order::getBuyerId, userId)
-                        .or()
-                        .eq(Order::getSellerId, userId))
+        return userOrderQuery(userId)
                 .eq(Order::getStatus, "in_progress")
                 .orderByDesc(Order::getCreateTime)
                 .list();
@@ -102,5 +92,13 @@ public class OrderServiceImpl extends ServiceImpl<OrderMapper, Order> implements
                 .eq(Order::getId, orderId)
                 .set(Order::getStatus, "cancelled")
                 .update();
+    }
+
+    private LambdaQueryChainWrapper<Order> userOrderQuery(String userId) {
+        return lambdaQuery()
+                .and(wrapper -> wrapper
+                        .eq(Order::getBuyerId, userId)
+                        .or()
+                        .eq(Order::getSellerId, userId));
     }
 }

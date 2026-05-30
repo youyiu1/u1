@@ -6,6 +6,7 @@
 package com.neighborhood.app.controller;
 
 import com.neighborhood.app.entity.Favorite;
+import com.neighborhood.app.dto.AddFavoriteRequest;
 import com.neighborhood.app.service.FavoriteService;
 import com.neighborhood.app.common.Result;
 import lombok.RequiredArgsConstructor;
@@ -63,18 +64,5 @@ public class FavoriteController {
             @RequestParam String targetType,
             @RequestParam Long targetId) {
         return Result.ok(favoriteService.isFavorited(userId, targetType, targetId));
-    }
-
-    public static class AddFavoriteRequest {
-        private String userId;
-        private String targetType;
-        private Long targetId;
-
-        public String getUserId() { return userId; }
-        public void setUserId(String userId) { this.userId = userId; }
-        public String getTargetType() { return targetType; }
-        public void setTargetType(String targetType) { this.targetType = targetType; }
-        public Long getTargetId() { return targetId; }
-        public void setTargetId(Long targetId) { this.targetId = targetId; }
     }
 }

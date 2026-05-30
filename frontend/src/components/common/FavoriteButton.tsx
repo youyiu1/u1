@@ -6,9 +6,10 @@
 import React, { useState, useEffect } from 'react';
 import { motion } from 'motion/react';
 import { Heart } from 'lucide-react';
+import { useAuth } from '../../context/AuthContext';
 import { useAuthCheck } from '../../context/useAuthCheck';
 import { useToast } from '../../context/ToastContext';
-import { favoriteApi } from '../../services/api';
+import { favoriteApi, getToken } from '../../services/api';
 
 interface FavoriteButtonProps {
   targetId: string;
@@ -26,29 +27,31 @@ export const FavoriteButton: React.FC<FavoriteButtonProps> = ({
   const [favorited, setFavorited] = useState(initialFavorited);
   const [burst, setBurst] = useState(false);
   const { requireAuth } = useAuthCheck();
+  const { user, isAuthenticated } = useAuth();
   const { showToast } = useToast();
 
   // 加载时从 API 获取真实收藏状态
   useEffect(() => {
-    const currentUser = JSON.parse(localStorage.getItem('neighborhood_user') || '{}');
-    if (!currentUser.id || !targetId) return;
-    favoriteApi.check(currentUser.id, targetType, Number(targetId))
+    if (!isAuthenticated || !getToken() || !user?.id || !targetId) {
+      setFavorited(initialFavorited);
+      return;
+    }
+    favoriteApi.check(user.id, targetType, Number(targetId))
       .then(res => setFavorited(res))
       .catch(() => {});
-  }, [targetId, targetType]);
+  }, [initialFavorited, isAuthenticated, targetId, targetType, user?.id]);
 
   const toggleFavorite = (e: React.MouseEvent) => {
     e.preventDefault();
     e.stopPropagation();
     requireAuth(async () => {
-      const currentUser = JSON.parse(localStorage.getItem('neighborhood_user') || '{}');
-      if (!currentUser.id) return;
+      if (!user?.id) return;
       const next = !favorited;
       try {
         if (next) {
-          await favoriteApi.add(currentUser.id, targetType, Number(targetId));
+          await favoriteApi.add(user.id, targetType, Number(targetId));
         } else {
-          await favoriteApi.remove(currentUser.id, targetType, Number(targetId));
+          await favoriteApi.remove(user.id, targetType, Number(targetId));
         }
         setFavorited(next);
         showToast(next ? '已收藏' : '已取消收藏', 'success');

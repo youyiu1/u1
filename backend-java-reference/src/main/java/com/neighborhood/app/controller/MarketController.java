@@ -6,7 +6,7 @@
 package com.neighborhood.app.controller;
 
 import com.neighborhood.app.entity.MarketItem;
-import com.neighborhood.app.entity.MarketItemVO;
+import com.neighborhood.app.vo.MarketItemVO;
 import com.neighborhood.app.service.MarketService;
 import com.neighborhood.app.common.Result;
 import jakarta.servlet.http.HttpServletRequest;

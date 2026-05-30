@@ -36,9 +36,7 @@ public class ReviewLikeServiceImpl extends ServiceImpl<ReviewLikeMapper, ReviewL
             like.setReviewId(reviewId);
             like.setUserId(userId);
             save(like);
-            serviceReviewMapper.update(null, new LambdaUpdateWrapper<ServiceReview>()
-                .eq(ServiceReview::getId, reviewId)
-                .setSql("likes = likes + 1"));
+            updateReviewLikes(reviewId, 1);
             cacheService.addReviewLike(reviewId, userId);
             return true;
         } catch (Exception e) {
@@ -49,15 +47,9 @@ public class ReviewLikeServiceImpl extends ServiceImpl<ReviewLikeMapper, ReviewL
     @Override
     @Transactional
     public boolean unlike(Long reviewId, String userId) {
-        int deleted = baseMapper.delete(
-            new LambdaQueryWrapper<ReviewLike>()
-                .eq(ReviewLike::getReviewId, reviewId)
-                .eq(ReviewLike::getUserId, userId)
-        );
+        int deleted = baseMapper.delete(reviewLikeQuery(reviewId, userId));
         if (deleted > 0) {
-            serviceReviewMapper.update(null, new LambdaUpdateWrapper<ServiceReview>()
-                .eq(ServiceReview::getId, reviewId)
-                .setSql("likes = likes - 1"));
+            updateReviewLikes(reviewId, -1);
             cacheService.removeReviewLike(reviewId, userId);
             return true;
         }
@@ -76,13 +68,23 @@ public class ReviewLikeServiceImpl extends ServiceImpl<ReviewLikeMapper, ReviewL
         if (cacheService.isReviewLiked(reviewId, userId)) {
             return true;
         }
-        boolean liked = lambdaQuery()
-            .eq(ReviewLike::getReviewId, reviewId)
-            .eq(ReviewLike::getUserId, userId)
-            .count() > 0;
+        boolean liked = count(reviewLikeQuery(reviewId, userId)) > 0;
         if (liked) {
             cacheService.addReviewLike(reviewId, userId);
         }
         return liked;
+    }
+
+    private void updateReviewLikes(Long reviewId, int delta) {
+        String expression = delta > 0 ? "likes = likes + 1" : "likes = GREATEST(likes - 1, 0)";
+        serviceReviewMapper.update(null, new LambdaUpdateWrapper<ServiceReview>()
+                .eq(ServiceReview::getId, reviewId)
+                .setSql(expression));
+    }
+
+    private LambdaQueryWrapper<ReviewLike> reviewLikeQuery(Long reviewId, String userId) {
+        return new LambdaQueryWrapper<ReviewLike>()
+                .eq(ReviewLike::getReviewId, reviewId)
+                .eq(ReviewLike::getUserId, userId);
     }
 }

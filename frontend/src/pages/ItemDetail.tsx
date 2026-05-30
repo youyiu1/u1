@@ -20,13 +20,14 @@ import {
   Share2
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
-import { marketApi, userApi, favoriteApi } from '../services/api';
+import { marketApi, userApi, favoriteApi, getToken } from '../services/api';
 import { useChat } from '../context/ChatContext';
 import { useAuth } from '../context/AuthContext';
 import { useToast } from '../context/ToastContext';
 import { FollowButton } from '../components/common/FollowButton';
 import { Item } from '../types';
 import { getFollowState, setFollowState } from '../utils/followStorage';
+import { getStoredUser } from '../utils/authStorage';
 import { parseImages } from '../utils/images';
 
 const categoryMap: Record<string, string> = {
@@ -105,7 +106,7 @@ export default function ItemDetail() {
       try {
         const data = await marketApi.get(id as string);
         setItem(data);
-        const currentUser = JSON.parse(localStorage.getItem('neighborhood_user') || '{}');
+        const currentUser = getStoredUser();
         const dataSellerId = data?.seller?.id || (data as any)?.sellerId || '';
         if (currentUser?.id && dataSellerId && currentUser.id !== dataSellerId) {
           const saved = getFollowState(dataSellerId);
@@ -119,7 +120,7 @@ export default function ItemDetail() {
           }
         }
         // 获取初始收藏状态
-        if (currentUser?.id && id) {
+        if (currentUser?.id && getToken() && id) {
           try {
             const favorited = await favoriteApi.check(currentUser.id, 'market', Number(id));
             setIsLiked(favorited);

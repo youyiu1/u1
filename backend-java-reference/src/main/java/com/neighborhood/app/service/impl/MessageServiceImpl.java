@@ -6,6 +6,7 @@
 package com.neighborhood.app.service.impl;
 
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
+import com.baomidou.mybatisplus.extension.conditions.query.LambdaQueryChainWrapper;
 import com.neighborhood.app.entity.Message;
 import com.neighborhood.app.mapper.MessageMapper;
 import com.neighborhood.app.service.MessageService;
@@ -20,12 +21,7 @@ public class MessageServiceImpl extends ServiceImpl<MessageMapper, Message> impl
 
     @Override
     public List<Message> getConversation(String userId1, String userId2) {
-        return lambdaQuery()
-                .and(w -> w
-                        .eq(Message::getSenderId, userId1).eq(Message::getReceiverId, userId2)
-                        .or()
-                        .eq(Message::getSenderId, userId2).eq(Message::getReceiverId, userId1)
-                )
+        return conversationQuery(userId1, userId2)
                 .orderByAsc(Message::getCreateTime)
                 .list();
     }
@@ -33,12 +29,7 @@ public class MessageServiceImpl extends ServiceImpl<MessageMapper, Message> impl
     @Override
     public List<Message> getConversations(String userId) {
         // 查询用户发送或接收的所有消息，按时间倒序
-        return lambdaQuery()
-                .and(w -> w
-                        .eq(Message::getSenderId, userId)
-                        .or()
-                        .eq(Message::getReceiverId, userId)
-                )
+        return participantQuery(userId)
                 .orderByDesc(Message::getCreateTime)
                 .list();
     }
@@ -72,5 +63,21 @@ public class MessageServiceImpl extends ServiceImpl<MessageMapper, Message> impl
                 .eq(Message::getIsRead, false)
                 .set(Message::getIsRead, true)
                 .update();
+    }
+
+    private LambdaQueryChainWrapper<Message> conversationQuery(String userId1, String userId2) {
+        return lambdaQuery()
+                .and(w -> w
+                        .eq(Message::getSenderId, userId1).eq(Message::getReceiverId, userId2)
+                        .or()
+                        .eq(Message::getSenderId, userId2).eq(Message::getReceiverId, userId1));
+    }
+
+    private LambdaQueryChainWrapper<Message> participantQuery(String userId) {
+        return lambdaQuery()
+                .and(w -> w
+                        .eq(Message::getSenderId, userId)
+                        .or()
+                        .eq(Message::getReceiverId, userId));
     }
 }

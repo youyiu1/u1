@@ -50,11 +50,7 @@ public class FavoriteServiceImpl extends ServiceImpl<FavoriteMapper, Favorite> i
 
     @Override
     public boolean removeFavorite(String userId, String targetType, Long targetId) {
-        QueryWrapper<Favorite> wrapper = new QueryWrapper<Favorite>()
-                .eq("user_id", userId)
-                .eq("target_type", targetType)
-                .eq("target_id", targetId);
-        boolean result = remove(wrapper);
+        boolean result = remove(favoriteQuery(userId, targetType, targetId));
         if (result) {
             cacheService.removeFavorite(userId, targetType, targetId);
             // 同步更新目标收藏数
@@ -91,14 +87,17 @@ public class FavoriteServiceImpl extends ServiceImpl<FavoriteMapper, Favorite> i
         if (cacheService.isFavorited(userId, targetType, targetId)) {
             return true;
         }
-        QueryWrapper<Favorite> wrapper = new QueryWrapper<Favorite>()
-                .eq("user_id", userId)
-                .eq("target_type", targetType)
-                .eq("target_id", targetId);
-        boolean favorited = count(wrapper) > 0;
+        boolean favorited = count(favoriteQuery(userId, targetType, targetId)) > 0;
         if (favorited) {
             cacheService.addFavorite(userId, targetType, targetId);
         }
         return favorited;
+    }
+
+    private QueryWrapper<Favorite> favoriteQuery(String userId, String targetType, Long targetId) {
+        return new QueryWrapper<Favorite>()
+                .eq("user_id", userId)
+                .eq("target_type", targetType)
+                .eq("target_id", targetId);
     }
 }

@@ -7,7 +7,7 @@ package com.neighborhood.app.service;
 
 import com.baomidou.mybatisplus.extension.service.IService;
 import com.neighborhood.app.entity.ServiceEntity;
-import com.neighborhood.app.entity.ServiceDetailVO;
+import com.neighborhood.app.vo.ServiceDetailVO;
 import java.util.List;
 
 public interface ServiceModuleService extends IService<ServiceEntity> {
@@ -20,3 +20,4 @@ public interface ServiceModuleService extends IService<ServiceEntity> {
     boolean updateById(ServiceEntity service);
     Long book(Long serviceId, String buyerId, String sellerId, String bookingDate, String bookingTime, Integer duration);
 }
+

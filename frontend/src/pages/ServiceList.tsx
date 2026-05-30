@@ -14,6 +14,7 @@ import { usePublish } from '../context/PublishContext';
 import { Service } from '../types';
 import { FavoriteButton } from '../components/common/FavoriteButton';
 import { BackToTop } from '../components/common/BackToTop';
+import { parseImages } from '../utils/images';
 
 const CATEGORIES = [
   { id: 'all', name: '全部分类', icon: <Sparkles className="w-4 h-4" /> },
@@ -90,15 +91,6 @@ export default function ServiceList() {
   const displayDistance = (distance?: string) => {
     if (!distance || !distance.trim()) return '距离未知';
     return distance;
-  };
-
-  // 瑙ｆ瀽highlights JSON瀛楃涓蹭负鏁扮粍
-  const getHighlights = (h: any): string[] => {
-    if (Array.isArray(h)) return h;
-    if (typeof h === 'string' && h.startsWith('[')) {
-      try { return JSON.parse(h); } catch { return []; }
-    }
-    return [];
   };
 
   return (
@@ -214,7 +206,7 @@ export default function ServiceList() {
                   <h3 className="text-lg font-bold text-ink mb-2 group-hover:text-primary transition-colors">{service.title}</h3>
 
                   <div className="flex flex-wrap gap-2 mb-6">
-                    {(getHighlights(service.highlights) || []).map((h, i) => (
+                    {parseImages(service.highlights).map((h, i) => (
                       <span key={i} className="text-[10px] text-secondary bg-surface-soft px-2 py-0.5 rounded">
                         {h}
                       </span>

@@ -18,6 +18,8 @@ import { useToast } from '../context/ToastContext';
 import { useAuth } from '../context/AuthContext';
 import { LocationPicker } from '../components/common/LocationPicker';
 import { formatDateTime } from '../utils/dateTime';
+import { getStoredUser } from '../utils/authStorage';
+import { parseImages } from '../utils/images';
 
 export default function News() {
   const navigate = useNavigate();
@@ -34,15 +36,6 @@ export default function News() {
   const { showToast } = useToast();
   const [trending, setTrending] = useState<Array<{id: string, name: string, posts: string}>>([]);
   const [suggestedUsers, setSuggestedUsers] = useState<Array<{id: string, name: string, avatar: string, tag: string, followersCount: number, isFollowing: boolean}>>([]);
-
-  // 解析images JSON字符串为数组
-  const getImages = (imgs: any): string[] => {
-    if (Array.isArray(imgs)) return imgs;
-    if (typeof imgs === 'string' && imgs.startsWith('[')) {
-      try { return JSON.parse(imgs); } catch { return []; }
-    }
-    return [];
-  };
 
   // 解析内容中的 #话题# 标签
   const parseContentWithHashtags = (content: string): React.ReactNode => {
@@ -66,13 +59,13 @@ export default function News() {
   };
 
   const handleSuggestedFollowChange = async (userId: string, newState: boolean) => {
-    const currentUser = JSON.parse(localStorage.getItem('neighborhood_user') || '{}');
-    if (!currentUser.id) return;
+    const storedUser = getStoredUser();
+    if (!storedUser?.id) return;
     try {
       if (newState) {
-        await userApi.follow(currentUser.id, userId);
+        await userApi.follow(storedUser.id, userId);
       } else {
-        await userApi.unfollow(currentUser.id, userId);
+        await userApi.unfollow(storedUser.id, userId);
       }
       setSuggestedUsers(prev => {
         const updated = prev.map(u => u.id === userId ? { ...u, isFollowing: newState } : u);
@@ -122,7 +115,6 @@ export default function News() {
     const fetchSuggestedUsers = async () => {
       try {
         const data = await userApi.getSuggestedUsers(5);
-        const currentUser = JSON.parse(localStorage.getItem('neighborhood_user') || '{}');
         setSuggestedUsers(data.map((u: User) => ({
           id: u.id,
           name: u.name,
@@ -348,10 +340,10 @@ export default function News() {
                         {parseContentWithHashtags(post.content)}
                       </p>
 
-                      {(getImages(post.images) || []).length > 0 && (
-                        <div className={`grid gap-2 overflow-hidden rounded-2xl border border-hairline ${getImages(post.images).length >= 2 ? 'grid-cols-2' : 'grid-cols-1'}`}>
-                          {getImages(post.images).map((img, i) => (
-                            <div key={i} className="aspect-[16/9]">
+                      {parseImages(post.images).length > 0 && (
+                        <div className={`grid gap-2 overflow-hidden rounded-2xl border border-hairline ${parseImages(post.images).length >= 2 ? 'grid-cols-2' : 'grid-cols-1'}`}>
+                          {parseImages(post.images).map((img, i) => (
+                            <div key={`${post.id}-${i}-${img}`} className="aspect-[16/9]">
                               <img src={img || undefined} className="w-full h-full object-cover" alt="Post content" />
                             </div>
                           ))}
@@ -375,7 +367,7 @@ export default function News() {
               </h3>
               <div className="space-y-4">
                 {trending.map((item, idx) => (
-                  <div key={idx} className="group cursor-pointer flex items-start gap-3">
+                  <div key={item.id || idx} className="group cursor-pointer flex items-start gap-3">
                     <span className="text-xs font-bold text-muted">#{idx + 1}</span>
                     <div>
                       <p className="text-sm font-bold text-ink group-hover:text-primary transition-colors">#{item.name}</p>

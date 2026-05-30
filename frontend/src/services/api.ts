@@ -4,6 +4,7 @@
  */
 
 import { User, Service, ServiceDetail, Item, Post, Comment, Notification, Category, Review, Message } from '../types';
+import { removeStoredUser } from '../utils/authStorage';
 
 const BASE_URL = '/api';
 
@@ -22,6 +23,7 @@ interface AuthResponse {
 const TOKEN_KEY = 'auth_token';
 const inflightGetRequests = new Map<string, Promise<any>>();
 const API_SLOW_THRESHOLD_MS = 600;
+let authInvalidated = false;
 
 function isLocalDevRuntime(): boolean {
   if (typeof window === 'undefined') return false;
@@ -35,6 +37,7 @@ export function getToken(): string | null {
 
 export function setToken(token: string): void {
   localStorage.setItem(TOKEN_KEY, token);
+  authInvalidated = false;
 }
 
 export function removeToken(): void {
@@ -52,55 +55,70 @@ function isAuthError(message: string): message is keyof typeof AUTH_ERROR_MESSAG
   return message in AUTH_ERROR_MESSAGES;
 }
 
+function buildQuery(params: Record<string, string | number | boolean | null | undefined>): string {
+  const query = new URLSearchParams();
+  Object.entries(params).forEach(([key, value]) => {
+    if (value !== null && value !== undefined && value !== '') {
+      query.set(key, String(value));
+    }
+  });
+  const value = query.toString();
+  return value ? `?${value}` : '';
+}
+
 async function request<T>(url: string, options?: RequestInit): Promise<T> {
   const method = options?.method?.toUpperCase() || 'GET';
   const isGetWithoutBody = method === 'GET' && !options?.body;
   const requestKey = isGetWithoutBody ? `${method}:${url}` : '';
+
+  if (authInvalidated && url.startsWith('/favorite/check')) {
+    throw new Error('登录已失效');
+  }
 
   if (isGetWithoutBody && inflightGetRequests.has(requestKey)) {
     return inflightGetRequests.get(requestKey) as Promise<T>;
   }
 
   const doRequest = async (): Promise<T> => {
-  const startAt = typeof performance !== 'undefined' ? performance.now() : Date.now();
-  const token = getToken();
-  const res = await fetch(BASE_URL + url, {
-    ...options,
-    headers: {
-      'Content-Type': 'application/json',
-      ...(token ? { 'Authorization': `Bearer ${token}` } : {}),
-      ...options?.headers,
-    },
-  });
+    const startAt = typeof performance !== 'undefined' ? performance.now() : Date.now();
+    const token = getToken();
+    const res = await fetch(BASE_URL + url, {
+      ...options,
+      headers: {
+        'Content-Type': 'application/json',
+        ...(token ? { 'Authorization': `Bearer ${token}` } : {}),
+        ...options?.headers,
+      },
+    });
 
-  // 401错误根据消息内容区分处理
-  if (res.status === 401) {
-    const json = await res.json();
-    const message = json.message || '';
-    if (isAuthError(message)) {
-      // Token无效或已过期时自动登出
-      if (message !== '未登录') {
-        removeToken();
-        localStorage.removeItem('auth_user');
+    // 401错误根据消息内容区分处理
+    if (res.status === 401) {
+      const json = await res.json();
+      const message = json.message || '';
+      if (isAuthError(message)) {
+        // Token无效或已过期时自动登出
+        if (message !== '未登录') {
+          authInvalidated = true;
+          removeToken();
+          removeStoredUser();
+        }
+        throw new Error(AUTH_ERROR_MESSAGES[message]);
       }
-      throw new Error(AUTH_ERROR_MESSAGES[message]);
+      throw new Error(message || '认证失败');
     }
-    throw new Error(message || '认证失败');
-  }
 
-  const json: Result<T> = await res.json();
-  if (!json.success) {
-    throw new Error(json.message || 'Request failed');
-  }
-  if (isLocalDevRuntime()) {
-    const endAt = typeof performance !== 'undefined' ? performance.now() : Date.now();
-    const costMs = Math.round(endAt - startAt);
-    if (costMs >= API_SLOW_THRESHOLD_MS) {
-      // eslint-disable-next-line no-console
-      console.warn(`[API慢请求] ${method} ${url} ${costMs}ms`);
+    const json: Result<T> = await res.json();
+    if (!json.success) {
+      throw new Error(json.message || 'Request failed');
     }
-  }
-  return json.data;
+    if (isLocalDevRuntime()) {
+      const endAt = typeof performance !== 'undefined' ? performance.now() : Date.now();
+      const costMs = Math.round(endAt - startAt);
+      if (costMs >= API_SLOW_THRESHOLD_MS) {
+        console.warn(`[API慢请求] ${method} ${url} ${costMs}ms`);
+      }
+    }
+    return json.data;
   };
 
   if (!isGetWithoutBody) {
@@ -129,7 +147,7 @@ export const userApi = {
     }),
 
   sendCode: (email: string) =>
-    request<boolean>('/user/send-code?email=' + encodeURIComponent(email), { method: 'POST' }),
+    request<boolean>(`/user/send-code${buildQuery({ email })}`, { method: 'POST' }),
 
   getUser: (id: string) => request<User>(`/user/${id}`),
 
@@ -168,18 +186,18 @@ export const userApi = {
     }),
 
   isFollowing: (followerId: string, followingId: string) =>
-    request<boolean>(`/user/isfollowing?followerId=${followerId}&followingId=${followingId}`),
+    request<boolean>(`/user/isfollowing${buildQuery({ followerId, followingId })}`),
 
   getFollowingList: (userId: string) => request<User[]>(`/user/${userId}/following`),
 
-  getSuggestedUsers: (limit = 5) => request<User[]>(`/user/suggested?limit=${limit}`),
+  getSuggestedUsers: (limit = 5) => request<User[]>(`/user/suggested${buildQuery({ limit })}`),
 };
 
 // 动态/帖子相关
 export const newsApi = {
   list: () => request<Post[]>('/news/list'),
 
-  get: (id: string, userId?: string) => request<Post>(`/news/${id}${userId ? `?userId=${userId}` : ''}`),
+  get: (id: string, userId?: string) => request<Post>(`/news/${id}${buildQuery({ userId })}`),
 
   getByUserId: (userId: string) => request<Post[]>(`/news/user/${userId}`),
 
@@ -193,7 +211,7 @@ export const newsApi = {
     request<boolean>(`/news/${id}/like`, { method: 'POST' }),
 
   getComments: (id: string, limit = 20, offset = 0, userId?: string) =>
-    request<Comment[]>(`/news/${id}/comments?limit=${limit}&offset=${offset}${userId ? `&userId=${encodeURIComponent(userId)}` : ''}`),
+    request<Comment[]>(`/news/${id}/comments${buildQuery({ limit, offset, userId })}`),
 
   addComment: (id: string, comment: { content: string; userId: string; userName: string; userAvatar: string; parentId?: string }) =>
     request<boolean>(`/news/${id}/comment`, {
@@ -201,13 +219,13 @@ export const newsApi = {
       body: JSON.stringify(comment),
     }),
 
-  getTrending: (limit = 5) => request<Post[]>(`/news/trending?limit=${limit}`),
+  getTrending: (limit = 5) => request<Post[]>(`/news/trending${buildQuery({ limit })}`),
 
   delete: (id: string) =>
     request<boolean>(`/news/${id}/delete`, { method: 'POST' }),
 
   likeComment: (commentId: string, userId: string) =>
-    request<boolean>(`/news/comment/${commentId}/like?userId=${encodeURIComponent(userId)}`, { method: 'POST' }),
+    request<boolean>(`/news/comment/${commentId}/like${buildQuery({ userId })}`, { method: 'POST' }),
 };
 
 // 闲置市场相关
@@ -228,12 +246,12 @@ export const marketApi = {
 // 服务相关
 export const serviceApi = {
   list: (lat?: number, lng?: number) => {
-    const params = lat != null && lng != null ? `?lat=${lat}&lng=${lng}` : '';
+    const params = buildQuery({ lat, lng });
     return request<Service[]>(`/service/list${params}`);
   },
 
   get: (id: string, lat?: number, lng?: number) => {
-    const params = lat != null && lng != null ? `?lat=${lat}&lng=${lng}` : '';
+    const params = buildQuery({ lat, lng });
     return request<ServiceDetail>(`/service/${id}${params}`);
   },
 
@@ -268,9 +286,9 @@ export const homeApi = {
 
 // 通知相关
 export const notificationApi = {
-  list: (userId: string) => request<Notification[]>(`/notification/list?userId=${userId}`),
+  list: (userId: string) => request<Notification[]>(`/notification/list${buildQuery({ userId })}`),
   markRead: (id: string) => request<boolean>(`/notification/${id}/read`, { method: 'POST' }),
-  markAllRead: (userId: string) => request<boolean>(`/notification/read-all?userId=${userId}`, { method: 'POST' }),
+  markAllRead: (userId: string) => request<boolean>(`/notification/read-all${buildQuery({ userId })}`, { method: 'POST' }),
   send: (userId: string, title: string, content: string, serviceName?: string) =>
     request<boolean>('/notification/send', {
       method: 'POST',
@@ -309,7 +327,7 @@ export const chatApi = {
 
 // 收藏相关
 export const favoriteApi = {
-  list: (userId: string) => request<any[]>(`/favorite/list?userId=${userId}`),
+  list: (userId: string) => request<any[]>(`/favorite/list${buildQuery({ userId })}`),
   add: (userId: string, targetType: string, targetId: string | number) =>
     request<boolean>('/favorite/add', {
       method: 'POST',
@@ -321,7 +339,7 @@ export const favoriteApi = {
       body: JSON.stringify({ userId, targetType, targetId }),
     }),
   check: (userId: string, targetType: string, targetId: string | number) =>
-    request<boolean>(`/favorite/check?userId=${userId}&targetType=${targetType}&targetId=${targetId}`),
+    request<boolean>(`/favorite/check${buildQuery({ userId, targetType, targetId })}`),
 };
 
 // 分类相关
@@ -331,9 +349,9 @@ export const categoryApi = {
 
 // 订单相关
 export const orderApi = {
-  list: (userId: string) => request<any[]>(`/order/list?userId=${userId}`),
-  completedList: (userId: string) => request<any[]>(`/order/list/completed?userId=${userId}`),
-  inProgressList: (userId: string) => request<any[]>(`/order/list/in_progress?userId=${userId}`),
+  list: (userId: string) => request<any[]>(`/order/list${buildQuery({ userId })}`),
+  completedList: (userId: string) => request<any[]>(`/order/list/completed${buildQuery({ userId })}`),
+  inProgressList: (userId: string) => request<any[]>(`/order/list/in_progress${buildQuery({ userId })}`),
   get: (id: string) => request<any>(`/order/${id}`),
   confirm: (id: string) => request<boolean>(`/order/${id}/confirm`, { method: 'POST' }),
   complete: (id: string) => request<boolean>(`/order/${id}/complete`, { method: 'POST' }),
@@ -355,7 +373,7 @@ export const reviewApi = {
 
 // 搜索相关
 export const searchApi = {
-  all: (keyword: string) => request<{ services: Service[]; items: Item[]; posts: Post[] }>(`/search?keyword=${encodeURIComponent(keyword)}`),
+  all: (keyword: string) => request<{ services: Service[]; items: Item[]; posts: Post[] }>(`/search${buildQuery({ keyword })}`),
 };
 
 // 文件上传

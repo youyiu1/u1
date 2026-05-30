@@ -9,6 +9,7 @@ import { MapPin, Star, Trash2 } from 'lucide-react';
 import { Post, Item, Service } from '../../types';
 import { favoriteApi } from '../../services/api';
 import { useToast } from '../../context/ToastContext';
+import { getStoredUser } from '../../utils/authStorage';
 import { getPrimaryImage, parseImages } from '../../utils/images';
 
 interface ProfileFavoriteItemProps {
@@ -35,8 +36,8 @@ export const ProfileFavoriteItem: React.FC<ProfileFavoriteItemProps> = ({ favori
     e.stopPropagation();
     if (isRemoving) return;
 
-    const currentUser = JSON.parse(localStorage.getItem('neighborhood_user') || '{}');
-    if (!currentUser.id) {
+    const currentUser = getStoredUser();
+    if (!currentUser?.id) {
       showToast('请先登录', 'warning');
       return;
     }

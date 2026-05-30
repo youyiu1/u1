@@ -5,6 +5,8 @@
 
 package com.neighborhood.app.controller;
 
+import com.neighborhood.app.dto.ProcessNotificationRequest;
+import com.neighborhood.app.dto.SendNotificationRequest;
 import com.neighborhood.app.entity.Notification;
 import com.neighborhood.app.service.NotificationService;
 import com.neighborhood.app.common.Result;
@@ -61,53 +63,5 @@ public class NotificationController {
             request.getDuration()
         );
         return Result.ok(success);
-    }
-
-    public static class SendNotificationRequest {
-        private String userId;
-        private String title;
-        private String content;
-        private String serviceName;
-        public String getUserId() { return userId; }
-        public void setUserId(String userId) { this.userId = userId; }
-        public String getTitle() { return title; }
-        public void setTitle(String title) { this.title = title; }
-        public String getContent() { return content; }
-        public void setContent(String content) { this.content = content; }
-        public String getServiceName() { return serviceName; }
-        public void setServiceName(String serviceName) { this.serviceName = serviceName; }
-    }
-
-    public static class ProcessNotificationRequest {
-        private Long notificationId;
-        private boolean accept;
-        private String buyerId;
-        private String sellerId;
-        private Long serviceId;
-        private String serviceTitle;
-        private String price;
-        private String bookingDate;
-        private String bookingTime;
-        private Integer duration;
-        public Long getNotificationId() { return notificationId; }
-        public void setNotificationId(Long notificationId) { this.notificationId = notificationId; }
-        public boolean isAccept() { return accept; }
-        public void setAccept(boolean accept) { this.accept = accept; }
-        public String getBuyerId() { return buyerId; }
-        public void setBuyerId(String buyerId) { this.buyerId = buyerId; }
-        public String getSellerId() { return sellerId; }
-        public void setSellerId(String sellerId) { this.sellerId = sellerId; }
-        public Long getServiceId() { return serviceId; }
-        public void setServiceId(Long serviceId) { this.serviceId = serviceId; }
-        public String getServiceTitle() { return serviceTitle; }
-        public void setServiceTitle(String serviceTitle) { this.serviceTitle = serviceTitle; }
-        public String getPrice() { return price; }
-        public void setPrice(String price) { this.price = price; }
-        public String getBookingDate() { return bookingDate; }
-        public void setBookingDate(String bookingDate) { this.bookingDate = bookingDate; }
-        public String getBookingTime() { return bookingTime; }
-        public void setBookingTime(String bookingTime) { this.bookingTime = bookingTime; }
-        public Integer getDuration() { return duration; }
-        public void setDuration(Integer duration) { this.duration = duration; }
     }
 }

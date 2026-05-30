@@ -15,6 +15,7 @@ import { useAuth } from '../context/AuthContext';
 import { useToast } from '../context/ToastContext';
 import { useLikeAndFavorite } from '../hooks/useLikeAndFavorite';
 import { formatDateTime } from '../utils/dateTime';
+import { parseImages } from '../utils/images';
 
 const REPLY_COLLAPSE_COUNT = 3;
 const COMMENT_FETCH_LIMIT = 200;
@@ -62,13 +63,7 @@ export default function NewsDetail() {
   const postTime = formatDateTime(post?.time || (post as any)?.createTime, '刚刚');
   const isOwnPost = user?.id && user.id === authorId;
 
-  const getImages = (imgs: any): string[] => {
-    if (Array.isArray(imgs)) return imgs;
-    if (typeof imgs === 'string' && imgs.startsWith('[')) {
-      try { return JSON.parse(imgs); } catch { return []; }
-    }
-    return [];
-  };
+  const postImages = useMemo(() => parseImages(post?.images), [post?.images]);
 
   const handleFollowChange = (newState: boolean) => {
     setIsFollowed(newState);
@@ -358,9 +353,9 @@ export default function NewsDetail() {
                 {post.content}
               </p>
 
-              {(getImages(post.images) || []).length > 0 && (
-                <div className={`grid gap-3 ${getImages(post.images).length > 1 ? 'grid-cols-2' : 'grid-cols-1'}`}>
-                  {getImages(post.images).map((img, idx) => (
+              {postImages.length > 0 && (
+                <div className={`grid gap-3 ${postImages.length > 1 ? 'grid-cols-2' : 'grid-cols-1'}`}>
+                  {postImages.map((img, idx) => (
                     <div key={idx} className="rounded-2xl overflow-hidden border border-hairline">
                       <img src={img || undefined} className="w-full object-cover aspect-video" alt="Post content" />
                     </div>

@@ -29,12 +29,13 @@ import { useAuth } from '../context/AuthContext';
 import { useNotification } from '../context/NotificationContext';
 import { useToast } from '../context/ToastContext';
 import { useAuthCheck } from '../context/useAuthCheck';
-import { serviceApi, userApi, favoriteApi, chatApi, reviewApi } from '../services/api';
+import { serviceApi, userApi, favoriteApi, chatApi, reviewApi, getToken } from '../services/api';
 import { readCachedLocation } from '../utils/location';
 import { FollowButton } from '../components/common/FollowButton';
 import { ConfirmDialog } from '../components/common/ConfirmDialog';
 import { ServiceDetail as ServiceDetailType, Review } from '../types';
 import { getFollowState, setFollowState } from '../utils/followStorage';
+import { getStoredUser } from '../utils/authStorage';
 import { formatDateTime } from '../utils/dateTime';
 
 function ReviewSection({ serviceId, rating }: { serviceId: string; rating: number }) {
@@ -233,9 +234,9 @@ export default function ServiceDetail() {
       try {
         const data = await serviceApi.get(id);
         setService(data);
-        const currentUser = JSON.parse(localStorage.getItem('neighborhood_user') || '{}');
+        const currentUser = getStoredUser();
         const sid = data.seller?.id || (data as any).sellerId;
-        if (currentUser.id && sid) {
+        if (currentUser?.id && sid) {
           const saved = getFollowState(sid);
           setIsFollowing(saved);
           if (!saved) {
@@ -246,10 +247,12 @@ export default function ServiceDetail() {
             } catch {}
           }
           // 鑾峰彇鍒濆鏀惰棌鐘舵€?
-          try {
-            const favorited = await favoriteApi.check(currentUser.id, 'service', Number(id));
-            setIsLiked(favorited);
-          } catch {}
+          if (getToken()) {
+            try {
+              const favorited = await favoriteApi.check(currentUser.id, 'service', Number(id));
+              setIsLiked(favorited);
+            } catch {}
+          }
         }
 
         // 后台异步补距离，不阻塞首屏

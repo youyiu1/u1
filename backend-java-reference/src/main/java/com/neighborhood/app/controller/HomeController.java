@@ -10,8 +10,8 @@ import com.neighborhood.app.common.Result;
 import com.neighborhood.app.entity.Comment;
 import com.neighborhood.app.entity.MarketItem;
 import com.neighborhood.app.entity.News;
-import com.neighborhood.app.entity.NewsVO;
-import com.neighborhood.app.entity.MarketItemVO;
+import com.neighborhood.app.vo.NewsVO;
+import com.neighborhood.app.vo.MarketItemVO;
 import com.neighborhood.app.entity.ServiceEntity;
 import com.neighborhood.app.mapper.CommentMapper;
 import com.neighborhood.app.service.CacheService;
@@ -108,3 +108,4 @@ public class HomeController {
         return Result.ok(data);
     }
 }
+

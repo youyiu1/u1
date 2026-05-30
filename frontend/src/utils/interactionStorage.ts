@@ -3,6 +3,8 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
+import { readJson, writeJson } from './jsonStorage';
+
 // 互动状态存储（点赞、收藏）
 // 存储结构：{ postId: { liked: bool, baseLikes: number, favorited: bool, baseCollections: number } }
 
@@ -16,21 +18,14 @@ interface InteractionState {
 }
 
 export function getInteractionState(postId: string): InteractionState {
-  try {
-    const saved = JSON.parse(localStorage.getItem(INTERACTION_KEY) || '{}');
-    return saved[postId] || {};
-  } catch { return {}; }
+  const saved = readJson<Record<string, InteractionState>>(INTERACTION_KEY, {});
+  return saved[postId] || {};
 }
 
 export function setInteractionState(postId: string, state: Partial<InteractionState>): void {
-  try {
-    const saved = JSON.parse(localStorage.getItem(INTERACTION_KEY) || '{}');
-    if (!saved[postId]) {
-      saved[postId] = {};
-    }
-    saved[postId] = { ...saved[postId], ...state };
-    localStorage.setItem(INTERACTION_KEY, JSON.stringify(saved));
-  } catch {}
+  const saved = readJson<Record<string, InteractionState>>(INTERACTION_KEY, {});
+  saved[postId] = { ...(saved[postId] || {}), ...state };
+  writeJson(INTERACTION_KEY, saved);
 }
 
 export function getLiked(postId: string, initialLikes: number): { liked: boolean; displayCount: number } {

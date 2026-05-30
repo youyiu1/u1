@@ -3,11 +3,13 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-package com.neighborhood.app.entity;
+package com.neighborhood.app.vo;
 
-import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.databind.annotation.JsonSerialize;
 import com.fasterxml.jackson.databind.ser.std.ToStringSerializer;
+import com.neighborhood.app.entity.Comment;
+import com.neighborhood.app.entity.News;
+import com.neighborhood.app.entity.User;
 import lombok.Data;
 import lombok.experimental.Accessors;
 import java.time.LocalDateTime;
