@@ -8,6 +8,7 @@ package com.neighborhood.app.entity;
 import com.baomidou.mybatisplus.annotation.IdType;
 import com.baomidou.mybatisplus.annotation.TableId;
 import com.baomidou.mybatisplus.annotation.TableName;
+import com.baomidou.mybatisplus.annotation.TableField;
 import lombok.Data;
 
 @Data
@@ -18,6 +19,8 @@ public class User {
     private String name;
     private String email;
     private String password;
+    @TableField("admin_role")
+    private String adminRole;
     private String avatar;
     private String tag;
     private String bio;

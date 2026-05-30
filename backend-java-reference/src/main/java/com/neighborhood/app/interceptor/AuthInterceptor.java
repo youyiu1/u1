@@ -1,6 +1,8 @@
 package com.neighborhood.app.interceptor;
 
 import com.neighborhood.app.util.JwtUtil;
+import com.neighborhood.app.entity.User;
+import com.neighborhood.app.mapper.UserMapper;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
@@ -19,9 +21,13 @@ public class AuthInterceptor implements HandlerInterceptor {
     private static final String TOKEN_PREFIX = "token:";
     private static final String HEADER_AUTH = "Authorization";
     private static final String BEARER_PREFIX = "Bearer ";
+    private static final String ROLE_USER = "USER";
+    private static final String ROLE_READONLY_ADMIN = "READONLY_ADMIN";
+    private static final String ROLE_SUPER_ADMIN = "SUPER_ADMIN";
 
     private final JwtUtil jwtUtil;
     private final RedisTemplate<String, Object> redisTemplate;
+    private final UserMapper userMapper;
 
     @Override
     public boolean preHandle(HttpServletRequest request, HttpServletResponse response, Object handler) throws Exception {
@@ -79,12 +85,42 @@ public class AuthInterceptor implements HandlerInterceptor {
 
         redisTemplate.expire(TOKEN_PREFIX + userId, jwtUtil.getExpiration(), TimeUnit.MILLISECONDS);
         request.setAttribute("userId", userId);
+
+        if (path.startsWith("/api/admin/")) {
+            User user = userMapper.selectById(userId);
+            String role = normalizeRole(user == null ? null : user.getAdminRole());
+            if (ROLE_USER.equals(role)) {
+                writeJson(response, HttpServletResponse.SC_FORBIDDEN, "{\"success\":false,\"message\":\"普通用户不能访问管理端\"}");
+                return false;
+            }
+            if (!isSafeAdminMethod(request.getMethod()) && !ROLE_SUPER_ADMIN.equals(role)) {
+                writeJson(response, HttpServletResponse.SC_FORBIDDEN, "{\"success\":false,\"message\":\"当前账号无操作权限\"}");
+                return false;
+            }
+        }
         return true;
+    }
+
+    private String normalizeRole(String role) {
+        if (ROLE_SUPER_ADMIN.equals(role)) return ROLE_SUPER_ADMIN;
+        if (ROLE_READONLY_ADMIN.equals(role)) return ROLE_READONLY_ADMIN;
+        return ROLE_USER;
+    }
+
+    private boolean isSafeAdminMethod(String method) {
+        return "GET".equalsIgnoreCase(method) || "HEAD".equalsIgnoreCase(method) || "OPTIONS".equalsIgnoreCase(method);
+    }
+
+    private void writeJson(HttpServletResponse response, int status, String body) throws Exception {
+        response.setStatus(status);
+        response.setContentType("application/json;charset=UTF-8");
+        response.getWriter().write(body);
     }
 
     private boolean isPublicPath(String path) {
         return path.equals("/api/user/register")
                 || path.equals("/api/user/login")
+                || path.equals("/api/admin/login")
                 || path.equals("/api/user/send-code")
                 || path.startsWith("/api/user/name")
                 || path.matches("/api/user/\\d+")  // 公开：用户ID获取

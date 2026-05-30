@@ -10,6 +10,7 @@ com\neighborhood\app\handler\MySqlJsonTypeHandler.class
 com\neighborhood\app\controller\MarketController.class
 com\neighborhood\app\dto\RegisterRequest.class
 com\neighborhood\app\service\impl\CommentLikeServiceImpl.class
+com\neighborhood\app\controller\AdminController.class
 com\neighborhood\app\service\ReviewLikeService.class
 com\neighborhood\app\controller\NotificationController.class
 com\neighborhood\app\entity\News.class

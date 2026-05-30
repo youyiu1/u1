@@ -21,6 +21,7 @@ import ItemDetail from './pages/ItemDetail';
 import Search from './pages/Search';
 import Login from './pages/Login';
 import Register from './pages/Register';
+import AdminApp from './admin/AdminApp';
 
 export default function App() {
   return (
@@ -31,6 +32,7 @@ export default function App() {
           <PublishProvider>
           <BrowserRouter>
             <Routes>
+              <Route path="/admin/*" element={<AdminApp />} />
               <Route path="/" element={<Layout />}>
                 <Route index element={<Home />} />
                 <Route path="service" element={<ServiceList />} />
