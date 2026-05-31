@@ -41,7 +41,10 @@ public class ServiceModuleServiceImpl extends ServiceImpl<ServiceMapper, Service
         if (cached != null) {
             return cached;
         }
-        List<ServiceEntity> list = super.list();
+        List<ServiceEntity> list = lambdaQuery()
+                .eq(ServiceEntity::getStatus, "active")
+                .orderByDesc(ServiceEntity::getId)
+                .list();
         cacheService.cacheServiceList(list);
         return list;
     }
@@ -64,7 +67,7 @@ public class ServiceModuleServiceImpl extends ServiceImpl<ServiceMapper, Service
      */
     public ServiceDetailVO getServiceDetail(Long id, Double buyerLat, Double buyerLng) {
         ServiceEntity service = getById(id);
-        if (service == null) {
+        if (service == null || !"active".equals(emptyTo(service.getStatus(), "active"))) {
             return null;
         }
         User seller = userService.getById(service.getSellerId());
@@ -73,9 +76,14 @@ public class ServiceModuleServiceImpl extends ServiceImpl<ServiceMapper, Service
 
     @Override
     public boolean save(ServiceEntity service) {
+        service.setStatus("pending");
+        service.setRejectReason("");
+        service.setRating(service.getRating() == null ? 0D : service.getRating());
+        service.setReviews(service.getReviews() == null ? 0 : service.getReviews());
         boolean result = super.save(service);
         if (result) {
             cacheService.evictService(service.getId());
+            cacheService.evictHomeIndex();
         }
         return result;
     }
@@ -159,6 +167,8 @@ public class ServiceModuleServiceImpl extends ServiceImpl<ServiceMapper, Service
         copied.setDistance(item.getDistance());
         copied.setUnit(item.getUnit());
         copied.setHighlights(item.getHighlights());
+        copied.setStatus(item.getStatus());
+        copied.setRejectReason(item.getRejectReason());
         copied.setLatitude(item.getLatitude());
         copied.setLongitude(item.getLongitude());
         copied.setImages(item.getImages());
@@ -183,6 +193,10 @@ public class ServiceModuleServiceImpl extends ServiceImpl<ServiceMapper, Service
         if (service.getId() != null) {
             distanceMap.put(service.getId(), dist);
         }
+    }
+
+    private String emptyTo(String value, String fallback) {
+        return value == null || value.isBlank() ? fallback : value;
     }
 }
 

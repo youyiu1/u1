@@ -29,6 +29,7 @@ public class Comment {
     private String userAvatar;
     private String content;
     private Integer likes;
+    private String status;
     @TableField(exist = false)
     private Boolean isLiked;
     private LocalDateTime createTime;

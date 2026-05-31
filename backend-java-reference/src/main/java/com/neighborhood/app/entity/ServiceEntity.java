@@ -1,8 +1,3 @@
-/**
- * @license
- * SPDX-License-Identifier: Apache-2.0
- */
-
 package com.neighborhood.app.entity;
 
 import com.baomidou.mybatisplus.annotation.IdType;
@@ -14,6 +9,7 @@ import com.fasterxml.jackson.databind.ser.std.ToStringSerializer;
 import com.neighborhood.app.handler.MySqlJsonTypeHandler;
 import lombok.Data;
 import org.apache.ibatis.type.JdbcType;
+
 import java.math.BigDecimal;
 import java.util.List;
 
@@ -33,8 +29,10 @@ public class ServiceEntity {
     private String distance;
     private String unit;
     private String highlights;
-    private Double latitude;                          // 服务位置纬度
-    private Double longitude;                         // 服务位置经度
+    private String status;
+    private String rejectReason;
+    private Double latitude;
+    private Double longitude;
     @TableField(value = "images", typeHandler = MySqlJsonTypeHandler.class, jdbcType = JdbcType.VARCHAR)
     private List<String> images;
 }

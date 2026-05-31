@@ -35,6 +35,8 @@ public class MarketItemVO {
     private String category;
     private BigDecimal originalPrice;
     private String location;
+    private String status;
+    private String rejectReason;
     private Boolean verified;
     private Boolean freeShipping;
 
@@ -49,6 +51,8 @@ public class MarketItemVO {
         vo.setCategory(item.getCategory());
         vo.setOriginalPrice(item.getOriginalPrice());
         vo.setLocation(item.getLocation());
+        vo.setStatus(item.getStatus());
+        vo.setRejectReason(item.getRejectReason());
         vo.setVerified(item.getVerified());
         vo.setFreeShipping(item.getFreeShipping());
 

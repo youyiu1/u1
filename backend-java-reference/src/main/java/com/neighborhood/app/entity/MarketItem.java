@@ -36,6 +36,8 @@ public class MarketItem {
     @TableField("original_price")
     private BigDecimal originalPrice;
     private String location;
+    private String status;
+    private String rejectReason;
     private Boolean verified;
     private Boolean freeShipping;
 }

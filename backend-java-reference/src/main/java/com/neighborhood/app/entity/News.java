@@ -28,6 +28,8 @@ public class News {
     private Integer likes;
     private Integer commentsCount;
     private String images;
+    private String status;
+    private String rejectReason;
     private Integer shares;
     private Integer collections;
     private LocalDateTime createTime;

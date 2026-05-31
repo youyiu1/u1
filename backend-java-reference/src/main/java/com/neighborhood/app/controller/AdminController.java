@@ -8,6 +8,7 @@ package com.neighborhood.app.controller;
 import com.neighborhood.app.common.Result;
 import com.neighborhood.app.entity.User;
 import com.neighborhood.app.mapper.UserMapper;
+import com.neighborhood.app.service.CacheService;
 import com.neighborhood.app.util.JwtUtil;
 import jakarta.annotation.PostConstruct;
 import jakarta.servlet.http.HttpServletRequest;
@@ -37,6 +38,7 @@ public class AdminController {
     private final UserMapper userMapper;
     private final JwtUtil jwtUtil;
     private final RedisTemplate<String, Object> redisTemplate;
+    private final CacheService cacheService;
 
     @PostConstruct
     public void ensureAdminSchema() {
@@ -54,6 +56,19 @@ public class AdminController {
         executeQuietly("ALTER TABLE t_service ADD COLUMN phone VARCHAR(32) DEFAULT ''");
         executeQuietly("ALTER TABLE t_order ADD COLUMN cancel_reason VARCHAR(255) DEFAULT ''");
         executeQuietly("ALTER TABLE t_comment ADD COLUMN status VARCHAR(20) DEFAULT 'normal'");
+        executeQuietly("ALTER TABLE t_service_review ADD COLUMN status VARCHAR(20) DEFAULT 'normal'");
+        executeQuietly("""
+                CREATE TABLE IF NOT EXISTS t_category (
+                    id BIGINT PRIMARY KEY AUTO_INCREMENT,
+                    name VARCHAR(100) NOT NULL,
+                    icon VARCHAR(64) DEFAULT 'category',
+                    type VARCHAR(20) DEFAULT 'service',
+                    status VARCHAR(20) DEFAULT 'normal',
+                    sort_order INT DEFAULT 0,
+                    create_time DATETIME DEFAULT CURRENT_TIMESTAMP,
+                    INDEX idx_type_order (type, sort_order)
+                ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4
+                """);
         executeQuietly("ALTER TABLE t_category ADD COLUMN type VARCHAR(20) DEFAULT 'service'");
         executeQuietly("ALTER TABLE t_category ADD COLUMN status VARCHAR(20) DEFAULT 'normal'");
         executeQuietly("ALTER TABLE t_category ADD COLUMN sort_order INT DEFAULT 0");
@@ -268,6 +283,7 @@ public class AdminController {
     public Result<Void> updateDynamicStatus(@PathVariable Long id, @RequestBody Map<String, String> body) {
         jdbcTemplate.update("UPDATE t_news SET status = ?, reject_reason = ? WHERE id = ?",
                 body.getOrDefault("status", "normal"), body.getOrDefault("rejectReason", ""), id);
+        evictNewsRelated(id);
         return Result.ok();
     }
 
@@ -279,7 +295,8 @@ public class AdminController {
         String avatar = user == null ? "" : user.getAvatar();
         jdbcTemplate.update("INSERT INTO t_comment(news_id,parent_id,user_id,user_name,user_avatar,content,likes,status,create_time) VALUES(?,?,?,?,?,?,?,?,NOW())",
                 id, 0, userId, name, avatar, body.getOrDefault("text", ""), 0, "normal");
-        jdbcTemplate.update("UPDATE t_news SET comments_count = comments_count + 1 WHERE id = ?", id);
+        recalcNewsCommentCount(id);
+        evictNewsRelated(id);
         return Result.ok();
     }
 
@@ -288,7 +305,8 @@ public class AdminController {
     public Result<Void> deleteDynamicComment(@PathVariable Long id, @PathVariable Long commentId) {
         int deleted = jdbcTemplate.update("DELETE FROM t_comment WHERE id = ? AND news_id = ?", commentId, id);
         if (deleted > 0) {
-            jdbcTemplate.update("UPDATE t_news SET comments_count = GREATEST(comments_count - 1, 0) WHERE id = ?", id);
+            recalcNewsCommentCount(id);
+            evictNewsRelated(id);
         }
         return Result.ok();
     }
@@ -328,6 +346,9 @@ public class AdminController {
     public Result<Void> updateGoodsStatus(@PathVariable Long id, @RequestBody Map<String, String> body) {
         jdbcTemplate.update("UPDATE t_market_item SET status = ?, reject_reason = ? WHERE id = ?",
                 body.getOrDefault("status", "active"), body.getOrDefault("rejectReason", ""), id);
+        cacheService.evictMarketItem(id);
+        cacheService.evictMarketList();
+        cacheService.evictHomeIndex();
         return Result.ok();
     }
 
@@ -379,78 +400,55 @@ public class AdminController {
     public Result<Void> updateServiceStatus(@PathVariable Long id, @RequestBody Map<String, String> body) {
         jdbcTemplate.update("UPDATE t_service SET status = ?, reject_reason = ? WHERE id = ?",
                 body.getOrDefault("status", "active"), body.getOrDefault("rejectReason", ""), id);
+        cacheService.evictService(id);
+        cacheService.evictHomeIndex();
         return Result.ok();
     }
 
     // 管理端订单列表
+    // 管理端订单列表
     @GetMapping("/orders")
     public Result<List<Map<String, Object>>> orders() {
-        String sql = """
-                SELECT o.*, bu.name buyer_name, su.name seller_name, s.title service_name
-                FROM t_order o
-                LEFT JOIN t_user bu ON o.buyer_id = bu.id
-                LEFT JOIN t_user su ON o.seller_id = su.id
-                LEFT JOIN t_service s ON o.service_id = s.id
-                ORDER BY o.create_time DESC
-                """;
-        return Result.ok(jdbcTemplate.queryForList(sql).stream().map(row -> {
-            String status = normalizeOrderStatus(str(row.get("status")));
-            Map<String, Object> item = new LinkedHashMap<>();
-            item.put("id", str(row.get("id")));
-            item.put("buyerName", emptyTo(str(row.get("buyer_name")), str(row.get("buyer_id"))));
-            item.put("buyerPhone", "");
-            item.put("buyerAddress", "");
-            item.put("sellerName", emptyTo(str(row.get("seller_name")), str(row.get("seller_id"))));
-            item.put("sellerPhone", "");
-            item.put("sellerRating", "");
-            item.put("serviceName", emptyTo(str(row.get("service_title")), str(row.get("service_name"))));
-            item.put("price", decimal(row.get("price")));
-            item.put("paymentPrice", decimal(row.get("price")));
-            item.put("scheduleTime", time(row.get("booking_date")) + " " + str(row.get("booking_time")));
-            item.put("buildTime", time(row.get("create_time")));
-            item.put("status", status);
-            item.put("cancelReason", str(row.get("cancel_reason")));
-            item.put("steps", List.of(Map.of("name", "订单创建", "time", time(row.get("create_time")))));
-            item.put("remark", "");
-            item.put("feeBreakdown", List.of(Map.of("name", "服务费用", "value", decimal(row.get("price")))));
-            return item;
-        }).toList());
+        try {
+            String sql = """
+                    SELECT o.*, bu.name buyer_name, su.name seller_name, s.title service_name
+                    FROM t_order o
+                    LEFT JOIN t_user bu ON o.buyer_id = bu.id
+                    LEFT JOIN t_user su ON o.seller_id = su.id
+                    LEFT JOIN t_service s ON o.service_id = s.id
+                    ORDER BY o.create_time DESC
+                    """;
+            return Result.ok(jdbcTemplate.queryForList(sql).stream().map(this::orderItem).toList());
+        } catch (Exception ignored) {
+            return Result.ok(jdbcTemplate.queryForList("SELECT * FROM t_order ORDER BY create_time DESC").stream().map(this::orderItem).toList());
+        }
     }
 
     // 强制取消订单
     @PostMapping("/orders/{id}/cancel")
     public Result<Void> cancelOrder(@PathVariable Long id, @RequestBody Map<String, String> body) {
         jdbcTemplate.update("UPDATE t_order SET status = 'cancelled', cancel_reason = ?, update_time = NOW() WHERE id = ?",
-                body.getOrDefault("reason", "管理员强制取消"), id);
+                body.getOrDefault("reason", "管理者强制取消"), id);
         return Result.ok();
     }
 
-    // 管理端分类列表
     @GetMapping("/categories")
     public Result<List<Map<String, Object>>> categories() {
+        ensureDefaultCategories();
         String sql = "SELECT * FROM t_category ORDER BY sort_order ASC, id ASC";
-        return Result.ok(jdbcTemplate.queryForList(sql).stream().map(row -> {
-            Map<String, Object> item = new LinkedHashMap<>();
-            item.put("id", str(row.get("id")));
-            item.put("name", str(row.get("name")));
-            item.put("type", emptyTo(str(row.get("type")), "service"));
-            item.put("status", emptyTo(str(row.get("status")), "normal"));
-            item.put("order", num(row.get("sort_order")));
-            item.put("subCount", 0);
-            return item;
-        }).toList());
+        return Result.ok(jdbcTemplate.queryForList(sql).stream().map(this::categoryItem).toList());
     }
 
     // 新增分类
     @PostMapping("/categories")
     public Result<Void> addCategory(@RequestBody Map<String, String> body) {
+        ensureDefaultCategories();
         Integer nextOrder = jdbcTemplate.queryForObject("SELECT COALESCE(MAX(sort_order),0)+1 FROM t_category WHERE type = ?", Integer.class, body.getOrDefault("type", "service"));
         jdbcTemplate.update("INSERT INTO t_category(name, icon, type, status, sort_order) VALUES(?,?,?,?,?)",
                 body.getOrDefault("name", ""), "category", body.getOrDefault("type", "service"), "normal", nextOrder == null ? 1 : nextOrder);
         return Result.ok();
     }
 
-    // 切换分类状态
     @PostMapping("/categories/{id}/toggle")
     public Result<Void> toggleCategory(@PathVariable Long id) {
         jdbcTemplate.update("UPDATE t_category SET status = IF(status='normal','disabled','normal') WHERE id = ?", id);
@@ -504,7 +502,7 @@ public class AdminController {
                 FROM t_comment c LEFT JOIN t_news n ON c.news_id = n.id
                 ORDER BY c.create_time DESC
                 """;
-        return Result.ok(jdbcTemplate.queryForList(sql).stream().map(row -> {
+        List<Map<String, Object>> comments = new ArrayList<>(jdbcTemplate.queryForList(sql).stream().map(row -> {
             Map<String, Object> item = new LinkedHashMap<>();
             item.put("id", str(row.get("id")));
             item.put("targetType", "dynamic");
@@ -517,19 +515,73 @@ public class AdminController {
             item.put("status", emptyTo(str(row.get("status")), "normal"));
             return item;
         }).toList());
+        try {
+            String reviewSql = """
+                    SELECT r.*, s.title target_title
+                    FROM t_service_review r LEFT JOIN t_service s ON r.service_id = s.id
+                    ORDER BY r.create_time DESC
+                    """;
+            comments.addAll(jdbcTemplate.queryForList(reviewSql).stream().map(row -> {
+                Map<String, Object> item = new LinkedHashMap<>();
+                item.put("id", "service-" + str(row.get("id")));
+                item.put("targetType", "service");
+                item.put("targetId", str(row.get("service_id")));
+                item.put("targetTitle", emptyTo(str(row.get("target_title")), "服务评价"));
+                item.put("authorName", str(row.get("user_name")));
+                item.put("authorAvatar", str(row.get("user_avatar")));
+                item.put("content", str(row.get("content")));
+                item.put("time", time(row.get("create_time")));
+                item.put("status", emptyTo(str(row.get("status")), "normal"));
+                return item;
+            }).toList());
+        } catch (Exception ignored) {
+        }
+        comments.sort((a, b) -> str(b.get("time")).compareTo(str(a.get("time"))));
+        return Result.ok(comments);
     }
 
     // 更新评论状态
     @PostMapping("/comments/{id}/status")
-    public Result<Void> updateCommentStatus(@PathVariable Long id, @RequestBody Map<String, String> body) {
-        jdbcTemplate.update("UPDATE t_comment SET status = ? WHERE id = ?", body.getOrDefault("status", "normal"), id);
+    public Result<Void> updateCommentStatus(@PathVariable String id, @RequestBody Map<String, String> body) {
+        String status = body.getOrDefault("status", "normal");
+        if (id.startsWith("service-")) {
+            Long reviewId = longVal(id.substring("service-".length()));
+            Long serviceId = queryLong("SELECT service_id FROM t_service_review WHERE id = ?", reviewId);
+            jdbcTemplate.update("UPDATE t_service_review SET status = ? WHERE id = ?", status, reviewId);
+            recalcServiceReviewStats(serviceId);
+            if (serviceId != null) {
+                cacheService.evictService(serviceId);
+            }
+        } else {
+            Long commentId = longVal(id);
+            Long newsId = queryLong("SELECT news_id FROM t_comment WHERE id = ?", commentId);
+            jdbcTemplate.update("UPDATE t_comment SET status = ? WHERE id = ?", status, commentId);
+            recalcNewsCommentCount(newsId);
+            evictNewsRelated(newsId);
+        }
+        cacheService.evictHomeIndex();
         return Result.ok();
     }
 
     // 删除评论
     @DeleteMapping("/comments/{id}")
-    public Result<Void> deleteComment(@PathVariable Long id) {
-        jdbcTemplate.update("DELETE FROM t_comment WHERE id = ?", id);
+    public Result<Void> deleteComment(@PathVariable String id) {
+        if (id.startsWith("service-")) {
+            Long reviewId = longVal(id.substring("service-".length()));
+            Long serviceId = queryLong("SELECT service_id FROM t_service_review WHERE id = ?", reviewId);
+            jdbcTemplate.update("DELETE FROM t_service_review WHERE id = ?", reviewId);
+            recalcServiceReviewStats(serviceId);
+            if (serviceId != null) {
+                cacheService.evictService(serviceId);
+            }
+        } else {
+            Long commentId = longVal(id);
+            Long newsId = queryLong("SELECT news_id FROM t_comment WHERE id = ?", commentId);
+            jdbcTemplate.update("DELETE FROM t_comment WHERE id = ?", commentId);
+            recalcNewsCommentCount(newsId);
+            evictNewsRelated(newsId);
+        }
+        cacheService.evictHomeIndex();
         return Result.ok();
     }
 
@@ -566,11 +618,11 @@ public class AdminController {
     // 管理端图片列表，来自真实业务图片字段
     @GetMapping("/images")
     public Result<List<Map<String, Object>>> images() {
-        List<Map<String, Object>> images = new ArrayList<>();
+        Map<String, Map<String, Object>> images = new LinkedHashMap<>();
         collectImages(images, "dynamic", "SELECT n.id, n.images, u.name uploader, n.create_time FROM t_news n LEFT JOIN t_user u ON n.author_id=u.id");
         collectImages(images, "goods", "SELECT m.id, m.images, u.name uploader, m.created_at create_time FROM t_market_item m LEFT JOIN t_user u ON m.seller_id=u.id");
         collectImages(images, "banner", "SELECT s.id, s.images, u.name uploader, s.created_at create_time FROM t_service s LEFT JOIN t_user u ON s.seller_id=u.id");
-        return Result.ok(images);
+        return Result.ok(new ArrayList<>(images.values()));
     }
 
     // 更新图片状态
@@ -664,6 +716,51 @@ public class AdminController {
         return ROLE_USER;
     }
 
+    private Map<String, Object> orderItem(Map<String, Object> row) {
+        String status = normalizeOrderStatus(str(row.get("status")));
+        Map<String, Object> item = new LinkedHashMap<>();
+        item.put("id", str(row.get("id")));
+        item.put("buyerName", emptyTo(str(row.get("buyer_name")), str(row.get("buyer_id"))));
+        item.put("buyerPhone", "");
+        item.put("buyerAddress", "");
+        item.put("sellerName", emptyTo(str(row.get("seller_name")), str(row.get("seller_id"))));
+        item.put("sellerPhone", "");
+        item.put("sellerRating", "");
+        item.put("serviceName", emptyTo(str(row.get("service_title")), str(row.get("service_name"))));
+        item.put("price", decimal(row.get("price")));
+        item.put("paymentPrice", decimal(row.get("price")));
+        item.put("scheduleTime", time(row.get("booking_date")) + " " + str(row.get("booking_time")));
+        item.put("buildTime", time(row.get("create_time")));
+        item.put("status", status);
+        item.put("cancelReason", str(row.get("cancel_reason")));
+        item.put("steps", List.of(Map.of("name", "订单创建", "time", time(row.get("create_time")))));
+        item.put("remark", "");
+        item.put("feeBreakdown", List.of(Map.of("name", "服务费用", "value", decimal(row.get("price")))));
+        return item;
+    }
+
+    private Map<String, Object> categoryItem(Map<String, Object> row) {
+        Map<String, Object> item = new LinkedHashMap<>();
+        item.put("id", str(row.get("id")));
+        item.put("name", str(row.get("name")));
+        item.put("type", emptyTo(str(row.get("type")), "service"));
+        item.put("status", emptyTo(str(row.get("status")), "normal"));
+        item.put("order", num(row.get("sort_order")));
+        item.put("subCount", 0);
+        return item;
+    }
+
+    private void ensureDefaultCategories() {
+        try {
+            Long count = jdbcTemplate.queryForObject("SELECT COUNT(1) FROM t_category", Long.class);
+            if (count != null && count > 0) return;
+            jdbcTemplate.update("INSERT INTO t_category(name, icon, type, status, sort_order) VALUES(?,?,?,?,?)", "生活服务", "category", "service", "normal", 10);
+            jdbcTemplate.update("INSERT INTO t_category(name, icon, type, status, sort_order) VALUES(?,?,?,?,?)", "闲置物品", "category", "goods", "normal", 20);
+            jdbcTemplate.update("INSERT INTO t_category(name, icon, type, status, sort_order) VALUES(?,?,?,?,?)", "动态内容", "category", "dynamic", "normal", 30);
+        } catch (Exception ignored) {
+        }
+    }
+
     private boolean isReadOnlyRole(String role) {
         return ROLE_READONLY_ADMIN.equals(normalizeAdminRole(role));
     }
@@ -680,9 +777,12 @@ public class AdminController {
         }).toList();
     }
 
-    private void collectImages(List<Map<String, Object>> target, String category, String sql) {
+    private void collectImages(Map<String, Map<String, Object>> target, String category, String sql) {
         for (Map<String, Object> row : jdbcTemplate.queryForList(sql)) {
             for (String url : parseImages(row.get("images"))) {
+                if (target.containsKey(url)) {
+                    continue;
+                }
                 Map<String, Object> item = new LinkedHashMap<>();
                 item.put("id", url);
                 item.put("url", url);
@@ -692,7 +792,7 @@ public class AdminController {
                 item.put("uploader", emptyTo(str(row.get("uploader")), "未知用户"));
                 item.put("uploadedAt", time(row.get("create_time")));
                 item.put("status", imageStatus(url));
-                target.add(item);
+                target.put(url, item);
             }
         }
     }
@@ -702,6 +802,52 @@ public class AdminController {
             return jdbcTemplate.queryForObject("SELECT status FROM t_admin_image_status WHERE image_url = ?", String.class, url);
         } catch (Exception e) {
             return "approved";
+        }
+    }
+
+    private void evictNewsRelated(Long newsId) {
+        if (newsId != null && newsId > 0) {
+            cacheService.evictNews(newsId);
+        } else {
+            cacheService.evictNewsList();
+        }
+        cacheService.evictHomeIndex();
+    }
+
+    private void recalcNewsCommentCount(Long newsId) {
+        if (newsId == null || newsId <= 0) {
+            return;
+        }
+        jdbcTemplate.update("""
+                UPDATE t_news
+                SET comments_count = (
+                    SELECT COUNT(1) FROM t_comment WHERE news_id = ? AND status = 'normal'
+                )
+                WHERE id = ?
+                """, newsId, newsId);
+    }
+
+    private void recalcServiceReviewStats(Long serviceId) {
+        if (serviceId == null || serviceId <= 0) {
+            return;
+        }
+        jdbcTemplate.update("""
+                UPDATE t_service
+                SET reviews = (
+                    SELECT COUNT(1) FROM t_service_review WHERE service_id = ? AND status = 'normal'
+                ),
+                rating = COALESCE((
+                    SELECT AVG(rating) FROM t_service_review WHERE service_id = ? AND status = 'normal'
+                ), 0)
+                WHERE id = ?
+                """, serviceId, serviceId, serviceId);
+    }
+
+    private Long queryLong(String sql, Object... args) {
+        try {
+            return jdbcTemplate.queryForObject(sql, Long.class, args);
+        } catch (Exception e) {
+            return null;
         }
     }
 

@@ -50,6 +50,7 @@ public class HomeController {
 
         // 获取热门动态（避免 N+1：一次拿 VO，再批量查评论）
         List<News> latestNews = newsService.lambdaQuery()
+                .eq(News::getStatus, "normal")
                 .orderByDesc(News::getCreateTime)
                 .last("LIMIT 2")
                 .list();
@@ -68,6 +69,7 @@ public class HomeController {
             List<Comment> allComments = commentMapper.selectList(
                     new QueryWrapper<Comment>()
                             .in("news_id", newsIds)
+                            .eq("status", "normal")
                             .orderByDesc("likes")
                             .orderByDesc("create_time")
             );
@@ -87,6 +89,7 @@ public class HomeController {
         data.put("hotNews", hotNews);
 
         List<MarketItemVO> hotMarket = marketService.lambdaQuery()
+                .eq(MarketItem::getStatus, "active")
                 .orderByDesc(MarketItem::getId)
                 .last("LIMIT 4")
                 .list()
@@ -97,6 +100,7 @@ public class HomeController {
         data.put("hotMarket", hotMarket);
 
         List<ServiceEntity> hotServices = serviceModuleService.lambdaQuery()
+                .eq(ServiceEntity::getStatus, "active")
                 .orderByDesc(ServiceEntity::getId)
                 .last("LIMIT 4")
                 .list();

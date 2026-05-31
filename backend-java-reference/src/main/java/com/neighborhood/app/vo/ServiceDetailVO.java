@@ -26,6 +26,8 @@ public class ServiceDetailVO {
     private Integer reviews;
     private String unit;
     private String highlights;
+    private String status;
+    private String rejectReason;
     private List<String> images;
     private Double latitude;                          // 服务位置纬度
     private Double longitude;                         // 服务位置经度
@@ -56,6 +58,8 @@ public class ServiceDetailVO {
         vo.setReviews(service.getReviews());
         vo.setUnit(service.getUnit());
         vo.setHighlights(service.getHighlights());
+        vo.setStatus(service.getStatus());
+        vo.setRejectReason(service.getRejectReason());
         vo.setImages(service.getImages());
         vo.setLatitude(service.getLatitude());
         vo.setLongitude(service.getLongitude());

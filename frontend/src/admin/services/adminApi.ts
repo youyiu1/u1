@@ -238,7 +238,7 @@ export const adminApi = {
     return request<ManagedComment[]>('/comments');
   },
 
-  async updateCommentStatus(id: string, status: 'normal' | 'flagged' | 'hidden'): Promise<Result<void>> {
+  async updateCommentStatus(id: string, status: 'pending' | 'normal' | 'flagged' | 'hidden'): Promise<Result<void>> {
     return request<void>(`/comments/${id}/status`, {
       method: 'POST',
       body: JSON.stringify({ status }),

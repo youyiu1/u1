@@ -64,7 +64,10 @@ public class NewsServiceImpl extends ServiceImpl<NewsMapper, News> implements Ne
 
     @Override
     public List<News> listDesc() {
-        return lambdaQuery().orderByDesc(News::getCreateTime).list();
+        return lambdaQuery()
+                .eq(News::getStatus, "normal")
+                .orderByDesc(News::getCreateTime)
+                .list();
     }
 
     @Override
@@ -88,7 +91,7 @@ public class NewsServiceImpl extends ServiceImpl<NewsMapper, News> implements Ne
     @Override
     public NewsVO getNewsVOById(Long id, String userId) {
         News news = getById(id);
-        if (news == null) {
+        if (news == null || !"normal".equals(emptyTo(news.getStatus(), "normal"))) {
             return null;
         }
         User author = userMapper.selectById(news.getAuthorId());
@@ -126,9 +129,18 @@ public class NewsServiceImpl extends ServiceImpl<NewsMapper, News> implements Ne
 
     @Override
     public boolean save(News news) {
+        news.setStatus("pending");
+        news.setRejectReason("");
+        news.setLikes(news.getLikes() == null ? 0 : news.getLikes());
+        news.setCommentsCount(news.getCommentsCount() == null ? 0 : news.getCommentsCount());
+        news.setShares(news.getShares() == null ? 0 : news.getShares());
+        news.setCollections(news.getCollections() == null ? 0 : news.getCollections());
+        news.setCreateTime(news.getCreateTime() == null ? java.time.LocalDateTime.now() : news.getCreateTime());
+        news.setUpdateTime(java.time.LocalDateTime.now());
         boolean result = super.save(news);
         if (result) {
             cacheService.evictNewsList();
+            cacheService.evictHomeIndex();
         }
         return result;
     }
@@ -146,8 +158,11 @@ public class NewsServiceImpl extends ServiceImpl<NewsMapper, News> implements Ne
     @Transactional
     public void addComment(Long newsId, Comment comment) {
         ensureCommentParentColumnExists();
+        ensureCommentStatusColumnExists();
         comment.setNewsId(newsId);
         comment.setCreateTime(java.time.LocalDateTime.now());
+        comment.setLikes(comment.getLikes() == null ? 0 : comment.getLikes());
+        comment.setStatus("pending");
         Long parentId = comment.getParentId();
         if (parentId == null || parentId <= 0) {
             comment.setParentId(0L);
@@ -158,10 +173,8 @@ public class NewsServiceImpl extends ServiceImpl<NewsMapper, News> implements Ne
             }
         }
         commentMapper.insert(comment);
-        lambdaUpdate().eq(News::getId, newsId)
-                .setSql("comments_count = comments_count + 1")
-                .update();
         cacheService.evictNews(newsId);
+        cacheService.evictHomeIndex();
     }
 
     @Override
@@ -206,11 +219,13 @@ public class NewsServiceImpl extends ServiceImpl<NewsMapper, News> implements Ne
 
     public List<Comment> getCommentsByNewsId(Long newsId, int limit, int offset, String userId) {
         ensureCommentParentColumnExists();
+        ensureCommentStatusColumnExists();
         int safeLimit = Math.max(1, Math.min(limit, 200));
         int safeOffset = Math.max(0, offset);
         List<Comment> comments = commentMapper.selectList(
                 new QueryWrapper<Comment>()
                         .eq("news_id", newsId)
+                        .eq("status", "normal")
                         .orderByAsc("create_time")
                         .last("LIMIT " + safeLimit + " OFFSET " + safeOffset)
         );
@@ -249,6 +264,13 @@ public class NewsServiceImpl extends ServiceImpl<NewsMapper, News> implements Ne
         }
     }
 
+    private void ensureCommentStatusColumnExists() {
+        try {
+            jdbcTemplate.execute("ALTER TABLE t_comment ADD COLUMN status VARCHAR(20) DEFAULT 'normal'");
+        } catch (Exception ignored) {
+        }
+    }
+
     @Override
     public List<NewsVO> listByUserId(String userId) {
         List<News> newsList = lambdaQuery()
@@ -267,6 +289,7 @@ public class NewsServiceImpl extends ServiceImpl<NewsMapper, News> implements Ne
     @Override
     public List<NewsVO> listTrending(int limit) {
         List<News> newsList = lambdaQuery()
+                .eq(News::getStatus, "normal")
                 .orderByDesc(News::getCommentsCount)
                 .last("LIMIT " + limit)
                 .list();
@@ -301,6 +324,10 @@ public class NewsServiceImpl extends ServiceImpl<NewsMapper, News> implements Ne
             cacheService.evictNewsList();
         }
         return result;
+    }
+
+    private String emptyTo(String value, String fallback) {
+        return value == null || value.isBlank() ? fallback : value;
     }
 }
 

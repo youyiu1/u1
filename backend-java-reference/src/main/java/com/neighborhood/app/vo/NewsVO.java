@@ -33,6 +33,8 @@ public class NewsVO {
     private Integer likes;
     private Integer commentsCount;
     private String images;
+    private String status;
+    private String rejectReason;
     private Integer shares;
     private Integer collections;
     private LocalDateTime createTime;
@@ -56,6 +58,8 @@ public class NewsVO {
         vo.setLikes(news.getLikes());
         vo.setCommentsCount(news.getCommentsCount());
         vo.setImages(news.getImages());
+        vo.setStatus(news.getStatus());
+        vo.setRejectReason(news.getRejectReason());
         vo.setShares(news.getShares());
         vo.setCollections(news.getCollections());
         vo.setCreateTime(news.getCreateTime());

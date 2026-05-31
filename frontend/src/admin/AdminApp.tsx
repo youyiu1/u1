@@ -329,6 +329,8 @@ export default function AdminApp() {
             users={users}
             onUpdateUserStatus={(id, status) => runAction(adminApi.updateUserStatus(id, status))}
             onUpdateUserVerified={(id, verified) => runAction(adminApi.updateUserVerified(id, verified))}
+            onUpdateUserAdminRole={(id, role) => runAction(adminApi.updateUserAdminRole(id, role))}
+            canManageRoles={adminRole === 'SUPER_ADMIN' && !isReadonlyAdmin}
           />
         );
       case '/admin/posts':

@@ -25,5 +25,6 @@ public class ServiceReview {
     private Integer rating;
     private String content;
     private Integer likes;
+    private String status;
     private LocalDateTime createTime;
 }

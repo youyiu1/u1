@@ -32,7 +32,10 @@ public class MarketServiceImpl extends ServiceImpl<MarketMapper, MarketItem> imp
         if (cached != null) {
             return cached;
         }
-        List<MarketItem> list = super.list();
+        List<MarketItem> list = lambdaQuery()
+                .eq(MarketItem::getStatus, "active")
+                .orderByDesc(MarketItem::getId)
+                .list();
         cacheService.cacheMarketList(list);
         return list;
     }
@@ -53,7 +56,7 @@ public class MarketServiceImpl extends ServiceImpl<MarketMapper, MarketItem> imp
     @Override
     public MarketItemVO getMarketItemVOById(Long id) {
         MarketItem item = getById(id);
-        if (item == null) {
+        if (item == null || !"active".equals(emptyTo(item.getStatus(), "active"))) {
             return null;
         }
         User seller = userMapper.selectById(item.getSellerId());
@@ -80,9 +83,14 @@ public class MarketServiceImpl extends ServiceImpl<MarketMapper, MarketItem> imp
 
     @Override
     public boolean save(MarketItem item) {
+        item.setStatus("pending");
+        item.setRejectReason("");
+        item.setVerified(item.getVerified() != null && item.getVerified());
+        item.setFreeShipping(item.getFreeShipping() != null && item.getFreeShipping());
         boolean result = super.save(item);
         if (result) {
             cacheService.evictMarketList();
+            cacheService.evictHomeIndex();
         }
         return result;
     }
@@ -109,5 +117,9 @@ public class MarketServiceImpl extends ServiceImpl<MarketMapper, MarketItem> imp
         return items.stream()
                 .map(item -> MarketItemVO.fromMarketItem(item, seller))
                 .collect(Collectors.toList());
+    }
+
+    private String emptyTo(String value, String fallback) {
+        return value == null || value.isBlank() ? fallback : value;
     }
 }

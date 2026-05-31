@@ -49,6 +49,8 @@ export interface Service {
   description: string;
   sellerId: string;
   seller?: Seller;
+  status?: 'pending' | 'active' | 'rejected';
+  rejectReason?: string;
 }
 
 export interface Item {
@@ -74,6 +76,8 @@ export interface Item {
   seller?: Seller;
   verified: boolean;
   freeShipping: boolean;
+  status?: 'pending' | 'active' | 'sold' | 'removed';
+  rejectReason?: string;
 }
 
 export interface Seller {
@@ -203,6 +207,8 @@ export interface Post {
   shares: number;
   collections: number;
   comments: Comment[];
+  status?: 'pending' | 'normal' | 'removed';
+  rejectReason?: string;
   // 当前用户点赞/收藏状态
   isLiked?: boolean;
   isFavorited?: boolean;

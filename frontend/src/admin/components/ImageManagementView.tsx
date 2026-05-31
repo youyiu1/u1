@@ -156,10 +156,10 @@ export default function ImageManagementView({
         </div>
       ) : (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-          {filteredImages.map((img) => (
+          {filteredImages.map((img, index) => (
             <motion.div
               layout
-              key={img.id}
+              key={`${img.id}-${img.category}-${index}`}
               className="bg-white dark:bg-slate-900 border border-slate-200/60 dark:border-slate-800/60 rounded-2xl overflow-hidden shadow-sm hover:shadow-md transition-shadow flex flex-col group"
             >
               {/* Visual Canvas containing Image */}

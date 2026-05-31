@@ -157,7 +157,7 @@ export interface ManagedComment {
   authorAvatar: string;
   content: string;
   time: string;
-  status: 'normal' | 'flagged' | 'hidden';
+  status: 'pending' | 'normal' | 'flagged' | 'hidden';
 }
 
 export interface BlacklistItem {

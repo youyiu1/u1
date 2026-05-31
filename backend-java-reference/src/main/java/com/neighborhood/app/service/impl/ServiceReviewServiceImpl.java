@@ -8,9 +8,11 @@ package com.neighborhood.app.service.impl;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.neighborhood.app.entity.ServiceReview;
 import com.neighborhood.app.mapper.ServiceReviewMapper;
+import com.neighborhood.app.service.CacheService;
 import com.neighborhood.app.service.ServiceReviewService;
 import com.neighborhood.app.service.ReviewLikeService;
 import lombok.RequiredArgsConstructor;
+import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Service;
 import java.time.LocalDateTime;
 import java.util.HashMap;
@@ -22,11 +24,15 @@ import java.util.Map;
 public class ServiceReviewServiceImpl extends ServiceImpl<ServiceReviewMapper, ServiceReview> implements ServiceReviewService {
 
     private final ReviewLikeService reviewLikeService;
+    private final JdbcTemplate jdbcTemplate;
+    private final CacheService cacheService;
 
     @Override
     public List<ServiceReview> getByServiceId(Long serviceId) {
+        ensureReviewStatusColumnExists();
         return lambdaQuery()
                 .eq(ServiceReview::getServiceId, serviceId)
+                .eq(ServiceReview::getStatus, "normal")
                 .orderByDesc(ServiceReview::getCreateTime)
                 .list();
     }
@@ -48,8 +54,14 @@ public class ServiceReviewServiceImpl extends ServiceImpl<ServiceReviewMapper, S
         review.setRating(rating);
         review.setContent(content);
         review.setLikes(0);
+        review.setStatus("pending");
         review.setCreateTime(LocalDateTime.now());
-        return save(review);
+        boolean saved = save(review);
+        if (saved) {
+            cacheService.evictService(serviceId);
+            cacheService.evictHomeIndex();
+        }
+        return saved;
     }
 
     @Override
@@ -72,8 +84,16 @@ public class ServiceReviewServiceImpl extends ServiceImpl<ServiceReviewMapper, S
         map.put("rating", review.getRating());
         map.put("content", review.getContent());
         map.put("likes", review.getLikes());
+        map.put("status", review.getStatus());
         map.put("createTime", review.getCreateTime());
         map.put("isLiked", liked);
         return map;
+    }
+
+    private void ensureReviewStatusColumnExists() {
+        try {
+            jdbcTemplate.execute("ALTER TABLE t_service_review ADD COLUMN status VARCHAR(20) DEFAULT 'normal'");
+        } catch (Exception ignored) {
+        }
     }
 }
