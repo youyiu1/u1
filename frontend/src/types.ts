@@ -10,6 +10,19 @@ export interface User {
   avatar: string;
   tag?: string;
   bio?: string;
+  phone?: string;
+  region?: string;
+  status?: string;
+  createdAt?: string;
+  pushEnabled?: boolean;
+  messageNotify?: boolean;
+  followNotify?: boolean;
+  likeNotify?: boolean;
+  commentNotify?: boolean;
+  systemNotify?: boolean;
+  profileVisible?: string;
+  postsVisible?: string;
+  showLocation?: boolean;
   isVerified: boolean;
   followersCount?: number;
   followingCount?: number;
@@ -28,10 +41,12 @@ export interface Message {
   id: string;
   senderId: string;
   receiverId?: string;
-  text?: string;        // 前端使用
-  content?: string;     // 后端返回
-  timestamp?: string;   // 前端使用
-  createTime?: string;  // 后端返回
+  text?: string;
+  content?: string;
+  messageType?: 'text' | 'image' | string;
+  mediaUrl?: string;
+  timestamp?: string;
+  createTime?: string;
   isRead?: boolean;
 }
 
@@ -45,6 +60,7 @@ export interface Service {
   price: number;
   unit: string;
   image: string;
+  images?: string[];
   highlights: string[];
   description: string;
   sellerId: string;
@@ -64,7 +80,6 @@ export interface Item {
   image: string;
   images: string[];
   description: string;
-  // 卖家信息（扁平化，后端MarketItemVO返回）
   sellerId?: string;
   sellerName?: string;
   sellerAvatar?: string;
@@ -72,11 +87,10 @@ export interface Item {
   sellerFollowersCount?: number;
   sellerOnSaleCount?: number;
   sellerSoldCount?: number;
-  // 兼容旧结构
   seller?: Seller;
   verified: boolean;
   freeShipping: boolean;
-  status?: 'pending' | 'active' | 'sold' | 'removed';
+  status?: 'pending' | 'active' | 'sold' | 'removed' | 'rejected';
   rejectReason?: string;
 }
 
@@ -177,15 +191,13 @@ export interface Comment {
 
 export interface Post {
   id: string;
-  title?: string;  // 标题
-  // 作者信息（后端 NewsVO 扁平返回）
+  title?: string;
   authorId?: string;
   authorName?: string;
   authorAvatar?: string;
   authorTag?: string;
   authorVerified?: boolean;
   authorFollowersCount?: number;
-  // 兼容旧结构：如果 author 对象存在则优先使用
   author?: {
     id?: string;
     name: string;
@@ -200,7 +212,7 @@ export interface Post {
   content: string;
   images: string[];
   time?: string;
-  createTime?: string;  // 后端返回的创建时间
+  createTime?: string;
   location: string;
   likes: number;
   commentsCount: number;
@@ -209,10 +221,8 @@ export interface Post {
   comments: Comment[];
   status?: 'pending' | 'normal' | 'removed';
   rejectReason?: string;
-  // 当前用户点赞/收藏状态
   isLiked?: boolean;
   isFavorited?: boolean;
   isFollowing?: boolean;
-  // 解析出的标签
   tags?: string[];
 }

@@ -1,22 +1,19 @@
-/**
- * @license
- * SPDX-License-Identifier: Apache-2.0
- */
-
 package com.neighborhood.app.service.impl;
 
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
+import com.neighborhood.app.dto.NotificationSettings;
+import com.neighborhood.app.dto.PrivacySettings;
 import com.neighborhood.app.entity.Follow;
 import com.neighborhood.app.entity.User;
 import com.neighborhood.app.mapper.FollowMapper;
 import com.neighborhood.app.mapper.UserMapper;
-import com.neighborhood.app.service.UserService;
 import com.neighborhood.app.service.CacheService;
-import com.neighborhood.app.dto.PrivacySettings;
+import com.neighborhood.app.service.UserService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -38,6 +35,15 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements Us
         user.setIsVerified(false);
         user.setFollowersCount(0);
         user.setFollowingCount(0);
+        user.setPushEnabled(true);
+        user.setMessageNotify(true);
+        user.setFollowNotify(true);
+        user.setLikeNotify(true);
+        user.setCommentNotify(true);
+        user.setSystemNotify(false);
+        user.setProfileVisible("public");
+        user.setPostsVisible("public");
+        user.setShowLocation(true);
         save(user);
         cacheService.cacheUser(user.getId(), user);
         return user;
@@ -129,16 +135,45 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements Us
     }
 
     @Override
+    public boolean updateNotificationSettings(String userId, NotificationSettings settings) {
+        User user = getById(userId);
+        if (user == null) {
+            return false;
+        }
+        if (settings.getPushEnabled() != null) {
+            user.setPushEnabled(settings.getPushEnabled());
+        }
+        if (settings.getMessageNotify() != null) {
+            user.setMessageNotify(settings.getMessageNotify());
+        }
+        if (settings.getFollowNotify() != null) {
+            user.setFollowNotify(settings.getFollowNotify());
+        }
+        if (settings.getLikeNotify() != null) {
+            user.setLikeNotify(settings.getLikeNotify());
+        }
+        if (settings.getCommentNotify() != null) {
+            user.setCommentNotify(settings.getCommentNotify());
+        }
+        if (settings.getSystemNotify() != null) {
+            user.setSystemNotify(settings.getSystemNotify());
+        }
+        boolean result = super.updateById(user);
+        if (result) {
+            cacheService.evictUser(userId);
+        }
+        return result;
+    }
+
+    @Override
     public boolean changePassword(String userId, String oldPassword, String newPassword) {
         User user = getById(userId);
         if (user == null) {
             return false;
         }
-        // 验证旧密码
         if (!user.getPassword().equals(oldPassword)) {
             return false;
         }
-        // 更新新密码
         user.setPassword(newPassword);
         boolean result = super.updateById(user);
         if (result) {
@@ -162,27 +197,19 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements Us
 
     @Override
     public List<User> getFollowingList(String userId) {
-        // 获取该用户关注的所有用户ID
         List<Follow> follows = followMapper.selectList(followerQuery(userId));
         if (follows.isEmpty()) {
             return List.of();
         }
-        List<String> followingIds = follows.stream()
-                .map(Follow::getFollowingId)
-                .collect(Collectors.toList());
+        List<String> followingIds = follows.stream().map(Follow::getFollowingId).collect(Collectors.toList());
         return getBaseMapper().selectBatchIds(followingIds);
     }
 
     @Override
     public List<User> getSuggestedUsers(String currentUserId, int limit) {
-        // 获取当前用户已关注的所有用户ID
         List<Follow> follows = followMapper.selectList(followerQuery(currentUserId));
-        List<String> excludeIds = follows.stream()
-                .map(Follow::getFollowingId)
-                .collect(Collectors.toList());
-        // 排除自己和已关注的人
+        List<String> excludeIds = follows.stream().map(Follow::getFollowingId).collect(Collectors.toList());
         excludeIds.add(currentUserId);
-
         return lambdaQuery()
                 .notIn(excludeIds.size() > 0, User::getId, excludeIds)
                 .orderByDesc(User::getFollowersCount)

@@ -180,6 +180,21 @@ export interface ManagedImage {
   status: 'approved' | 'pending' | 'flagged';
 }
 
+export interface ManagedMessage {
+  id: string;
+  senderId: string;
+  senderName: string;
+  senderAvatar: string;
+  receiverId: string;
+  receiverName: string;
+  receiverAvatar: string;
+  content: string;
+  messageType: 'text' | 'image' | string;
+  mediaUrl: string;
+  isRead: boolean;
+  createTime: string;
+}
+
 export interface LoginLogItem {
   id: string;
   userId: string;

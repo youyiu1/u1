@@ -70,7 +70,7 @@ export const HeaderUserMenu: React.FC = () => {
               </div>
 
               <Link 
-                to={`/profile/${user?.name}`}
+                to="/profile"
                 className="flex items-center gap-3 px-4 py-2.5 hover:bg-surface-soft rounded-2xl transition-colors text-sm font-bold text-secondary hover:text-ink group"
                 onClick={() => setShowUserMenu(false)}
               >

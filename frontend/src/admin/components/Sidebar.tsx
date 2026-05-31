@@ -55,6 +55,7 @@ export default function Sidebar({
       items: [
         { id: '/admin/posts', name: '动态管理', icon: 'explore', fill: false },
         { id: '/admin/comments', name: '评论管理', icon: 'chat_bubble', fill: true },
+        { id: '/admin/messages', name: '消息管理', icon: 'forum', fill: true },
         { id: '/admin/images', name: '图片管理', icon: 'photo_library', fill: true },
       ]
     },

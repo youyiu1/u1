@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import React, { useState, useMemo } from 'react';
+import React, { Suspense, lazy, useEffect, useMemo, useState } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import {
   ShoppingBag,
@@ -20,7 +20,10 @@ import {
 } from 'lucide-react';
 import { newsApi, marketApi, serviceApi, fileApi } from '../../services/api';
 import { useAuth } from '../../context/AuthContext';
-import { LocationPicker } from '../common/LocationPicker';
+
+const LazyLocationPicker = lazy(() =>
+  import('../common/LocationPicker').then((mod) => ({ default: mod.LocationPicker }))
+);
 
 const PUBLISH_OPTIONS = [
   {
@@ -107,6 +110,18 @@ export const PublishOverlay: React.FC<PublishOverlayProps> = ({ isOpen, onClose,
 
   const selectedOption = PUBLISH_OPTIONS.find(o => o.id === selectedId);
 
+  useEffect(() => {
+    if (!isOpen) {
+      const timer = window.setTimeout(() => {
+        if (!isOpen) {
+          setLocationPickerOpen(false);
+        }
+      }, 300);
+      return () => window.clearTimeout(timer);
+    }
+    return undefined;
+  }, [isOpen]);
+
   const handlePublish = async () => {
     if (!selectedId || !canSubmit || !user) return;
 
@@ -178,6 +193,11 @@ export const PublishOverlay: React.FC<PublishOverlayProps> = ({ isOpen, onClose,
   };
 
   const handleReset = () => {
+    images.forEach((img) => {
+      if (img.startsWith('blob:')) {
+        URL.revokeObjectURL(img);
+      }
+    });
     setSelectedId(null);
     setTitle('');
     setPrice('');
@@ -549,7 +569,12 @@ export const PublishOverlay: React.FC<PublishOverlayProps> = ({ isOpen, onClose,
                                 const files = e.target.files;
                                 if (files) {
                                   const newImages = Array.from(files).map((f: File) => URL.createObjectURL(f));
-                                  setImages(prev => [...prev, ...newImages].slice(0, 9));
+                                  setImages(prev => {
+                                    const next = [...prev, ...newImages];
+                                    const kept = next.slice(0, 9);
+                                    next.slice(9).forEach((url) => URL.revokeObjectURL(url));
+                                    return kept;
+                                  });
                                 }
                                 e.target.value = '';
                               }}
@@ -569,7 +594,13 @@ export const PublishOverlay: React.FC<PublishOverlayProps> = ({ isOpen, onClose,
                                 <div key={`${img}-${idx}`} className="relative shrink-0 w-16 h-16 rounded-xl overflow-hidden border border-hairline">
                                   <img src={img} className="w-full h-full object-cover" alt="" />
                                   <button
-                                    onClick={() => setImages(prev => prev.filter((_, i) => i !== idx))}
+                                    onClick={() => setImages(prev => {
+                                      const target = prev[idx];
+                                      if (target?.startsWith('blob:')) {
+                                        URL.revokeObjectURL(target);
+                                      }
+                                      return prev.filter((_, i) => i !== idx);
+                                    })}
                                     className="absolute -top-1 -right-1 w-4 h-4 bg-red-500 text-white rounded-full text-[10px] flex items-center justify-center"
                                   >
                                     ×
@@ -616,13 +647,13 @@ export const PublishOverlay: React.FC<PublishOverlayProps> = ({ isOpen, onClose,
       )}
 
       {locationPickerOpen && (
-        <React.Fragment key="location-picker">
-          <LocationPicker
+        <Suspense fallback={null}>
+          <LazyLocationPicker
             isOpen={locationPickerOpen}
             onClose={() => setLocationPickerOpen(false)}
             onSelect={(loc) => setPublishLocation(loc.name)}
           />
-        </React.Fragment>
+        </Suspense>
       )}
     </AnimatePresence>
   );

@@ -1,4 +1,4 @@
-/**
+﻿/**
  * @license
  * SPDX-License-Identifier: Apache-2.0
  */
@@ -150,40 +150,18 @@ export default function DynamicManagementView({
     return rejectReasonType === 'custom' ? '自定义违规项' : rejectReasonType;
   };
 
-  const handlePostCommentInDrawer = (e: React.FormEvent) => {
+  const handlePostCommentInDrawer = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!commentInput.trim() || !selectedDyn) return;
 
-    onAddComment(selectedDyn.id, '系统管理员', commentInput.trim());
-
-    // Update state inside drawer too
-    const newComment = {
-      id: Date.now().toString(),
-      author: '系统管理员',
-      avatar: 'https://lh3.googleusercontent.com/aida-public/AB6AXuAutf8uw-UP_WcJF6DedJ7BJ-58j6AAoLLsPj5uet4SuxCOsbEVOsOt8J5Q8cq0EcOJjh94kvPemlbPGCcdd89_oNXUsQRyuMWCsUQlagzBJhnOTUtw94XVV1AIw494VL8MRVgRwo0k2vWHujUJ-JYDSlLcvmZOOau40QddlzoeAwLsvEYy0BeAyExWOUQIL9zD8ULX6ruVNErCoPp9-hFCH6zrLtpvJwLdnaYJ1EBsCdh4kv_Dyp_5tUU8mZI1XzDOqNQ03ZcnPHZ4',
-      text: commentInput.trim(),
-      time: '刚刚'
-    };
-
-    setSelectedDyn({
-      ...selectedDyn,
-      commentsCount: selectedDyn.commentsCount + 1,
-      comments: [newComment, ...selectedDyn.comments]
-    });
-
+    await onAddComment(selectedDyn.id, '系统管理员', commentInput.trim());
     setCommentInput('');
     showToastMsg('系统跟评发表成功！', 'success');
   };
 
-  const handleDeleteCommentInDrawer = (commentId: string) => {
+  const handleDeleteCommentInDrawer = async (commentId: string) => {
     if (!selectedDyn) return;
-    onDeleteComment(selectedDyn.id, commentId);
-
-    setSelectedDyn({
-      ...selectedDyn,
-      commentsCount: Math.max(0, selectedDyn.commentsCount - 1),
-      comments: selectedDyn.comments.filter(c => c.id !== commentId)
-    });
+    await onDeleteComment(selectedDyn.id, commentId);
     showToastMsg('已直接抹除本条不规范评论！', 'info');
   };
 

@@ -173,6 +173,19 @@ export const userApi = {
       body: JSON.stringify(settings),
     }),
 
+  updateNotificationSettings: (settings: {
+    pushEnabled?: boolean;
+    messageNotify?: boolean;
+    followNotify?: boolean;
+    likeNotify?: boolean;
+    commentNotify?: boolean;
+    systemNotify?: boolean;
+  }) =>
+    request<boolean>('/user/notification-settings', {
+      method: 'POST',
+      body: JSON.stringify(settings),
+    }),
+
   follow: (followerId: string, followingId: string) =>
     request<boolean>('/user/follow', {
       method: 'POST',
@@ -316,10 +329,10 @@ export const notificationApi = {
 export const chatApi = {
   getConversations: () => request<Message[]>('/message/conversations'),
   getConversation: (partnerId: string) => request<Message[]>(`/message/conversation/${partnerId}`),
-  sendMessage: (receiverId: string, content: string) =>
+  sendMessage: (receiverId: string, content: string, messageType = 'text', mediaUrl = '') =>
     request<Message>('/message/send', {
       method: 'POST',
-      body: JSON.stringify({ receiverId, content }),
+      body: JSON.stringify({ receiverId, content, messageType, mediaUrl }),
     }),
   markRead: (messageId: string) => request<boolean>(`/message/read/${messageId}`, { method: 'POST' }),
   markConversationRead: (partnerId: string) => request<boolean>(`/message/read-conversation/${partnerId}`, { method: 'POST' }),

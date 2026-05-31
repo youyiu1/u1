@@ -46,6 +46,15 @@ public class AdminController {
         executeQuietly("ALTER TABLE t_user ADD COLUMN region VARCHAR(100) DEFAULT ''");
         executeQuietly("ALTER TABLE t_user ADD COLUMN status VARCHAR(20) DEFAULT 'normal'");
         executeQuietly("ALTER TABLE t_user ADD COLUMN admin_role VARCHAR(32) DEFAULT 'USER'");
+        executeQuietly("ALTER TABLE t_user ADD COLUMN profile_visible VARCHAR(20) DEFAULT 'public'");
+        executeQuietly("ALTER TABLE t_user ADD COLUMN posts_visible VARCHAR(20) DEFAULT 'public'");
+        executeQuietly("ALTER TABLE t_user ADD COLUMN show_location TINYINT(1) DEFAULT 1");
+        executeQuietly("ALTER TABLE t_user ADD COLUMN push_enabled TINYINT(1) DEFAULT 1");
+        executeQuietly("ALTER TABLE t_user ADD COLUMN message_notify TINYINT(1) DEFAULT 1");
+        executeQuietly("ALTER TABLE t_user ADD COLUMN follow_notify TINYINT(1) DEFAULT 1");
+        executeQuietly("ALTER TABLE t_user ADD COLUMN like_notify TINYINT(1) DEFAULT 1");
+        executeQuietly("ALTER TABLE t_user ADD COLUMN comment_notify TINYINT(1) DEFAULT 1");
+        executeQuietly("ALTER TABLE t_user ADD COLUMN system_notify TINYINT(1) DEFAULT 0");
         executeQuietly("ALTER TABLE t_news ADD COLUMN status VARCHAR(20) DEFAULT 'normal'");
         executeQuietly("ALTER TABLE t_news ADD COLUMN reject_reason VARCHAR(255) DEFAULT ''");
         executeQuietly("ALTER TABLE t_market_item ADD COLUMN status VARCHAR(20) DEFAULT 'active'");
@@ -493,6 +502,51 @@ public class AdminController {
         jdbcTemplate.update("UPDATE t_notification SET is_read = IF(is_read=1,0,1) WHERE id = ?", id);
         return Result.ok();
     }
+    // 管理端消息列表
+    @GetMapping("/messages")
+    public Result<List<Map<String, Object>>> messages() {
+        String sql = """
+                SELECT m.*, 
+                       su.name sender_name, su.avatar sender_avatar,
+                       ru.name receiver_name, ru.avatar receiver_avatar
+                FROM t_message m
+                LEFT JOIN t_user su ON m.sender_id = su.id
+                LEFT JOIN t_user ru ON m.receiver_id = ru.id
+                ORDER BY m.create_time DESC
+                LIMIT 300
+                """;
+        return Result.ok(jdbcTemplate.queryForList(sql).stream().map(row -> {
+            Map<String, Object> item = new LinkedHashMap<>();
+            item.put("id", str(row.get("id")));
+            item.put("senderId", str(row.get("sender_id")));
+            item.put("senderName", emptyTo(str(row.get("sender_name")), str(row.get("sender_id"))));
+            item.put("senderAvatar", str(row.get("sender_avatar")));
+            item.put("receiverId", str(row.get("receiver_id")));
+            item.put("receiverName", emptyTo(str(row.get("receiver_name")), str(row.get("receiver_id"))));
+            item.put("receiverAvatar", str(row.get("receiver_avatar")));
+            item.put("content", str(row.get("content")));
+            item.put("messageType", emptyTo(str(row.get("message_type")), "text"));
+            item.put("mediaUrl", str(row.get("media_url")));
+            item.put("isRead", bool(row.get("is_read")));
+            item.put("createTime", time(row.get("create_time")));
+            return item;
+        }).toList());
+    }
+
+    // 标记消息已读
+    @PostMapping("/messages/{id}/read")
+    public Result<Void> markMessageRead(@PathVariable Long id) {
+        jdbcTemplate.update("UPDATE t_message SET is_read = 1 WHERE id = ?", id);
+        return Result.ok();
+    }
+
+    // 删除消息
+    @DeleteMapping("/messages/{id}")
+    public Result<Void> deleteMessage(@PathVariable Long id) {
+        jdbcTemplate.update("DELETE FROM t_message WHERE id = ?", id);
+        return Result.ok();
+    }
+
 
     // 管理端评论列表
     @GetMapping("/comments")

@@ -20,6 +20,7 @@ D:\下载文件\同城生活\backend-java-reference\src\main\java\com\neighborhood\app\d
 D:\下载文件\同城生活\backend-java-reference\src\main\java\com\neighborhood\app\dto\AuthResponse.java
 D:\下载文件\同城生活\backend-java-reference\src\main\java\com\neighborhood\app\service\impl\CommentLikeServiceImpl.java
 D:\下载文件\同城生活\backend-java-reference\src\main\java\com\neighborhood\app\entity\ReviewLike.java
+D:\下载文件\同城生活\backend-java-reference\src\main\java\com\neighborhood\app\dto\NotificationSettings.java
 D:\下载文件\同城生活\backend-java-reference\src\main\java\com\neighborhood\app\controller\OrderController.java
 D:\下载文件\同城生活\backend-java-reference\src\main\java\com\neighborhood\app\dto\AddFavoriteRequest.java
 D:\下载文件\同城生活\backend-java-reference\src\main\java\com\neighborhood\app\entity\Booking.java
@@ -31,6 +32,7 @@ D:\下载文件\同城生活\backend-java-reference\src\main\java\com\neighborhood\app\e
 D:\下载文件\同城生活\backend-java-reference\src\main\java\com\neighborhood\app\mapper\BookingMapper.java
 D:\下载文件\同城生活\backend-java-reference\src\main\java\com\neighborhood\app\mapper\ReviewLikeMapper.java
 D:\下载文件\同城生活\backend-java-reference\src\main\java\com\neighborhood\app\mapper\FavoriteMapper.java
+D:\下载文件\同城生活\backend-java-reference\src\main\java\com\neighborhood\app\config\MessageSchemaMigration.java
 D:\下载文件\同城生活\backend-java-reference\src\main\java\com\neighborhood\app\Application.java
 D:\下载文件\同城生活\backend-java-reference\src\main\java\com\neighborhood\app\dto\BookingRequest.java
 D:\下载文件\同城生活\backend-java-reference\src\main\java\com\neighborhood\app\service\EmailService.java

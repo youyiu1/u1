@@ -15,6 +15,7 @@ import type {
   ManagedComment,
   BlacklistItem,
   ManagedImage,
+  ManagedMessage,
   LoginLogItem,
   OperationLogItem,
   SystemMenu,
@@ -186,7 +187,7 @@ export const adminApi = {
     });
   },
 
-  async addNewService(srv: Service): Promise<Result<void>> {
+  async addNewService(srv: Partial<Service>): Promise<Result<void>> {
     return request<void>('/services', {
       method: 'POST',
       body: JSON.stringify(srv),
@@ -266,6 +267,18 @@ export const adminApi = {
 
   async getImages(): Promise<Result<ManagedImage[]>> {
     return request<ManagedImage[]>('/images');
+  },
+
+  async getMessages(): Promise<Result<ManagedMessage[]>> {
+    return request<ManagedMessage[]>('/messages');
+  },
+
+  async markMessageRead(id: string): Promise<Result<void>> {
+    return request<void>(`/messages/${id}/read`, { method: 'POST' });
+  },
+
+  async deleteMessage(id: string): Promise<Result<void>> {
+    return request<void>(`/messages/${id}`, { method: 'DELETE' });
   },
 
   async updateImageStatus(id: string, status: 'approved' | 'pending' | 'flagged'): Promise<Result<void>> {

@@ -14,6 +14,7 @@ import type {
   LoginLogItem,
   ManagedComment,
   ManagedImage,
+  ManagedMessage,
   NotificationItem,
   OperationLogItem,
   Order,
@@ -36,6 +37,7 @@ import NoticeCategoryView from './components/NoticeCategoryView';
 import CommentManagementView from './components/CommentManagementView';
 import BlacklistManagementView from './components/BlacklistManagementView';
 import ImageManagementView from './components/ImageManagementView';
+import MessageManagementView from './components/MessageManagementView';
 import LoginLogView from './components/LoginLogView';
 import OperationLogView from './components/OperationLogView';
 import MenuManagementView from './components/MenuManagementView';
@@ -67,6 +69,7 @@ const VALID_PATHS = new Set([
   '/admin/comments',
   '/admin/blacklist',
   '/admin/images',
+  '/admin/messages',
   '/admin/login-logs',
   '/admin/op-logs',
   '/admin/menus',
@@ -104,6 +107,7 @@ export default function AdminApp() {
   const [managedComments, setManagedComments] = useState<ManagedComment[]>([]);
   const [blacklist, setBlacklist] = useState<BlacklistItem[]>([]);
   const [images, setImages] = useState<ManagedImage[]>([]);
+  const [messages, setMessages] = useState<ManagedMessage[]>([]);
   const [loginLogs, setLoginLogs] = useState<LoginLogItem[]>([]);
   const [opLogs, setOpLogs] = useState<OperationLogItem[]>([]);
 
@@ -234,6 +238,12 @@ export default function AdminApp() {
           const res = await adminApi.getImages();
           if (isUnauthorized(res)) return handleUnauthorized();
           if (ok(res)) setImages(res.data);
+          break;
+        }
+        case '/admin/messages': {
+          const res = await adminApi.getMessages();
+          if (isUnauthorized(res)) return handleUnauthorized();
+          if (ok(res)) setMessages(res.data);
           break;
         }
         case '/admin/login-logs': {
@@ -379,6 +389,8 @@ export default function AdminApp() {
         return <BlacklistManagementView blacklist={blacklist} onAddBlacklist={(type, value, reason) => runAction(adminApi.addBlacklist(type, value, reason, adminUser))} onDeleteBlacklist={(id) => runAction(adminApi.deleteBlacklist(id))} onAddOperationLog={handleAddOperationLog} />;
       case '/admin/images':
         return <ImageManagementView images={images} onUpdateImageStatus={(id, status) => runAction(adminApi.updateImageStatus(id, status))} onDeleteImage={(id) => runAction(adminApi.deleteImage(id))} onAddOperationLog={handleAddOperationLog} />;
+      case '/admin/messages':
+        return <MessageManagementView messages={messages} onMarkRead={(id) => runAction(adminApi.markMessageRead(id))} onDeleteMessage={(id) => runAction(adminApi.deleteMessage(id))} onRefresh={() => fetchActivePageData(currentPath)} />;
       case '/admin/login-logs':
         return <LoginLogView logs={loginLogs} />;
       case '/admin/op-logs':

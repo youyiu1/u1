@@ -11,11 +11,12 @@ interface ChatContextType {
   activePartner: ChatPartner | null;
   partners: ChatPartner[];
   messages: Record<string, Message[]>;
-  sendMessage: (partnerId: string, text: string) => void;
+  sendMessage: (partnerId: string, text: string, messageType?: string, mediaUrl?: string) => Promise<void>;
   unreadCount: number;
   unreadMessages: Record<string, number>;
   markChatRead: (partnerId: string) => void;
   refreshConversations: () => void;
+  chatOpenTick: number;
 }
 
 const ChatContext = createContext<ChatContextType | undefined>(undefined);
@@ -27,6 +28,7 @@ export const ChatProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   const [partners, setPartners] = useState<ChatPartner[]>([]);
   const [messages, setMessages] = useState<Record<string, Message[]>>({});
   const [unreadMessages, setUnreadMessages] = useState<Record<string, number>>({});
+  const [chatOpenTick, setChatOpenTick] = useState(0);
 
   // 璁＄畻鎬绘湭璇绘暟
   const unreadCount = Object.values(unreadMessages).reduce((a: number, b: number) => a + b, 0);
@@ -128,12 +130,6 @@ export const ChatProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         lastMessage: existingConv?.content || '',
       };
 
-      if (!existingConv) {
-        await chatApi.sendMessage(partner.id, '你好，我想了解一下');
-        fullPartner.lastMessage = '你好，我想了解一下';
-        await refreshConversations();
-      }
-
       return fullPartner;
     } catch (err) {
       console.error('Failed to get or create conversation:', err);
@@ -145,8 +141,10 @@ export const ChatProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   const openChat = useCallback(async (partner?: ChatPartner) => {
     if (!getToken()) return; // 未登录不打开聊天
     setIsChatOpen(true);
+    setActivePartner(partner || null);
+    setChatOpenTick(prev => prev + 1);
+
     if (partner) {
-      setActivePartner(partner);
       setMessages(prev => ({ ...prev, [partner.id]: prev[partner.id] || [] }));
       const convPartner = await getOrCreateConversation(partner);
       if (convPartner) {
@@ -154,11 +152,6 @@ export const ChatProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         markChatRead(convPartner.id);
         loadConversation(convPartner.id);
       }
-    } else if (partners.length > 0) {
-      const firstPartner = partners[0];
-      setActivePartner(firstPartner);
-      markChatRead(firstPartner.id);
-      loadConversation(firstPartner.id);
     }
   }, [partners, markChatRead, loadConversation, getOrCreateConversation, refreshConversations]);
 
@@ -180,10 +173,10 @@ export const ChatProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     }
   }, [activePartner, isChatOpen, loadConversation]);
 
-  const sendMessage = async (partnerId: string, text: string) => {
+  const sendMessage = async (partnerId: string, text: string, messageType = 'text', mediaUrl = '') => {
     if (!user?.id) return;
     try {
-      const newMsg = await chatApi.sendMessage(partnerId, text);
+      const newMsg = await chatApi.sendMessage(partnerId, text, messageType, mediaUrl);
       setMessages(prev => ({
         ...prev,
         [partnerId]: [...(prev[partnerId] || []), newMsg]
@@ -207,6 +200,7 @@ export const ChatProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       unreadMessages,
       markChatRead,
       refreshConversations,
+      chatOpenTick,
     }}>
       {children}
     </ChatContext.Provider>

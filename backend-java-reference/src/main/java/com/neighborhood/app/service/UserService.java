@@ -1,13 +1,10 @@
-/**
- * @license
- * SPDX-License-Identifier: Apache-2.0
- */
-
 package com.neighborhood.app.service;
 
 import com.baomidou.mybatisplus.extension.service.IService;
-import com.neighborhood.app.entity.User;
+import com.neighborhood.app.dto.NotificationSettings;
 import com.neighborhood.app.dto.PrivacySettings;
+import com.neighborhood.app.entity.User;
+
 import java.util.List;
 
 public interface UserService extends IService<User> {
@@ -18,9 +15,10 @@ public interface UserService extends IService<User> {
     boolean follow(String followerId, String followingId);
     boolean unfollow(String followerId, String followingId);
     boolean isFollowing(String followerId, String followingId);
-    List<User> getFollowingList(String userId);  // 获取用户关注列表
-    List<User> getSuggestedUsers(String currentUserId, int limit);  // 获取推荐用户
+    List<User> getFollowingList(String userId);
+    List<User> getSuggestedUsers(String currentUserId, int limit);
     boolean updateById(User user);
-    boolean changePassword(String userId, String oldPassword, String newPassword);  // 修改密码
-    boolean updatePrivacy(String userId, PrivacySettings settings);  // 更新隐私设置
+    boolean changePassword(String userId, String oldPassword, String newPassword);
+    boolean updatePrivacy(String userId, PrivacySettings settings);
+    boolean updateNotificationSettings(String userId, NotificationSettings settings);
 }

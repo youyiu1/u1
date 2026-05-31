@@ -1,8 +1,3 @@
-/**
- * @license
- * SPDX-License-Identifier: Apache-2.0
- */
-
 package com.neighborhood.app.dto;
 
 import lombok.Data;
@@ -11,4 +6,6 @@ import lombok.Data;
 public class SendMessageRequest {
     private String receiverId;
     private String content;
+    private String messageType;
+    private String mediaUrl;
 }

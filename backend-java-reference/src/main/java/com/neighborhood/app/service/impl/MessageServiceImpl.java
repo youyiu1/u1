@@ -1,8 +1,3 @@
-/**
- * @license
- * SPDX-License-Identifier: Apache-2.0
- */
-
 package com.neighborhood.app.service.impl;
 
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
@@ -28,18 +23,19 @@ public class MessageServiceImpl extends ServiceImpl<MessageMapper, Message> impl
 
     @Override
     public List<Message> getConversations(String userId) {
-        // 查询用户发送或接收的所有消息，按时间倒序
         return participantQuery(userId)
                 .orderByDesc(Message::getCreateTime)
                 .list();
     }
 
     @Override
-    public Message sendMessage(String senderId, String receiverId, String content) {
+    public Message sendMessage(String senderId, String receiverId, String content, String messageType, String mediaUrl) {
         Message message = new Message();
         message.setSenderId(senderId);
         message.setReceiverId(receiverId);
-        message.setContent(content);
+        message.setContent(content == null ? "" : content);
+        message.setMessageType(messageType == null || messageType.isBlank() ? "text" : messageType);
+        message.setMediaUrl(mediaUrl == null ? "" : mediaUrl);
         message.setIsRead(false);
         message.setCreateTime(LocalDateTime.now());
         save(message);
@@ -56,7 +52,6 @@ public class MessageServiceImpl extends ServiceImpl<MessageMapper, Message> impl
 
     @Override
     public boolean markConversationRead(String userId, String partnerId) {
-        // 标记用户收到的来自partner的消息为已读
         return lambdaUpdate()
                 .eq(Message::getSenderId, partnerId)
                 .eq(Message::getReceiverId, userId)

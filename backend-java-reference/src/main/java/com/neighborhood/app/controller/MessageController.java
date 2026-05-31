@@ -1,8 +1,3 @@
-/**
- * @license
- * SPDX-License-Identifier: Apache-2.0
- */
-
 package com.neighborhood.app.controller;
 
 import com.neighborhood.app.dto.SendMessageRequest;
@@ -29,7 +24,7 @@ public class MessageController {
     }
 
     /**
-     * 获取与某人的对话
+     * 获取与某人的对话消息
      */
     @GetMapping("/conversation/{partnerId}")
     public Result<List<Message>> conversation(
@@ -39,13 +34,18 @@ public class MessageController {
     }
 
     /**
-     * 发送消息
+     * 发送聊天消息
      */
     @PostMapping("/send")
     public Result<Message> send(
             @RequestAttribute String userId,
             @RequestBody SendMessageRequest request) {
-        Message message = messageService.sendMessage(userId, request.getReceiverId(), request.getContent());
+        Message message = messageService.sendMessage(
+                userId,
+                request.getReceiverId(),
+                request.getContent(),
+                request.getMessageType(),
+                request.getMediaUrl());
         return Result.ok(message);
     }
 
@@ -58,7 +58,7 @@ public class MessageController {
     }
 
     /**
-     * 标记与某人的会话已读
+     * 标记与某人的整个会话已读
      */
     @PostMapping("/read-conversation/{partnerId}")
     public Result<Boolean> markConversationRead(

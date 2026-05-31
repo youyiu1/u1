@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import React, { useState } from 'react';
+import React, { Suspense, lazy, useEffect, useState } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import {
   Store,
@@ -15,7 +15,6 @@ import {
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { useChat } from '../../context/ChatContext';
-import { PublishOverlay } from '../publish/PublishOverlay';
 import { HeaderSearch } from './HeaderSearch';
 import { HeaderNotifications } from './HeaderNotifications';
 import { HeaderUserMenu } from './HeaderUserMenu';
@@ -29,16 +28,52 @@ const NAV_ITEMS = [
   { name: '同城动态', path: '/news' },
 ];
 
+const loadPublishOverlay = () =>
+  import('../publish/PublishOverlay').then((mod) => ({ default: mod.PublishOverlay }));
+const PublishOverlay = lazy(loadPublishOverlay);
+
 export default function Header() {
   const location = useLocation();
   const { openChat, unreadCount } = useChat();
   const { isPublishOpen, openPublish, closePublish } = usePublish();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const [shouldRenderPublish, setShouldRenderPublish] = useState(false);
   const { requireAuth } = useAuthCheck();
 
   const handlePublish = () => {
+    loadPublishOverlay();
     requireAuth(() => openPublish());
   };
+
+  useEffect(() => {
+    const preload = () => loadPublishOverlay();
+    let idleId: number | undefined;
+    let timeoutId: ReturnType<typeof globalThis.setTimeout> | undefined;
+
+    if ('requestIdleCallback' in window) {
+      idleId = window.requestIdleCallback(preload, { timeout: 2500 });
+    } else {
+      timeoutId = globalThis.setTimeout(preload, 1200);
+    }
+
+    return () => {
+      if (idleId !== undefined && 'cancelIdleCallback' in window) {
+        window.cancelIdleCallback(idleId);
+      }
+      if (timeoutId !== undefined) {
+        globalThis.clearTimeout(timeoutId);
+      }
+    };
+  }, []);
+
+  useEffect(() => {
+    if (isPublishOpen) {
+      setShouldRenderPublish(true);
+      return;
+    }
+    const timer = window.setTimeout(() => setShouldRenderPublish(false), 260);
+    return () => window.clearTimeout(timer);
+  }, [isPublishOpen]);
 
   return (
     <>
@@ -97,6 +132,8 @@ export default function Header() {
 
             <button
               onClick={handlePublish}
+              onMouseEnter={loadPublishOverlay}
+              onFocus={loadPublishOverlay}
               className="shrink-0 flex items-center gap-1.5 px-4 md:px-5 py-2 md:py-2.5 bg-primary text-white rounded-xl md:rounded-2xl text-[11px] md:text-xs font-bold hover:bg-primary-hover shadow-lg shadow-primary/20 transition-all active:scale-95"
             >
               <Plus className="w-4 h-4" />
@@ -216,7 +253,11 @@ export default function Header() {
           )}
         </AnimatePresence>
       </header>
-      <PublishOverlay isOpen={isPublishOpen} onClose={closePublish} />
+      {shouldRenderPublish && (
+        <Suspense fallback={null}>
+          <PublishOverlay isOpen={isPublishOpen} onClose={closePublish} />
+        </Suspense>
+      )}
     </>
   );
 }

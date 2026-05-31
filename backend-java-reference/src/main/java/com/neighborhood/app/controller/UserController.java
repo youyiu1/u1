@@ -1,25 +1,22 @@
-/**
- * @license
- * SPDX-License-Identifier: Apache-2.0
- */
-
 package com.neighborhood.app.controller;
 
+import com.neighborhood.app.common.Result;
 import com.neighborhood.app.dto.ChangePasswordRequest;
 import com.neighborhood.app.dto.FollowRequest;
-import com.neighborhood.app.dto.RegisterRequest;
-import com.neighborhood.app.entity.User;
-import com.neighborhood.app.vo.UserVO;
-import com.neighborhood.app.dto.AuthResponse;
+import com.neighborhood.app.dto.NotificationSettings;
 import com.neighborhood.app.dto.PrivacySettings;
-import com.neighborhood.app.service.UserService;
+import com.neighborhood.app.dto.RegisterRequest;
+import com.neighborhood.app.dto.AuthResponse;
+import com.neighborhood.app.entity.User;
 import com.neighborhood.app.service.EmailService;
-import com.neighborhood.app.common.Result;
+import com.neighborhood.app.service.UserService;
 import com.neighborhood.app.util.JwtUtil;
+import com.neighborhood.app.vo.UserVO;
+import jakarta.servlet.http.HttpServletRequest;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.web.bind.annotation.*;
-import jakarta.servlet.http.HttpServletRequest;
+
 import java.util.List;
 import java.util.concurrent.TimeUnit;
 
@@ -67,11 +64,9 @@ public class UserController {
 
     @PostMapping("/register")
     public Result<AuthResponse> register(@RequestBody RegisterRequest request) {
-        // 验证验证码
         if (!emailService.verifyCode(request.getEmail(), request.getCode())) {
             return Result.fail("验证码错误或已过期");
         }
-        // 注册用户
         User registered = userService.register(request.getName(), request.getEmail(), request.getPassword());
         String token = jwtUtil.generateToken(registered.getId());
         redisTemplate.opsForValue().set(TOKEN_PREFIX + registered.getId(), token, jwtUtil.getExpiration(), TimeUnit.MILLISECONDS);
@@ -121,14 +116,13 @@ public class UserController {
     }
 
     /**
-     * 获取推荐用户（排除已关注）
+     * 获取推荐用户
      */
     @GetMapping("/suggested")
     public Result<List<User>> getSuggestedUsers(
             @RequestParam(required = false) String currentUserId,
             @RequestParam(defaultValue = "5") int limit,
             HttpServletRequest request) {
-        // 如果没传currentUserId，从token获取
         if (currentUserId == null || currentUserId.isEmpty()) {
             currentUserId = (String) request.getAttribute("userId");
         }
@@ -136,7 +130,8 @@ public class UserController {
     }
 
     @PostMapping("/update")
-    public Result<Boolean> update(@RequestBody User user) {
+    public Result<Boolean> update(@RequestAttribute String userId, @RequestBody User user) {
+        user.setId(userId);
         return Result.ok(userService.updateById(user));
     }
 
@@ -160,5 +155,13 @@ public class UserController {
     @PostMapping("/privacy")
     public Result<Boolean> updatePrivacy(@RequestAttribute String userId, @RequestBody PrivacySettings settings) {
         return Result.ok(userService.updatePrivacy(userId, settings));
+    }
+
+    /**
+     * 更新通知设置
+     */
+    @PostMapping("/notification-settings")
+    public Result<Boolean> updateNotificationSettings(@RequestAttribute String userId, @RequestBody NotificationSettings settings) {
+        return Result.ok(userService.updateNotificationSettings(userId, settings));
     }
 }

@@ -23,19 +23,22 @@ import {
   ShieldAlert, 
   DollarSign, 
   Calendar, 
-  CheckCircle2, 
-  Info,
   ChevronRight,
   Gavel,
   CheckCircle,
   HelpCircle
 } from 'lucide-react';
 import { Service } from '../types';
+import AdminToast from './common/AdminToast';
+import { useDelayedBusy } from '../hooks/useDelayedBusy';
+import { useToast } from '../hooks/useToast';
+
+type ServiceDraft = Pick<Service, 'title' | 'category' | 'providerName' | 'price' | 'unit' | 'status' | 'area' | 'phone' | 'description'>;
 
 interface ServiceManagementViewProps {
   services: Service[];
   onUpdateServiceStatus: (serviceId: string, status: 'pending' | 'active' | 'rejected', rejectReason?: string) => void;
-  onAddNewService: (newSrv: Service) => void;
+  onAddNewService: (newSrv: ServiceDraft) => void;
   initialTabFilter?: string;
 }
 
@@ -71,26 +74,8 @@ export default function ServiceManagementView({
   const [newPhone, setNewPhone] = useState('13955684423');
   const [newDesc, setNewDesc] = useState('');
 
-  // Custom visual state Alert system
-  const [toast, setToast] = useState<{ message: string; type: 'success' | 'info' | 'error' } | null>(null);
-
-  const showToastMsg = (message: string, type: 'success' | 'info' | 'error' = 'success') => {
-    setToast({ message, type });
-    setTimeout(() => {
-      setToast(null);
-    }, 3000);
-  };
-
-  // Searching Loader state
-  const [isSearchingLoad, setIsSearchingLoad] = useState(false);
-
-  useEffect(() => {
-    setIsSearchingLoad(true);
-    const timer = setTimeout(() => {
-      setIsSearchingLoad(false);
-    }, 300);
-    return () => clearTimeout(timer);
-  }, [searchTerm, statusFilter]);
+  const { toast, showToast: showToastMsg } = useToast();
+  const isSearchingLoad = useDelayedBusy([searchTerm, statusFilter], 300);
 
   const filteredServices = services.filter((srv) => {
     const matchesSearch =
@@ -142,22 +127,16 @@ export default function ServiceManagementView({
     e.preventDefault();
     if (!newTitle.trim()) return;
 
-    const newSrvObj: Service = {
-      id: `SRV-${Date.now().toString().slice(-4)}`,
+    const newSrvObj: ServiceDraft = {
       title: newTitle,
       category: newCategory,
       providerName: newProvider,
-      providerAvatar: 'https://lh3.googleusercontent.com/aida-public/AB6AXuCnptQFBS0zmjRhJeXxO1tHXMbz6Ex3j_HEvwrbqg6pNEET__9uPNpn6R4yRYqU7myyNC9MXf1342qtpuqlY-NybWk4FaIugm_YpZ6DwahAH1PtmplMsFv0hL9a_KqEUDIcjLn_uI5ebIm-i7yqvEWAEO-zv0MewXlVvZAV9bmegFJ-DmmZRzKN6LUemTCVRsnMWL4QolbPUVn-TqgndXXDRrB1MF4Yy7sFAJcXcDp-04nzw8nFXlq4JxZzOOsVs5PtI4s2Yz-5lW_N',
       price: newPrice,
       unit: newUnit,
-      rating: '-',
-      reviewCount: 0,
-      time: new Date().toISOString().replace('T', ' ').slice(0, 16),
       status: 'pending',
       area: newArea,
       phone: newPhone,
       description: newDesc,
-      isVerifiedProvider: true
     };
 
     onAddNewService(newSrvObj);
@@ -171,22 +150,7 @@ export default function ServiceManagementView({
 
   return (
     <div className="relative">
-      {/* Toast Alert System */}
-      <AnimatePresence>
-        {toast && (
-          <motion.div
-            initial={{ opacity: 0, y: -24, scale: 0.95 }}
-            animate={{ opacity: 1, y: 0, scale: 1 }}
-            exit={{ opacity: 0, y: -24, scale: 0.95 }}
-            className="fixed top-6 left-1/2 -translate-x-1/2 z-[100] flex items-center gap-2.5 px-4 py-3 rounded-xl shadow-xl border bg-white dark:bg-gray-900 border-gray-100 dark:border-gray-800"
-          >
-            {toast.type === 'success' && <CheckCircle2 className="w-5 h-5 text-emerald-500" />}
-            {toast.type === 'info' && <Info className="w-5 h-5 text-sky-500" />}
-            {toast.type === 'error' && <AlertCircle className="w-5 h-5 text-rose-500" />}
-            <span className="text-sm font-semibold text-gray-800 dark:text-gray-100">{toast.message}</span>
-          </motion.div>
-        )}
-      </AnimatePresence>
+      <AdminToast toast={toast} />
 
       <motion.div
         initial={{ opacity: 0 }}

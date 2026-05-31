@@ -1,8 +1,3 @@
-/**
- * @license
- * SPDX-License-Identifier: Apache-2.0
- */
-
 package com.neighborhood.app.service;
 
 import com.baomidou.mybatisplus.extension.service.IService;
@@ -16,14 +11,14 @@ public interface MessageService extends IService<Message> {
     List<Message> getConversation(String userId1, String userId2);
 
     /**
-     * 获取用户的所有会话（按最后消息时间排序）
+     * 获取用户的所有会话（按最新消息排序）
      */
     List<Message> getConversations(String userId);
 
     /**
      * 发送消息
      */
-    Message sendMessage(String senderId, String receiverId, String content);
+    Message sendMessage(String senderId, String receiverId, String content, String messageType, String mediaUrl);
 
     /**
      * 标记单条消息已读

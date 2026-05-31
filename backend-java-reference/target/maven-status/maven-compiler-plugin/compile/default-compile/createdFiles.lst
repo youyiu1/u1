@@ -34,6 +34,7 @@ com\neighborhood\app\controller\CategoryController.class
 com\neighborhood\app\entity\Follow.class
 com\neighborhood\app\dto\ProcessNotificationRequest.class
 com\neighborhood\app\service\impl\OrderServiceImpl.class
+com\neighborhood\app\config\MessageSchemaMigration.class
 com\neighborhood\app\entity\Order.class
 com\neighborhood\app\service\impl\UserServiceImpl.class
 com\neighborhood\app\dto\SendNotificationRequest.class
@@ -57,6 +58,7 @@ com\neighborhood\app\controller\UserController.class
 com\neighborhood\app\dto\BookingRequest.class
 com\neighborhood\app\mapper\ReviewLikeMapper.class
 com\neighborhood\app\entity\Booking.class
+com\neighborhood\app\dto\NotificationSettings.class
 com\neighborhood\app\interceptor\AuthInterceptor.class
 com\neighborhood\app\service\impl\FavoriteServiceImpl.class
 com\neighborhood\app\controller\FavoriteController.class

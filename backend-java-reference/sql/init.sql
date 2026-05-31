@@ -174,6 +174,8 @@ CREATE TABLE t_message (
     sender_id VARCHAR(64) NOT NULL COMMENT '鍙戦€佽€匢D',
     receiver_id VARCHAR(64) NOT NULL COMMENT '鎺ユ敹鑰匢D',
     content TEXT NOT NULL COMMENT '娑堟伅鍐呭',
+    message_type VARCHAR(20) DEFAULT 'text' COMMENT '娑堟伅绫诲瀷锛圡text/image锛?',
+    media_url VARCHAR(500) DEFAULT '' COMMENT '鍥剧墖鍦板潃',
     is_read TINYINT(1) DEFAULT 0 COMMENT '鏄惁宸茶',
     create_time DATETIME DEFAULT CURRENT_TIMESTAMP,
     INDEX idx_sender (sender_id),
@@ -266,4 +268,18 @@ CREATE TABLE IF NOT EXISTS t_order (
     INDEX idx_buyer_status_ctime (buyer_id, status, create_time),
     INDEX idx_seller_status_ctime (seller_id, status, create_time)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='order table';
+
+-- 添加个人资料与通知设置字段
+ALTER TABLE t_user ADD COLUMN phone VARCHAR(32) DEFAULT '';
+ALTER TABLE t_user ADD COLUMN region VARCHAR(100) DEFAULT '';
+ALTER TABLE t_user ADD COLUMN status VARCHAR(20) DEFAULT 'normal';
+ALTER TABLE t_user ADD COLUMN profile_visible VARCHAR(20) DEFAULT 'public';
+ALTER TABLE t_user ADD COLUMN posts_visible VARCHAR(20) DEFAULT 'public';
+ALTER TABLE t_user ADD COLUMN show_location TINYINT(1) DEFAULT 1;
+ALTER TABLE t_user ADD COLUMN push_enabled TINYINT(1) DEFAULT 1;
+ALTER TABLE t_user ADD COLUMN message_notify TINYINT(1) DEFAULT 1;
+ALTER TABLE t_user ADD COLUMN follow_notify TINYINT(1) DEFAULT 1;
+ALTER TABLE t_user ADD COLUMN like_notify TINYINT(1) DEFAULT 1;
+ALTER TABLE t_user ADD COLUMN comment_notify TINYINT(1) DEFAULT 1;
+ALTER TABLE t_user ADD COLUMN system_notify TINYINT(1) DEFAULT 0;
 

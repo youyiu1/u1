@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import React, { useState } from 'react';
+import React, { useMemo, useState } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { 
   Search, Check, Trash2, Eye, Filter, AlertTriangle, HelpCircle, 
@@ -33,17 +33,24 @@ export default function ImageManagementView({
   const [zoomImgUrl, setZoomImgUrl] = useState<string | null>(null);
 
   // Filters calculation
-  const filteredImages = images.filter(img => {
-    const matchSearch =
-      img.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      img.uploader.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      img.id.toLowerCase().includes(searchQuery.toLowerCase());
+  const filteredImages = useMemo(() => {
+    const seen = new Set<string>();
+    return images.filter((img) => {
+      if (seen.has(img.id)) return false;
+      seen.add(img.id);
 
-    const matchCat = categoryFilter === 'all' || img.category === categoryFilter;
-    const matchStatus = statusFilter === 'all' || img.status === statusFilter;
+      const query = searchQuery.toLowerCase();
+      const matchSearch =
+        img.name.toLowerCase().includes(query) ||
+        img.uploader.toLowerCase().includes(query) ||
+        img.id.toLowerCase().includes(query);
 
-    return matchSearch && matchCat && matchStatus;
-  });
+      const matchCat = categoryFilter === 'all' || img.category === categoryFilter;
+      const matchStatus = statusFilter === 'all' || img.status === statusFilter;
+
+      return matchSearch && matchCat && matchStatus;
+    });
+  }, [images, searchQuery, categoryFilter, statusFilter]);
 
   return (
     <div className="space-y-6" id="images-view-root">
@@ -156,10 +163,10 @@ export default function ImageManagementView({
         </div>
       ) : (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-          {filteredImages.map((img, index) => (
+          {filteredImages.map((img) => (
             <motion.div
               layout
-              key={`${img.id}-${img.category}-${index}`}
+              key={img.id}
               className="bg-white dark:bg-slate-900 border border-slate-200/60 dark:border-slate-800/60 rounded-2xl overflow-hidden shadow-sm hover:shadow-md transition-shadow flex flex-col group"
             >
               {/* Visual Canvas containing Image */}
