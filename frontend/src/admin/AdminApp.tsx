@@ -90,6 +90,79 @@ function toAlertMessage(res: Result<unknown>) {
   return res.message || '操作失败';
 }
 
+type UserTagLookup = {
+  byId: Map<string, string>;
+  byName: Map<string, string>;
+};
+
+function normalizeTag(value?: string) {
+  return value?.trim() || '';
+}
+
+function getUserProfileTag(user?: User) {
+  return normalizeTag(user?.tag) || normalizeTag(user?.region);
+}
+
+function buildUserTagLookup(userList: User[]): UserTagLookup {
+  const byId = new Map<string, string>();
+  const byName = new Map<string, string>();
+  userList.forEach((user) => {
+    const tag = getUserProfileTag(user);
+    if (!tag) return;
+    byId.set(user.id, tag);
+    byName.set(user.name, tag);
+  });
+  return { byId, byName };
+}
+
+function resolveUserTag(lookup: UserTagLookup, id?: string, name?: string) {
+  return (id ? lookup.byId.get(id) : '') || (name ? lookup.byName.get(name) : '') || '';
+}
+
+function enrichWithUserTags(payload: {
+  dynamics?: Dynamic[];
+  goods?: Goods[];
+  services?: Service[];
+  orders?: Order[];
+  comments?: ManagedComment[];
+  images?: ManagedImage[];
+  messages?: ManagedMessage[];
+}, userList: User[]) {
+  const lookup = buildUserTagLookup(userList);
+  return {
+    dynamics: payload.dynamics?.map((item) => ({
+      ...item,
+      authorTag: normalizeTag(item.authorTag) || resolveUserTag(lookup, item.userId, item.author),
+    })),
+    goods: payload.goods?.map((item) => ({
+      ...item,
+      sellerTag: normalizeTag(item.sellerTag) || resolveUserTag(lookup, item.sellerId, item.sellerName),
+    })),
+    services: payload.services?.map((item) => ({
+      ...item,
+      providerTag: normalizeTag(item.providerTag) || resolveUserTag(lookup, undefined, item.providerName),
+    })),
+    orders: payload.orders?.map((item) => ({
+      ...item,
+      buyerTag: normalizeTag(item.buyerTag) || resolveUserTag(lookup, undefined, item.buyerName),
+      sellerTag: normalizeTag(item.sellerTag) || resolveUserTag(lookup, undefined, item.sellerName),
+    })),
+    comments: payload.comments?.map((item) => ({
+      ...item,
+      authorTag: normalizeTag(item.authorTag) || resolveUserTag(lookup, undefined, item.authorName),
+    })),
+    images: payload.images?.map((item) => ({
+      ...item,
+      uploaderTag: normalizeTag(item.uploaderTag) || resolveUserTag(lookup, undefined, item.uploader),
+    })),
+    messages: payload.messages?.map((item) => ({
+      ...item,
+      senderTag: normalizeTag(item.senderTag) || resolveUserTag(lookup, item.senderId, item.senderName),
+      receiverTag: normalizeTag(item.receiverTag) || resolveUserTag(lookup, item.receiverId, item.receiverName),
+    })),
+  };
+}
+
 export default function AdminApp() {
   const [isLoggedIn, setIsLoggedIn] = useState(() => !!localStorage.getItem('admin_token'));
   const [adminUser, setAdminUser] = useState(() => localStorage.getItem('admin_username') || 'admin');
@@ -169,15 +242,17 @@ export default function AdminApp() {
     try {
       switch (path) {
         case '/admin/dashboard': {
-          const [resStats, resDyn, resOrders] = await Promise.all([
+          const [resStats, resDyn, resOrders, resServices] = await Promise.all([
             adminApi.getDashboardStats(),
             adminApi.getDynamics(),
             adminApi.getOrders(),
+            adminApi.getServices(),
           ]);
-          if ([resStats, resDyn, resOrders].some(isUnauthorized)) return handleUnauthorized();
+          if ([resStats, resDyn, resOrders, resServices].some(isUnauthorized)) return handleUnauthorized();
           if (ok(resStats)) setDashboardStats(resStats.data);
           if (ok(resDyn)) setDynamics(resDyn.data);
           if (ok(resOrders)) setOrders(resOrders.data);
+          if (ok(resServices)) setServices(resServices.data);
           break;
         }
         case '/admin/users': {
@@ -187,27 +262,35 @@ export default function AdminApp() {
           break;
         }
         case '/admin/posts': {
-          const res = await adminApi.getDynamics();
-          if (isUnauthorized(res)) return handleUnauthorized();
-          if (ok(res)) setDynamics(res.data);
+          const [res, userRes] = await Promise.all([adminApi.getDynamics(), adminApi.getUsers()]);
+          if ([res, userRes].some(isUnauthorized)) return handleUnauthorized();
+          const userList = ok(userRes) ? userRes.data : users;
+          if (ok(userRes)) setUsers(userList);
+          if (ok(res)) setDynamics(enrichWithUserTags({ dynamics: res.data }, userList).dynamics || res.data);
           break;
         }
         case '/admin/market': {
-          const res = await adminApi.getGoods();
-          if (isUnauthorized(res)) return handleUnauthorized();
-          if (ok(res)) setGoods(res.data);
+          const [res, userRes] = await Promise.all([adminApi.getGoods(), adminApi.getUsers()]);
+          if ([res, userRes].some(isUnauthorized)) return handleUnauthorized();
+          const userList = ok(userRes) ? userRes.data : users;
+          if (ok(userRes)) setUsers(userList);
+          if (ok(res)) setGoods(enrichWithUserTags({ goods: res.data }, userList).goods || res.data);
           break;
         }
         case '/admin/services': {
-          const res = await adminApi.getServices();
-          if (isUnauthorized(res)) return handleUnauthorized();
-          if (ok(res)) setServices(res.data);
+          const [res, userRes] = await Promise.all([adminApi.getServices(), adminApi.getUsers()]);
+          if ([res, userRes].some(isUnauthorized)) return handleUnauthorized();
+          const userList = ok(userRes) ? userRes.data : users;
+          if (ok(userRes)) setUsers(userList);
+          if (ok(res)) setServices(enrichWithUserTags({ services: res.data }, userList).services || res.data);
           break;
         }
         case '/admin/orders': {
-          const res = await adminApi.getOrders();
-          if (isUnauthorized(res)) return handleUnauthorized();
-          if (ok(res)) setOrders(res.data);
+          const [res, userRes] = await Promise.all([adminApi.getOrders(), adminApi.getUsers()]);
+          if ([res, userRes].some(isUnauthorized)) return handleUnauthorized();
+          const userList = ok(userRes) ? userRes.data : users;
+          if (ok(userRes)) setUsers(userList);
+          if (ok(res)) setOrders(enrichWithUserTags({ orders: res.data }, userList).orders || res.data);
           break;
         }
         case '/admin/notifications': {
@@ -223,9 +306,11 @@ export default function AdminApp() {
           break;
         }
         case '/admin/comments': {
-          const res = await adminApi.getManagedComments();
-          if (isUnauthorized(res)) return handleUnauthorized();
-          if (ok(res)) setManagedComments(res.data);
+          const [res, userRes] = await Promise.all([adminApi.getManagedComments(), adminApi.getUsers()]);
+          if ([res, userRes].some(isUnauthorized)) return handleUnauthorized();
+          const userList = ok(userRes) ? userRes.data : users;
+          if (ok(userRes)) setUsers(userList);
+          if (ok(res)) setManagedComments(enrichWithUserTags({ comments: res.data }, userList).comments || res.data);
           break;
         }
         case '/admin/blacklist': {
@@ -235,15 +320,19 @@ export default function AdminApp() {
           break;
         }
         case '/admin/images': {
-          const res = await adminApi.getImages();
-          if (isUnauthorized(res)) return handleUnauthorized();
-          if (ok(res)) setImages(res.data);
+          const [res, userRes] = await Promise.all([adminApi.getImages(), adminApi.getUsers()]);
+          if ([res, userRes].some(isUnauthorized)) return handleUnauthorized();
+          const userList = ok(userRes) ? userRes.data : users;
+          if (ok(userRes)) setUsers(userList);
+          if (ok(res)) setImages(enrichWithUserTags({ images: res.data }, userList).images || res.data);
           break;
         }
         case '/admin/messages': {
-          const res = await adminApi.getMessages();
-          if (isUnauthorized(res)) return handleUnauthorized();
-          if (ok(res)) setMessages(res.data);
+          const [res, userRes] = await Promise.all([adminApi.getMessages(), adminApi.getUsers()]);
+          if ([res, userRes].some(isUnauthorized)) return handleUnauthorized();
+          const userList = ok(userRes) ? userRes.data : users;
+          if (ok(userRes)) setUsers(userList);
+          if (ok(res)) setMessages(enrichWithUserTags({ messages: res.data }, userList).messages || res.data);
           break;
         }
         case '/admin/login-logs': {
@@ -332,7 +421,7 @@ export default function AdminApp() {
   const renderActiveView = () => {
     switch (currentPath) {
       case '/admin/dashboard':
-        return <DashboardView stats={dashboardStats} dynamics={dynamics} orders={orders} onNavigate={handleNavigateWithFilters} />;
+        return <DashboardView stats={dashboardStats} dynamics={dynamics} orders={orders} services={services} onNavigate={handleNavigateWithFilters} />;
       case '/admin/users':
         return (
           <UserManagementView

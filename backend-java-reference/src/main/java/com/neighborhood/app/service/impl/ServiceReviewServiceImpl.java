@@ -54,7 +54,7 @@ public class ServiceReviewServiceImpl extends ServiceImpl<ServiceReviewMapper, S
         review.setRating(rating);
         review.setContent(content);
         review.setLikes(0);
-        review.setStatus("pending");
+        review.setStatus("normal");
         review.setCreateTime(LocalDateTime.now());
         boolean saved = save(review);
         if (saved) {
@@ -93,6 +93,10 @@ public class ServiceReviewServiceImpl extends ServiceImpl<ServiceReviewMapper, S
     private void ensureReviewStatusColumnExists() {
         try {
             jdbcTemplate.execute("ALTER TABLE t_service_review ADD COLUMN status VARCHAR(20) DEFAULT 'normal'");
+        } catch (Exception ignored) {
+        }
+        try {
+            jdbcTemplate.update("UPDATE t_service_review SET status = 'normal' WHERE status = 'pending'");
         } catch (Exception ignored) {
         }
     }

@@ -43,6 +43,7 @@ public class AdminController {
     @PostConstruct
     public void ensureAdminSchema() {
         executeQuietly("ALTER TABLE t_user ADD COLUMN phone VARCHAR(32) DEFAULT ''");
+        executeQuietly("ALTER TABLE t_user ADD COLUMN tag VARCHAR(50) DEFAULT ''");
         executeQuietly("ALTER TABLE t_user ADD COLUMN region VARCHAR(100) DEFAULT ''");
         executeQuietly("ALTER TABLE t_user ADD COLUMN status VARCHAR(20) DEFAULT 'normal'");
         executeQuietly("ALTER TABLE t_user ADD COLUMN admin_role VARCHAR(32) DEFAULT 'USER'");
@@ -221,6 +222,7 @@ public class AdminController {
             item.put("email", str(row.get("email")));
             item.put("phone", str(row.get("phone")));
             item.put("avatar", str(row.get("avatar")));
+            item.put("tag", str(row.get("tag")));
             item.put("status", emptyTo(str(row.get("status")), "normal"));
             item.put("adminRole", normalizeAdminRole(str(row.get("admin_role"))));
             item.put("verified", bool(row.get("is_verified")) ? "verified" : "unverified");
@@ -277,7 +279,7 @@ public class AdminController {
     @GetMapping("/dynamics")
     public Result<List<Map<String, Object>>> dynamics() {
         String sql = """
-                SELECT n.*, u.name author_name, u.avatar author_avatar, u.is_verified author_verified
+                SELECT n.*, u.name author_name, u.avatar author_avatar, u.tag author_tag, u.is_verified author_verified
                 FROM t_news n LEFT JOIN t_user u ON n.author_id = u.id
                 ORDER BY n.create_time DESC
                 """;
@@ -292,6 +294,7 @@ public class AdminController {
             item.put("title", emptyTo(str(row.get("title")), firstText(str(row.get("content")))));
             item.put("author", emptyTo(str(row.get("author_name")), "未知用户"));
             item.put("authorAvatar", str(row.get("author_avatar")));
+            item.put("authorTag", str(row.get("author_tag")));
             item.put("category", normalizeDynamicCategory(str(row.get("category"))));
             item.put("time", time(row.get("create_time")));
             item.put("images", parseImages(row.get("images")));
@@ -343,7 +346,7 @@ public class AdminController {
     @GetMapping("/goods")
     public Result<List<Map<String, Object>>> goods() {
         String sql = """
-                SELECT m.*, u.name seller_name, u.avatar seller_avatar, u.rating seller_rating
+                SELECT m.*, u.name seller_name, u.avatar seller_avatar, u.tag seller_tag, u.rating seller_rating
                 FROM t_market_item m LEFT JOIN t_user u ON m.seller_id = u.id
                 ORDER BY m.created_at DESC
                 """;
@@ -357,6 +360,7 @@ public class AdminController {
             item.put("sellerName", emptyTo(str(row.get("seller_name")), "未知用户"));
             item.put("sellerId", str(row.get("seller_id")));
             item.put("sellerAvatar", str(row.get("seller_avatar")));
+            item.put("sellerTag", str(row.get("seller_tag")));
             item.put("sellerRating", decimal(row.get("seller_rating")));
             item.put("location", str(row.get("location")));
             item.put("distance", "");
@@ -384,7 +388,7 @@ public class AdminController {
     @GetMapping("/services")
     public Result<List<Map<String, Object>>> services() {
         String sql = """
-                SELECT s.*, u.name provider_name, u.avatar provider_avatar, u.is_verified provider_verified
+                SELECT s.*, u.name provider_name, u.avatar provider_avatar, u.tag provider_tag, u.is_verified provider_verified
                 FROM t_service s LEFT JOIN t_user u ON s.seller_id = u.id
                 ORDER BY s.created_at DESC
                 """;
@@ -395,6 +399,7 @@ public class AdminController {
             item.put("category", str(row.get("category")));
             item.put("providerName", emptyTo(str(row.get("provider_name")), "未知商家"));
             item.put("providerAvatar", str(row.get("provider_avatar")));
+            item.put("providerTag", str(row.get("provider_tag")));
             item.put("isVerifiedProvider", bool(row.get("provider_verified")));
             item.put("price", decimal(row.get("price")));
             item.put("unit", str(row.get("unit")));
@@ -439,7 +444,7 @@ public class AdminController {
     public Result<List<Map<String, Object>>> orders() {
         try {
             String sql = """
-                    SELECT o.*, bu.name buyer_name, su.name seller_name, s.title service_name
+                    SELECT o.*, bu.name buyer_name, bu.tag buyer_tag, su.name seller_name, su.tag seller_tag, s.title service_name
                     FROM t_order o
                     LEFT JOIN t_user bu ON o.buyer_id = bu.id
                     LEFT JOIN t_user su ON o.seller_id = su.id
@@ -526,8 +531,8 @@ public class AdminController {
     public Result<List<Map<String, Object>>> messages() {
         String sql = """
                 SELECT m.*, 
-                       su.name sender_name, su.avatar sender_avatar,
-                       ru.name receiver_name, ru.avatar receiver_avatar
+                       su.name sender_name, su.avatar sender_avatar, su.tag sender_tag,
+                       ru.name receiver_name, ru.avatar receiver_avatar, ru.tag receiver_tag
                 FROM t_message m
                 LEFT JOIN t_user su ON m.sender_id COLLATE utf8mb4_unicode_ci = su.id
                 LEFT JOIN t_user ru ON m.receiver_id COLLATE utf8mb4_unicode_ci = ru.id
@@ -540,9 +545,11 @@ public class AdminController {
             item.put("senderId", str(row.get("sender_id")));
             item.put("senderName", emptyTo(str(row.get("sender_name")), str(row.get("sender_id"))));
             item.put("senderAvatar", str(row.get("sender_avatar")));
+            item.put("senderTag", str(row.get("sender_tag")));
             item.put("receiverId", str(row.get("receiver_id")));
             item.put("receiverName", emptyTo(str(row.get("receiver_name")), str(row.get("receiver_id"))));
             item.put("receiverAvatar", str(row.get("receiver_avatar")));
+            item.put("receiverTag", str(row.get("receiver_tag")));
             item.put("content", str(row.get("content")));
             item.put("messageType", emptyTo(str(row.get("message_type")), "text"));
             item.put("mediaUrl", str(row.get("media_url")));
@@ -571,8 +578,10 @@ public class AdminController {
     @GetMapping("/comments")
     public Result<List<Map<String, Object>>> managedComments() {
         String sql = """
-                SELECT c.*, n.title target_title
-                FROM t_comment c LEFT JOIN t_news n ON c.news_id = n.id
+                SELECT c.*, n.title target_title, u.tag author_tag
+                FROM t_comment c
+                LEFT JOIN t_news n ON c.news_id = n.id
+                LEFT JOIN t_user u ON c.user_id COLLATE utf8mb4_unicode_ci = u.id
                 ORDER BY c.create_time DESC
                 """;
         List<Map<String, Object>> comments = new ArrayList<>(jdbcTemplate.queryForList(sql).stream().map(row -> {
@@ -582,6 +591,7 @@ public class AdminController {
             item.put("targetId", str(row.get("news_id")));
             item.put("targetTitle", emptyTo(str(row.get("target_title")), "动态评论"));
             item.put("authorName", str(row.get("user_name")));
+            item.put("authorTag", str(row.get("author_tag")));
             item.put("authorAvatar", str(row.get("user_avatar")));
             item.put("content", str(row.get("content")));
             item.put("time", time(row.get("create_time")));
@@ -590,8 +600,10 @@ public class AdminController {
         }).toList());
         try {
             String reviewSql = """
-                    SELECT r.*, s.title target_title
-                    FROM t_service_review r LEFT JOIN t_service s ON r.service_id = s.id
+                    SELECT r.*, s.title target_title, u.tag author_tag
+                    FROM t_service_review r
+                    LEFT JOIN t_service s ON r.service_id = s.id
+                    LEFT JOIN t_user u ON r.user_id COLLATE utf8mb4_unicode_ci = u.id
                     ORDER BY r.create_time DESC
                     """;
             comments.addAll(jdbcTemplate.queryForList(reviewSql).stream().map(row -> {
@@ -601,6 +613,7 @@ public class AdminController {
                 item.put("targetId", str(row.get("service_id")));
                 item.put("targetTitle", emptyTo(str(row.get("target_title")), "服务评价"));
                 item.put("authorName", str(row.get("user_name")));
+                item.put("authorTag", str(row.get("author_tag")));
                 item.put("authorAvatar", str(row.get("user_avatar")));
                 item.put("content", str(row.get("content")));
                 item.put("time", time(row.get("create_time")));
@@ -692,9 +705,9 @@ public class AdminController {
     @GetMapping("/images")
     public Result<List<Map<String, Object>>> images() {
         Map<String, Map<String, Object>> images = new LinkedHashMap<>();
-        collectImages(images, "dynamic", "SELECT n.id, n.images, u.name uploader, n.create_time FROM t_news n LEFT JOIN t_user u ON n.author_id=u.id");
-        collectImages(images, "goods", "SELECT m.id, m.images, u.name uploader, m.created_at create_time FROM t_market_item m LEFT JOIN t_user u ON m.seller_id=u.id");
-        collectImages(images, "banner", "SELECT s.id, s.images, u.name uploader, s.created_at create_time FROM t_service s LEFT JOIN t_user u ON s.seller_id=u.id");
+        collectImages(images, "dynamic", "SELECT n.id, n.images, u.name uploader, u.tag uploader_tag, n.create_time FROM t_news n LEFT JOIN t_user u ON n.author_id=u.id");
+        collectImages(images, "goods", "SELECT m.id, m.images, u.name uploader, u.tag uploader_tag, m.created_at create_time FROM t_market_item m LEFT JOIN t_user u ON m.seller_id=u.id");
+        collectImages(images, "banner", "SELECT s.id, s.images, u.name uploader, u.tag uploader_tag, s.created_at create_time FROM t_service s LEFT JOIN t_user u ON s.seller_id=u.id");
         return Result.ok(new ArrayList<>(images.values()));
     }
 
@@ -794,9 +807,11 @@ public class AdminController {
         Map<String, Object> item = new LinkedHashMap<>();
         item.put("id", str(row.get("id")));
         item.put("buyerName", emptyTo(str(row.get("buyer_name")), str(row.get("buyer_id"))));
+        item.put("buyerTag", str(row.get("buyer_tag")));
         item.put("buyerPhone", "");
         item.put("buyerAddress", "");
         item.put("sellerName", emptyTo(str(row.get("seller_name")), str(row.get("seller_id"))));
+        item.put("sellerTag", str(row.get("seller_tag")));
         item.put("sellerPhone", "");
         item.put("sellerRating", "");
         item.put("serviceName", emptyTo(str(row.get("service_title")), str(row.get("service_name"))));
@@ -839,11 +854,19 @@ public class AdminController {
     }
 
     private List<Map<String, Object>> commentsForNews(Long newsId) {
-        return jdbcTemplate.queryForList("SELECT * FROM t_comment WHERE news_id = ? ORDER BY create_time DESC LIMIT 20", newsId).stream().map(row -> {
+        return jdbcTemplate.queryForList("""
+                SELECT c.*, u.tag author_tag
+                FROM t_comment c
+                LEFT JOIN t_user u ON c.user_id COLLATE utf8mb4_unicode_ci = u.id
+                WHERE c.news_id = ?
+                ORDER BY c.create_time DESC
+                LIMIT 20
+                """, newsId).stream().map(row -> {
             Map<String, Object> item = new LinkedHashMap<>();
             item.put("id", str(row.get("id")));
             item.put("author", str(row.get("user_name")));
             item.put("avatar", str(row.get("user_avatar")));
+            item.put("authorTag", str(row.get("author_tag")));
             item.put("text", str(row.get("content")));
             item.put("time", time(row.get("create_time")));
             return item;
@@ -856,10 +879,11 @@ public class AdminController {
         }
         String placeholders = String.join(",", Collections.nCopies(newsIds.size(), "?"));
         List<Map<String, Object>> rows = jdbcTemplate.queryForList("""
-                SELECT *
-                FROM t_comment
-                WHERE news_id IN (%s)
-                ORDER BY news_id ASC, create_time DESC
+                SELECT c.*, u.tag author_tag
+                FROM t_comment c
+                LEFT JOIN t_user u ON c.user_id COLLATE utf8mb4_unicode_ci = u.id
+                WHERE c.news_id IN (%s)
+                ORDER BY c.news_id ASC, c.create_time DESC
                 """.formatted(placeholders), newsIds.toArray());
         Map<Long, List<Map<String, Object>>> result = new HashMap<>();
         for (Map<String, Object> row : rows) {
@@ -872,6 +896,7 @@ public class AdminController {
             item.put("id", str(row.get("id")));
             item.put("author", str(row.get("user_name")));
             item.put("avatar", str(row.get("user_avatar")));
+            item.put("authorTag", str(row.get("author_tag")));
             item.put("text", str(row.get("content")));
             item.put("time", time(row.get("create_time")));
             comments.add(item);
@@ -892,6 +917,7 @@ public class AdminController {
                 item.put("size", "-");
                 item.put("category", category);
                 item.put("uploader", emptyTo(str(row.get("uploader")), "未知用户"));
+                item.put("uploaderTag", str(row.get("uploader_tag")));
                 item.put("uploadedAt", time(row.get("create_time")));
                 item.put("status", imageStatus(url));
                 target.put(url, item);

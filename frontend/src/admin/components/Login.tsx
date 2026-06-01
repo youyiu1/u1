@@ -5,6 +5,7 @@
 
 import React, { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
+import { Store } from 'lucide-react';
 import { adminApi } from '../services/adminApi';
 
 interface LoginProps {
@@ -132,6 +133,9 @@ export default function Login({ onLoginSuccess }: LoginProps) {
       <div className="bg-surface-container-lowest w-full max-w-md rounded-xl shadow-[0_4px_24px_rgba(0,0,0,0.08)] border border-outline-variant/30 overflow-hidden relative z-10 flex flex-col transition-all">
         {/* Header */}
         <div className="px-8 pt-10 pb-6 text-center border-b border-surface-container-highest">
+          <div className="w-12 h-12 mx-auto mb-3 rounded-2xl bg-primary/10 border border-primary/20 flex items-center justify-center text-primary">
+            <Store className="w-6 h-6" />
+          </div>
           <h1 className="font-headline-xl text-headline-xl text-primary tracking-tight mb-2 select-none">
             同城生活社区平台
           </h1>

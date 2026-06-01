@@ -5,6 +5,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
+import { Store } from 'lucide-react';
 import { User, Dynamic, Goods, Service, Order } from '../types';
 
 interface SidebarProps {
@@ -167,8 +168,8 @@ export default function Sidebar({
       <div>
         {/* Logo and Brand */}
         <div className={`h-16 border-b border-slate-800/60 flex items-center px-4 ${isCollapsed ? 'justify-center' : 'justify-start gap-3'}`}>
-          <div className="w-10 h-10 rounded-xl bg-primary flex items-center justify-center text-white flex-shrink-0 shadow-[0_0_15px_rgba(30,58,138,0.4)]">
-            <span className="material-symbols-outlined text-[24px] fill">leak_add</span>
+          <div className="w-10 h-10 rounded-xl bg-primary/10 border border-primary/20 flex items-center justify-center text-primary flex-shrink-0">
+            <Store className="w-5 h-5" />
           </div>
           {!isCollapsed && (
             <motion.div
@@ -178,7 +179,7 @@ export default function Sidebar({
               className="text-left font-sans"
             >
               <h2 className="font-extrabold text-sm text-white leading-none uppercase tracking-wide">乐居同城</h2>
-              <p className="font-data-mono text-[9px] text-slate-500 mt-1 select-none font-bold">COMMUNITY PORTAL</p>
+              <p className="font-data-mono text-[9px] text-slate-500 mt-1 select-none font-bold">同城生活 · 管理端</p>
             </motion.div>
           )}
         </div>

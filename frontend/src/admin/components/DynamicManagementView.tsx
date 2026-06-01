@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { 
   Search, 
@@ -27,9 +27,12 @@ import {
   UserX,
   CheckCircle2,
   BadgeAlert,
-  Info
+  Info,
+  Eye,
+  Bookmark
 } from 'lucide-react';
 import { Dynamic } from '../types';
+import UserSquareCard from './common/UserSquareCard';
 
 interface DynamicManagementViewProps {
   dynamics: Dynamic[];
@@ -49,8 +52,10 @@ export default function DynamicManagementView({
   initialTabFilter
 }: DynamicManagementViewProps) {
   const [searchTerm, setSearchTerm] = useState('');
-  const [categoryFilter, setCategoryFilter] = useState<'all' | 'life' | 'help' | 'activity' | 'food'>('all');
+  const [categoryFilter, setCategoryFilter] = useState<string>('all');
   const [statusFilter, setStatusFilter] = useState<'all' | 'pending' | 'normal' | 'removed'>('all');
+  const [viewMode, setViewMode] = useState<'feed' | 'user'>('user');
+  const [activeAuthor, setActiveAuthor] = useState<string | null>(null);
 
   // Modal / Drawer status
   const [selectedDyn, setSelectedDyn] = useState<Dynamic | null>(null);
@@ -88,24 +93,56 @@ export default function DynamicManagementView({
     return () => clearTimeout(timer);
   }, [searchTerm, categoryFilter, statusFilter]);
 
-  const getCategoryName = (cat: string) => {
-    switch (cat) {
-      case 'life': return '同城生活';
-      case 'help': return '求助互助';
-      case 'activity': return '同城活动';
-      case 'food': return '美食探店';
-      default: return '其他';
+  const CATEGORY_OPTIONS = ['生活记录', '同城发现', '探店动态', '邻里闲情', '物业反馈', '求助互助', '同城活动', '随手拍'];
+
+  const normalizeCategory = (cat: string) => {
+    if (!cat) return '生活记录';
+    if (cat === 'life') return '生活记录';
+    if (cat === 'help') return '求助互助';
+    if (cat === 'activity') return '同城活动';
+    if (cat === 'food') return '探店动态';
+    return cat;
+  };
+
+  const getCategoryName = (cat: string) => normalizeCategory(cat);
+
+  const getCategoryColor = (cat: string) => {
+    switch (normalizeCategory(cat)) {
+      case '生活记录': return 'bg-sky-50 text-sky-600 dark:bg-sky-950/40 dark:text-sky-400 border border-sky-100 dark:border-sky-900/30';
+      case '求助互助': return 'bg-amber-50 text-amber-600 dark:bg-amber-950/40 dark:text-amber-400 border border-amber-100 dark:border-amber-900/30';
+      case '同城活动': return 'bg-purple-50 text-purple-600 dark:bg-purple-950/40 dark:text-purple-400 border border-purple-100 dark:border-purple-900/30';
+      case '探店动态': return 'bg-rose-50 text-rose-600 dark:bg-rose-950/40 dark:text-rose-400 border border-rose-100 dark:border-rose-900/30';
+      case '同城发现': return 'bg-cyan-50 text-cyan-600 dark:bg-cyan-950/40 dark:text-cyan-400 border border-cyan-100 dark:border-cyan-900/30';
+      case '邻里闲情': return 'bg-emerald-50 text-emerald-600 dark:bg-emerald-950/40 dark:text-emerald-400 border border-emerald-100 dark:border-emerald-900/30';
+      case '物业反馈': return 'bg-orange-50 text-orange-600 dark:bg-orange-950/40 dark:text-orange-400 border border-orange-100 dark:border-orange-900/30';
+      case '随手拍': return 'bg-fuchsia-50 text-fuchsia-600 dark:bg-fuchsia-950/40 dark:text-fuchsia-400 border border-fuchsia-100 dark:border-fuchsia-900/30';
+      default: return 'bg-gray-50 text-gray-600 dark:bg-gray-800/40 dark:text-gray-400 border border-gray-200 dark:border-gray-700/30';
     }
   };
 
-  const getCategoryColor = (cat: string) => {
-    switch (cat) {
-      case 'life': return 'bg-sky-50 text-sky-600 dark:bg-sky-950/40 dark:text-sky-400 border border-sky-100 dark:border-sky-900/30';
-      case 'help': return 'bg-amber-50 text-amber-600 dark:bg-amber-950/40 dark:text-amber-400 border border-amber-100 dark:border-amber-900/30';
-      case 'activity': return 'bg-purple-50 text-purple-600 dark:bg-purple-950/40 dark:text-purple-400 border border-purple-100 dark:border-purple-900/30';
-      case 'food': return 'bg-rose-50 text-rose-600 dark:bg-rose-950/40 dark:text-rose-400 border border-rose-100 dark:border-rose-900/30';
-      default: return 'bg-gray-50 text-gray-600 dark:bg-gray-800/40 dark:text-gray-400 border border-gray-200 dark:border-gray-700/30';
+  const readNumberField = (source: Dynamic, keys: string[], fallback = 0) => {
+    const bag = source as Dynamic & Record<string, unknown>;
+    for (const key of keys) {
+      const value = bag[key];
+      if (typeof value === 'number' && Number.isFinite(value)) {
+        return value;
+      }
+      if (typeof value === 'string' && value.trim() !== '' && !Number.isNaN(Number(value))) {
+        return Number(value);
+      }
     }
+    return fallback;
+  };
+
+  const readTextField = (source: Dynamic, keys: string[], fallback = '') => {
+    const bag = source as Dynamic & Record<string, unknown>;
+    for (const key of keys) {
+      const value = bag[key];
+      if (typeof value === 'string' && value.trim() !== '') {
+        return value;
+      }
+    }
+    return fallback;
   };
 
   // Filter logic
@@ -115,11 +152,46 @@ export default function DynamicManagementView({
       d.author.toLowerCase().includes(searchTerm.toLowerCase()) ||
       d.id.toLowerCase().includes(searchTerm.toLowerCase());
 
-    const matchesCat = categoryFilter === 'all' ? true : d.category === categoryFilter;
+    const normalizedCategory = normalizeCategory(d.category);
+    const matchesCat = categoryFilter === 'all' ? true : normalizedCategory === categoryFilter;
     const matchesStatus = statusFilter === 'all' ? true : d.status === statusFilter;
 
     return matchesSearch && matchesCat && matchesStatus;
   });
+
+  const groupedByUser = useMemo(() => {
+    const map = new Map<string, { author: string; avatar: string; tag?: string; verified: boolean; items: Dynamic[] }>();
+    filteredDynamics.forEach((item) => {
+      const key = item.author || '匿名用户';
+      const existing = map.get(key);
+      if (existing) {
+        existing.items.push(item);
+        if (!existing.tag && item.authorTag) existing.tag = item.authorTag;
+        if (!existing.avatar && item.authorAvatar) existing.avatar = item.authorAvatar;
+      } else {
+        map.set(key, {
+          author: key,
+          avatar: item.authorAvatar,
+          tag: item.authorTag,
+          verified: !!item.verifiedUser,
+          items: [item],
+        });
+      }
+    });
+    return Array.from(map.values()).sort((a, b) => b.items.length - a.items.length);
+  }, [filteredDynamics]);
+
+  const activeAuthorGroup = useMemo(
+    () => groupedByUser.find((group) => group.author === activeAuthor) || null,
+    [groupedByUser, activeAuthor]
+  );
+
+  useEffect(() => {
+    if (activeAuthor && !activeAuthorGroup) {
+      setActiveAuthor(null);
+      setViewMode('user');
+    }
+  }, [activeAuthor, activeAuthorGroup]);
 
   const handleApprove = (dynId: string) => {
     onUpdateDynamicStatus(dynId, 'normal');
@@ -263,7 +335,7 @@ export default function DynamicManagementView({
                 <Tag className="w-3.5 h-3.5 text-primary" />
                 动态版块分类:
               </span>
-              {(['all', 'life', 'help', 'activity', 'food'] as const).map((cat) => (
+              {(['all', ...CATEGORY_OPTIONS] as const).map((cat) => (
                 <button
                   key={cat}
                   onClick={() => setCategoryFilter(cat)}
@@ -273,7 +345,7 @@ export default function DynamicManagementView({
                       : 'bg-gray-50 hover:bg-gray-100 dark:bg-gray-800/40 dark:hover:bg-gray-800/80 text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white'
                   }`}
                 >
-                  {cat === 'all' ? '全部动态' : getCategoryName(cat)}
+                  {cat === 'all' ? '全部动态' : cat}
                 </button>
               ))}
             </div>
@@ -346,147 +418,259 @@ export default function DynamicManagementView({
               <p className="text-base font-bold text-gray-800 dark:text-gray-100">没有查找到符合该过滤条件的公开动态</p>
               <p className="text-xs text-gray-400 mt-1">您可以试着切换更丰富的大类或重新校正检索文字</p>
             </div>
-          ) : (
-            /* Premium layout cards feed spacing */
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-              {filteredDynamics.map((item) => (
-                <motion.div
-                  key={item.id}
-                  whileHover={{ y: -4, boxShadow: '0 16px 24px -12px rgba(0,0,0,0.08)' }}
-                  onClick={() => setSelectedDyn(item)}
-                  className={`bg-white dark:bg-gray-900 rounded-2xl border p-5 flex flex-col justify-between cursor-pointer transition-all relative ${
-                    item.status === 'removed'
-                      ? 'border-rose-100 dark:border-rose-950 bg-rose-50/10'
-                      : item.status === 'pending'
-                      ? 'border-amber-200 dark:border-amber-900/60 shadow-md shadow-amber-500/5'
-                      : 'border-gray-100 dark:border-gray-800 shadow-sm'
-                  }`}
-                >
-                  <div>
-                    {/* Header: User Profile of the post */}
-                    <div className="flex justify-between items-start mb-3 select-none">
-                      <div className="flex items-center gap-2.5">
-                        <img
-                          src={item.authorAvatar}
-                          alt={item.author}
-                          className="w-10 h-10 rounded-full object-cover border border-gray-200/50 dark:border-gray-700/50"
-                          onError={(e) => {
-                            (e.target as HTMLImageElement).src = 'https://lh3.googleusercontent.com/aida-public/AB6AXuB51BLmXrMHY3W_3w8lDMModFpDoXFpkEON0rvWsuR4TSbZDq63XDgYYu13h7muskvXx8GQfArBB5Aeb1BwnDeAxGZiFeN6A33g6O-xWwCXoplVZdCLi1mU2W--fIz1leAMb8JGnm5urSA40Dm5ExCbWsNSpr3XqujWCsxUzADuiE-4h_0E8oWAxQ9s2nDRgcouqlKl6nCuYrBrdMEXoWhJ0z38k-hx-jef_OcdV0Kq9xHZJ7O3K1_aL7SMjcZCpmTAK3odD-fEkDJJ';
-                          }}
-                        />
-                        <div>
-                          <p className={`font-bold text-gray-800 dark:text-gray-100 flex items-center gap-1 text-xs leading-normal ${!item.verifiedUser ? 'text-gray-400 dark:text-gray-500 line-through decoration-rose-500/80' : ''}`}>
-                            {item.author}
-                            {item.verifiedUser && (
-                              <Sparkles className="w-3.5 h-3.5 text-primary fill-primary" />
+          ) : viewMode === 'user' ? (
+            !activeAuthor ? (
+              <div className="grid grid-cols-[repeat(auto-fill,minmax(9rem,1fr))] gap-2.5">
+                {groupedByUser.map((group) => (
+                  <UserSquareCard
+                    key={group.author}
+                    title={group.author}
+                    userType={group.tag || '未设置身份标签'}
+                    subtitle={`${group.items.length} 条动态`}
+                    avatar={group.avatar}
+                    onClick={() => {
+                      setActiveAuthor(group.author);
+                      setViewMode('feed');
+                    }}
+                  />
+                ))}
+              </div>
+            ) : (
+              <div className="space-y-2">
+                <div className="flex items-center gap-2 bg-white dark:bg-gray-900 rounded-lg border border-gray-100 dark:border-gray-800 px-2.5 py-1.5">
+                  <button
+                    onClick={() => {
+                      setActiveAuthor(null);
+                      setViewMode('user');
+                    }}
+                    className="text-[10px] px-2 py-0.5 rounded-md bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-300 shrink-0"
+                  >
+                    返回用户列表
+                  </button>
+                  <div className="flex items-center gap-2 min-w-0">
+                    <img src={activeAuthorGroup?.avatar} alt={activeAuthorGroup?.author} className="w-7 h-7 rounded-full object-cover border border-gray-200 dark:border-gray-700" />
+                    <div>
+                      <p className="text-[11px] font-bold text-gray-800 dark:text-gray-100">{activeAuthorGroup?.author}</p>
+                      <p className="text-[10px] text-gray-400">{activeAuthorGroup?.items.length || 0} 条动态</p>
+                    </div>
+                  </div>
+                </div>
+                <div className="space-y-1.5">
+                  {(activeAuthorGroup?.items || []).map((item) => (
+                    (() => {
+                      const favoriteCount = readNumberField(item, ['favoriteCount', 'favorites', 'collectCount', 'collectionCount'], 0);
+                      const viewCount = readNumberField(item, ['viewCount', 'views', 'browseCount', 'readCount', 'pv'], 0);
+                      const createTime = readTextField(item, ['createTime', 'createdAt', 'publishTime'], item.time);
+                      const updateTime = readTextField(item, ['updateTime', 'updatedAt', 'lastUpdateTime'], createTime);
+
+                      return (
+                        <div
+                          key={item.id}
+                          className="w-full px-2.5 py-2 rounded-lg bg-white dark:bg-gray-900 border border-gray-100 dark:border-gray-800 hover:border-primary/30"
+                        >
+                          <div className="flex items-center justify-between gap-3">
+                            <span className="truncate text-[11px] font-semibold text-gray-700 dark:text-gray-200">{item.title}</span>
+                            <span className={`shrink-0 px-2 py-0.5 rounded-lg text-[10px] font-bold ${getCategoryColor(item.category)}`}>{getCategoryName(item.category)}</span>
+                          </div>
+
+                          <div className="mt-1 flex flex-wrap items-center gap-1.5 text-[10px] text-gray-500">
+                            <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded bg-rose-50 text-rose-600 border border-rose-100">
+                              <Heart className="w-3 h-3" /> {item.likes}
+                            </span>
+                            <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded bg-amber-50 text-amber-600 border border-amber-100">
+                              <Bookmark className="w-3 h-3" /> {favoriteCount}
+                            </span>
+                            <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded bg-sky-50 text-sky-600 border border-sky-100">
+                              <Eye className="w-3 h-3" /> {viewCount}
+                            </span>
+                            <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded bg-gray-50 text-gray-600 border border-gray-200">
+                              <MessageSquare className="w-3 h-3" /> {item.commentsCount}
+                            </span>
+                          </div>
+
+                          <div className="mt-1.5 grid grid-cols-1 md:grid-cols-2 gap-1 text-[10px] text-gray-400">
+                            <span className="truncate">创建: {createTime}</span>
+                            <span className="truncate">更新: {updateTime}</span>
+                          </div>
+
+                          <div className="mt-1.5 flex items-center justify-end gap-1">
+                            <button
+                              onClick={() => setSelectedDyn(item)}
+                              className="text-[10px] px-2 py-0.5 rounded-md bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-200"
+                            >
+                              详情
+                            </button>
+                            {item.status !== 'normal' && (
+                              <button
+                                onClick={() => handleApprove(item.id)}
+                                className="text-[10px] px-2 py-0.5 rounded-md bg-emerald-50 text-emerald-600 border border-emerald-200"
+                              >
+                                通过
+                              </button>
                             )}
-                          </p>
-                          <p className="font-mono text-[9px] text-gray-400 dark:text-gray-500 flex items-center gap-1 mt-0.5">
-                            <Clock className="w-2.5 h-2.5" />
-                            {item.time.slice(5, 16)}
-                          </p>
-                        </div>
-                      </div>
-
-                      {/* Info categories label tab */}
-                      <span className={`px-2 py-0.5 rounded-lg text-[10px] font-bold ${getCategoryColor(item.category)}`}>
-                        {getCategoryName(item.category)}
-                      </span>
-                    </div>
-
-                    {/* Content Text Body */}
-                    <div className="mb-4">
-                      <p className="font-medium text-gray-600 dark:text-gray-300 text-xs line-clamp-3 leading-relaxed break-all">
-                        {item.title}
-                      </p>
-                    </div>
-
-                    {/* Grid thumbnails view details images list */}
-                    {item.images && item.images.length > 0 && (
-                      <div className="grid grid-cols-3 gap-1.5 mb-4 max-h-[85px] overflow-hidden rounded-xl select-none">
-                        {item.images.slice(0, 3).map((imgUrl, i) => (
-                          <div key={i} className="aspect-square bg-gray-50 dark:bg-gray-800 relative overflow-hidden group">
-                            <img
-                              src={imgUrl}
-                              alt="media"
-                              className="w-full h-full object-cover transition-transform duration-350 group-hover:scale-105"
-                            />
-                            {i === 2 && item.images.length > 3 && (
-                              <div className="absolute inset-0 bg-black/60 flex items-center justify-center text-white text-[11px] font-bold tracking-wider">
-                                +{item.images.length - 3}
-                              </div>
+                            {item.status !== 'removed' && (
+                              <button
+                                onClick={() => setShowRejectModal(item.id)}
+                                className="text-[10px] px-2 py-0.5 rounded-md bg-rose-50 text-rose-600 border border-rose-200"
+                              >
+                                下架
+                              </button>
                             )}
                           </div>
-                        ))}
-                      </div>
-                    )}
-                  </div>
-
-                  {/* Discarded report reason if available */}
-                  {item.status === 'removed' && item.rejectReason && (
-                    <div className="mb-4 p-2.5 bg-rose-50/70 dark:bg-rose-950/20 text-rose-600 dark:text-rose-400 rounded-xl flex items-start gap-1.5 text-[11px] border border-rose-100/30">
-                      <AlertCircle className="w-3.5 h-3.5 mt-0.5 flex-shrink-0" />
-                      <p className="leading-normal">
-                        <strong>下架理由:</strong> {item.rejectReason}
-                      </p>
-                    </div>
-                  )}
-
-                  {/* Actions footer options layout panel */}
-                  <div
-                    className="flex items-center justify-between border-t border-gray-100 dark:border-gray-800/80 pt-3"
-                    onClick={(e) => e.stopPropagation()}
+                        </div>
+                      );
+                    })()
+                  ))}
+                </div>
+              </div>
+            )
+          ) : (
+            <div className="space-y-2">
+              {activeAuthorGroup && (
+                <div className="flex items-center gap-2 bg-white dark:bg-gray-900 rounded-lg border border-gray-100 dark:border-gray-800 px-2.5 py-1.5">
+                  <button
+                    onClick={() => {
+                      setActiveAuthor(null);
+                      setViewMode('user');
+                    }}
+                    className="text-[10px] px-2 py-0.5 rounded-md bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-300 shrink-0"
                   >
-                    <div className="flex gap-4 font-mono text-[10px] font-semibold text-gray-400 dark:text-gray-500">
-                      <span className="flex items-center gap-1 text-rose-500/80">
-                        <Heart className="w-3.5 h-3.5" />
-                        <span>{item.likes}</span>
-                      </span>
-                      <button
-                        onClick={() => setSelectedDyn(item)}
-                        className="flex items-center gap-1 hover:text-primary transition-colors cursor-pointer bg-transparent border-none p-0 focus:outline-none"
-                      >
-                        <MessageSquare className="w-3.5 h-3.5 text-sky-400" />
-                        <span>{item.commentsCount}</span>
-                      </button>
-                    </div>
-
-                    {/* High fidelity switch status handlers list */}
-                    <div className="flex gap-1.5 select-none">
-                      {item.status === 'pending' ? (
-                        <>
-                          <button
-                            onClick={() => handleApprove(item.id)}
-                            className="bg-emerald-600 hover:bg-emerald-700 active:scale-95 text-white text-[10px] font-bold px-2.5 py-1 rounded-xl transition-all cursor-pointer focus:outline-none"
-                          >
-                            审核通过
-                          </button>
-                          <button
-                            onClick={() => setShowRejectModal(item.id)}
-                            className="bg-rose-600 hover:bg-rose-700 active:scale-95 text-white text-[10px] font-bold px-2.5 py-1 rounded-xl transition-all cursor-pointer focus:outline-none"
-                          >
-                            下架驳回
-                          </button>
-                        </>
-                      ) : item.status === 'removed' ? (
-                        <button
-                          onClick={() => handleApprove(item.id)}
-                          className="bg-gray-100 hover:bg-gray-200 dark:bg-gray-800 dark:hover:bg-gray-700 text-gray-700 dark:text-gray-200 text-[10px] font-bold px-2.5 py-1 rounded-xl transition-all cursor-pointer focus:outline-none border border-gray-200/40 dark:border-gray-700/30"
-                        >
-                          恢复上架
-                        </button>
-                      ) : (
-                        <button
-                          onClick={() => setShowRejectModal(item.id)}
-                          className="bg-transparent border border-rose-200 dark:border-rose-900 hover:bg-rose-50 dark:hover:bg-rose-950/20 text-rose-600 dark:text-rose-400 font-bold text-[10px] px-2.5 py-1 rounded-xl transition-all cursor-pointer focus:outline-none"
-                        >
-                          违规下架
-                        </button>
-                      )}
+                    返回用户列表
+                  </button>
+                  <div className="flex items-center gap-2 min-w-0">
+                    <img src={activeAuthorGroup.avatar} alt={activeAuthorGroup.author} className="w-7 h-7 rounded-full object-cover border border-gray-200 dark:border-gray-700" />
+                    <div>
+                      <p className="text-[11px] font-bold text-gray-800 dark:text-gray-100">{activeAuthorGroup.author}</p>
+                      <p className="text-[10px] text-gray-400">{activeAuthorGroup.items.length} 条动态</p>
                     </div>
                   </div>
-                </motion.div>
-              ))}
+                </div>
+              )}
+              <div className="bg-white dark:bg-slate-900 border border-slate-200/60 dark:border-slate-800/80 rounded-xl shadow-sm overflow-hidden">
+              <div className="overflow-x-auto">
+                <table className="w-full border-collapse text-left text-sm text-slate-600 dark:text-slate-350">
+                  <thead className="bg-slate-50 dark:bg-slate-800/50 text-slate-500 dark:text-slate-400 text-xs uppercase font-bold border-b border-slate-200/60 dark:border-slate-800/60">
+                    <tr>
+                      <th className="p-4">发布人</th>
+                      <th className="p-4 md:w-1/3">动态内容</th>
+                      <th className="p-4">数据</th>
+                      <th className="p-4">时间</th>
+                      <th className="p-4 text-center">状态</th>
+                      <th className="p-4 text-right">操作</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-slate-100 dark:divide-slate-800/80">
+                    {(activeAuthorGroup?.items || filteredDynamics).map((item) => {
+                      const favoriteCount = readNumberField(item, ['favoriteCount', 'favorites', 'collectCount', 'collectionCount'], 0);
+                      const viewCount = readNumberField(item, ['viewCount', 'views', 'browseCount', 'readCount', 'pv'], 0);
+                      const createTime = readTextField(item, ['createTime', 'createdAt', 'publishTime'], item.time);
+                      const updateTime = readTextField(item, ['updateTime', 'updatedAt', 'lastUpdateTime'], createTime);
+
+                      return (
+                        <tr key={item.id}>
+                          <td className="p-4">
+                            <div className="flex items-center gap-3">
+                              <img src={item.authorAvatar} alt={item.author} className="w-8 h-8 rounded-full object-cover border border-slate-200 dark:border-slate-800" />
+                              <div>
+                                <div className={`font-bold text-slate-900 dark:text-white ${!item.verifiedUser ? 'line-through decoration-rose-500 text-slate-400 dark:text-slate-500' : ''}`}>
+                                  {item.author}
+                                </div>
+                                <div className="text-[10px] font-mono text-slate-400">ID: {item.id}</div>
+                              </div>
+                            </div>
+                          </td>
+                          <td className="p-4 text-xs font-medium">
+                            <p className="text-slate-800 dark:text-slate-200 leading-relaxed whitespace-pre-wrap break-all line-clamp-2">{item.title}</p>
+                            {item.images && item.images.length > 0 && (
+                              <div className="mt-2 flex gap-1.5">
+                                {item.images.slice(0, 3).map((imgUrl, i) => (
+                                  <img key={i} src={imgUrl} alt="media" className="w-10 h-10 rounded-md object-cover" />
+                                ))}
+                              </div>
+                            )}
+                            {item.status === 'removed' && item.rejectReason && (
+                              <div className="mt-2 text-[10px] text-rose-600 dark:text-rose-400">
+                                下架理由: {item.rejectReason}
+                              </div>
+                            )}
+                          </td>
+                          <td className="p-4">
+                            <div className="flex flex-wrap gap-1.5 text-[10px]">
+                              <span className="inline-flex items-center gap-1 px-2 py-1 rounded-full bg-rose-50 dark:bg-rose-950/30 text-rose-700 dark:text-rose-400 border border-rose-100 dark:border-rose-900/30">
+                                <Heart className="w-3 h-3" /> {item.likes}
+                              </span>
+                              <span className="inline-flex items-center gap-1 px-2 py-1 rounded-full bg-amber-50 dark:bg-amber-950/30 text-amber-700 dark:text-amber-400 border border-amber-100 dark:border-amber-900/30">
+                                <Bookmark className="w-3 h-3" /> {favoriteCount}
+                              </span>
+                              <span className="inline-flex items-center gap-1 px-2 py-1 rounded-full bg-sky-50 dark:bg-sky-950/30 text-sky-700 dark:text-sky-400 border border-sky-100 dark:border-sky-900/30">
+                                <Eye className="w-3 h-3" /> {viewCount}
+                              </span>
+                              <span className="inline-flex items-center gap-1 px-2 py-1 rounded-full bg-slate-50 dark:bg-slate-800 text-slate-600 dark:text-slate-300 border border-slate-200 dark:border-slate-700">
+                                <MessageSquare className="w-3 h-3" /> {item.commentsCount}
+                              </span>
+                            </div>
+                          </td>
+                          <td className="p-4 whitespace-nowrap text-xs text-slate-400 font-semibold dark:text-slate-500">
+                            <div>创建: {createTime}</div>
+                            <div className="mt-1">更新: {updateTime}</div>
+                          </td>
+                          <td className="p-4 text-center whitespace-nowrap">
+                            <span className={`inline-flex items-center gap-1 text-xs px-2.5 py-1 rounded-full font-bold ${item.status === 'normal' ? 'bg-emerald-50 dark:bg-emerald-950/30 text-emerald-700 dark:text-emerald-400' : item.status === 'pending' ? 'bg-amber-50 dark:bg-amber-950/30 text-amber-600 dark:text-amber-400' : 'bg-rose-50 dark:bg-rose-950/30 text-rose-700 dark:text-rose-400'}`}>
+                              {item.status === 'normal' ? '已公开' : item.status === 'pending' ? '待审核' : '已下架'}
+                            </span>
+                          </td>
+                          <td className="p-4 text-right">
+                            <div className="flex items-center justify-end gap-1">
+                              <button
+                                onClick={() => setSelectedDyn(item)}
+                                className="text-sky-600 hover:bg-sky-50 dark:hover:bg-sky-950/20 p-1.5 rounded border-none bg-transparent cursor-pointer transition-all"
+                                title="详情"
+                              >
+                                <MessageSquare className="h-4 w-4" />
+                              </button>
+                              {item.status === 'pending' ? (
+                                <>
+                                  <button
+                                    onClick={() => handleApprove(item.id)}
+                                    className="text-emerald-600 hover:bg-emerald-50 dark:hover:bg-emerald-950/20 p-1.5 rounded border-none bg-transparent cursor-pointer transition-all"
+                                    title="通过"
+                                  >
+                                    <Check className="h-4 w-4" />
+                                  </button>
+                                  <button
+                                    onClick={() => setShowRejectModal(item.id)}
+                                    className="text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-950/20 p-1.5 rounded border-none bg-transparent cursor-pointer transition-all"
+                                    title="下架"
+                                  >
+                                    <X className="h-4 w-4" />
+                                  </button>
+                                </>
+                              ) : item.status === 'removed' ? (
+                                <button
+                                  onClick={() => handleApprove(item.id)}
+                                  className="text-emerald-600 hover:bg-emerald-50 dark:hover:bg-emerald-950/20 p-1.5 rounded border-none bg-transparent cursor-pointer transition-all"
+                                  title="恢复"
+                                >
+                                  <RotateCcw className="h-4 w-4" />
+                                </button>
+                              ) : (
+                                <button
+                                  onClick={() => setShowRejectModal(item.id)}
+                                  className="text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-950/20 p-1.5 rounded border-none bg-transparent cursor-pointer transition-all"
+                                  title="违规下架"
+                                >
+                                  <Gavel className="h-4 w-4" />
+                                </button>
+                              )}
+                            </div>
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
+            </div>
             </div>
           )}
         </div>
@@ -573,6 +757,14 @@ export default function DynamicManagementView({
                       {getCategoryName(selectedDyn.category)}
                     </span>
                     <span className="font-mono text-[10px] text-gray-400 dark:text-gray-500 font-semibold uppercase">Post ID: {selectedDyn.id}</span>
+                  </div>
+
+                  <div className="grid grid-cols-2 md:grid-cols-5 gap-2 text-[10px]">
+                    <MetaChip icon={<Heart className="w-3 h-3" />} label="点赞" value={selectedDyn.likes} tone="rose" />
+                    <MetaChip icon={<Bookmark className="w-3 h-3" />} label="收藏" value={readNumberField(selectedDyn, ['favoriteCount', 'favorites', 'collectCount', 'collectionCount'], 0)} tone="amber" />
+                    <MetaChip icon={<Eye className="w-3 h-3" />} label="浏览" value={readNumberField(selectedDyn, ['viewCount', 'views', 'browseCount', 'readCount', 'pv'], 0)} tone="sky" />
+                    <MetaChip icon={<Clock className="w-3 h-3" />} label="创建" value={readTextField(selectedDyn, ['createTime', 'createdAt', 'publishTime'], selectedDyn.time)} tone="slate" />
+                    <MetaChip icon={<RotateCcw className="w-3 h-3" />} label="更新" value={readTextField(selectedDyn, ['updateTime', 'updatedAt', 'lastUpdateTime'], readTextField(selectedDyn, ['createTime', 'createdAt', 'publishTime'], selectedDyn.time))} tone="slate" />
                   </div>
 
                   <p className="text-xs text-gray-700 dark:text-gray-200 leading-relaxed p-4 bg-gray-50 dark:bg-gray-800/20 rounded-2xl border border-gray-100 dark:border-gray-800/50 whitespace-pre-wrap selection:bg-primary/20">
@@ -800,3 +992,31 @@ export default function DynamicManagementView({
     </div>
   );
 }
+
+function MetaChip({
+  icon,
+  label,
+  value,
+  tone,
+}: {
+  icon: React.ReactNode;
+  label: string;
+  value: string | number;
+  tone: 'rose' | 'amber' | 'sky' | 'slate';
+}) {
+  const toneClass = {
+    rose: 'bg-rose-50 text-rose-600 border-rose-100 dark:bg-rose-950/20 dark:text-rose-300 dark:border-rose-900/30',
+    amber: 'bg-amber-50 text-amber-600 border-amber-100 dark:bg-amber-950/20 dark:text-amber-300 dark:border-amber-900/30',
+    sky: 'bg-sky-50 text-sky-600 border-sky-100 dark:bg-sky-950/20 dark:text-sky-300 dark:border-sky-900/30',
+    slate: 'bg-slate-50 text-slate-600 border-slate-200 dark:bg-slate-800/50 dark:text-slate-300 dark:border-slate-700/50',
+  }[tone];
+
+  return (
+    <span className={`inline-flex items-center gap-1 px-2 py-1 rounded-lg border ${toneClass}`}>
+      {icon}
+      <span className="font-semibold">{label}</span>
+      <span className="font-bold">{value}</span>
+    </span>
+  );
+}
+

@@ -33,6 +33,25 @@ export const ChatProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   // 璁＄畻鎬绘湭璇绘暟
   const unreadCount = Object.values(unreadMessages).reduce((a: number, b: number) => a + b, 0);
 
+  const scheduleBackgroundRefresh = useCallback((task: () => void) => {
+    if (typeof globalThis === 'undefined') {
+      task();
+      return () => {};
+    }
+    const scope = globalThis as typeof globalThis & {
+      requestIdleCallback?: (callback: () => void, options?: { timeout: number }) => number;
+      cancelIdleCallback?: (id: number) => void;
+      setTimeout: (handler: () => void, timeout?: number) => ReturnType<typeof setTimeout>;
+      clearTimeout: (id: ReturnType<typeof setTimeout>) => void;
+    };
+    if (typeof scope.requestIdleCallback === 'function') {
+      const idleId = scope.requestIdleCallback(() => task(), { timeout: 1800 });
+      return () => scope.cancelIdleCallback?.(idleId);
+    }
+    const timer = scope.setTimeout(task, 300);
+    return () => scope.clearTimeout(timer);
+  }, []);
+
   // 鍔犺浇鎸囧畾瀵硅瘽
   const loadConversation = useCallback(async (partnerId: string) => {
     if (!user?.id) return;
@@ -78,26 +97,31 @@ export const ChatProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         }
       });
 
-      const partnerList: ChatPartner[] = [];
-      const unreadMap: Record<string, number> = {};
-      for (const conv of conversationMap.values()) {
-        try {
-          let partnerUser;
+      const conversationEntries = Array.from(conversationMap.values());
+      const partnerList = await Promise.all(
+        conversationEntries.map(async (conv) => {
+          const partner = { ...conv.partner };
           try {
-            partnerUser = await userApi.getUser(conv.partner.id);
-          } catch {
-            // 濡傛灉鐢↖D鏌ヤ笉鍒帮紝灏濊瘯鐢↖D褰撶敤鎴峰悕鏌ワ紙鍏煎鏃ф暟鎹級
-            partnerUser = await userApi.getUserByName(conv.partner.id);
+            let partnerUser;
+            try {
+              partnerUser = await userApi.getUser(partner.id);
+            } catch {
+              // 濡傛灉鐢↖D鏌ヤ笉鍒帮紝灏濊瘯鐢↖D褰撶敤鎴峰悕鏌ワ紙鍏煎鏃ф暟鎹級
+              partnerUser = await userApi.getUserByName(partner.id);
+            }
+            partner.name = partnerUser.name;
+            partner.avatar = partnerUser.avatar;
+            partner.lastMessage = conv.lastMsg.content;
+          } catch (e) {
+            console.error('Failed to get partner info:', e);
           }
-          conv.partner.name = partnerUser.name;
-          conv.partner.avatar = partnerUser.avatar;
-          conv.partner.lastMessage = conv.lastMsg.content;
-        } catch (e) {
-          console.error('Failed to get partner info:', e);
-        }
-        partnerList.push(conv.partner);
+          return partner;
+        })
+      );
+      const unreadMap: Record<string, number> = {};
+      conversationEntries.forEach((conv) => {
         unreadMap[conv.partner.id] = conv.unread;
-      }
+      });
 
       setPartners(partnerList);
       setUnreadMessages(unreadMap);
@@ -135,7 +159,7 @@ export const ChatProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       console.error('Failed to get or create conversation:', err);
       return partner;
     }
-  }, [user?.id, refreshConversations]);
+  }, [user?.id]);
 
   // 鎵撳紑鑱婂ぉ
   const openChat = useCallback(async (partner?: ChatPartner) => {
@@ -153,7 +177,7 @@ export const ChatProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         loadConversation(convPartner.id);
       }
     }
-  }, [partners, markChatRead, loadConversation, getOrCreateConversation, refreshConversations]);
+  }, [markChatRead, loadConversation, getOrCreateConversation]);
 
   const closeChat = () => {
     setIsChatOpen(false);
@@ -162,10 +186,12 @@ export const ChatProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
 
   // 鍒濆鍔犺浇浼氳瘽鍒楄〃锛堜粎褰撶敤鎴峰凡鐧诲綍涓旀湁token鏃讹級
   useEffect(() => {
-    if (user?.id && getToken()) {
+    if (!user?.id || !getToken()) return;
+    const cancel = scheduleBackgroundRefresh(() => {
       refreshConversations();
-    }
-  }, [user?.id, refreshConversations]);
+    });
+    return cancel;
+  }, [user?.id, refreshConversations, scheduleBackgroundRefresh]);
 
   useEffect(() => {
     if (activePartner && isChatOpen && getToken()) {

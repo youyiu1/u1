@@ -17,6 +17,7 @@ export interface User {
   email: string;
   phone: string;
   avatar: string;
+  tag?: string;
   status: 'normal' | 'disabled';
   adminRole: 'USER' | 'READONLY_ADMIN' | 'SUPER_ADMIN';
   verified: 'verified' | 'unverified';
@@ -34,7 +35,7 @@ export interface Dynamic {
   title: string;
   author: string;
   authorAvatar: string;
-  category: 'life' | 'help' | 'activity' | 'food';
+  category: string;
   time: string;
   images: string[];
   status: 'pending' | 'normal' | 'removed';
@@ -43,6 +44,7 @@ export interface Dynamic {
   comments: Comment[];
   rejectReason?: string;
   userId?: string;
+  authorTag?: string;
   verifiedUser?: boolean;
 }
 
@@ -50,11 +52,12 @@ export interface Goods {
   id: string;
   title: string;
   price: number;
-  category: 'electronics' | 'furniture' | 'clothing' | 'books' | 'other';
+  category: 'tech' | 'home' | 'fashion' | 'clothing' | 'sports' | 'others';
   condition: string; // e.g., '九成新', '八成新'
   sellerName: string;
   sellerId: string;
   sellerAvatar: string;
+  sellerTag?: string;
   sellerRating: number;
   location: string;
   distance: string;
@@ -71,6 +74,7 @@ export interface Service {
   category: string; // e.g. "维修安装 / 家电清洗"
   providerName: string;
   providerAvatar: string;
+  providerTag?: string;
   isVerifiedProvider?: boolean;
   price: number;
   unit: string; // e.g., "/次", "/小时"
@@ -98,9 +102,11 @@ export interface FeeItem {
 export interface Order {
   id: string;
   buyerName: string;
+  buyerTag?: string;
   buyerPhone: string;
   buyerAddress: string;
   sellerName: string;
+  sellerTag?: string;
   sellerPhone: string;
   sellerRating: string;
   serviceName: string;
@@ -154,6 +160,7 @@ export interface ManagedComment {
   targetId: string;
   targetTitle: string;
   authorName: string;
+  authorTag?: string;
   authorAvatar: string;
   content: string;
   time: string;
@@ -176,6 +183,7 @@ export interface ManagedImage {
   size: string;
   category: 'dynamic' | 'goods' | 'avatar' | 'banner';
   uploader: string;
+  uploaderTag?: string;
   uploadedAt: string;
   status: 'approved' | 'pending' | 'flagged';
 }
@@ -184,9 +192,11 @@ export interface ManagedMessage {
   id: string;
   senderId: string;
   senderName: string;
+  senderTag?: string;
   senderAvatar: string;
   receiverId: string;
   receiverName: string;
+  receiverTag?: string;
   receiverAvatar: string;
   content: string;
   messageType: 'text' | 'image' | string;

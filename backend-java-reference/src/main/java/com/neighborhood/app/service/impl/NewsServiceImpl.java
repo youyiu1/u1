@@ -162,7 +162,7 @@ public class NewsServiceImpl extends ServiceImpl<NewsMapper, News> implements Ne
         comment.setNewsId(newsId);
         comment.setCreateTime(java.time.LocalDateTime.now());
         comment.setLikes(comment.getLikes() == null ? 0 : comment.getLikes());
-        comment.setStatus("pending");
+        comment.setStatus("normal");
         Long parentId = comment.getParentId();
         if (parentId == null || parentId <= 0) {
             comment.setParentId(0L);
@@ -267,6 +267,10 @@ public class NewsServiceImpl extends ServiceImpl<NewsMapper, News> implements Ne
     private void ensureCommentStatusColumnExists() {
         try {
             jdbcTemplate.execute("ALTER TABLE t_comment ADD COLUMN status VARCHAR(20) DEFAULT 'normal'");
+        } catch (Exception ignored) {
+        }
+        try {
+            jdbcTemplate.update("UPDATE t_comment SET status = 'normal' WHERE status = 'pending'");
         } catch (Exception ignored) {
         }
     }

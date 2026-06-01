@@ -5,7 +5,7 @@
 
 import { ReactNode, useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { motion } from 'motion/react';
-import { DashboardStats, Dynamic, Order } from '../types';
+import { DashboardStats, Dynamic, Order, Service } from '../types';
 import {
   Area,
   AreaChart,
@@ -27,6 +27,7 @@ interface DashboardViewProps {
   stats: DashboardStats;
   dynamics: Dynamic[];
   orders: Order[];
+  services: Service[];
   onNavigate: (tab: string, filter?: string) => void;
 }
 
@@ -74,7 +75,7 @@ function ChartShell({ height, children }: { height: number; children: (size: Cha
   );
 }
 
-export default function DashboardView({ stats, dynamics, orders, onNavigate }: DashboardViewProps) {
+export default function DashboardView({ stats, dynamics, orders, services, onNavigate }: DashboardViewProps) {
   const formatNum = (num: number) => num.toLocaleString();
 
   const summaryItems = [
@@ -152,10 +153,14 @@ export default function DashboardView({ stats, dynamics, orders, onNavigate }: D
     { name: '周日', '浏览量(PV)': 1080, '访客数(UV)': 285 },
   ];
 
+  const pendingServiceCount = services.filter((service) => service.status === 'pending').length;
+  const pendingDynamicCount = dynamics.filter((dynamic) => dynamic.status === 'pending').length;
+  const abnormalOrderCount = orders.filter((order) => order.status === 'abnormal').length;
+
   const orderTasks = [
-    { title: '审核服务', count: 12, desc: '需要人工确认资质与描述', path: '/admin/services', filter: 'pending', icon: 'home_repair_service', color: 'border-l-status-pending' },
-    { title: '违规内容', count: 5, desc: '包含举报与命中审核项', path: '/admin/posts', filter: 'pending', icon: 'gavel', color: 'border-l-status-error' },
-    { title: '异常订单', count: 3, desc: '退款纠纷及超时未处理', path: '/admin/orders', filter: 'abnormal', icon: 'warning', color: 'border-l-status-unlisted' },
+    { title: '审核服务', count: pendingServiceCount, desc: '真实待处理：服务待审核', path: '/admin/services', filter: 'pending', icon: 'home_repair_service', color: 'border-l-status-pending' },
+    { title: '违规内容', count: pendingDynamicCount, desc: '真实待处理：动态待审核', path: '/admin/posts', filter: 'pending', icon: 'gavel', color: 'border-l-status-error' },
+    { title: '异常订单', count: abnormalOrderCount, desc: '真实待处理：异常订单', path: '/admin/orders', filter: 'abnormal', icon: 'warning', color: 'border-l-status-unlisted' },
   ];
 
   return (
