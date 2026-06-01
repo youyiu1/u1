@@ -7,6 +7,7 @@ package com.neighborhood.app.controller;
 
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.neighborhood.app.common.Result;
+import com.neighborhood.app.entity.User;
 import com.neighborhood.app.entity.Comment;
 import com.neighborhood.app.entity.MarketItem;
 import com.neighborhood.app.entity.News;
@@ -14,6 +15,7 @@ import com.neighborhood.app.vo.NewsVO;
 import com.neighborhood.app.vo.MarketItemVO;
 import com.neighborhood.app.entity.ServiceEntity;
 import com.neighborhood.app.mapper.CommentMapper;
+import com.neighborhood.app.mapper.UserMapper;
 import com.neighborhood.app.service.CacheService;
 import com.neighborhood.app.service.NewsService;
 import com.neighborhood.app.service.MarketService;
@@ -35,6 +37,7 @@ public class HomeController {
     private final ServiceModuleService serviceModuleService;
     private final CacheService cacheService;
     private final CommentMapper commentMapper;
+    private final UserMapper userMapper;
 
     @GetMapping("/index")
     public Result<Map<String, Object>> index() {
@@ -55,8 +58,19 @@ public class HomeController {
                 .last("LIMIT 2")
                 .list();
 
+        List<String> authorIds = latestNews.stream()
+                .map(News::getAuthorId)
+                .filter(Objects::nonNull)
+                .distinct()
+                .collect(Collectors.toList());
+        Map<String, User> authorMap = authorIds.isEmpty() ? Map.of() : new HashMap<>();
+        if (!authorIds.isEmpty()) {
+            for (User user : userMapper.selectBatchIds(authorIds)) {
+                authorMap.put(user.getId(), user);
+            }
+        }
         List<NewsVO> hotNews = latestNews.stream()
-                .map(news -> newsService.getNewsVOById(news.getId()))
+                .map(news -> NewsVO.fromNews(news, authorMap.get(news.getAuthorId())))
                 .filter(Objects::nonNull)
                 .collect(Collectors.toList());
 
@@ -88,13 +102,24 @@ public class HomeController {
         }
         data.put("hotNews", hotNews);
 
-        List<MarketItemVO> hotMarket = marketService.lambdaQuery()
+        List<MarketItem> latestMarket = marketService.lambdaQuery()
                 .eq(MarketItem::getStatus, "active")
                 .orderByDesc(MarketItem::getId)
                 .last("LIMIT 4")
-                .list()
-                .stream()
-                .map(item -> marketService.getMarketItemVOById(item.getId()))
+                .list();
+        List<String> sellerIds = latestMarket.stream()
+                .map(MarketItem::getSellerId)
+                .filter(Objects::nonNull)
+                .distinct()
+                .collect(Collectors.toList());
+        Map<String, User> sellerMap = sellerIds.isEmpty() ? Map.of() : new HashMap<>();
+        if (!sellerIds.isEmpty()) {
+            for (User user : userMapper.selectBatchIds(sellerIds)) {
+                sellerMap.put(user.getId(), user);
+            }
+        }
+        List<MarketItemVO> hotMarket = latestMarket.stream()
+                .map(item -> MarketItemVO.fromMarketItem(item, sellerMap.get(item.getSellerId())))
                 .filter(Objects::nonNull)
                 .collect(Collectors.toList());
         data.put("hotMarket", hotMarket);

@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import { ReactNode, useEffect, useRef, useState } from 'react';
+import { ReactNode, useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { motion } from 'motion/react';
 import { DashboardStats, Dynamic, Order } from '../types';
 import {
@@ -36,13 +36,20 @@ function ChartShell({ height, children }: { height: number; children: (size: Cha
   const ref = useRef<HTMLDivElement | null>(null);
   const [size, setSize] = useState<ChartSize>({ width: 0, height });
 
-  useEffect(() => {
+  useLayoutEffect(() => {
     const node = ref.current;
     if (!node) return;
 
     const update = () => {
       const rect = node.getBoundingClientRect();
-      setSize({ width: Math.max(0, Math.floor(rect.width)), height });
+      const nextWidth = Number.isFinite(rect.width) ? Math.max(0, Math.floor(rect.width)) : 0;
+      const nextHeight = Number.isFinite(height) ? Math.max(0, Math.floor(height)) : 0;
+      setSize((prev) => {
+        if (prev.width === nextWidth && prev.height === nextHeight) {
+          return prev;
+        }
+        return { width: nextWidth, height: nextHeight };
+      });
     };
 
     update();
@@ -58,7 +65,11 @@ function ChartShell({ height, children }: { height: number; children: (size: Cha
 
   return (
     <div ref={ref} className="relative w-full min-w-0" style={{ height, minHeight: height }}>
-      {size.width > 0 ? children(size) : <div className="h-full w-full rounded-lg bg-surface-container-low animate-pulse" />}
+      {size.width >= 24 && size.height >= 24 ? (
+        children(size)
+      ) : (
+        <div className="h-full w-full rounded-lg bg-surface-container-low animate-pulse" />
+      )}
     </div>
   );
 }

@@ -1,6 +1,7 @@
 D:\下载文件\同城生活\backend-java-reference\src\main\java\com\neighborhood\app\config\JacksonConfig.java
 D:\下载文件\同城生活\backend-java-reference\src\main\java\com\neighborhood\app\common\SpringContext.java
 D:\下载文件\同城生活\backend-java-reference\src\main\java\com\neighborhood\app\entity\ServiceReview.java
+D:\下载文件\同城生活\backend-java-reference\src\main\java\com\neighborhood\app\config\DatabasePerformanceMigration.java
 D:\下载文件\同城生活\backend-java-reference\src\main\java\com\neighborhood\app\controller\MarketController.java
 D:\下载文件\同城生活\backend-java-reference\src\main\java\com\neighborhood\app\dto\ProcessNotificationRequest.java
 D:\下载文件\同城生活\backend-java-reference\src\main\java\com\neighborhood\app\config\WebConfig.java

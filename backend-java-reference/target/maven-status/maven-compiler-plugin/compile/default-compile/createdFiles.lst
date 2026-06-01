@@ -10,6 +10,7 @@ com\neighborhood\app\handler\MySqlJsonTypeHandler.class
 com\neighborhood\app\controller\MarketController.class
 com\neighborhood\app\dto\RegisterRequest.class
 com\neighborhood\app\service\impl\CommentLikeServiceImpl.class
+com\neighborhood\app\config\DatabasePerformanceMigration.class
 com\neighborhood\app\controller\AdminController.class
 com\neighborhood\app\service\ReviewLikeService.class
 com\neighborhood\app\controller\NotificationController.class
@@ -45,6 +46,7 @@ com\neighborhood\app\mapper\ServiceReviewMapper.class
 com\neighborhood\app\service\impl\CacheServiceImpl.class
 com\neighborhood\app\common\ResultUtils.class
 com\neighborhood\app\controller\NewsController.class
+com\neighborhood\app\controller\ServiceController$1.class
 com\neighborhood\app\common\Result.class
 com\neighborhood\app\service\NewsService.class
 com\neighborhood\app\service\EmailService.class

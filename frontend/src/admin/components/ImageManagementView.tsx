@@ -36,8 +36,9 @@ export default function ImageManagementView({
   const filteredImages = useMemo(() => {
     const seen = new Set<string>();
     return images.filter((img) => {
-      if (seen.has(img.id)) return false;
-      seen.add(img.id);
+      const identity = img.url || img.id;
+      if (seen.has(identity)) return false;
+      seen.add(identity);
 
       const query = searchQuery.toLowerCase();
       const matchSearch =
@@ -163,10 +164,10 @@ export default function ImageManagementView({
         </div>
       ) : (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-          {filteredImages.map((img) => (
+          {filteredImages.map((img, index) => (
             <motion.div
               layout
-              key={img.id}
+              key={`${img.url || img.id}-${index}`}
               className="bg-white dark:bg-slate-900 border border-slate-200/60 dark:border-slate-800/60 rounded-2xl overflow-hidden shadow-sm hover:shadow-md transition-shadow flex flex-col group"
             >
               {/* Visual Canvas containing Image */}

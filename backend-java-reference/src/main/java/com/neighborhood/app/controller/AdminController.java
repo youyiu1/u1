@@ -193,10 +193,25 @@ public class AdminController {
     public Result<List<Map<String, Object>>> users() {
         String sql = """
                 SELECT u.*,
-                       (SELECT COUNT(1) FROM t_news n WHERE n.author_id = u.id) dynamics_count,
-                       (SELECT COUNT(1) FROM t_market_item m WHERE m.seller_id = u.id) goods_count,
-                       (SELECT COUNT(1) FROM t_service s WHERE s.seller_id = u.id) services_count
+                       COALESCE(n.dynamics_count, 0) dynamics_count,
+                       COALESCE(m.goods_count, 0) goods_count,
+                       COALESCE(s.services_count, 0) services_count
                 FROM t_user u
+                LEFT JOIN (
+                    SELECT author_id, COUNT(1) dynamics_count
+                    FROM t_news
+                    GROUP BY author_id
+                ) n ON n.author_id = u.id
+                LEFT JOIN (
+                    SELECT seller_id, COUNT(1) goods_count
+                    FROM t_market_item
+                    GROUP BY seller_id
+                ) m ON m.seller_id = u.id
+                LEFT JOIN (
+                    SELECT seller_id, COUNT(1) services_count
+                    FROM t_service
+                    GROUP BY seller_id
+                ) s ON s.seller_id = u.id
                 ORDER BY u.created_at DESC
                 """;
         return Result.ok(jdbcTemplate.queryForList(sql).stream().map(row -> {
@@ -266,7 +281,11 @@ public class AdminController {
                 FROM t_news n LEFT JOIN t_user u ON n.author_id = u.id
                 ORDER BY n.create_time DESC
                 """;
-        return Result.ok(jdbcTemplate.queryForList(sql).stream().map(row -> {
+        List<Map<String, Object>> rows = jdbcTemplate.queryForList(sql);
+        Map<Long, List<Map<String, Object>>> commentsByNews = commentsForNewsBatch(
+                rows.stream().map(row -> longVal(row.get("id"))).filter(id -> id > 0).toList()
+        );
+        return Result.ok(rows.stream().map(row -> {
             Long id = longVal(row.get("id"));
             Map<String, Object> item = new LinkedHashMap<>();
             item.put("id", str(id));
@@ -279,7 +298,7 @@ public class AdminController {
             item.put("status", emptyTo(str(row.get("status")), "normal"));
             item.put("likes", num(row.get("likes")));
             item.put("commentsCount", num(row.get("comments_count")));
-            item.put("comments", commentsForNews(id));
+            item.put("comments", commentsByNews.getOrDefault(id, List.of()));
             item.put("rejectReason", str(row.get("reject_reason")));
             item.put("userId", str(row.get("author_id")));
             item.put("verifiedUser", bool(row.get("author_verified")));
@@ -510,8 +529,8 @@ public class AdminController {
                        su.name sender_name, su.avatar sender_avatar,
                        ru.name receiver_name, ru.avatar receiver_avatar
                 FROM t_message m
-                LEFT JOIN t_user su ON m.sender_id = su.id
-                LEFT JOIN t_user ru ON m.receiver_id = ru.id
+                LEFT JOIN t_user su ON m.sender_id COLLATE utf8mb4_unicode_ci = su.id
+                LEFT JOIN t_user ru ON m.receiver_id COLLATE utf8mb4_unicode_ci = ru.id
                 ORDER BY m.create_time DESC
                 LIMIT 300
                 """;
@@ -829,6 +848,35 @@ public class AdminController {
             item.put("time", time(row.get("create_time")));
             return item;
         }).toList();
+    }
+
+    private Map<Long, List<Map<String, Object>>> commentsForNewsBatch(List<Long> newsIds) {
+        if (newsIds == null || newsIds.isEmpty()) {
+            return Map.of();
+        }
+        String placeholders = String.join(",", Collections.nCopies(newsIds.size(), "?"));
+        List<Map<String, Object>> rows = jdbcTemplate.queryForList("""
+                SELECT *
+                FROM t_comment
+                WHERE news_id IN (%s)
+                ORDER BY news_id ASC, create_time DESC
+                """.formatted(placeholders), newsIds.toArray());
+        Map<Long, List<Map<String, Object>>> result = new HashMap<>();
+        for (Map<String, Object> row : rows) {
+            Long newsId = longVal(row.get("news_id"));
+            List<Map<String, Object>> comments = result.computeIfAbsent(newsId, ignored -> new ArrayList<>());
+            if (comments.size() >= 20) {
+                continue;
+            }
+            Map<String, Object> item = new LinkedHashMap<>();
+            item.put("id", str(row.get("id")));
+            item.put("author", str(row.get("user_name")));
+            item.put("avatar", str(row.get("user_avatar")));
+            item.put("text", str(row.get("content")));
+            item.put("time", time(row.get("create_time")));
+            comments.add(item);
+        }
+        return result;
     }
 
     private void collectImages(Map<String, Map<String, Object>> target, String category, String sql) {

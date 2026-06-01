@@ -13,10 +13,13 @@ import com.neighborhood.app.service.NewsService;
 import com.neighborhood.app.service.CommentLikeService;
 import com.neighborhood.app.utils.RequestUserUtil;
 import com.neighborhood.app.common.Result;
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import jakarta.servlet.http.HttpServletRequest;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
 import java.util.List;
+import java.util.Map;
 
 @RestController
 @RequestMapping("/api/news")
@@ -26,6 +29,7 @@ public class NewsController {
     private NewsService newsService;
     @Autowired
     private CommentLikeService commentLikeService;
+    private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper();
 
     /**
      * 获取动态列表（带作者信息和当前用户点赞/收藏状态）
@@ -48,9 +52,15 @@ public class NewsController {
      * 创建动态 - 需要登录，自动设置authorId
      */
     @PostMapping("/create")
-    public Result<Boolean> create(@RequestBody News news, HttpServletRequest request) {
+    public Result<Boolean> create(@RequestBody Map<String, Object> body, HttpServletRequest request) {
+        News news = new News();
         String userId = (String) request.getAttribute("userId");
         news.setAuthorId(userId);
+        news.setTitle(str(body.get("title")));
+        news.setContent(str(body.get("content")));
+        news.setLocation(str(body.get("location")));
+        news.setCategory(str(body.get("category")));
+        news.setImages(normalizeImages(body.get("images")));
         if (news.getCategory() == null || news.getCategory().isEmpty()) {
             news.setCategory("生活记录");
         }
@@ -159,6 +169,24 @@ public class NewsController {
     public Result<Boolean> delete(@PathVariable Long id, HttpServletRequest request) {
         String userId = (String) request.getAttribute("userId");
         return Result.ok(newsService.deleteById(id, userId));
+    }
+
+    private String str(Object value) {
+        return value == null ? "" : String.valueOf(value);
+    }
+
+    private String normalizeImages(Object value) {
+        if (value == null) {
+            return "[]";
+        }
+        if (value instanceof String stringVal) {
+            return stringVal.isBlank() ? "[]" : stringVal;
+        }
+        try {
+            return OBJECT_MAPPER.writeValueAsString(value);
+        } catch (JsonProcessingException e) {
+            return "[]";
+        }
     }
 }
 

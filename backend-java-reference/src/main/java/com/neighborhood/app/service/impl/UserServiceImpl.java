@@ -1,6 +1,7 @@
 package com.neighborhood.app.service.impl;
 
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
+import com.baomidou.mybatisplus.core.conditions.update.UpdateWrapper;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.neighborhood.app.dto.NotificationSettings;
 import com.neighborhood.app.dto.PrivacySettings;
@@ -23,6 +24,7 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements Us
 
     private final FollowMapper followMapper;
     private final CacheService cacheService;
+    private final UserMapper userMapper;
 
     @Override
     public User register(String name, String email, String password) {
@@ -183,16 +185,12 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements Us
     }
 
     private void updateUserCounts(String followerId, String followingId, int followerDelta, int followingDelta) {
-        User follower = getById(followerId);
-        User following = getById(followingId);
-        if (follower != null && follower.getFollowingCount() != null) {
-            follower.setFollowingCount(Math.max(0, follower.getFollowingCount() + followingDelta));
-            super.updateById(follower);
-        }
-        if (following != null && following.getFollowersCount() != null) {
-            following.setFollowersCount(Math.max(0, following.getFollowersCount() + followerDelta));
-            super.updateById(following);
-        }
+        userMapper.update(null, new UpdateWrapper<User>()
+                .eq("id", followerId)
+                .setSql("following_count = GREATEST(COALESCE(following_count, 0) + (" + followingDelta + "), 0)"));
+        userMapper.update(null, new UpdateWrapper<User>()
+                .eq("id", followingId)
+                .setSql("followers_count = GREATEST(COALESCE(followers_count, 0) + (" + followerDelta + "), 0)"));
     }
 
     @Override
