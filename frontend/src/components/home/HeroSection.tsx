@@ -54,35 +54,35 @@ export const HeroSection: React.FC = () => {
   }, [displayText, isDeleting, currentIndex, clearTimers]);
 
   return (
-    <section className="relative z-10 max-w-[1440px] mx-auto px-4 md:px-12 pt-32 pb-16 overflow-hidden">
+    <section className="relative z-10 max-w-[1440px] mx-auto px-4 md:px-12 pt-20 sm:pt-24 md:pt-32 pb-14 md:pb-16 overflow-hidden">
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 1, ease: [0.16, 1, 0.3, 1] }}
       >
-        <div className="flex items-center gap-4 mb-8">
-          <div className="w-12 h-[1px] bg-primary" />
-          <span className="text-[10px] font-black tracking-[0.4em] text-primary uppercase">Discover Nearby Inspiration</span>
+        <div className="flex items-center gap-3 sm:gap-4 mb-6 sm:mb-8">
+          <div className="w-8 sm:w-12 h-[1px] bg-primary" />
+          <span className="text-[9px] sm:text-[10px] font-black tracking-[0.24em] sm:tracking-[0.4em] text-primary uppercase">Discover Nearby Inspiration</span>
         </div>
 
-        <h1 className="text-6xl md:text-9xl font-black text-ink tracking-tighter leading-[0.85] mb-16">
+        <h1 className="text-4xl sm:text-6xl md:text-8xl lg:text-9xl font-black text-ink tracking-tighter leading-[0.9] md:leading-[0.85] mb-10 sm:mb-12 md:mb-16">
           发现身边的<br />
-            <span className="text-transparent bg-clip-text bg-gradient-to-r from-primary to-primary-light italic pr-4">
+            <span className="text-transparent bg-clip-text bg-gradient-to-r from-primary to-primary-light italic pr-2 sm:pr-4">
             {displayText}<span className="inline-block animate-pulse">|</span>
           </span>
         </h1>
 
-        <div className="flex flex-wrap gap-6">
+        <div className="flex flex-col sm:flex-row flex-wrap gap-4 sm:gap-6 max-w-xl">
           <button
             onClick={() => {
               document.getElementById('discovery-results')?.scrollIntoView({ behavior: 'smooth' });
             }}
-            className="group relative px-12 py-6 bg-ink text-white rounded-[28px] font-black text-[11px] uppercase tracking-widest hover:bg-primary transition-all duration-500 active:scale-95 shadow-premium overflow-hidden"
+            className="group relative w-full sm:w-auto px-8 sm:px-12 py-4 sm:py-6 bg-ink text-white rounded-[24px] sm:rounded-[28px] font-black text-[11px] uppercase tracking-widest hover:bg-primary transition-all duration-500 active:scale-95 shadow-premium overflow-hidden"
           >
             <span className="relative z-10">立即探索</span>
             <div className="absolute inset-0 bg-white/10 translate-y-full group-hover:translate-y-0 transition-transform duration-500" />
           </button>
-          <button className="group relative px-12 py-6 bg-white border border-hairline text-ink rounded-[28px] font-black text-[11px] uppercase tracking-widest hover:border-ink transition-all duration-500 active:scale-95 shadow-sm overflow-hidden text-center">
+          <button className="group relative w-full sm:w-auto px-8 sm:px-12 py-4 sm:py-6 bg-white border border-hairline text-ink rounded-[24px] sm:rounded-[28px] font-black text-[11px] uppercase tracking-widest hover:border-ink transition-all duration-500 active:scale-95 shadow-sm overflow-hidden text-center">
             <span className="relative z-10">随便逛逛</span>
             <div className="absolute inset-0 bg-ink/5 translate-y-full group-hover:translate-y-0 transition-transform duration-500" />
           </button>

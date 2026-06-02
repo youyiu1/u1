@@ -1,14 +1,19 @@
-/**
+﻿/**
  * @license
  * SPDX-License-Identifier: Apache-2.0
  */
 
 import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
+import { Menu } from 'lucide-react';
 import { NotificationItem, User, Dynamic, Goods, Service, Order } from '../types';
+import { getPrimaryImage } from '../../utils/images';
 
 interface HeaderProps {
   username: string;
+  adminRole?: string;
+  adminTag?: string;
+  adminAvatar?: string;
   notifications: NotificationItem[];
   onToggleNotificationRead: (id: string) => void;
   onLogout: () => void;
@@ -20,10 +25,24 @@ interface HeaderProps {
   services?: Service[];
   orders?: Order[];
   onRefresh?: () => void;
+  onToggleSidebar?: () => void;
+  isDesktopLayout?: boolean;
 }
+
+const QUICK_LINKS = [
+  { name: '控制台概览', path: '/admin/dashboard', icon: 'dashboard' },
+  { name: '用户管理', path: '/admin/users', icon: 'group' },
+  { name: '动态管理', path: '/admin/posts', icon: 'chat' },
+  { name: '闲置商品管理', path: '/admin/market', icon: 'shopping_bag' },
+  { name: '生活服务管理', path: '/admin/services', icon: 'handyman' },
+  { name: '订单管理', path: '/admin/orders', icon: 'receipt_long' },
+];
 
 export default function Header({
   username,
+  adminRole,
+  adminTag,
+  adminAvatar,
   notifications,
   onToggleNotificationRead,
   onLogout,
@@ -34,7 +53,9 @@ export default function Header({
   goods = [],
   services = [],
   orders = [],
-  onRefresh
+  onRefresh,
+  onToggleSidebar,
+  isDesktopLayout = true,
 }: HeaderProps) {
   const [showNoticeMenu, setShowNoticeMenu] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
@@ -42,57 +63,66 @@ export default function Header({
   const [isRotating, setIsRotating] = useState(false);
   const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
 
-  // Calculate unread count automatically
+  const adminAvatarSrc = getPrimaryImage(adminAvatar);
+  const adminRoleLabel =
+    adminRole === 'SUPER_ADMIN'
+      ? '超级管理员'
+      : adminRole === 'READONLY_ADMIN'
+        ? '只读管理员'
+        : '管理员';
+  const adminMeta = adminTag?.trim() ? `${adminRoleLabel} · ${adminTag}` : adminRoleLabel;
   const unreadCount = notifications.filter((n) => !n.read).length;
 
-  // Search filtering logic across data registries
-  const matchedUsers = searchQuery.trim()
-    ? users.filter(u => u.name.toLowerCase().includes(searchQuery.toLowerCase()) || u.email.toLowerCase().includes(searchQuery.toLowerCase()))
+  const normalizedQuery = searchQuery.trim().toLowerCase();
+  const matchedUsers = normalizedQuery
+    ? users.filter((u) => u.name.toLowerCase().includes(normalizedQuery) || u.email.toLowerCase().includes(normalizedQuery))
+    : [];
+  const matchedDynamics = normalizedQuery
+    ? dynamics.filter((d) => d.title.toLowerCase().includes(normalizedQuery) || d.author.toLowerCase().includes(normalizedQuery))
+    : [];
+  const matchedGoods = normalizedQuery
+    ? goods.filter((g) => g.title.toLowerCase().includes(normalizedQuery) || g.sellerName.toLowerCase().includes(normalizedQuery))
+    : [];
+  const matchedServices = normalizedQuery
+    ? services.filter((s) => s.title.toLowerCase().includes(normalizedQuery) || s.providerName.toLowerCase().includes(normalizedQuery))
+    : [];
+  const matchedOrders = normalizedQuery
+    ? orders.filter((o) => o.id.toLowerCase().includes(normalizedQuery) || o.buyerName.toLowerCase().includes(normalizedQuery))
     : [];
 
-  const matchedDynamics = searchQuery.trim()
-    ? dynamics.filter(d => d.title.toLowerCase().includes(searchQuery.toLowerCase()) || d.author.toLowerCase().includes(searchQuery.toLowerCase()))
-    : [];
-
-  const matchedGoods = searchQuery.trim()
-    ? goods.filter(g => g.title.toLowerCase().includes(searchQuery.toLowerCase()) || g.sellerName.toLowerCase().includes(searchQuery.toLowerCase()))
-    : [];
-
-  const matchedServices = searchQuery.trim()
-    ? services.filter(s => s.title.toLowerCase().includes(searchQuery.toLowerCase()) || s.providerName.toLowerCase().includes(searchQuery.toLowerCase()))
-    : [];
-
-  const matchedOrders = searchQuery.trim()
-    ? orders.filter(o => o.id.toLowerCase().includes(searchQuery.toLowerCase()) || o.buyerName.toLowerCase().includes(searchQuery.toLowerCase()))
-    : [];
-
-  const hasResults = matchedUsers.length > 0 || matchedDynamics.length > 0 || matchedGoods.length > 0 || matchedServices.length > 0 || matchedOrders.length > 0;
+  const hasResults =
+    matchedUsers.length > 0 ||
+    matchedDynamics.length > 0 ||
+    matchedGoods.length > 0 ||
+    matchedServices.length > 0 ||
+    matchedOrders.length > 0;
 
   const handleRefreshClick = () => {
     setIsRotating(true);
-    if (onRefresh) {
-      onRefresh();
-    }
-    setTimeout(() => {
-      setIsRotating(false);
-    }, 800);
+    onRefresh?.();
+    setTimeout(() => setIsRotating(false), 800);
   };
 
   return (
-    <header className="bg-surface-container-lowest h-16 border-b border-outline-variant/30 flex items-center justify-between px-6 sticky top-0 z-30 select-none">
-      
-      {/* Connection Indicator Badge */}
-      <div className="flex items-center gap-3">
-        <span className="text-secondary/60 text-xs font-semibold select-none bg-surface-background border border-outline-variant/15 px-2.5 py-1 rounded font-data-mono hidden sm:inline-block">
-          IP: LOCALHOST:3000
+    <header className="bg-surface-container-lowest min-h-16 border-b border-outline-variant/30 flex items-center justify-between gap-3 px-3 sm:px-4 lg:px-6 py-2 sticky top-0 z-30 select-none">
+      <div className="flex items-center gap-2 sm:gap-3 min-w-0">
+        {!isDesktopLayout && (
+          <button
+            onClick={onToggleSidebar}
+            className="w-10 h-10 rounded-xl flex items-center justify-center hover:bg-outline-variant/15 text-secondary hover:text-on-surface transition-colors cursor-pointer border-none bg-transparent focus:outline-none lg:hidden"
+            title="展开菜单"
+          >
+            <Menu className="w-5 h-5" />
+          </button>
+        )}
+        <span className="text-secondary/60 text-[11px] sm:text-xs font-semibold select-none bg-surface-background border border-outline-variant/15 px-2.5 py-1 rounded font-data-mono hidden sm:inline-block whitespace-nowrap">
+          前端: 5173 / 接口: 8080
         </span>
       </div>
 
-      {/* Right controls */}
-      <div className="flex items-center gap-4">
-        {/* Search Input Box & Refresh Page Button */}
-        <div className="relative">
-          <div className="relative flex items-center w-64 md:w-80">
+      <div className="flex items-center justify-end gap-2 sm:gap-3 lg:gap-4 min-w-0 flex-1">
+        <div className="relative flex-1 max-w-[13rem] sm:max-w-xs md:max-w-sm">
+          <div className="relative flex items-center w-full">
             <span className="material-symbols-outlined absolute left-3 text-secondary/60 text-[18px] pointer-events-none">search</span>
             <input
               type="text"
@@ -102,7 +132,7 @@ export default function Header({
                 setShowSearchDropdown(true);
               }}
               onFocus={() => setShowSearchDropdown(true)}
-              placeholder="搜索用户、动态、商品、服务..."
+              placeholder="搜索用户、动态、商品、服务、订单"
               className="w-full bg-surface-container-low border border-outline-variant/30 rounded-full py-1.5 pl-9 pr-8 text-xs text-on-surface placeholder-outline focus:outline-none focus:border-primary/50 focus:bg-surface-container-lowest transition-all"
             />
             {searchQuery && (
@@ -115,7 +145,6 @@ export default function Header({
             )}
           </div>
 
-          {/* Search Dropdown Popover */}
           <AnimatePresence>
             {showSearchDropdown && (
               <>
@@ -124,24 +153,17 @@ export default function Header({
                   initial={{ opacity: 0, y: 8, scale: 0.98 }}
                   animate={{ opacity: 1, y: 0, scale: 1 }}
                   exit={{ opacity: 0, y: 8, scale: 0.98 }}
-                  className="absolute right-0 mt-2 w-[340px] md:w-[420px] bg-surface-container-lowest border border-outline-variant/30 shadow-2xl rounded-xl max-h-[360px] overflow-y-auto z-50 p-3 text-on-surface text-left"
+                  className="absolute right-0 mt-2 w-[min(92vw,420px)] bg-surface-container-lowest border border-outline-variant/30 shadow-2xl rounded-xl max-h-[360px] overflow-y-auto z-50 p-3 text-on-surface text-left"
                 >
-                  {!searchQuery.trim() ? (
+                  {!normalizedQuery ? (
                     <div className="space-y-2">
-                      <p className="text-[10px] text-outline font-bold uppercase tracking-wider px-2 select-none">快速导航</p>
+                      <p className="text-[10px] text-outline font-bold uppercase tracking-wider px-2 select-none">快捷导航</p>
                       <div className="grid grid-cols-2 gap-1.5">
-                        {[
-                          { name: '控制台概览', path: '/admin/dashboard', icon: 'dashboard' },
-                          { name: '用户管理', path: '/admin/users', icon: 'group' },
-                          { name: '动态内容管理', path: '/admin/posts', icon: 'chat' },
-                          { name: '市民市场商品', path: '/admin/market', icon: 'shopping_bag' },
-                          { name: '同城便民服务', path: '/admin/services', icon: 'handyman' },
-                          { name: '交易订单核账', path: '/admin/orders', icon: 'receipt_long' },
-                        ].map((link) => (
+                        {QUICK_LINKS.map((link) => (
                           <button
                             key={link.path}
                             onClick={() => {
-                              if (onNavigate) onNavigate(link.path);
+                              onNavigate?.(link.path);
                               setShowSearchDropdown(false);
                             }}
                             className="flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs hover:bg-primary/5 text-secondary hover:text-primary transition-all text-left w-full border-none bg-transparent cursor-pointer"
@@ -154,12 +176,8 @@ export default function Header({
                     </div>
                   ) : (
                     <div className="space-y-3.5">
-                      {/* Search results */}
-                      {!hasResults && (
-                        <p className="text-center text-xs text-outline py-4 select-none">无匹配的搜索结果</p>
-                      )}
+                      {!hasResults && <p className="text-center text-xs text-outline py-4 select-none">没有匹配的搜索结果</p>}
 
-                      {/* Matched Users */}
                       {matchedUsers.length > 0 && (
                         <div>
                           <p className="text-[10px] text-primary font-bold uppercase tracking-wider px-2 mb-1.5 flex items-center gap-1 select-none">
@@ -167,11 +185,11 @@ export default function Header({
                             匹配用户 ({matchedUsers.length})
                           </p>
                           <div className="space-y-0.5">
-                            {matchedUsers.slice(0, 3).map(u => (
+                            {matchedUsers.slice(0, 3).map((u) => (
                               <button
                                 key={u.id}
                                 onClick={() => {
-                                  if (onNavigate) onNavigate('/admin/users');
+                                  onNavigate?.('/admin/users');
                                   setShowSearchDropdown(false);
                                   setSearchQuery('');
                                 }}
@@ -185,23 +203,22 @@ export default function Header({
                         </div>
                       )}
 
-                      {/* Matched Dynamics */}
                       {matchedDynamics.length > 0 && (
                         <div>
                           <p className="text-[10px] text-primary font-bold uppercase tracking-wider px-2 mb-1.5 flex items-center gap-1 select-none">
                             <span className="material-symbols-outlined text-[12px]">chat</span>
-                            匹配社区动态 ({matchedDynamics.length})
+                            匹配动态 ({matchedDynamics.length})
                           </p>
                           <div className="space-y-0.5">
-                            {matchedDynamics.slice(0, 3).map(d => (
+                            {matchedDynamics.slice(0, 3).map((d) => (
                               <button
                                 key={d.id}
                                 onClick={() => {
-                                  if (onNavigate) onNavigate('/admin/posts');
+                                  onNavigate?.('/admin/posts');
                                   setShowSearchDropdown(false);
                                   setSearchQuery('');
                                 }}
-                                className="w-full text-left px-2 py-1 rounded-lg text-xs hover:bg-surface-container-low flex flex-col transition-all cursor-pointer border-none bg-transparent text-left"
+                                className="w-full px-2 py-1 rounded-lg text-xs hover:bg-surface-container-low flex flex-col transition-all cursor-pointer border-none bg-transparent text-left"
                               >
                                 <span className="text-on-surface truncate w-full">{d.title}</span>
                                 <span className="text-[9px] text-outline mt-0.5">作者: {d.author}</span>
@@ -211,19 +228,18 @@ export default function Header({
                         </div>
                       )}
 
-                      {/* Matched Goods */}
                       {matchedGoods.length > 0 && (
                         <div>
                           <p className="text-[10px] text-primary font-bold uppercase tracking-wider px-2 mb-1.5 flex items-center gap-1 select-none">
                             <span className="material-symbols-outlined text-[12px]">shopping_bag</span>
-                            匹配市民商品 ({matchedGoods.length})
+                            匹配商品 ({matchedGoods.length})
                           </p>
                           <div className="space-y-0.5">
-                            {matchedGoods.slice(0, 3).map(g => (
+                            {matchedGoods.slice(0, 3).map((g) => (
                               <button
                                 key={g.id}
                                 onClick={() => {
-                                  if (onNavigate) onNavigate('/admin/market');
+                                  onNavigate?.('/admin/market');
                                   setShowSearchDropdown(false);
                                   setSearchQuery('');
                                 }}
@@ -237,45 +253,43 @@ export default function Header({
                         </div>
                       )}
 
-                      {/* Matched Services */}
                       {matchedServices.length > 0 && (
                         <div>
                           <p className="text-[10px] text-primary font-bold uppercase tracking-wider px-2 mb-1.5 flex items-center gap-1 select-none">
                             <span className="material-symbols-outlined text-[12px]">handyman</span>
-                            匹配便民服务 ({matchedServices.length})
+                            匹配服务 ({matchedServices.length})
                           </p>
                           <div className="space-y-0.5">
-                            {matchedServices.slice(0, 3).map(s => (
+                            {matchedServices.slice(0, 3).map((s) => (
                               <button
                                 key={s.id}
                                 onClick={() => {
-                                  if (onNavigate) onNavigate('/admin/services');
+                                  onNavigate?.('/admin/services');
                                   setShowSearchDropdown(false);
                                   setSearchQuery('');
                                 }}
-                                className="w-full text-left px-2 py-1 rounded-lg text-xs hover:bg-surface-container-low flex flex-col transition-all cursor-pointer border-none bg-transparent text-left"
+                                className="w-full px-2 py-1 rounded-lg text-xs hover:bg-surface-container-low flex flex-col transition-all cursor-pointer border-none bg-transparent text-left"
                               >
                                 <span className="text-on-surface truncate w-full">{s.title}</span>
-                                <span className="text-[9px] text-outline mt-0.5">提供者: {s.providerName}</span>
+                                <span className="text-[9px] text-outline mt-0.5">服务者: {s.providerName}</span>
                               </button>
                             ))}
                           </div>
                         </div>
                       )}
 
-                      {/* Matched Orders */}
                       {matchedOrders.length > 0 && (
                         <div>
                           <p className="text-[10px] text-primary font-bold uppercase tracking-wider px-2 mb-1.5 flex items-center gap-1 select-none">
                             <span className="material-symbols-outlined text-[12px]">receipt_long</span>
-                            匹配交易订单 ({matchedOrders.length})
+                            匹配订单 ({matchedOrders.length})
                           </p>
                           <div className="space-y-0.5">
-                            {matchedOrders.slice(0, 3).map(o => (
+                            {matchedOrders.slice(0, 3).map((o) => (
                               <button
                                 key={o.id}
                                 onClick={() => {
-                                  if (onNavigate) onNavigate('/admin/orders', o.id);
+                                  onNavigate?.('/admin/orders', o.id);
                                   setShowSearchDropdown(false);
                                   setSearchQuery('');
                                 }}
@@ -296,18 +310,14 @@ export default function Header({
           </AnimatePresence>
         </div>
 
-        {/* Dynamic rotating refresh button */}
         <button
           onClick={handleRefreshClick}
-          className="w-9 h-9 rounded-full flex items-center justify-center hover:bg-outline-variant/15 text-secondary hover:text-on-surface transition-colors cursor-pointer border-none bg-transparent focus:outline-none"
+          className="hidden sm:flex w-9 h-9 rounded-full items-center justify-center hover:bg-outline-variant/15 text-secondary hover:text-on-surface transition-colors cursor-pointer border-none bg-transparent focus:outline-none"
           title="刷新数据"
         >
-          <span className={`material-symbols-outlined text-[20px] ${isRotating ? 'animate-spin' : ''}`}>
-            refresh
-          </span>
+          <span className={`material-symbols-outlined text-[20px] ${isRotating ? 'animate-spin' : ''}`}>refresh</span>
         </button>
 
-        {/* Interactive Notification Alert Dropdown */}
         <div className="relative">
           <button
             onClick={() => setShowNoticeMenu(!showNoticeMenu)}
@@ -321,13 +331,10 @@ export default function Header({
             )}
           </button>
 
-          {/* Alert Dropdown content menu drawer */}
           <AnimatePresence>
             {showNoticeMenu && (
               <>
-                {/* Close handler shield */}
                 <div className="fixed inset-0 z-40 cursor-default" onClick={() => setShowNoticeMenu(false)} />
-                
                 <motion.div
                   initial={{ opacity: 0, y: 12, scale: 0.95 }}
                   animate={{ opacity: 1, y: 0, scale: 1 }}
@@ -337,9 +344,7 @@ export default function Header({
                   <div className="px-4 py-3 bg-surface-container-low/50 border-b border-outline-variant/15 flex items-center justify-between">
                     <span className="font-headline-sm text-headline-sm font-bold flex items-center gap-1">
                       <span>通知提醒</span>
-                      <span className="font-data-mono text-[10px] bg-primary/10 text-primary px-1.5 py-0.5 rounded-full">
-                        {unreadCount} 条未读
-                      </span>
+                      <span className="font-data-mono text-[10px] bg-primary/10 text-primary px-1.5 py-0.5 rounded-full">{unreadCount} 条未读</span>
                     </span>
                     <button
                       onClick={() => {
@@ -352,7 +357,6 @@ export default function Header({
                     </button>
                   </div>
 
-                  {/* Bulletins lists query */}
                   <div className="max-h-[260px] overflow-y-auto divide-y divide-outline-variant/10">
                     {notifications.length === 0 ? (
                       <p className="p-6 text-center text-xs text-outline">暂无系统通知</p>
@@ -360,15 +364,9 @@ export default function Header({
                       notifications.map((item) => (
                         <div
                           key={item.id}
-                          className={`p-3.5 hover:bg-surface-container-low transition-colors text-left flex gap-2.5 relative ${
-                            !item.read ? 'bg-primary-fixed/15 font-semibold' : ''
-                          }`}
+                          className={`p-3.5 hover:bg-surface-container-low transition-colors text-left flex gap-2.5 relative ${!item.read ? 'bg-primary-fixed/15 font-semibold' : ''}`}
                         >
-                          <span className={`material-symbols-outlined text-[16px] mt-0.5 ${
-                            !item.read ? 'text-primary fill' : 'text-outline'
-                          }`}>
-                            info
-                          </span>
+                          <span className={`material-symbols-outlined text-[16px] mt-0.5 ${!item.read ? 'text-primary fill' : 'text-outline'}`}>info</span>
                           <div className="flex-1 min-w-0">
                             <p className="text-xs text-on-surface truncate pr-4">{item.title}</p>
                             <p className="text-[11px] text-on-surface-variant/75 truncate mt-0.5">{item.content}</p>
@@ -381,7 +379,7 @@ export default function Header({
                                 onToggleNotificationRead(item.id);
                               }}
                               className="absolute top-3 right-3 text-outline hover:text-primary cursor-pointer border-none bg-transparent p-0"
-                              title="标为已读"
+                              title="标记为已读"
                             >
                               <span className="material-symbols-outlined text-[14px]">done</span>
                             </button>
@@ -396,31 +394,29 @@ export default function Header({
           </AnimatePresence>
         </div>
 
-        {/* Administrator identity profile and session controller */}
-        <div className="h-8 w-[1px] bg-outline-variant/30" />
+        <div className="hidden sm:block h-8 w-[1px] bg-outline-variant/30" />
 
-        <div className="flex items-center gap-2.5 select-none">
-          <img
-            src="https://lh3.googleusercontent.com/aida-public/AB6AXuAutf8uw-UP_WcJF6DedJ7BJ-58j6AAoLLsPj5uet4SuxCOsbEVOsOt8J5Q8cq0EcOJjh94kvPemlbPGCcdd89_oNXUsQRyuMWCsUQlagzBJhnOTUtw94XVV1AIw494VL8MRVgRwo0k2vWHujUJ-JYDSlLcvmZOOau40QddlzoeAwLsvEYy0BeAyExWOUQIL9zD8ULX6ruVNErCoPp9-hFCH6zrLtpvJwLdnaYJ1EBsCdh4kv_Dyp_5tUU8mZI1XzDOqNQ03ZcnPHZ4"
-            alt="Admin"
-            className="w-8 h-8 rounded-full border border-outline-variant/60 object-cover object-center bg-slate-100"
-          />
-          <div className="hidden md:block text-left">
+        <div className="flex items-center gap-2 sm:gap-2.5 select-none min-w-0">
+          {adminAvatarSrc ? (
+            <img src={adminAvatarSrc} alt={username} className="w-8 h-8 rounded-full border border-outline-variant/60 object-cover object-center bg-slate-100" />
+          ) : (
+            <div className="w-8 h-8 rounded-full border border-outline-variant/60 bg-slate-100 text-slate-600 text-xs font-bold flex items-center justify-center">
+              {username.slice(0, 1).toUpperCase()}
+            </div>
+          )}
+          <div className="hidden md:block text-left min-w-0">
             <p className="font-semibold text-xs text-on-surface leading-none">{username}</p>
-            <p className="font-data-mono text-[9px] text-outline mt-0.5 uppercase tracking-wider font-semibold">Superadmin</p>
+            <p className="font-data-mono text-[9px] text-outline mt-0.5 tracking-wider font-semibold truncate max-w-[160px]">{adminMeta}</p>
           </div>
         </div>
 
-        {/* Log-out */}
         <div className="relative">
           <button
             onClick={() => setShowLogoutConfirm(!showLogoutConfirm)}
             className={`w-8 h-8 rounded-full flex items-center justify-center transition-all cursor-pointer border-none bg-transparent focus:outline-none ${
-              showLogoutConfirm 
-                ? 'bg-status-error/15 text-status-error ring-2 ring-status-error/30' 
-                : 'hover:bg-red-500/10 text-outline hover:text-status-error'
+              showLogoutConfirm ? 'bg-status-error/15 text-status-error ring-2 ring-status-error/30' : 'hover:bg-red-500/10 text-outline hover:text-status-error'
             }`}
-            title="退出控制后台"
+            title="退出管理端"
           >
             <span className="material-symbols-outlined text-[20px]">logout</span>
           </button>
@@ -428,12 +424,7 @@ export default function Header({
           <AnimatePresence>
             {showLogoutConfirm && (
               <>
-                {/* Click outside shield */}
-                <div 
-                  className="fixed inset-0 z-40 cursor-default bg-black/5 dark:bg-black/20" 
-                  onClick={() => setShowLogoutConfirm(false)} 
-                />
-                
+                <div className="fixed inset-0 z-40 cursor-default bg-black/5 dark:bg-black/20" onClick={() => setShowLogoutConfirm(false)} />
                 <motion.div
                   initial={{ opacity: 0, scale: 0.95, y: 10 }}
                   animate={{ opacity: 1, scale: 1, y: 0 }}
@@ -442,17 +433,14 @@ export default function Header({
                   className="absolute right-0 mt-3 w-64 bg-surface-container-lowest border border-outline-variant/30 shadow-2xl rounded-xl p-4 z-50 text-left text-on-surface"
                 >
                   <div className="flex items-start gap-2.5">
-                    <span className="material-symbols-outlined text-status-error text-[20px] mt-0.5 animate-pulse">
-                      error
-                    </span>
+                    <span className="material-symbols-outlined text-status-error text-[20px] mt-0.5 animate-pulse">error</span>
                     <div>
-                      <h4 className="text-xs font-bold text-on-surface">确定退出登录？</h4>
+                      <h4 className="text-xs font-bold text-on-surface">确定退出登录吗？</h4>
                       <p className="text-[10.5px] text-on-surface-variant/80 mt-1 leading-relaxed">
-                        系统将立即清空当前管理员会话缓存，安全注销并返回登录大厅。
+                        系统将清空当前管理员会话缓存，并安全返回登录页。
                       </p>
                     </div>
                   </div>
-                  
                   <div className="flex items-center justify-end gap-2 mt-4 pt-2.5 border-t border-outline-variant/10">
                     <button
                       onClick={() => setShowLogoutConfirm(false)}
@@ -467,7 +455,7 @@ export default function Header({
                       }}
                       className="px-3 py-1.5 bg-status-error text-white text-[11px] font-bold rounded-lg hover:bg-status-error/95 hover:shadow-md cursor-pointer border-none transition-all focus:outline-none"
                     >
-                      安全注销
+                      安全退出
                     </button>
                   </div>
                 </motion.div>

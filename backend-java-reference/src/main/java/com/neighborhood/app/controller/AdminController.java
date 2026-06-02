@@ -30,8 +30,14 @@ public class AdminController {
 
     private static final String TOKEN_PREFIX = "token:";
     private static final String ROLE_USER = "USER";
+    private static final String ROLE_ADMIN = "ADMIN";
     private static final String ROLE_READONLY_ADMIN = "READONLY_ADMIN";
     private static final String ROLE_SUPER_ADMIN = "SUPER_ADMIN";
+    private static final String MENU_GROUP_USER = "用户风控";
+    private static final String MENU_GROUP_CONTENT = "内容运营";
+    private static final String MENU_GROUP_SERVICE = "生活服务";
+    private static final String MENU_GROUP_SYSTEM = "系统设置";
+    private static final String MENU_GROUP_SECURITY = "系统安全";
     private static final DateTimeFormatter FORMATTER = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
 
     private final JdbcTemplate jdbcTemplate;
@@ -39,6 +45,17 @@ public class AdminController {
     private final JwtUtil jwtUtil;
     private final RedisTemplate<String, Object> redisTemplate;
     private final CacheService cacheService;
+
+    private record RoleSeed(
+            String id,
+            String name,
+            String code,
+            String description,
+            List<String> menuIds,
+            List<String> permissionCodes,
+            String status
+    ) {
+    }
 
     @PostConstruct
     public void ensureAdminSchema() {
@@ -129,11 +146,26 @@ public class AdminController {
                     UNIQUE KEY uk_image_url (image_url)
                 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4
                 """);
+        executeQuietly("""
+                CREATE TABLE IF NOT EXISTS t_admin_role (
+                    id VARCHAR(64) PRIMARY KEY,
+                    name VARCHAR(100) NOT NULL,
+                    code VARCHAR(64) NOT NULL,
+                    description VARCHAR(255) DEFAULT '',
+                    status VARCHAR(20) DEFAULT 'active',
+                    menu_ids TEXT,
+                    permission_codes TEXT,
+                    create_time DATETIME DEFAULT CURRENT_TIMESTAMP,
+                    update_time DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+                    UNIQUE KEY uk_role_code (code)
+                ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4
+                """);
+        ensureDefaultAdminRoles();
     }
 
-    // 管理端登录，使用真实用户表账号签发 JWT
+    // 绠＄悊绔櫥褰曪紝浣跨敤鐪熷疄鐢ㄦ埛琛ㄨ处鍙风鍙?JWT
     @PostMapping("/login")
-    public Result<Map<String, String>> login(@RequestBody Map<String, String> body, HttpServletRequest request) {
+    public Result<Map<String, Object>> login(@RequestBody Map<String, String> body, HttpServletRequest request) {
         String account = body.getOrDefault("username", "").trim();
         String password = body.getOrDefault("password", "");
         User user = findUserByAccount(account);
@@ -143,8 +175,12 @@ public class AdminController {
         }
         String adminRole = normalizeAdminRole(user.getAdminRole());
         if (ROLE_USER.equals(adminRole)) {
-            saveLoginLog(user.getId(), user.getName(), requestIp(request), request.getHeader("User-Agent"), "failed", "普通用户不能访问管理端");
-            return Result.fail("普通用户不能访问管理端");
+            saveLoginLog(user.getId(), user.getName(), requestIp(request), request.getHeader("User-Agent"), "failed", "鏅€氱敤鎴蜂笉鑳借闂鐞嗙");
+            return Result.fail("鏅€氱敤鎴蜂笉鑳借闂鐞嗙");
+        }
+        if (!isAdminRoleEnabled(adminRole)) {
+            saveLoginLog(user.getId(), user.getName(), requestIp(request), request.getHeader("User-Agent"), "failed", "褰撳墠绠＄悊鍛樿鑹插凡鍋滅敤");
+            return Result.fail("褰撳墠绠＄悊鍛樿鑹插凡鍋滅敤");
         }
         String token = jwtUtil.generateToken(user.getId());
         redisTemplate.opsForValue().set(TOKEN_PREFIX + user.getId(), token, jwtUtil.getExpiration(), TimeUnit.MILLISECONDS);
@@ -153,26 +189,33 @@ public class AdminController {
                 "token", token,
                 "username", user.getName(),
                 "adminRole", adminRole,
-                "readonly", String.valueOf(isReadOnlyRole(adminRole))
+                "readonly", String.valueOf(isReadOnlyRole(adminRole)),
+                "permissionCodes", rolePermissionCodes(adminRole),
+                "menuIds", roleMenuIds(adminRole)
         ));
     }
 
-    // 获取当前管理员信息
+    // 鑾峰彇褰撳墠绠＄悊鍛樹俊鎭?
     @GetMapping("/me")
-    public Result<Map<String, String>> me(@RequestAttribute String userId) {
+    public Result<Map<String, Object>> me(@RequestAttribute String userId) {
         User user = userMapper.selectById(userId);
         String adminRole = normalizeAdminRole(user == null ? "" : user.getAdminRole());
         if (ROLE_USER.equals(adminRole)) {
-            return Result.fail("普通用户不能访问管理端");
+            return Result.fail("鏅€氱敤鎴蜂笉鑳借闂鐞嗙");
+        }
+        if (!isAdminRoleEnabled(adminRole)) {
+            return Result.fail("褰撳墠绠＄悊鍛樿鑹插凡鍋滅敤");
         }
         return Result.ok(Map.of(
                 "username", user == null ? "admin" : user.getName(),
                 "adminRole", adminRole,
-                "readonly", String.valueOf(isReadOnlyRole(adminRole))
+                "readonly", String.valueOf(isReadOnlyRole(adminRole)),
+                "permissionCodes", rolePermissionCodes(adminRole),
+                "menuIds", roleMenuIds(adminRole)
         ));
     }
 
-    // 管理端首页统计
+    // 绠＄悊绔椤电粺璁?
     @GetMapping("/dashboard/stats")
     public Result<Map<String, Object>> stats() {
         Map<String, Object> data = new LinkedHashMap<>();
@@ -189,7 +232,7 @@ public class AdminController {
         return Result.ok(data);
     }
 
-    // 管理端用户列表
+    // 绠＄悊绔敤鎴峰垪琛?
     @GetMapping("/users")
     public Result<List<Map<String, Object>>> users() {
         String sql = """
@@ -237,14 +280,14 @@ public class AdminController {
         }).toList());
     }
 
-    // 更新用户状态
+    // 鏇存柊鐢ㄦ埛鐘舵€?
     @PostMapping("/users/{id}/status")
     public Result<Void> updateUserStatus(@PathVariable String id, @RequestBody Map<String, String> body) {
         jdbcTemplate.update("UPDATE t_user SET status = ? WHERE id = ?", body.getOrDefault("status", "normal"), id);
         return Result.ok();
     }
 
-    // 更新用户认证状态
+    // 鏇存柊鐢ㄦ埛璁よ瘉鐘舵€?
     @PostMapping("/users/{id}/verified")
     public Result<Void> updateUserVerified(@PathVariable String id, @RequestBody Map<String, String> body) {
         boolean verified = "verified".equals(body.get("verified"));
@@ -252,7 +295,7 @@ public class AdminController {
         return Result.ok();
     }
 
-    // 更新用户管理角色（仅超级管理员）
+    // 鏇存柊鐢ㄦ埛绠＄悊瑙掕壊锛堜粎瓒呯骇绠＄悊鍛橈級
     @PostMapping("/users/{id}/admin-role")
     public Result<Void> updateUserAdminRole(@PathVariable String id, @RequestBody Map<String, String> body, @RequestAttribute String userId) {
         User operator = userMapper.selectById(userId);
@@ -268,14 +311,14 @@ public class AdminController {
         if (ROLE_SUPER_ADMIN.equals(currentRole) && !ROLE_SUPER_ADMIN.equals(nextRole)) {
             Long count = jdbcTemplate.queryForObject("SELECT COUNT(1) FROM t_user WHERE admin_role = 'SUPER_ADMIN'", Long.class);
             if (count != null && count <= 1) {
-                return Result.fail("至少保留一个超级管理员");
+                return Result.fail("鑷冲皯淇濈暀涓€涓秴绾х鐞嗗憳");
             }
         }
         jdbcTemplate.update("UPDATE t_user SET admin_role = ? WHERE id = ?", nextRole, id);
         return Result.ok();
     }
 
-    // 管理端动态列表
+    // 绠＄悊绔姩鎬佸垪琛?
     @GetMapping("/dynamics")
     public Result<List<Map<String, Object>>> dynamics() {
         String sql = """
@@ -292,7 +335,7 @@ public class AdminController {
             Map<String, Object> item = new LinkedHashMap<>();
             item.put("id", str(id));
             item.put("title", emptyTo(str(row.get("title")), firstText(str(row.get("content")))));
-            item.put("author", emptyTo(str(row.get("author_name")), "未知用户"));
+            item.put("author", emptyTo(str(row.get("author_name")), "鏈煡鐢ㄦ埛"));
             item.put("authorAvatar", str(row.get("author_avatar")));
             item.put("authorTag", str(row.get("author_tag")));
             item.put("category", normalizeDynamicCategory(str(row.get("category"))));
@@ -309,7 +352,7 @@ public class AdminController {
         }).toList());
     }
 
-    // 更新动态审核状态
+    // 鏇存柊鍔ㄦ€佸鏍哥姸鎬?
     @PostMapping("/dynamics/{id}/status")
     public Result<Void> updateDynamicStatus(@PathVariable Long id, @RequestBody Map<String, String> body) {
         jdbcTemplate.update("UPDATE t_news SET status = ?, reject_reason = ? WHERE id = ?",
@@ -318,7 +361,7 @@ public class AdminController {
         return Result.ok();
     }
 
-    // 管理端追加动态评论
+    // 绠＄悊绔拷鍔犲姩鎬佽瘎璁?
     @PostMapping("/dynamics/{id}/comments")
     public Result<Void> addComment(@PathVariable Long id, @RequestBody Map<String, String> body, @RequestAttribute String userId) {
         User user = userMapper.selectById(userId);
@@ -331,7 +374,7 @@ public class AdminController {
         return Result.ok();
     }
 
-    // 管理端删除动态评论
+    // 绠＄悊绔垹闄ゅ姩鎬佽瘎璁?
     @DeleteMapping("/dynamics/{id}/comments/{commentId}")
     public Result<Void> deleteDynamicComment(@PathVariable Long id, @PathVariable Long commentId) {
         int deleted = jdbcTemplate.update("DELETE FROM t_comment WHERE id = ? AND news_id = ?", commentId, id);
@@ -342,7 +385,7 @@ public class AdminController {
         return Result.ok();
     }
 
-    // 管理端商品列表
+    // 绠＄悊绔晢鍝佸垪琛?
     @GetMapping("/goods")
     public Result<List<Map<String, Object>>> goods() {
         String sql = """
@@ -357,7 +400,7 @@ public class AdminController {
             item.put("price", decimal(row.get("price")));
             item.put("category", normalizeGoodsCategory(str(row.get("category"))));
             item.put("condition", str(row.get("item_condition")));
-            item.put("sellerName", emptyTo(str(row.get("seller_name")), "未知用户"));
+            item.put("sellerName", emptyTo(str(row.get("seller_name")), "鏈煡鐢ㄦ埛"));
             item.put("sellerId", str(row.get("seller_id")));
             item.put("sellerAvatar", str(row.get("seller_avatar")));
             item.put("sellerTag", str(row.get("seller_tag")));
@@ -373,7 +416,7 @@ public class AdminController {
         }).toList());
     }
 
-    // 更新商品审核状态
+    // 鏇存柊鍟嗗搧瀹℃牳鐘舵€?
     @PostMapping("/goods/{id}/status")
     public Result<Void> updateGoodsStatus(@PathVariable Long id, @RequestBody Map<String, String> body) {
         jdbcTemplate.update("UPDATE t_market_item SET status = ?, reject_reason = ? WHERE id = ?",
@@ -384,7 +427,7 @@ public class AdminController {
         return Result.ok();
     }
 
-    // 管理端服务列表
+    // 绠＄悊绔湇鍔″垪琛?
     @GetMapping("/services")
     public Result<List<Map<String, Object>>> services() {
         String sql = """
@@ -397,7 +440,7 @@ public class AdminController {
             item.put("id", str(row.get("id")));
             item.put("title", str(row.get("title")));
             item.put("category", str(row.get("category")));
-            item.put("providerName", emptyTo(str(row.get("provider_name")), "未知商家"));
+            item.put("providerName", emptyTo(str(row.get("provider_name")), "鏈煡鍟嗗"));
             item.put("providerAvatar", str(row.get("provider_avatar")));
             item.put("providerTag", str(row.get("provider_tag")));
             item.put("isVerifiedProvider", bool(row.get("provider_verified")));
@@ -415,7 +458,7 @@ public class AdminController {
         }).toList());
     }
 
-    // 新增服务
+    // 鏂板鏈嶅姟
     @PostMapping("/services")
     public Result<Void> addService(@RequestBody Map<String, Object> body, @RequestAttribute String userId) {
         jdbcTemplate.update("""
@@ -428,7 +471,7 @@ public class AdminController {
         return Result.ok();
     }
 
-    // 更新服务审核状态
+    // 鏇存柊鏈嶅姟瀹℃牳鐘舵€?
     @PostMapping("/services/{id}/status")
     public Result<Void> updateServiceStatus(@PathVariable Long id, @RequestBody Map<String, String> body) {
         jdbcTemplate.update("UPDATE t_service SET status = ?, reject_reason = ? WHERE id = ?",
@@ -438,8 +481,8 @@ public class AdminController {
         return Result.ok();
     }
 
-    // 管理端订单列表
-    // 管理端订单列表
+    // 绠＄悊绔鍗曞垪琛?
+    // 绠＄悊绔鍗曞垪琛?
     @GetMapping("/orders")
     public Result<List<Map<String, Object>>> orders() {
         try {
@@ -457,11 +500,11 @@ public class AdminController {
         }
     }
 
-    // 强制取消订单
+    // 寮哄埗鍙栨秷璁㈠崟
     @PostMapping("/orders/{id}/cancel")
     public Result<Void> cancelOrder(@PathVariable Long id, @RequestBody Map<String, String> body) {
         jdbcTemplate.update("UPDATE t_order SET status = 'cancelled', cancel_reason = ?, update_time = NOW() WHERE id = ?",
-                body.getOrDefault("reason", "管理者强制取消"), id);
+                body.getOrDefault("reason", "管理员强制取消"), id);
         return Result.ok();
     }
 
@@ -472,7 +515,7 @@ public class AdminController {
         return Result.ok(jdbcTemplate.queryForList(sql).stream().map(this::categoryItem).toList());
     }
 
-    // 新增分类
+    // 鏂板鍒嗙被
     @PostMapping("/categories")
     public Result<Void> addCategory(@RequestBody Map<String, String> body) {
         ensureDefaultCategories();
@@ -488,7 +531,7 @@ public class AdminController {
         return Result.ok();
     }
 
-    // 管理端通知列表
+    // 绠＄悊绔€氱煡鍒楄〃
     @GetMapping("/notifications")
     public Result<List<Map<String, Object>>> notifications() {
         String sql = "SELECT * FROM t_notification ORDER BY time DESC";
@@ -505,7 +548,7 @@ public class AdminController {
         }).toList());
     }
 
-    // 新增通知
+    // 鏂板閫氱煡
     @PostMapping("/notifications")
     public Result<Void> addNotification(@RequestBody Map<String, Object> body) {
         String target = str(body.get("target"));
@@ -515,18 +558,18 @@ public class AdminController {
         for (String userId : userIds) {
             jdbcTemplate.update("INSERT INTO t_notification(id,user_id,title,content,service_name,time,is_read,is_processed) VALUES(?,?,?,?,?,NOW(),0,0)",
                     System.currentTimeMillis() + Math.abs(Objects.hash(userId, body.get("title"))), userId,
-                    str(body.get("title")), str(body.get("content")), "平台公告");
+                    str(body.get("title")), str(body.get("content")), "骞冲彴鍏憡");
         }
         return Result.ok();
     }
 
-    // 切换通知已读
+    // 鍒囨崲閫氱煡宸茶
     @PostMapping("/notifications/{id}/toggle")
     public Result<Void> toggleNotification(@PathVariable Long id) {
         jdbcTemplate.update("UPDATE t_notification SET is_read = IF(is_read=1,0,1) WHERE id = ?", id);
         return Result.ok();
     }
-    // 管理端消息列表
+    // 绠＄悊绔秷鎭垪琛?
     @GetMapping("/messages")
     public Result<List<Map<String, Object>>> messages() {
         String sql = """
@@ -559,14 +602,14 @@ public class AdminController {
         }).toList());
     }
 
-    // 标记消息已读
+    // 鏍囪娑堟伅宸茶
     @PostMapping("/messages/{id}/read")
     public Result<Void> markMessageRead(@PathVariable Long id) {
         jdbcTemplate.update("UPDATE t_message SET is_read = 1 WHERE id = ?", id);
         return Result.ok();
     }
 
-    // 删除消息
+    // 鍒犻櫎娑堟伅
     @DeleteMapping("/messages/{id}")
     public Result<Void> deleteMessage(@PathVariable Long id) {
         jdbcTemplate.update("DELETE FROM t_message WHERE id = ?", id);
@@ -574,7 +617,7 @@ public class AdminController {
     }
 
 
-    // 管理端评论列表
+    // 绠＄悊绔瘎璁哄垪琛?
     @GetMapping("/comments")
     public Result<List<Map<String, Object>>> managedComments() {
         String sql = """
@@ -611,7 +654,7 @@ public class AdminController {
                 item.put("id", "service-" + str(row.get("id")));
                 item.put("targetType", "service");
                 item.put("targetId", str(row.get("service_id")));
-                item.put("targetTitle", emptyTo(str(row.get("target_title")), "服务评价"));
+                item.put("targetTitle", emptyTo(str(row.get("target_title")), "鏈嶅姟璇勪环"));
                 item.put("authorName", str(row.get("user_name")));
                 item.put("authorTag", str(row.get("author_tag")));
                 item.put("authorAvatar", str(row.get("user_avatar")));
@@ -626,7 +669,7 @@ public class AdminController {
         return Result.ok(comments);
     }
 
-    // 更新评论状态
+    // 鏇存柊璇勮鐘舵€?
     @PostMapping("/comments/{id}/status")
     public Result<Void> updateCommentStatus(@PathVariable String id, @RequestBody Map<String, String> body) {
         String status = body.getOrDefault("status", "normal");
@@ -649,7 +692,7 @@ public class AdminController {
         return Result.ok();
     }
 
-    // 删除评论
+    // 鍒犻櫎璇勮
     @DeleteMapping("/comments/{id}")
     public Result<Void> deleteComment(@PathVariable String id) {
         if (id.startsWith("service-")) {
@@ -671,7 +714,7 @@ public class AdminController {
         return Result.ok();
     }
 
-    // 管理端黑名单列表
+    // 绠＄悊绔粦鍚嶅崟鍒楄〃
     @GetMapping("/blacklist")
     public Result<List<Map<String, Object>>> blacklist() {
         return Result.ok(jdbcTemplate.queryForList("SELECT * FROM t_admin_blacklist ORDER BY create_time DESC").stream().map(row -> {
@@ -686,7 +729,7 @@ public class AdminController {
         }).toList());
     }
 
-    // 新增黑名单
+    // 鏂板榛戝悕鍗?
     @PostMapping("/blacklist")
     public Result<Void> addBlacklist(@RequestBody Map<String, String> body) {
         jdbcTemplate.update("INSERT INTO t_admin_blacklist(target_type,target_value,reason,creator) VALUES(?,?,?,?)",
@@ -694,14 +737,14 @@ public class AdminController {
         return Result.ok();
     }
 
-    // 删除黑名单
+    // 鍒犻櫎榛戝悕鍗?
     @DeleteMapping("/blacklist/{id}")
     public Result<Void> deleteBlacklist(@PathVariable Long id) {
         jdbcTemplate.update("DELETE FROM t_admin_blacklist WHERE id = ?", id);
         return Result.ok();
     }
 
-    // 管理端图片列表，来自真实业务图片字段
+    // 绠＄悊绔浘鐗囧垪琛紝鏉ヨ嚜鐪熷疄涓氬姟鍥剧墖瀛楁
     @GetMapping("/images")
     public Result<List<Map<String, Object>>> images() {
         Map<String, Map<String, Object>> images = new LinkedHashMap<>();
@@ -711,7 +754,7 @@ public class AdminController {
         return Result.ok(new ArrayList<>(images.values()));
     }
 
-    // 更新图片状态
+    // 鏇存柊鍥剧墖鐘舵€?
     @PostMapping("/images/{id}/status")
     public Result<Void> updateImageStatus(@PathVariable String id, @RequestBody Map<String, String> body) {
         jdbcTemplate.update("INSERT INTO t_admin_image_status(image_url,status) VALUES(?,?) ON DUPLICATE KEY UPDATE status=VALUES(status)",
@@ -719,14 +762,14 @@ public class AdminController {
         return Result.ok();
     }
 
-    // 删除图片状态记录
+    // 鍒犻櫎鍥剧墖鐘舵€佽褰?
     @DeleteMapping("/images/{id}")
     public Result<Void> deleteImage(@PathVariable String id) {
         jdbcTemplate.update("DELETE FROM t_admin_image_status WHERE image_url = ?", id);
         return Result.ok();
     }
 
-    // 管理端登录日志
+    // 绠＄悊绔櫥褰曟棩蹇?
     @GetMapping("/login-logs")
     public Result<List<Map<String, Object>>> loginLogs() {
         return Result.ok(jdbcTemplate.queryForList("SELECT * FROM t_admin_login_log ORDER BY create_time DESC LIMIT 200").stream().map(row -> {
@@ -744,13 +787,13 @@ public class AdminController {
         }).toList());
     }
 
-    // 管理端操作日志
+    // 绠＄悊绔搷浣滄棩蹇?
     @GetMapping("/operation-logs")
     public Result<List<Map<String, Object>>> operationLogs() {
         return Result.ok(operationLogList());
     }
 
-    // 新增操作日志
+    // 鏂板鎿嶄綔鏃ュ織
     @PostMapping("/operation-logs")
     public Result<Void> addOperationLog(@RequestBody Map<String, String> body) {
         jdbcTemplate.update("INSERT INTO t_admin_operation_log(operator,role_name,action_name,target,ip,status,details) VALUES(?,?,?,?,?,?,?)",
@@ -760,7 +803,7 @@ public class AdminController {
         return Result.ok();
     }
 
-    // 更新操作日志保留策略
+    // 鏇存柊鎿嶄綔鏃ュ織淇濈暀绛栫暐
     @PostMapping("/operation-logs/retention")
     public Result<Map<String, Object>> operationLogRetention(@RequestBody Map<String, String> body) {
         String policy = body.getOrDefault("policy", "all");
@@ -772,22 +815,58 @@ public class AdminController {
         return Result.ok(Map.of("cleanedCount", deleted, "logs", operationLogList()));
     }
 
-    // 系统菜单配置
+    // 绯荤粺鑿滃崟閰嶇疆
     @GetMapping("/menus")
     public Result<List<Map<String, Object>>> menus() {
         return Result.ok(defaultMenus());
     }
 
-    // 系统角色配置
+    // 绯荤粺瑙掕壊閰嶇疆
     @GetMapping("/roles")
     public Result<List<Map<String, Object>>> roles() {
-        return Result.ok(defaultRoles());
+        return Result.ok(systemRoles());
     }
 
-    // 系统权限配置
+    // 绯荤粺鏉冮檺閰嶇疆
     @GetMapping("/permissions")
     public Result<List<Map<String, Object>>> permissions() {
         return Result.ok(defaultPermissions());
+    }
+
+    // 鏇存柊瑙掕壊閰嶇疆
+    @PostMapping("/roles/{id}")
+    public Result<Void> updateRole(@PathVariable String id, @RequestBody Map<String, Object> body, @RequestAttribute String userId) {
+        User operator = userMapper.selectById(userId);
+        if (operator == null || !ROLE_SUPER_ADMIN.equals(normalizeAdminRole(operator.getAdminRole()))) {
+            return Result.fail("仅超级管理员可设置角色");
+        }
+        Map<String, Object> current = systemRoles().stream()
+                .filter(role -> id.equals(str(role.get("id"))))
+                .findFirst()
+                .orElse(null);
+        if (current == null) {
+            return Result.fail("角色不存在");
+        }
+        String code = str(current.get("code"));
+        String name = emptyTo(str(body.get("name")), str(current.get("name")));
+        String description = emptyTo(str(body.get("description")), str(current.get("description")));
+        String status = emptyTo(str(body.get("status")), str(current.get("status")));
+        if (ROLE_SUPER_ADMIN.equals(code)) {
+            status = "active";
+        }
+        jdbcTemplate.update("""
+                UPDATE t_admin_role
+                SET name = ?, description = ?, status = ?, menu_ids = ?, permission_codes = ?, update_time = NOW()
+                WHERE id = ?
+                """,
+                name,
+                description,
+                status,
+                stringifyArray(body.get("menuIds")),
+                stringifyArray(body.get("permissionCodes")),
+                id
+        );
+        return Result.ok();
     }
 
     private User findUserByAccount(String account) {
@@ -798,6 +877,7 @@ public class AdminController {
 
     private String normalizeAdminRole(String role) {
         if (ROLE_SUPER_ADMIN.equals(role)) return ROLE_SUPER_ADMIN;
+        if (ROLE_ADMIN.equals(role)) return ROLE_ADMIN;
         if (ROLE_READONLY_ADMIN.equals(role)) return ROLE_READONLY_ADMIN;
         return ROLE_USER;
     }
@@ -821,9 +901,9 @@ public class AdminController {
         item.put("buildTime", time(row.get("create_time")));
         item.put("status", status);
         item.put("cancelReason", str(row.get("cancel_reason")));
-        item.put("steps", List.of(Map.of("name", "订单创建", "time", time(row.get("create_time")))));
+        item.put("steps", List.of(Map.of("name", "璁㈠崟鍒涘缓", "time", time(row.get("create_time")))));
         item.put("remark", "");
-        item.put("feeBreakdown", List.of(Map.of("name", "服务费用", "value", decimal(row.get("price")))));
+        item.put("feeBreakdown", List.of(Map.of("name", "鏈嶅姟璐圭敤", "value", decimal(row.get("price")))));
         return item;
     }
 
@@ -842,8 +922,8 @@ public class AdminController {
         try {
             Long count = jdbcTemplate.queryForObject("SELECT COUNT(1) FROM t_category", Long.class);
             if (count != null && count > 0) return;
-            jdbcTemplate.update("INSERT INTO t_category(name, icon, type, status, sort_order) VALUES(?,?,?,?,?)", "生活服务", "category", "service", "normal", 10);
-            jdbcTemplate.update("INSERT INTO t_category(name, icon, type, status, sort_order) VALUES(?,?,?,?,?)", "闲置物品", "category", "goods", "normal", 20);
+            jdbcTemplate.update("INSERT INTO t_category(name, icon, type, status, sort_order) VALUES(?,?,?,?,?)", "鐢熸椿鏈嶅姟", "category", "service", "normal", 10);
+            jdbcTemplate.update("INSERT INTO t_category(name, icon, type, status, sort_order) VALUES(?,?,?,?,?)", "闂茬疆鐗╁搧", "category", "goods", "normal", 20);
             jdbcTemplate.update("INSERT INTO t_category(name, icon, type, status, sort_order) VALUES(?,?,?,?,?)", "动态内容", "category", "dynamic", "normal", 30);
         } catch (Exception ignored) {
         }
@@ -851,6 +931,18 @@ public class AdminController {
 
     private boolean isReadOnlyRole(String role) {
         return ROLE_READONLY_ADMIN.equals(normalizeAdminRole(role));
+    }
+
+    private boolean isAdminRoleEnabled(String role) {
+        if (ROLE_USER.equals(role)) {
+            return false;
+        }
+        try {
+            String status = jdbcTemplate.queryForObject("SELECT status FROM t_admin_role WHERE code = ?", String.class, role);
+            return status == null || !"disabled".equalsIgnoreCase(status);
+        } catch (Exception ignored) {
+            return true;
+        }
     }
 
     private List<Map<String, Object>> commentsForNews(Long newsId) {
@@ -916,7 +1008,7 @@ public class AdminController {
                 item.put("name", url.substring(url.lastIndexOf('/') + 1));
                 item.put("size", "-");
                 item.put("category", category);
-                item.put("uploader", emptyTo(str(row.get("uploader")), "未知用户"));
+                item.put("uploader", emptyTo(str(row.get("uploader")), "鏈煡鐢ㄦ埛"));
                 item.put("uploaderTag", str(row.get("uploader_tag")));
                 item.put("uploadedAt", time(row.get("create_time")));
                 item.put("status", imageStatus(url));
@@ -997,52 +1089,229 @@ public class AdminController {
 
     private void saveLoginLog(String userId, String username, String ip, String device, String status, String failReason) {
         jdbcTemplate.update("INSERT INTO t_admin_login_log(user_id,username,ip,device,location,status,fail_reason) VALUES(?,?,?,?,?,?,?)",
-                userId, username, ip, device == null ? "" : device, "本地网络", status, failReason);
+                userId, username, ip, device == null ? "" : device, "鏈湴缃戠粶", status, failReason);
     }
 
     private List<Map<String, Object>> defaultMenus() {
         return List.of(
-                menu("dir-users", null, "用户风控", "", "admin_panel_settings", 10, "directory", null),
+                menu("dir-users", null, MENU_GROUP_USER, "", "admin_panel_settings", 10, "directory", null),
                 menu("menu-users", "dir-users", "用户管理", "/admin/users", "group", 11, "menu", "user:view"),
                 menu("menu-blacklist", "dir-users", "风控黑名单", "/admin/blacklist", "gavel", 12, "menu", "blacklist:edit"),
-                menu("dir-content", null, "内容运营", "", "forum", 20, "directory", null),
+                menu("dir-content", null, MENU_GROUP_CONTENT, "", "forum", 20, "directory", null),
                 menu("menu-posts", "dir-content", "动态管理", "/admin/posts", "explore", 21, "menu", "posts:audit"),
-                menu("menu-comments", "dir-content", "评论管理", "/admin/comments", "chat_bubble", 22, "menu", "comments:delete"),
+                menu("menu-comments", "dir-content", "评论管理", "/admin/comments", "chat_bubble", 22, "menu", "comments:view"),
                 menu("menu-images", "dir-content", "图片管理", "/admin/images", "photo_library", 23, "menu", "images:audit"),
-                menu("dir-services", null, "生活服务", "", "storefront", 30, "directory", null),
-                menu("menu-market", "dir-services", "闲置商品管理", "/admin/market", "shopping_bag", 31, "menu", "goods:audit"),
-                menu("menu-services", "dir-services", "服务管理", "/admin/services", "home_repair_service", 32, "menu", "services:create"),
-                menu("menu-orders", "dir-services", "订单管理", "/admin/orders", "receipt_long", 33, "menu", "orders:cancel"),
-                menu("dir-system", null, "系统设置", "", "settings_suggest", 40, "directory", null),
-                menu("menu-notifications", "dir-system", "通知管理", "/admin/notifications", "campaign", 41, "menu", "notifications:create"),
-                menu("menu-categories", "dir-system", "分类管理", "/admin/categories", "category", 42, "menu", "categories:edit"),
-                menu("dir-logs", null, "系统安全", "", "security", 50, "directory", null),
+                menu("menu-messages", "dir-content", "消息管理", "/admin/messages", "mail", 24, "menu", "messages:view"),
+                menu("dir-services", null, MENU_GROUP_SERVICE, "", "storefront", 30, "directory", null),
+                menu("menu-market", "dir-services", "闲置商品管理", "/admin/market", "shopping_bag", 31, "menu", "goods:view"),
+                menu("menu-services", "dir-services", "生活服务管理", "/admin/services", "home_repair_service", 32, "menu", "services:view"),
+                menu("menu-orders", "dir-services", "订单管理", "/admin/orders", "receipt_long", 33, "menu", "orders:view"),
+                menu("dir-system", null, MENU_GROUP_SYSTEM, "", "settings_suggest", 40, "directory", null),
+                menu("menu-notifications", "dir-system", "通知管理", "/admin/notifications", "campaign", 41, "menu", "notifications:view"),
+                menu("menu-categories", "dir-system", "分类管理", "/admin/categories", "category", 42, "menu", "categories:view"),
+                menu("menu-menus", "dir-system", "菜单配置", "/admin/menus", "table_rows", 43, "menu", "menus:view"),
+                menu("menu-roles", "dir-system", "角色权限", "/admin/roles", "shield", 44, "menu", "roles:view"),
+                menu("menu-permissions", "dir-system", "权限清单", "/admin/permissions", "lock", 45, "menu", "permissions:view"),
+                menu("dir-logs", null, MENU_GROUP_SECURITY, "", "security", 50, "directory", null),
                 menu("menu-login-logs", "dir-logs", "登录日志", "/admin/login-logs", "fingerprint", 51, "menu", "logs:login"),
                 menu("menu-op-logs", "dir-logs", "操作日志", "/admin/op-logs", "receipt_long", 52, "menu", "logs:operation")
         );
     }
 
-    private List<Map<String, Object>> defaultRoles() {
-        List<String> menuIds = defaultMenus().stream().map(m -> str(m.get("id"))).toList();
-        List<String> permissionCodes = defaultPermissions().stream().map(p -> str(p.get("code"))).toList();
-        return List.of(role("role-super", "超级管理员", "ROLE_SUPER_ADMIN", "拥有管理端全部菜单和操作权限", menuIds, permissionCodes));
-    }
-
     private List<Map<String, Object>> defaultPermissions() {
         return List.of(
-                permission("perm-user-view", "用户列表查看", "user:view", "用户风控"),
-                permission("perm-user-ban", "用户封禁解封", "user:ban", "用户风控"),
-                permission("perm-user-verify", "用户认证管理", "user:verify", "用户风控"),
-                permission("perm-blacklist", "黑名单维护", "blacklist:edit", "用户风控"),
-                permission("perm-posts", "动态审核", "posts:audit", "内容运营"),
-                permission("perm-comments", "评论治理", "comments:delete", "内容运营"),
-                permission("perm-images", "图片审核", "images:audit", "内容运营"),
-                permission("perm-goods", "商品审核", "goods:audit", "生活服务"),
-                permission("perm-services", "服务管理", "services:create", "生活服务"),
-                permission("perm-orders", "订单强制取消", "orders:cancel", "生活服务"),
-                permission("perm-notice", "通知发布", "notifications:create", "系统设置"),
-                permission("perm-category", "分类维护", "categories:edit", "系统设置"),
-                permission("perm-logs", "日志留存策略", "logs:retention", "系统设置")
+                permission("perm-user-view", "用户列表查看", "user:view", MENU_GROUP_USER),
+                permission("perm-user-ban", "用户封禁与启用", "user:ban", MENU_GROUP_USER),
+                permission("perm-user-verify", "用户认证管理", "user:verify", MENU_GROUP_USER),
+                permission("perm-user-role", "用户角色分配", "user:role", MENU_GROUP_USER),
+                permission("perm-blacklist", "黑名单维护", "blacklist:edit", MENU_GROUP_USER),
+                permission("perm-blacklist-view", "黑名单查看", "blacklist:view", MENU_GROUP_USER),
+                permission("perm-posts-view", "动态列表查看", "posts:view", MENU_GROUP_CONTENT),
+                permission("perm-posts", "动态审核", "posts:audit", MENU_GROUP_CONTENT),
+                permission("perm-comments-view", "评论列表查看", "comments:view", MENU_GROUP_CONTENT),
+                permission("perm-comments", "评论治理", "comments:manage", MENU_GROUP_CONTENT),
+                permission("perm-images", "图片审核", "images:audit", MENU_GROUP_CONTENT),
+                permission("perm-images-view", "图片列表查看", "images:view", MENU_GROUP_CONTENT),
+                permission("perm-goods-view", "商品列表查看", "goods:view", MENU_GROUP_SERVICE),
+                permission("perm-goods", "商品审核", "goods:audit", MENU_GROUP_SERVICE),
+                permission("perm-services-view", "服务列表查看", "services:view", MENU_GROUP_SERVICE),
+                permission("perm-services", "服务管理", "services:manage", MENU_GROUP_SERVICE),
+                permission("perm-orders-view", "订单列表查看", "orders:view", MENU_GROUP_SERVICE),
+                permission("perm-orders", "订单强制取消", "orders:cancel", MENU_GROUP_SERVICE),
+                permission("perm-notice-view", "通知查看", "notifications:view", MENU_GROUP_SYSTEM),
+                permission("perm-notice", "通知发布", "notifications:create", MENU_GROUP_SYSTEM),
+                permission("perm-category-view", "分类查看", "categories:view", MENU_GROUP_SYSTEM),
+                permission("perm-category", "分类维护", "categories:edit", MENU_GROUP_SYSTEM),
+                permission("perm-menu-view", "菜单查看", "menus:view", MENU_GROUP_SYSTEM),
+                permission("perm-role-view", "角色查看", "roles:view", MENU_GROUP_SYSTEM),
+                permission("perm-role-manage", "角色配置", "roles:manage", MENU_GROUP_SYSTEM),
+                permission("perm-permission-view", "权限查看", "permissions:view", MENU_GROUP_SYSTEM),
+                permission("perm-message-view", "消息查看", "messages:view", MENU_GROUP_SYSTEM),
+                permission("perm-message-manage", "消息管理", "messages:manage", MENU_GROUP_SYSTEM),
+                permission("perm-login-log", "登录日志查看", "logs:login", MENU_GROUP_SECURITY),
+                permission("perm-op-log", "操作日志查看", "logs:operation", MENU_GROUP_SECURITY),
+                permission("perm-logs", "日志留存策略", "logs:retention", MENU_GROUP_SYSTEM)
+        );
+    }
+
+    private List<Map<String, Object>> systemRoles() {
+        ensureDefaultAdminRoles();
+        List<Map<String, Object>> rows = jdbcTemplate.queryForList("""
+                SELECT *
+                FROM t_admin_role
+                ORDER BY CASE code
+                    WHEN 'SUPER_ADMIN' THEN 1
+                    WHEN 'ADMIN' THEN 2
+                    WHEN 'READONLY_ADMIN' THEN 3
+                    ELSE 4
+                END, create_time ASC
+                """);
+        return rows.stream().map(row -> role(
+                str(row.get("id")),
+                str(row.get("name")),
+                str(row.get("code")),
+                str(row.get("description")),
+                parseStringArray(str(row.get("menu_ids"))),
+                parseStringArray(str(row.get("permission_codes"))),
+                emptyTo(str(row.get("status")), "active"),
+                countAdminMembers(str(row.get("code"))),
+                time(row.get("create_time"))
+        )).toList();
+    }
+
+    private void ensureDefaultAdminRoles() {
+        builtInRoleSeeds().forEach(this::upsertSystemRole);
+    }
+
+    private List<RoleSeed> builtInRoleSeeds() {
+        return List.of(
+                new RoleSeed("role-super", "超级管理员", ROLE_SUPER_ADMIN, "拥有管理端全部页面与全部操作权限", allMenuIds(), allPermissionCodes(), "active"),
+                new RoleSeed("role-admin", "管理员", ROLE_ADMIN, "可访问全部管理页面，负责日常审核与运营操作", adminMenuIds(), adminPermissionCodes(), "active"),
+                new RoleSeed("role-readonly", "只读管理员", ROLE_READONLY_ADMIN, "可访问全部管理页面，但不可执行写操作", readonlyMenuIds(), readonlyPermissionCodes(), "active"),
+                new RoleSeed("role-user", "普通用户", ROLE_USER, "前台普通账号，不具备管理端权限", List.of(), List.of(), "active")
+        );
+    }
+
+    private void upsertSystemRole(RoleSeed seed) {
+        Long count = jdbcTemplate.queryForObject("SELECT COUNT(1) FROM t_admin_role WHERE code = ?", Long.class, seed.code());
+        if (count != null && count > 0) {
+            jdbcTemplate.update("""
+                    UPDATE t_admin_role
+                    SET name = ?,
+                        description = ?,
+                        status = COALESCE(NULLIF(status, ''), ?),
+                        menu_ids = CASE WHEN menu_ids IS NULL OR menu_ids = '' THEN ? ELSE menu_ids END,
+                        permission_codes = CASE WHEN permission_codes IS NULL OR permission_codes = '' THEN ? ELSE permission_codes END,
+                        update_time = NOW()
+                    WHERE code = ?
+                    """,
+                    seed.name(),
+                    seed.description(),
+                    seed.status(),
+                    stringifyArray(seed.menuIds()),
+                    stringifyArray(seed.permissionCodes()),
+                    seed.code());
+            return;
+        }
+        jdbcTemplate.update("""
+                INSERT INTO t_admin_role(id, name, code, description, status, menu_ids, permission_codes)
+                VALUES(?,?,?,?,?,?,?)
+                """,
+                seed.id(),
+                seed.name(),
+                seed.code(),
+                seed.description(),
+                seed.status(),
+                stringifyArray(seed.menuIds()),
+                stringifyArray(seed.permissionCodes()));
+    }
+
+    private long countAdminMembers(String code) {
+        Long value = jdbcTemplate.queryForObject("SELECT COUNT(1) FROM t_user WHERE admin_role = ?", Long.class, code);
+        return value == null ? 0 : value;
+    }
+
+    private List<String> roleMenuIds(String roleCode) {
+        if (ROLE_USER.equals(roleCode)) return List.of();
+        try {
+            List<String> ids = parseStringArray(jdbcTemplate.queryForObject("SELECT menu_ids FROM t_admin_role WHERE code = ?", String.class, roleCode));
+            return ids.isEmpty() ? defaultMenuIdsFor(roleCode) : ids;
+        } catch (Exception ignored) {
+            return defaultMenuIdsFor(roleCode);
+        }
+    }
+
+    private List<String> rolePermissionCodes(String roleCode) {
+        if (ROLE_USER.equals(roleCode)) return List.of();
+        try {
+            List<String> codes = parseStringArray(jdbcTemplate.queryForObject("SELECT permission_codes FROM t_admin_role WHERE code = ?", String.class, roleCode));
+            return codes.isEmpty() ? defaultPermissionCodesFor(roleCode) : codes;
+        } catch (Exception ignored) {
+            return defaultPermissionCodesFor(roleCode);
+        }
+    }
+
+    private List<String> defaultMenuIdsFor(String roleCode) {
+        return switch (roleCode) {
+            case ROLE_SUPER_ADMIN -> allMenuIds();
+            case ROLE_ADMIN -> adminMenuIds();
+            case ROLE_READONLY_ADMIN -> readonlyMenuIds();
+            default -> List.of();
+        };
+    }
+
+    private List<String> defaultPermissionCodesFor(String roleCode) {
+        return switch (roleCode) {
+            case ROLE_SUPER_ADMIN -> allPermissionCodes();
+            case ROLE_ADMIN -> adminPermissionCodes();
+            case ROLE_READONLY_ADMIN -> readonlyPermissionCodes();
+            default -> List.of();
+        };
+    }
+
+    private List<String> allMenuIds() {
+        return defaultMenus().stream()
+                .filter(menu -> "menu".equals(str(menu.get("type"))))
+                .map(menu -> str(menu.get("id")))
+                .toList();
+    }
+
+    private List<String> adminMenuIds() {
+        return allMenuIds();
+    }
+
+    private List<String> readonlyMenuIds() {
+        return allMenuIds();
+    }
+
+    private List<String> allPermissionCodes() {
+        return defaultPermissions().stream().map(item -> str(item.get("code"))).toList();
+    }
+
+    private List<String> adminPermissionCodes() {
+        return allPermissionCodes().stream()
+                .filter(code -> !Set.of("user:role", "roles:manage", "logs:retention").contains(code))
+                .toList();
+    }
+
+    private List<String> readonlyPermissionCodes() {
+        return List.of(
+                "user:view",
+                "posts:view",
+                "goods:view",
+                "services:view",
+                "orders:view",
+                "categories:view",
+                "notifications:view",
+                "menus:view",
+                "messages:view",
+                "comments:view",
+                "images:view",
+                "blacklist:view",
+                "logs:login",
+                "logs:operation",
+                "roles:view",
+                "permissions:view"
         );
     }
 
@@ -1060,15 +1329,15 @@ public class AdminController {
         return m;
     }
 
-    private Map<String, Object> role(String id, String name, String code, String description, List<String> menuIds, List<String> permissionCodes) {
+    private Map<String, Object> role(String id, String name, String code, String description, List<String> menuIds, List<String> permissionCodes, String status, long memberCount, String createTime) {
         Map<String, Object> r = new LinkedHashMap<>();
         r.put("id", id);
         r.put("name", name);
         r.put("code", code);
         r.put("description", description);
-        r.put("status", "active");
-        r.put("createTime", now());
-        r.put("memberCount", 1);
+        r.put("status", status);
+        r.put("createTime", createTime);
+        r.put("memberCount", memberCount);
         r.put("menuIds", menuIds);
         r.put("permissionCodes", permissionCodes);
         return r;
@@ -1084,6 +1353,24 @@ public class AdminController {
         p.put("status", "active");
         p.put("createTime", now());
         return p;
+    }
+
+    private List<String> parseStringArray(String raw) {
+        if (raw == null || raw.isBlank() || "[]".equals(raw.trim())) return List.of();
+        return Arrays.stream(raw.replace("[", "").replace("]", "").replace("\"", "").split(","))
+                .map(String::trim)
+                .filter(item -> !item.isBlank())
+                .toList();
+    }
+
+    private String stringifyArray(Object value) {
+        if (value instanceof Collection<?> collection) {
+            return collection.stream()
+                    .map(this::str)
+                    .map(item -> "\"" + item + "\"")
+                    .collect(java.util.stream.Collectors.joining(",", "[", "]"));
+        }
+        return "[]";
     }
 
     private void executeQuietly(String sql) {
@@ -1166,19 +1453,19 @@ public class AdminController {
 
     private String normalizeDynamicCategory(String category) {
         if (category == null) return "life";
-        if (category.contains("求助")) return "help";
-        if (category.contains("活动")) return "activity";
-        if (category.contains("美食")) return "food";
+        if (category.contains("姹傚姪")) return "help";
+        if (category.contains("娲诲姩")) return "activity";
+        if (category.contains("缇庨")) return "food";
         return "life";
     }
 
     private String normalizeGoodsCategory(String category) {
         if (category == null) return "other";
         String lower = category.toLowerCase(Locale.ROOT);
-        if (lower.contains("elect") || category.contains("数码")) return "electronics";
-        if (category.contains("家具")) return "furniture";
-        if (category.contains("服")) return "clothing";
-        if (category.contains("书")) return "books";
+        if (lower.contains("elect") || category.contains("鏁扮爜")) return "electronics";
+        if (category.contains("瀹跺叿")) return "furniture";
+        if (lower.contains("cloth")) return "clothing";
+        if (lower.contains("book")) return "books";
         return "other";
     }
 

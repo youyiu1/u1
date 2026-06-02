@@ -5,87 +5,73 @@
 
 import React from 'react';
 import { Link } from 'react-router-dom';
-import { 
-  Store, 
-  Instagram, 
-  Twitter, 
-  Facebook, 
-  Mail, 
-  MapPin, 
-  Phone,
-  ArrowUpRight
-} from 'lucide-react';
+import { MapPin, Phone, Store } from 'lucide-react';
 
-const FOOTER_LINKS = [
+const FOOTER_GROUPS = [
   {
     title: '平台',
     links: [
-      { name: '关于我们', path: '/about' },
-      { name: '加入我们', path: '/careers' },
-      { name: '社区规范', path: '/rules' },
-      { name: '服务协议', path: '/terms' },
-    ]
+      { name: '首页', path: '/' },
+      { name: '同城动态', path: '/news' },
+    ],
   },
   {
     title: '服务',
     links: [
-      { name: '精选家政', path: '/service' },
+      { name: '生活服务', path: '/service' },
       { name: '闲置交易', path: '/market' },
-      { name: '同城头条', path: '/news' },
-      { name: '积分商城', path: '/' },
-    ]
+    ],
   },
   {
     title: '支持',
     links: [
-      { name: '常见问题', path: '/faq' },
-      { name: '意见反馈', path: '/feedback' },
-      { name: '联系邻里', path: '/contact' },
-    ]
-  }
+      { name: '登录', path: '/login' },
+      { name: '注册', path: '/register' },
+    ],
+  },
 ];
 
 export default function Footer() {
   return (
-    <footer className="bg-ink text-white pt-20 pb-12 overflow-hidden">
-      <div className="max-w-[1280px] mx-auto px-6 md:px-20">
-        <div className="grid lg:grid-cols-12 gap-12 mb-16">
-          {/* Logo & About */}
-          <div className="lg:col-span-4 space-y-6">
-            <Link to="/" className="flex items-center gap-2">
-              <div className="w-10 h-10 bg-primary rounded-2xl flex items-center justify-center">
-                <Store className="w-6 h-6 text-white" />
+    <footer className="border-t border-hairline bg-white">
+      <div className="max-w-[1280px] mx-auto px-4 sm:px-6 lg:px-20 py-10 sm:py-12">
+        <div className="grid gap-8 md:grid-cols-[minmax(0,1.3fr)_minmax(0,1fr)]">
+          <div className="space-y-4">
+            <Link to="/" className="inline-flex items-center gap-3 text-ink">
+              <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-primary/10">
+                <Store className="h-5 w-5 text-primary" />
               </div>
-              <span className="text-xl font-bold tracking-tight">
-                同城<span className="text-primary italic">生活</span>
-              </span>
+              <div>
+                <p className="text-base font-bold">同城生活</p>
+                <p className="text-xs text-muted">邻里服务与本地信息平台</p>
+              </div>
             </Link>
-            <p className="text-base text-white/60 font-medium leading-relaxed max-w-sm">
-              连接每一个有温度的邻里，打造更有归宿感的同城社交化生活服务平台。
+
+            <p className="max-w-xl text-sm leading-7 text-secondary">
+              提供同城生活服务、闲置交易和社区动态，页面内容尽量保持简单清晰，方便日常使用。
             </p>
-            <div className="flex gap-3">
-              {[Instagram, Twitter, Facebook].map((Icon, i) => (
-                <button key={i} className="w-10 h-10 rounded-xl bg-white/5 flex items-center justify-center hover:bg-primary transition-all group border border-white/5">
-                  <Icon className="w-5 h-5 text-white/40 group-hover:text-white transition-colors" />
-                </button>
-              ))}
+
+            <div className="flex flex-col gap-2 text-sm text-secondary sm:flex-row sm:flex-wrap sm:items-center sm:gap-5">
+              <span className="inline-flex items-center gap-2">
+                <Phone className="h-4 w-4 text-primary" />
+                400-888-9999
+              </span>
+              <span className="inline-flex items-center gap-2">
+                <MapPin className="h-4 w-4 text-primary" />
+                杭州市滨江区
+              </span>
             </div>
           </div>
 
-          {/* Links Grid */}
-          <div className="lg:col-span-5 grid grid-cols-2 lg:grid-cols-3 gap-8">
-            {FOOTER_LINKS.map((section) => (
-              <div key={section.title} className="space-y-4">
-                <h4 className="text-xs font-bold uppercase tracking-widest text-white/30">{section.title}</h4>
-                <ul className="space-y-2.5">
-                  {section.links.map((link) => (
-                    <li key={link.name}>
-                      <Link 
-                        to={link.path} 
-                        className="text-sm font-medium text-white/50 hover:text-primary transition-colors flex items-center gap-1 group"
-                      >
+          <div className="grid grid-cols-2 gap-6 sm:grid-cols-3">
+            {FOOTER_GROUPS.map((group) => (
+              <div key={group.title} className="space-y-3">
+                <h3 className="text-sm font-semibold text-ink">{group.title}</h3>
+                <ul className="space-y-2">
+                  {group.links.map((link) => (
+                    <li key={link.path}>
+                      <Link to={link.path} className="text-sm text-secondary transition-colors hover:text-primary">
                         {link.name}
-                        <ArrowUpRight className="w-3 h-3 opacity-0 group-hover:opacity-100 transition-all" />
                       </Link>
                     </li>
                   ))}
@@ -93,49 +79,11 @@ export default function Footer() {
               </div>
             ))}
           </div>
-
-          {/* Newsletter / Contact */}
-          <div className="lg:col-span-3 space-y-6">
-             <h4 className="text-xs font-bold uppercase tracking-widest text-white/30">联系我们</h4>
-             <div className="space-y-3">
-               {[
-                 { icon: Phone, text: '400-888-9999' },
-                 { icon: Mail, text: 'hello@neighbor.com' },
-                 { icon: MapPin, text: '滨江区 铂金时代 12F' },
-               ].map((item, i) => (
-                 <div key={i} className="flex items-center gap-3 group">
-                    <item.icon className="w-4 h-4 text-primary" />
-                    <span className="text-sm font-medium text-white/70">{item.text}</span>
-                 </div>
-               ))}
-             </div>
-             <div className="pt-4">
-                <div className="flex gap-2">
-                  <input 
-                    type="email" 
-                    placeholder=" your@email.com"
-                    className="flex-1 bg-white/5 border border-white/10 rounded-xl px-4 py-2.5 text-xs font-bold focus:outline-none focus:border-primary transition-colors"
-                  />
-                  <button className="px-4 py-2.5 bg-primary text-white rounded-xl font-bold text-xs hover:bg-primary-hover transition-all">
-                    订阅
-                  </button>
-                </div>
-             </div>
-          </div>
         </div>
 
-        {/* Bottom Bar */}
-        <div className="pt-10 border-t border-white/5 flex flex-col md:flex-row justify-between items-center gap-6">
-          <p className="text-xs font-medium text-white/30">
-            © 2026 同城生活. All Rights Reserved.
-          </p>
-          <div className="flex items-center gap-6">
-             <p className="text-xs font-medium text-white/30">浙ICP备 20240001号-1</p>
-             <div className="flex items-center gap-2">
-                <span className="w-1.5 h-1.5 bg-green-500 rounded-full animate-pulse" />
-                <span className="text-xs font-medium text-white/50">SYSTEM NORMAL</span>
-             </div>
-          </div>
+        <div className="mt-8 flex flex-col gap-2 border-t border-hairline pt-5 text-xs text-muted sm:flex-row sm:items-center sm:justify-between">
+          <p>© 2026 同城生活</p>
+          <p>浙 ICP 备 20240001 号</p>
         </div>
       </div>
     </footer>

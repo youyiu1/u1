@@ -19,9 +19,11 @@ import type {
   OperationLogItem,
   Order,
   Service,
+  SystemMenu,
   User,
 } from './types';
 import { adminApi, type Result } from './services/adminApi';
+import { getPrimaryImage } from '../utils/images';
 import './admin.css';
 
 import Login from './components/Login';
@@ -83,16 +85,22 @@ function ok<T>(res: Result<T>) {
 }
 
 function isUnauthorized(res: Result<unknown>) {
-  return res.message === '未登录' || res.message === 'Token无效' || res.message === 'Token已过期';
+  return !res.success && res.code === 401;
 }
 
 function toAlertMessage(res: Result<unknown>) {
-  return res.message || '操作失败';
+  return res.message || '鎿嶄綔澶辫触';
 }
 
-type UserTagLookup = {
-  byId: Map<string, string>;
-  byName: Map<string, string>;
+type UserProfile = {
+  id: string;
+  avatar: string;
+  tag: string;
+};
+
+type UserProfileLookup = {
+  byId: Map<string, UserProfile>;
+  byName: Map<string, UserProfile>;
 };
 
 function normalizeTag(value?: string) {
@@ -103,23 +111,32 @@ function getUserProfileTag(user?: User) {
   return normalizeTag(user?.tag) || normalizeTag(user?.region);
 }
 
-function buildUserTagLookup(userList: User[]): UserTagLookup {
-  const byId = new Map<string, string>();
-  const byName = new Map<string, string>();
+function getUserProfile(user?: User): UserProfile {
+  return {
+    id: user?.id || '',
+    avatar: getPrimaryImage(user?.avatar),
+    tag: getUserProfileTag(user),
+  };
+}
+
+function buildUserProfileLookup(userList: User[]): UserProfileLookup {
+  const byId = new Map<string, UserProfile>();
+  const byName = new Map<string, UserProfile>();
   userList.forEach((user) => {
-    const tag = getUserProfileTag(user);
-    if (!tag) return;
-    byId.set(user.id, tag);
-    byName.set(user.name, tag);
+    const profile = getUserProfile(user);
+    byId.set(user.id, profile);
+    if (user.name && !byName.has(user.name)) {
+      byName.set(user.name, profile);
+    }
   });
   return { byId, byName };
 }
 
-function resolveUserTag(lookup: UserTagLookup, id?: string, name?: string) {
-  return (id ? lookup.byId.get(id) : '') || (name ? lookup.byName.get(name) : '') || '';
+function resolveUserProfile(lookup: UserProfileLookup, id?: string, name?: string) {
+  return (id ? lookup.byId.get(id) : undefined) || (name ? lookup.byName.get(name) : undefined);
 }
 
-function enrichWithUserTags(payload: {
+function enrichWithUserProfiles(payload: {
   dynamics?: Dynamic[];
   goods?: Goods[];
   services?: Service[];
@@ -128,42 +145,65 @@ function enrichWithUserTags(payload: {
   images?: ManagedImage[];
   messages?: ManagedMessage[];
 }, userList: User[]) {
-  const lookup = buildUserTagLookup(userList);
+  const lookup = buildUserProfileLookup(userList);
   return {
     dynamics: payload.dynamics?.map((item) => ({
       ...item,
-      authorTag: normalizeTag(item.authorTag) || resolveUserTag(lookup, item.userId, item.author),
+      authorAvatar: getPrimaryImage(item.authorAvatar, resolveUserProfile(lookup, item.userId, item.author)?.avatar),
+      authorTag: normalizeTag(item.authorTag) || resolveUserProfile(lookup, item.userId, item.author)?.tag || '',
     })),
     goods: payload.goods?.map((item) => ({
       ...item,
-      sellerTag: normalizeTag(item.sellerTag) || resolveUserTag(lookup, item.sellerId, item.sellerName),
+      sellerAvatar: getPrimaryImage(item.sellerAvatar, resolveUserProfile(lookup, item.sellerId, item.sellerName)?.avatar),
+      sellerTag: normalizeTag(item.sellerTag) || resolveUserProfile(lookup, item.sellerId, item.sellerName)?.tag || '',
     })),
-    services: payload.services?.map((item) => ({
-      ...item,
-      providerTag: normalizeTag(item.providerTag) || resolveUserTag(lookup, undefined, item.providerName),
-    })),
-    orders: payload.orders?.map((item) => ({
-      ...item,
-      buyerTag: normalizeTag(item.buyerTag) || resolveUserTag(lookup, undefined, item.buyerName),
-      sellerTag: normalizeTag(item.sellerTag) || resolveUserTag(lookup, undefined, item.sellerName),
-    })),
+    services: payload.services?.map((item) => {
+      const providerProfile = resolveUserProfile(lookup, item.providerId, item.providerName);
+      return {
+        ...item,
+        providerId: item.providerId || providerProfile?.id,
+        providerAvatar: getPrimaryImage(item.providerAvatar, providerProfile?.avatar),
+        providerTag: normalizeTag(item.providerTag) || providerProfile?.tag || '',
+      };
+    }),
+    orders: payload.orders?.map((item) => {
+      const buyerProfile = resolveUserProfile(lookup, item.buyerId, item.buyerName);
+      const sellerProfile = resolveUserProfile(lookup, item.sellerId, item.sellerName);
+      return {
+        ...item,
+        buyerId: item.buyerId || buyerProfile?.id,
+        buyerTag: normalizeTag(item.buyerTag) || buyerProfile?.tag || '',
+        buyerAvatar: getPrimaryImage(item.buyerAvatar, buyerProfile?.avatar),
+        sellerId: item.sellerId || sellerProfile?.id,
+        sellerTag: normalizeTag(item.sellerTag) || sellerProfile?.tag || '',
+        sellerAvatar: getPrimaryImage(item.sellerAvatar, sellerProfile?.avatar),
+      };
+    }),
     comments: payload.comments?.map((item) => ({
       ...item,
-      authorTag: normalizeTag(item.authorTag) || resolveUserTag(lookup, undefined, item.authorName),
+      authorAvatar: getPrimaryImage(item.authorAvatar, resolveUserProfile(lookup, undefined, item.authorName)?.avatar),
+      authorTag: normalizeTag(item.authorTag) || resolveUserProfile(lookup, undefined, item.authorName)?.tag || '',
     })),
     images: payload.images?.map((item) => ({
       ...item,
-      uploaderTag: normalizeTag(item.uploaderTag) || resolveUserTag(lookup, undefined, item.uploader),
+      uploaderTag: normalizeTag(item.uploaderTag) || resolveUserProfile(lookup, undefined, item.uploader)?.tag || '',
     })),
-    messages: payload.messages?.map((item) => ({
-      ...item,
-      senderTag: normalizeTag(item.senderTag) || resolveUserTag(lookup, item.senderId, item.senderName),
-      receiverTag: normalizeTag(item.receiverTag) || resolveUserTag(lookup, item.receiverId, item.receiverName),
-    })),
+    messages: payload.messages?.map((item) => {
+      const senderProfile = resolveUserProfile(lookup, item.senderId, item.senderName);
+      const receiverProfile = resolveUserProfile(lookup, item.receiverId, item.receiverName);
+      return {
+        ...item,
+        senderAvatar: getPrimaryImage(item.senderAvatar, senderProfile?.avatar),
+        senderTag: normalizeTag(item.senderTag) || senderProfile?.tag || '',
+        receiverAvatar: getPrimaryImage(item.receiverAvatar, receiverProfile?.avatar),
+        receiverTag: normalizeTag(item.receiverTag) || receiverProfile?.tag || '',
+      };
+    }),
   };
 }
 
 export default function AdminApp() {
+  const [isDesktopLayout, setIsDesktopLayout] = useState(() => window.innerWidth >= 1024);
   const [isLoggedIn, setIsLoggedIn] = useState(() => !!localStorage.getItem('admin_token'));
   const [adminUser, setAdminUser] = useState(() => localStorage.getItem('admin_username') || 'admin');
   const [adminRole, setAdminRole] = useState(() => localStorage.getItem('admin_role') || 'USER');
@@ -183,12 +223,14 @@ export default function AdminApp() {
   const [messages, setMessages] = useState<ManagedMessage[]>([]);
   const [loginLogs, setLoginLogs] = useState<LoginLogItem[]>([]);
   const [opLogs, setOpLogs] = useState<OperationLogItem[]>([]);
+  const [systemMenus, setSystemMenus] = useState<SystemMenu[]>([]);
 
   const [currentPath, setCurrentPath] = useState(() => {
     const p = window.location.pathname;
     return VALID_PATHS.has(p) ? p : '/admin/dashboard';
   });
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
+  const [isMobileSidebarOpen, setIsMobileSidebarOpen] = useState(false);
   const [exteriorTabFilter, setExteriorTabFilter] = useState<string | undefined>();
   const [initialSelectedOrderId, setInitialSelectedOrderId] = useState<string | undefined>();
   const [isTabTransitioning, setIsTabTransitioning] = useState(false);
@@ -198,10 +240,42 @@ export default function AdminApp() {
     localStorage.removeItem('admin_username');
     localStorage.removeItem('admin_role');
     localStorage.removeItem('admin_readonly');
+    localStorage.removeItem('admin_permissions');
+    setSystemMenus([]);
     setIsLoggedIn(false);
     window.history.pushState({}, '', '/admin/login');
     setCurrentPath('/admin/login');
   };
+
+  const loadAdminShellData = async () => {
+    const [sessionRes, menuRes] = await Promise.all([adminApi.getAdminInfo(), adminApi.getMenus()]);
+    if (isUnauthorized(sessionRes) || isUnauthorized(menuRes)) {
+      handleUnauthorized();
+      return;
+    }
+    if (ok(sessionRes)) {
+      setAdminUser(sessionRes.data.username || localStorage.getItem('admin_username') || 'admin');
+      setAdminRole(sessionRes.data.adminRole || adminApi.getStoredAdminRole());
+      setIsReadonlyAdmin(sessionRes.data.readonly === 'true');
+    }
+    if (ok(menuRes)) {
+      setSystemMenus(menuRes.data);
+    }
+  };
+
+  useEffect(() => {
+    const handleResize = () => {
+      const desktop = window.innerWidth >= 1024;
+      setIsDesktopLayout(desktop);
+      if (desktop) {
+        setIsMobileSidebarOpen(false);
+      }
+    };
+
+    handleResize();
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
 
   useEffect(() => {
     const token = localStorage.getItem('admin_token');
@@ -211,6 +285,7 @@ export default function AdminApp() {
       setAdminUser(username);
       setAdminRole(adminApi.getStoredAdminRole());
       setIsReadonlyAdmin(adminApi.isReadonlyAdmin());
+      void loadAdminShellData();
       if (window.location.pathname === '/' || window.location.pathname === '/admin/login' || window.location.pathname === '/index.html') {
         window.history.replaceState({}, '', '/admin/dashboard');
         setCurrentPath('/admin/dashboard');
@@ -242,17 +317,20 @@ export default function AdminApp() {
     try {
       switch (path) {
         case '/admin/dashboard': {
-          const [resStats, resDyn, resOrders, resServices] = await Promise.all([
+          const [resStats, resDyn, resOrders, resServices, userRes] = await Promise.all([
             adminApi.getDashboardStats(),
             adminApi.getDynamics(),
             adminApi.getOrders(),
             adminApi.getServices(),
+            adminApi.getUsers(),
           ]);
-          if ([resStats, resDyn, resOrders, resServices].some(isUnauthorized)) return handleUnauthorized();
+          if ([resStats, resDyn, resOrders, resServices, userRes].some(isUnauthorized)) return handleUnauthorized();
+          const userList = ok(userRes) ? userRes.data : users;
+          if (ok(userRes)) setUsers(userList);
           if (ok(resStats)) setDashboardStats(resStats.data);
-          if (ok(resDyn)) setDynamics(resDyn.data);
-          if (ok(resOrders)) setOrders(resOrders.data);
-          if (ok(resServices)) setServices(resServices.data);
+          if (ok(resDyn)) setDynamics(enrichWithUserProfiles({ dynamics: resDyn.data }, userList).dynamics || resDyn.data);
+          if (ok(resOrders)) setOrders(enrichWithUserProfiles({ orders: resOrders.data }, userList).orders || resOrders.data);
+          if (ok(resServices)) setServices(enrichWithUserProfiles({ services: resServices.data }, userList).services || resServices.data);
           break;
         }
         case '/admin/users': {
@@ -266,7 +344,7 @@ export default function AdminApp() {
           if ([res, userRes].some(isUnauthorized)) return handleUnauthorized();
           const userList = ok(userRes) ? userRes.data : users;
           if (ok(userRes)) setUsers(userList);
-          if (ok(res)) setDynamics(enrichWithUserTags({ dynamics: res.data }, userList).dynamics || res.data);
+          if (ok(res)) setDynamics(enrichWithUserProfiles({ dynamics: res.data }, userList).dynamics || res.data);
           break;
         }
         case '/admin/market': {
@@ -274,7 +352,7 @@ export default function AdminApp() {
           if ([res, userRes].some(isUnauthorized)) return handleUnauthorized();
           const userList = ok(userRes) ? userRes.data : users;
           if (ok(userRes)) setUsers(userList);
-          if (ok(res)) setGoods(enrichWithUserTags({ goods: res.data }, userList).goods || res.data);
+          if (ok(res)) setGoods(enrichWithUserProfiles({ goods: res.data }, userList).goods || res.data);
           break;
         }
         case '/admin/services': {
@@ -282,7 +360,7 @@ export default function AdminApp() {
           if ([res, userRes].some(isUnauthorized)) return handleUnauthorized();
           const userList = ok(userRes) ? userRes.data : users;
           if (ok(userRes)) setUsers(userList);
-          if (ok(res)) setServices(enrichWithUserTags({ services: res.data }, userList).services || res.data);
+          if (ok(res)) setServices(enrichWithUserProfiles({ services: res.data }, userList).services || res.data);
           break;
         }
         case '/admin/orders': {
@@ -290,7 +368,7 @@ export default function AdminApp() {
           if ([res, userRes].some(isUnauthorized)) return handleUnauthorized();
           const userList = ok(userRes) ? userRes.data : users;
           if (ok(userRes)) setUsers(userList);
-          if (ok(res)) setOrders(enrichWithUserTags({ orders: res.data }, userList).orders || res.data);
+          if (ok(res)) setOrders(enrichWithUserProfiles({ orders: res.data }, userList).orders || res.data);
           break;
         }
         case '/admin/notifications': {
@@ -310,7 +388,7 @@ export default function AdminApp() {
           if ([res, userRes].some(isUnauthorized)) return handleUnauthorized();
           const userList = ok(userRes) ? userRes.data : users;
           if (ok(userRes)) setUsers(userList);
-          if (ok(res)) setManagedComments(enrichWithUserTags({ comments: res.data }, userList).comments || res.data);
+          if (ok(res)) setManagedComments(enrichWithUserProfiles({ comments: res.data }, userList).comments || res.data);
           break;
         }
         case '/admin/blacklist': {
@@ -324,7 +402,7 @@ export default function AdminApp() {
           if ([res, userRes].some(isUnauthorized)) return handleUnauthorized();
           const userList = ok(userRes) ? userRes.data : users;
           if (ok(userRes)) setUsers(userList);
-          if (ok(res)) setImages(enrichWithUserTags({ images: res.data }, userList).images || res.data);
+          if (ok(res)) setImages(enrichWithUserProfiles({ images: res.data }, userList).images || res.data);
           break;
         }
         case '/admin/messages': {
@@ -332,7 +410,7 @@ export default function AdminApp() {
           if ([res, userRes].some(isUnauthorized)) return handleUnauthorized();
           const userList = ok(userRes) ? userRes.data : users;
           if (ok(userRes)) setUsers(userList);
-          if (ok(res)) setMessages(enrichWithUserTags({ messages: res.data }, userList).messages || res.data);
+          if (ok(res)) setMessages(enrichWithUserProfiles({ messages: res.data }, userList).messages || res.data);
           break;
         }
         case '/admin/login-logs': {
@@ -363,6 +441,7 @@ export default function AdminApp() {
 
   const handleNavigateWithFilters = (nextPath: string, filter?: string) => {
     setIsTabTransitioning(true);
+    setIsMobileSidebarOpen(false);
     if (nextPath === '/admin/orders' && filter?.startsWith('ORD-')) {
       setInitialSelectedOrderId(filter);
       setExteriorTabFilter(undefined);
@@ -388,6 +467,7 @@ export default function AdminApp() {
     setAdminRole(adminApi.getStoredAdminRole());
     setIsReadonlyAdmin(adminApi.isReadonlyAdmin());
     setIsLoggedIn(true);
+    void loadAdminShellData();
     window.history.pushState({}, '', '/admin/dashboard');
     setCurrentPath('/admin/dashboard');
   };
@@ -401,7 +481,7 @@ export default function AdminApp() {
 
   const runAction = async (action: Promise<Result<void>>) => {
     if (isReadonlyAdmin) {
-      alert('当前账号为只读管理员，不能执行此操作');
+      alert('当前账号为只读管理员，不能执行写操作');
       return;
     }
     const res = await action;
@@ -414,7 +494,7 @@ export default function AdminApp() {
 
   const handleAddOperationLog = async (action: string, target: string, details?: string) => {
     if (isReadonlyAdmin) return;
-    const res = await adminApi.addOperationLog(adminUser, '超级管理员', action, target, '127.0.0.1', 'success', details);
+    const res = await adminApi.addOperationLog(adminUser, adminRole, action, target, '127.0.0.1', 'success', details);
     if (ok(res) && currentPath === '/admin/op-logs') fetchActivePageData(currentPath);
   };
 
@@ -491,9 +571,11 @@ export default function AdminApp() {
       case '/admin/permissions':
         return <PermissionManagementView readonly={isReadonlyAdmin} adminRole={adminRole} />;
       default:
-        return <div className="text-center py-12 text-outline text-headline-md font-extrabold">找不到对应的管理视图</div>;
+        return <div className="text-center py-12 text-outline text-headline-md font-extrabold">页面建设中</div>;
     }
   };
+
+  const currentAdminProfile = users.find((user) => user.name === adminUser || user.email === adminUser);
 
   if (!isLoggedIn || currentPath === '/admin/login') {
     return <Login onLoginSuccess={handleLoginSuccess} />;
@@ -504,13 +586,20 @@ export default function AdminApp() {
       <Sidebar
         currentTab={currentPath}
         onTabChange={handleNavigateWithFilters}
-        isCollapsed={isSidebarCollapsed}
+        isCollapsed={isDesktopLayout ? isSidebarCollapsed : false}
         onToggleCollapse={() => setIsSidebarCollapsed(!isSidebarCollapsed)}
         unreadCount={notifications.filter((n) => !n.read).length}
+        menus={systemMenus}
+        isDesktopLayout={isDesktopLayout}
+        isMobileOpen={isMobileSidebarOpen}
+        onCloseMobile={() => setIsMobileSidebarOpen(false)}
       />
       <div className="flex-1 flex flex-col min-w-0">
         <Header
           username={adminUser}
+          adminRole={adminRole}
+          adminTag={currentAdminProfile?.tag || currentAdminProfile?.region}
+          adminAvatar={currentAdminProfile?.avatar}
           notifications={notifications}
           onToggleNotificationRead={(id) => runAction(adminApi.toggleNotificationRead(id))}
           onLogout={handleLogout}
@@ -522,6 +611,8 @@ export default function AdminApp() {
           services={services}
           orders={orders}
           onRefresh={() => fetchActivePageData(currentPath)}
+          onToggleSidebar={() => setIsMobileSidebarOpen((current) => !current)}
+          isDesktopLayout={isDesktopLayout}
         />
         <main className="admin-main p-3 sm:p-6 flex-grow overflow-y-auto relative min-h-[500px]">
           <AnimatePresence mode="wait">
@@ -543,7 +634,7 @@ export default function AdminApp() {
                   ))}
                 </div>
                 <div className="h-[300px] bg-slate-200/40 border border-outline-variant/20 rounded-xl animate-pulse flex items-center justify-center p-6 text-outline select-none font-semibold">
-                  正在同步管理端数据...
+                  页面切换中，正在加载最新数据...
                 </div>
               </motion.div>
             ) : null}

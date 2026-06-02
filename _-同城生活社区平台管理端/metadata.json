@@ -1,8 +1,0 @@
-{
-  "name": "Remix: 同城生活社区平台管理端",
-  "description": "同城生活社区平台管理控制台，包含仪表盘、用户管理、动态管理、闲置商品、服务管理、订单管理、通知管理与分类管理等，100%还原原型，提供真实的流畅交互与动效反馈。",
-  "requestFramePermissions": [],
-  "majorCapabilities": [
-    "MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"
-  ]
-}

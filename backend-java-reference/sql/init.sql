@@ -193,7 +193,7 @@ INSERT INTO t_user (id, name, email, password, avatar, tag, is_verified, followe
 ('u002', '鐜嬪ぇ鍘?, 'wang_dachu@example.com', '123456', '/api/file/37dc56e3f2b541b79d98e82c4abd371a.jpg', '缇庨杈句汉', 1, 1240, 320, 'USER'),
 ('u003', '灏忔灄', 'photo_xiaolin@example.com', '123456', '/api/file/64edb6bef14c4c1b8bd23ffe817e54a5.jpg', '鎽勫奖杈句汉', 0, 850, 412, 'USER'),
 ('admin_test', 'test', 'test@example.com', 'test', '', 'admin', 1, 0, 0, 'SUPER_ADMIN'),
-('admin_readonly', 'readonly', 'readonly@example.com', 'readonly', '', 'admin', 1, 0, 0, 'READONLY_ADMIN'),
+('admin_readonly', 'test1', 'test1@example.com', '123456', '', 'admin', 1, 0, 0, 'READONLY_ADMIN'),
 ('normal_user', 'normal', 'normal@example.com', 'normal', '', 'user', 0, 0, 0, 'USER');
 
 -- 鎻掑叆娴嬭瘯鍔ㄦ€?INSERT INTO t_news (author_id, content, location, category, likes, comments_count, images, shares, collections) VALUES
@@ -283,3 +283,139 @@ ALTER TABLE t_user ADD COLUMN like_notify TINYINT(1) DEFAULT 1;
 ALTER TABLE t_user ADD COLUMN comment_notify TINYINT(1) DEFAULT 1;
 ALTER TABLE t_user ADD COLUMN system_notify TINYINT(1) DEFAULT 0;
 
+
+-- ================================================
+-- Admin RBAC compatibility patch
+-- ================================================
+
+CREATE TABLE IF NOT EXISTS t_admin_permission (
+    id VARCHAR(64) PRIMARY KEY,
+    name VARCHAR(100) NOT NULL,
+    code VARCHAR(100) NOT NULL,
+    category VARCHAR(100) DEFAULT '',
+    description VARCHAR(255) DEFAULT '',
+    status VARCHAR(20) DEFAULT 'active',
+    create_time DATETIME DEFAULT CURRENT_TIMESTAMP,
+    update_time DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    UNIQUE KEY uk_permission_code (code)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='admin permission table';
+
+CREATE TABLE IF NOT EXISTS t_admin_menu (
+    id VARCHAR(64) PRIMARY KEY,
+    parent_id VARCHAR(64) DEFAULT NULL,
+    name VARCHAR(100) NOT NULL,
+    path VARCHAR(120) DEFAULT '',
+    icon VARCHAR(64) DEFAULT '',
+    sort_order INT DEFAULT 0,
+    status VARCHAR(20) DEFAULT 'active',
+    type VARCHAR(20) DEFAULT 'menu',
+    permission_code VARCHAR(100) DEFAULT NULL,
+    create_time DATETIME DEFAULT CURRENT_TIMESTAMP,
+    update_time DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='admin menu table';
+
+CREATE TABLE IF NOT EXISTS t_admin_role (
+    id VARCHAR(64) PRIMARY KEY,
+    name VARCHAR(100) NOT NULL,
+    code VARCHAR(64) NOT NULL,
+    description VARCHAR(255) DEFAULT '',
+    status VARCHAR(20) DEFAULT 'active',
+    is_system TINYINT(1) DEFAULT 1,
+    menu_ids TEXT,
+    permission_codes TEXT,
+    create_time DATETIME DEFAULT CURRENT_TIMESTAMP,
+    update_time DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    UNIQUE KEY uk_role_code (code)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='admin role table';
+
+INSERT INTO t_user (id, name, email, password, avatar, tag, is_verified, followers_count, following_count, admin_role)
+VALUES ('admin_manager', 'manager', 'manager@example.com', 'manager', '', 'admin', 1, 0, 0, 'ADMIN')
+ON DUPLICATE KEY UPDATE admin_role = VALUES(admin_role), password = VALUES(password);
+
+INSERT INTO t_admin_permission (id, name, code, category, description, status) VALUES
+('perm-user-view', '用户列表查看', 'user:view', '用户风控', '查看用户列表和基础资料', 'active'),
+('perm-user-ban', '用户状态管理', 'user:ban', '用户风控', '禁用或恢复用户', 'active'),
+('perm-user-verify', '用户认证管理', 'user:verify', '用户风控', '调整用户认证状态', 'active'),
+('perm-user-role', '用户角色分配', 'user:role', '用户风控', '分配后台角色', 'active'),
+('perm-blacklist-view', '黑名单查看', 'blacklist:view', '用户风控', '查看风控黑名单', 'active'),
+('perm-blacklist-edit', '黑名单维护', 'blacklist:edit', '用户风控', '新增或删除黑名单', 'active'),
+('perm-posts-view', '动态查看', 'posts:view', '内容运营', '查看动态管理列表', 'active'),
+('perm-posts-audit', '动态审核', 'posts:audit', '内容运营', '审核和处置动态内容', 'active'),
+('perm-comments-view', '评论查看', 'comments:view', '内容运营', '查看评论内容', 'active'),
+('perm-comments-manage', '评论治理', 'comments:manage', '内容运营', '隐藏、删除和干预评论', 'active'),
+('perm-messages-view', '消息查看', 'messages:view', '内容运营', '查看私信消息', 'active'),
+('perm-messages-manage', '消息治理', 'messages:manage', '内容运营', '标记已读和删除消息', 'active'),
+('perm-images-view', '图片查看', 'images:view', '内容运营', '查看图片资源', 'active'),
+('perm-images-audit', '图片审核', 'images:audit', '内容运营', '审核和删除图片', 'active'),
+('perm-goods-view', '商品查看', 'goods:view', '生活服务', '查看闲置商品', 'active'),
+('perm-goods-audit', '商品审核', 'goods:audit', '生活服务', '上架、下架和标记商品', 'active'),
+('perm-services-view', '服务查看', 'services:view', '生活服务', '查看生活服务', 'active'),
+('perm-services-manage', '服务管理', 'services:manage', '生活服务', '新增、上架和下架服务', 'active'),
+('perm-orders-view', '订单查看', 'orders:view', '生活服务', '查看订单列表和详情', 'active'),
+('perm-orders-cancel', '订单关闭', 'orders:cancel', '生活服务', '强制关闭订单', 'active'),
+('perm-notifications-view', '通知查看', 'notifications:view', '系统设置', '查看通知列表', 'active'),
+('perm-notifications-create', '通知发布', 'notifications:create', '系统设置', '创建和发送通知', 'active'),
+('perm-categories-view', '分类查看', 'categories:view', '系统设置', '查看分类配置', 'active'),
+('perm-categories-edit', '分类维护', 'categories:edit', '系统设置', '新增和启停分类', 'active'),
+('perm-menus-view', '菜单查看', 'menus:view', '系统设置', '查看菜单配置', 'active'),
+('perm-roles-view', '角色查看', 'roles:view', '系统设置', '查看角色配置', 'active'),
+('perm-roles-manage', '角色管理', 'roles:manage', '系统设置', '修改角色菜单和权限', 'active'),
+('perm-permissions-view', '权限查看', 'permissions:view', '系统设置', '查看系统权限清单', 'active'),
+('perm-logs-login', '登录日志查看', 'logs:login', '系统安全', '查看登录日志', 'active'),
+('perm-logs-operation', '操作日志查看', 'logs:operation', '系统安全', '查看操作日志', 'active'),
+('perm-logs-retention', '日志清理', 'logs:retention', '系统安全', '执行日志保留策略', 'active')
+ON DUPLICATE KEY UPDATE
+name = VALUES(name),
+category = VALUES(category),
+description = VALUES(description),
+status = VALUES(status);
+
+INSERT INTO t_admin_menu (id, parent_id, name, path, icon, sort_order, status, type, permission_code) VALUES
+('dir-users', NULL, '用户风控', '', 'admin_panel_settings', 10, 'active', 'directory', NULL),
+('menu-users', 'dir-users', '用户管理', '/admin/users', 'group', 11, 'active', 'menu', 'user:view'),
+('menu-blacklist', 'dir-users', '风控黑名单', '/admin/blacklist', 'gavel', 12, 'active', 'menu', 'blacklist:view'),
+('dir-content', NULL, '内容运营', '', 'forum', 20, 'active', 'directory', NULL),
+('menu-posts', 'dir-content', '动态管理', '/admin/posts', 'explore', 21, 'active', 'menu', 'posts:view'),
+('menu-comments', 'dir-content', '评论管理', '/admin/comments', 'chat_bubble', 22, 'active', 'menu', 'comments:view'),
+('menu-messages', 'dir-content', '消息管理', '/admin/messages', 'forum', 23, 'active', 'menu', 'messages:view'),
+('menu-images', 'dir-content', '图片管理', '/admin/images', 'photo_library', 24, 'active', 'menu', 'images:view'),
+('dir-services', NULL, '生活服务', '', 'storefront', 30, 'active', 'directory', NULL),
+('menu-market', 'dir-services', '闲置商品管理', '/admin/market', 'shopping_bag', 31, 'active', 'menu', 'goods:view'),
+('menu-services', 'dir-services', '服务管理', '/admin/services', 'home_repair_service', 32, 'active', 'menu', 'services:view'),
+('menu-orders', 'dir-services', '订单管理', '/admin/orders', 'receipt_long', 33, 'active', 'menu', 'orders:view'),
+('dir-system', NULL, '系统设置', '', 'settings_suggest', 40, 'active', 'directory', NULL),
+('menu-notifications', 'dir-system', '通知管理', '/admin/notifications', 'campaign', 41, 'active', 'menu', 'notifications:view'),
+('menu-categories', 'dir-system', '分类管理', '/admin/categories', 'category', 42, 'active', 'menu', 'categories:view'),
+('menu-menus', 'dir-system', '菜单管理', '/admin/menus', 'menu', 43, 'active', 'menu', 'menus:view'),
+('menu-roles', 'dir-system', '角色管理', '/admin/roles', 'badge', 44, 'active', 'menu', 'roles:view'),
+('menu-permissions', 'dir-system', '权限管理', '/admin/permissions', 'key', 45, 'active', 'menu', 'permissions:view'),
+('dir-logs', NULL, '系统安全', '', 'security', 50, 'active', 'directory', NULL),
+('menu-login-logs', 'dir-logs', '登录日志', '/admin/login-logs', 'fingerprint', 51, 'active', 'menu', 'logs:login'),
+('menu-op-logs', 'dir-logs', '操作日志', '/admin/op-logs', 'receipt_long', 52, 'active', 'menu', 'logs:operation')
+ON DUPLICATE KEY UPDATE
+parent_id = VALUES(parent_id),
+name = VALUES(name),
+path = VALUES(path),
+icon = VALUES(icon),
+sort_order = VALUES(sort_order),
+status = VALUES(status),
+type = VALUES(type),
+permission_code = VALUES(permission_code);
+
+INSERT INTO t_admin_role (id, name, code, description, status, is_system, menu_ids, permission_codes) VALUES
+('role-user', '普通用户', 'USER', '前台普通用户，不可进入管理端', 'active', 1, '[]', '[]'),
+('role-readonly', '只读管理员', 'READONLY_ADMIN', '可查看后台数据，不可执行写操作', 'active', 1,
+ '["dir-users","menu-users","menu-blacklist","dir-content","menu-posts","menu-comments","menu-messages","menu-images","dir-services","menu-market","menu-services","menu-orders","dir-system","menu-notifications","menu-categories","menu-menus","menu-roles","menu-permissions","dir-logs","menu-login-logs","menu-op-logs"]',
+ '["user:view","blacklist:view","posts:view","comments:view","messages:view","images:view","goods:view","services:view","orders:view","notifications:view","categories:view","menus:view","roles:view","permissions:view","logs:login","logs:operation"]'),
+('role-admin', '管理员', 'ADMIN', '负责日常审核与运营，不可调整角色和权限', 'active', 1,
+ '["dir-users","menu-users","menu-blacklist","dir-content","menu-posts","menu-comments","menu-messages","menu-images","dir-services","menu-market","menu-services","menu-orders","dir-system","menu-notifications","menu-categories","dir-logs","menu-login-logs","menu-op-logs"]',
+ '["user:view","user:ban","user:verify","blacklist:view","blacklist:edit","posts:view","posts:audit","comments:view","comments:manage","messages:view","messages:manage","images:view","images:audit","goods:view","goods:audit","services:view","services:manage","orders:view","orders:cancel","notifications:view","notifications:create","categories:view","categories:edit","logs:login","logs:operation"]'),
+('role-super', '超级管理员', 'SUPER_ADMIN', '拥有管理端全部菜单和操作权限', 'active', 1,
+ '["dir-users","menu-users","menu-blacklist","dir-content","menu-posts","menu-comments","menu-messages","menu-images","dir-services","menu-market","menu-services","menu-orders","dir-system","menu-notifications","menu-categories","menu-menus","menu-roles","menu-permissions","dir-logs","menu-login-logs","menu-op-logs"]',
+ '["user:view","user:ban","user:verify","user:role","blacklist:view","blacklist:edit","posts:view","posts:audit","comments:view","comments:manage","messages:view","messages:manage","images:view","images:audit","goods:view","goods:audit","services:view","services:manage","orders:view","orders:cancel","notifications:view","notifications:create","categories:view","categories:edit","menus:view","roles:view","roles:manage","permissions:view","logs:login","logs:operation","logs:retention"]')
+ON DUPLICATE KEY UPDATE
+name = VALUES(name),
+description = VALUES(description),
+status = VALUES(status),
+menu_ids = VALUES(menu_ids),
+permission_codes = VALUES(permission_codes);

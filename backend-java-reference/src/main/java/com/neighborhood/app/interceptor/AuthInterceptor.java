@@ -1,16 +1,19 @@
 package com.neighborhood.app.interceptor;
 
-import com.neighborhood.app.util.JwtUtil;
 import com.neighborhood.app.entity.User;
 import com.neighborhood.app.mapper.UserMapper;
+import com.neighborhood.app.util.JwtUtil;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.redis.core.RedisTemplate;
+import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Component;
 import org.springframework.web.servlet.HandlerInterceptor;
 
+import java.util.Arrays;
+import java.util.List;
 import java.util.concurrent.TimeUnit;
 
 @Slf4j
@@ -22,12 +25,14 @@ public class AuthInterceptor implements HandlerInterceptor {
     private static final String HEADER_AUTH = "Authorization";
     private static final String BEARER_PREFIX = "Bearer ";
     private static final String ROLE_USER = "USER";
+    private static final String ROLE_ADMIN = "ADMIN";
     private static final String ROLE_READONLY_ADMIN = "READONLY_ADMIN";
     private static final String ROLE_SUPER_ADMIN = "SUPER_ADMIN";
 
     private final JwtUtil jwtUtil;
     private final RedisTemplate<String, Object> redisTemplate;
     private final UserMapper userMapper;
+    private final JdbcTemplate jdbcTemplate;
 
     @Override
     public boolean preHandle(HttpServletRequest request, HttpServletResponse response, Object handler) throws Exception {
@@ -36,9 +41,8 @@ public class AuthInterceptor implements HandlerInterceptor {
         }
 
         String path = request.getRequestURI();
-
         String authHeader = request.getHeader(HEADER_AUTH);
-        // 尝试从Token提取userId（公开接口也需要）
+
         if (authHeader != null && authHeader.startsWith(BEARER_PREFIX)) {
             String token = authHeader.substring(BEARER_PREFIX.length());
             if (jwtUtil.validateToken(token)) {
@@ -51,35 +55,25 @@ public class AuthInterceptor implements HandlerInterceptor {
             }
         }
 
-        // 公开接口放行（userId可能已设置）
         if (isPublicPath(path)) {
             return true;
         }
 
-        // 非公开接口需要完整验证
         if (authHeader == null || !authHeader.startsWith(BEARER_PREFIX)) {
-            response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
-            response.setContentType("application/json;charset=UTF-8");
-            response.getWriter().write("{\"success\":false,\"message\":\"未登录\"}");
+            writeJson(response, HttpServletResponse.SC_UNAUTHORIZED, "{\"success\":false,\"message\":\"未登录\"}");
             return false;
         }
 
         String token = authHeader.substring(BEARER_PREFIX.length());
-
         if (!jwtUtil.validateToken(token)) {
-            response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
-            response.setContentType("application/json;charset=UTF-8");
-            response.getWriter().write("{\"success\":false,\"message\":\"Token无效\"}");
+            writeJson(response, HttpServletResponse.SC_UNAUTHORIZED, "{\"success\":false,\"message\":\"Token无效\"}");
             return false;
         }
 
         String userId = jwtUtil.getUserIdFromToken(token);
         Object redisToken = redisTemplate.opsForValue().get(TOKEN_PREFIX + userId);
-
         if (redisToken == null || !token.equals(redisToken.toString())) {
-            response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
-            response.setContentType("application/json;charset=UTF-8");
-            response.getWriter().write("{\"success\":false,\"message\":\"Token已过期\"}");
+            writeJson(response, HttpServletResponse.SC_UNAUTHORIZED, "{\"success\":false,\"message\":\"Token已过期\"}");
             return false;
         }
 
@@ -89,22 +83,118 @@ public class AuthInterceptor implements HandlerInterceptor {
         if (path.startsWith("/api/admin/")) {
             User user = userMapper.selectById(userId);
             String role = normalizeRole(user == null ? null : user.getAdminRole());
+
             if (ROLE_USER.equals(role)) {
                 writeJson(response, HttpServletResponse.SC_FORBIDDEN, "{\"success\":false,\"message\":\"普通用户不能访问管理端\"}");
                 return false;
             }
-            if (!isSafeAdminMethod(request.getMethod()) && !ROLE_SUPER_ADMIN.equals(role)) {
+
+            if (!isRoleEnabled(role)) {
+                writeJson(response, HttpServletResponse.SC_FORBIDDEN, "{\"success\":false,\"message\":\"当前管理员角色已停用\"}");
+                return false;
+            }
+
+            if (isSafeAdminMethod(request.getMethod())) {
+                return true;
+            }
+
+            if (ROLE_READONLY_ADMIN.equals(role)) {
                 writeJson(response, HttpServletResponse.SC_FORBIDDEN, "{\"success\":false,\"message\":\"当前账号无操作权限\"}");
                 return false;
             }
+
+            String requiredPermission = resolveRequiredPermission(path, request.getMethod());
+            if (requiredPermission != null && !hasPermission(role, requiredPermission)) {
+                writeJson(response, HttpServletResponse.SC_FORBIDDEN, "{\"success\":false,\"message\":\"当前账号缺少对应权限\"}");
+                return false;
+            }
+
+            if (requiredPermission == null && !ROLE_SUPER_ADMIN.equals(role)) {
+                writeJson(response, HttpServletResponse.SC_FORBIDDEN, "{\"success\":false,\"message\":\"当前账号缺少对应权限\"}");
+                return false;
+            }
         }
+
         return true;
     }
 
     private String normalizeRole(String role) {
         if (ROLE_SUPER_ADMIN.equals(role)) return ROLE_SUPER_ADMIN;
+        if (ROLE_ADMIN.equals(role)) return ROLE_ADMIN;
         if (ROLE_READONLY_ADMIN.equals(role)) return ROLE_READONLY_ADMIN;
         return ROLE_USER;
+    }
+
+    private boolean isRoleEnabled(String role) {
+        if (ROLE_USER.equals(role)) {
+            return false;
+        }
+        try {
+            String status = jdbcTemplate.queryForObject("SELECT status FROM t_admin_role WHERE code = ?", String.class, role);
+            return status == null || !"disabled".equalsIgnoreCase(status);
+        } catch (Exception ignored) {
+            return ROLE_SUPER_ADMIN.equals(role) || ROLE_ADMIN.equals(role) || ROLE_READONLY_ADMIN.equals(role);
+        }
+    }
+
+    private boolean hasPermission(String role, String requiredPermission) {
+        if (requiredPermission == null || ROLE_SUPER_ADMIN.equals(role)) {
+            return true;
+        }
+        try {
+            String raw = jdbcTemplate.queryForObject("SELECT permission_codes FROM t_admin_role WHERE code = ?", String.class, role);
+            return parseStringArray(raw).contains(requiredPermission);
+        } catch (Exception ignored) {
+            return false;
+        }
+    }
+
+    private String resolveRequiredPermission(String path, String method) {
+        boolean safe = isSafeAdminMethod(method);
+        if (path.equals("/api/admin/me") || path.equals("/api/admin/dashboard/stats")) return null;
+        if (path.equals("/api/admin/users")) return safe ? null : "user:view";
+        if (path.matches("/api/admin/users/[^/]+/status")) return "user:ban";
+        if (path.matches("/api/admin/users/[^/]+/verified")) return "user:verify";
+        if (path.matches("/api/admin/users/[^/]+/admin-role")) return "user:role";
+        if (path.equals("/api/admin/dynamics")) return safe ? null : "posts:view";
+        if (path.matches("/api/admin/dynamics/[^/]+/status")) return "posts:audit";
+        if (path.matches("/api/admin/dynamics/[^/]+/comments(/[^/]+)?")) return "comments:manage";
+        if (path.equals("/api/admin/goods")) return safe ? null : "goods:audit";
+        if (path.matches("/api/admin/goods/[^/]+/status")) return "goods:audit";
+        if (path.equals("/api/admin/services")) return safe ? null : "services:manage";
+        if (path.matches("/api/admin/services/[^/]+/status")) return "services:manage";
+        if (path.equals("/api/admin/orders")) return safe ? null : "orders:cancel";
+        if (path.matches("/api/admin/orders/[^/]+/cancel")) return "orders:cancel";
+        if (path.equals("/api/admin/notifications")) return safe ? null : "notifications:create";
+        if (path.matches("/api/admin/notifications/[^/]+/toggle")) return "notifications:create";
+        if (path.equals("/api/admin/categories")) return safe ? null : "categories:edit";
+        if (path.matches("/api/admin/categories/[^/]+/toggle")) return "categories:edit";
+        if (path.equals("/api/admin/comments")) return safe ? null : "comments:manage";
+        if (path.matches("/api/admin/comments/[^/]+(/status)?")) return "comments:manage";
+        if (path.equals("/api/admin/blacklist")) return safe ? null : "blacklist:edit";
+        if (path.matches("/api/admin/blacklist/[^/]+")) return "blacklist:edit";
+        if (path.equals("/api/admin/images")) return safe ? null : "images:audit";
+        if (path.matches("/api/admin/images/[^/]+(/status)?")) return "images:audit";
+        if (path.equals("/api/admin/messages")) return safe ? null : "messages:manage";
+        if (path.matches("/api/admin/messages/[^/]+(/read)?")) return "messages:manage";
+        if (path.equals("/api/admin/login-logs")) return null;
+        if (path.equals("/api/admin/operation-logs")) return safe ? null : "logs:operation";
+        if (path.equals("/api/admin/operation-logs/retention")) return "logs:retention";
+        if (path.equals("/api/admin/menus")) return null;
+        if (path.equals("/api/admin/roles")) return null;
+        if (path.matches("/api/admin/roles/[^/]+")) return "roles:manage";
+        if (path.equals("/api/admin/permissions")) return null;
+        return null;
+    }
+
+    private List<String> parseStringArray(String raw) {
+        if (raw == null || raw.isBlank() || "[]".equals(raw.trim())) {
+            return List.of();
+        }
+        return Arrays.stream(raw.replace("[", "").replace("]", "").replace("\"", "").split(","))
+                .map(String::trim)
+                .filter(item -> !item.isBlank())
+                .toList();
     }
 
     private boolean isSafeAdminMethod(String method) {
@@ -123,7 +213,7 @@ public class AuthInterceptor implements HandlerInterceptor {
                 || path.equals("/api/admin/login")
                 || path.equals("/api/user/send-code")
                 || path.startsWith("/api/user/name")
-                || path.matches("/api/user/\\d+")  // 公开：用户ID获取
+                || path.matches("/api/user/\\d+")
                 || path.startsWith("/api/user/isfollowing")
                 || path.equals("/api/user/suggested")
                 || path.startsWith("/api/home")

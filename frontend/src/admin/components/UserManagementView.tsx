@@ -2,7 +2,7 @@
 import { AnimatePresence, motion } from 'motion/react';
 import { User } from '../types';
 
-type AdminRole = 'USER' | 'READONLY_ADMIN' | 'SUPER_ADMIN';
+type AdminRole = 'USER' | 'READONLY_ADMIN' | 'ADMIN' | 'SUPER_ADMIN';
 
 interface UserManagementViewProps {
   users: User[];
@@ -15,12 +15,14 @@ interface UserManagementViewProps {
 const ROLE_LABELS: Record<AdminRole, string> = {
   USER: '普通用户',
   READONLY_ADMIN: '只读管理员',
+  ADMIN: '管理员',
   SUPER_ADMIN: '超级管理员',
 };
 
 const ROLE_STYLES: Record<AdminRole, string> = {
   USER: 'bg-slate-100 text-slate-700 border-slate-200',
   READONLY_ADMIN: 'bg-amber-100 text-amber-700 border-amber-200',
+  ADMIN: 'bg-sky-100 text-sky-700 border-sky-200',
   SUPER_ADMIN: 'bg-emerald-100 text-emerald-700 border-emerald-200',
 };
 
@@ -161,6 +163,7 @@ export default function UserManagementView({
                     >
                       <option value="USER">普通用户</option>
                       <option value="READONLY_ADMIN">只读管理员</option>
+                      <option value="ADMIN">管理员</option>
                       <option value="SUPER_ADMIN">超级管理员</option>
                     </select>
                     {!canManageRoles && <p className="text-xs text-amber-600 mt-1">当前账号不是超级管理员，无法修改角色</p>}

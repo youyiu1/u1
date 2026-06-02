@@ -7,6 +7,7 @@ import React, { useEffect, useMemo, useState } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { Search, Check, Trash2, AlertTriangle, X, ZoomIn, Minimize2 } from 'lucide-react';
 import { ManagedImage } from '../types';
+import { getPrimaryImage } from '../../utils/images';
 import UserSquareCard from './common/UserSquareCard';
 
 interface ImageManagementViewProps {
@@ -67,6 +68,7 @@ export default function ImageManagementView({ images, onUpdateImageStatus, onDel
 
   const tableImages = activeUploaderGroup?.[1] || [];
   const getUploaderTag = (items: ManagedImage[]) => items.find((item) => item.uploaderTag?.trim())?.uploaderTag || '未设置身份标签';
+  const getImageUrl = (img: ManagedImage) => getPrimaryImage(img.url);
 
   return (
     <div className="space-y-6" id="images-view-root">
@@ -139,7 +141,7 @@ export default function ImageManagementView({ images, onUpdateImageStatus, onDel
                 <tbody className="divide-y divide-slate-100 dark:divide-slate-800/80">
                   {tableImages.map((img) => (
                     <tr key={img.id}>
-                      <td className="p-4"><button type="button" onClick={() => setZoomImgUrl(img.url)} className="border-none bg-transparent p-0 cursor-pointer"><img src={img.url} alt={img.name} referrerPolicy="no-referrer" className="w-12 h-12 rounded-lg object-cover" /></button></td>
+                      <td className="p-4"><button type="button" onClick={() => { const url = getImageUrl(img); if (url) setZoomImgUrl(url); }} className="border-none bg-transparent p-0 cursor-pointer">{getImageUrl(img) ? <img src={getImageUrl(img)} alt={img.name} referrerPolicy="no-referrer" className="w-12 h-12 rounded-lg object-cover" /> : <div className="w-12 h-12 rounded-lg bg-slate-100 dark:bg-slate-800 flex items-center justify-center text-[10px] text-slate-400">无图</div>}</button></td>
                       <td className="p-4"><div className="font-bold text-slate-900 dark:text-white truncate max-w-[180px]" title={img.name}>{img.name}</div><div className="text-[10px] font-mono text-slate-400">ID: {img.id}</div></td>
                       <td className="p-4 text-xs font-bold text-slate-500">{img.uploader}</td>
                       <td className="p-4"><div className="text-xs font-bold text-slate-500">{categoryLabel[img.category]}</div><div className="text-xs text-slate-700 dark:text-slate-300">{img.size}</div></td>
@@ -151,7 +153,7 @@ export default function ImageManagementView({ images, onUpdateImageStatus, onDel
                       </td>
                       <td className="p-4 text-right">
                         <div className="flex items-center justify-end gap-1">
-                          <button onClick={() => setZoomImgUrl(img.url)} className="text-sky-600 hover:bg-sky-50 dark:hover:bg-sky-950/20 p-1.5 rounded border-none bg-transparent cursor-pointer transition-all" title="查看"><ZoomIn className="h-4 w-4" /></button>
+                          <button onClick={() => { const url = getImageUrl(img); if (url) setZoomImgUrl(url); }} className="text-sky-600 hover:bg-sky-50 dark:hover:bg-sky-950/20 p-1.5 rounded border-none bg-transparent cursor-pointer transition-all" title="查看"><ZoomIn className="h-4 w-4" /></button>
                           {img.status !== 'approved' && <button onClick={() => { onUpdateImageStatus(img.id, 'approved'); onAddOperationLog?.('图片放行', img.id, img.name); }} className="text-emerald-600 hover:bg-emerald-50 dark:hover:bg-emerald-950/20 p-1.5 rounded border-none bg-transparent cursor-pointer transition-all" title="放行"><Check className="h-4 w-4" /></button>}
                           {img.status !== 'flagged' && <button onClick={() => { onUpdateImageStatus(img.id, 'flagged'); onAddOperationLog?.('图片封禁', img.id, img.name); }} className="text-amber-500 hover:bg-amber-50 dark:hover:bg-amber-950/20 p-1.5 rounded border-none bg-transparent cursor-pointer transition-all" title="封禁"><AlertTriangle className="h-4 w-4" /></button>}
                           <button onClick={() => { if (window.confirm(`确认删除图片【${img.name}】吗？`)) { onDeleteImage(img.id); onAddOperationLog?.('图片删除', img.id, img.name); } }} className="text-rose-500 hover:bg-rose-50 dark:hover:bg-rose-950/20 p-1.5 rounded border-none bg-transparent cursor-pointer transition-all" title="删除"><Trash2 className="h-4 w-4" /></button>

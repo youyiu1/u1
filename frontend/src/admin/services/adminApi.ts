@@ -32,11 +32,13 @@ export interface Result<T = unknown> {
   msg?: string;
 }
 
-export interface AdminLoginResponse {
+export interface AdminSessionResponse {
   token: string;
   username: string;
   adminRole: string;
   readonly: string;
+  permissionCodes: string[];
+  menuIds: string[];
 }
 
 const BASE_URL = '/api/admin';
@@ -44,6 +46,7 @@ const TOKEN_KEY = 'admin_token';
 const USERNAME_KEY = 'admin_username';
 const ROLE_KEY = 'admin_role';
 const READONLY_KEY = 'admin_readonly';
+const PERMISSIONS_KEY = 'admin_permissions';
 
 function headers(): HeadersInit {
   const token = localStorage.getItem(TOKEN_KEY);
@@ -74,23 +77,29 @@ function setAuth(token: string, username: string) {
   localStorage.setItem(USERNAME_KEY, username);
 }
 
+function setSessionMeta(data: Partial<AdminSessionResponse>) {
+  localStorage.setItem(ROLE_KEY, data.adminRole || 'USER');
+  localStorage.setItem(READONLY_KEY, data.readonly || 'false');
+  localStorage.setItem(PERMISSIONS_KEY, JSON.stringify(data.permissionCodes || []));
+}
+
 function clearAuth() {
   localStorage.removeItem(TOKEN_KEY);
   localStorage.removeItem(USERNAME_KEY);
   localStorage.removeItem(ROLE_KEY);
   localStorage.removeItem(READONLY_KEY);
+  localStorage.removeItem(PERMISSIONS_KEY);
 }
 
 export const adminApi = {
-  async login(username: string, password: string): Promise<Result<AdminLoginResponse>> {
-    const res = await request<AdminLoginResponse>('/login', {
+  async login(username: string, password: string): Promise<Result<AdminSessionResponse>> {
+    const res = await request<AdminSessionResponse>('/login', {
       method: 'POST',
       body: JSON.stringify({ username, password }),
     });
     if (res.success && res.data?.token) {
       setAuth(res.data.token, res.data.username || username);
-      localStorage.setItem(ROLE_KEY, res.data.adminRole || 'USER');
-      localStorage.setItem(READONLY_KEY, res.data.readonly || 'false');
+      setSessionMeta(res.data);
     }
     return res;
   },
@@ -100,8 +109,12 @@ export const adminApi = {
     return { success: true, message: 'success', data: undefined, total: null, code: 200, msg: 'success' };
   },
 
-  async getAdminInfo(): Promise<Result<{ username: string }>> {
-    return request<{ username: string }>('/me');
+  async getAdminInfo(): Promise<Result<Omit<AdminSessionResponse, 'token'>>> {
+    const res = await request<Omit<AdminSessionResponse, 'token'>>('/me');
+    if (res.success && res.data) {
+      setSessionMeta(res.data);
+    }
+    return res;
   },
 
   getStoredAdminRole(): string {
@@ -110,6 +123,14 @@ export const adminApi = {
 
   isReadonlyAdmin(): boolean {
     return localStorage.getItem(READONLY_KEY) === 'true';
+  },
+
+  getStoredPermissionCodes(): string[] {
+    try {
+      return JSON.parse(localStorage.getItem(PERMISSIONS_KEY) || '[]');
+    } catch {
+      return [];
+    }
   },
 
   async getDashboardStats(): Promise<Result<DashboardStats>> {
@@ -134,7 +155,7 @@ export const adminApi = {
     });
   },
 
-  async updateUserAdminRole(id: string, adminRole: 'USER' | 'READONLY_ADMIN' | 'SUPER_ADMIN'): Promise<Result<void>> {
+  async updateUserAdminRole(id: string, adminRole: 'USER' | 'READONLY_ADMIN' | 'ADMIN' | 'SUPER_ADMIN'): Promise<Result<void>> {
     return request<void>(`/users/${id}/admin-role`, {
       method: 'POST',
       body: JSON.stringify({ adminRole }),
@@ -320,6 +341,13 @@ export const adminApi = {
 
   async getRoles(): Promise<Result<SystemRole[]>> {
     return request<SystemRole[]>('/roles');
+  },
+
+  async updateRole(id: string, payload: Partial<SystemRole>): Promise<Result<void>> {
+    return request<void>(`/roles/${id}`, {
+      method: 'POST',
+      body: JSON.stringify(payload),
+    });
   },
 
   async getPermissions(): Promise<Result<SystemPermission[]>> {

@@ -10,6 +10,7 @@ import { marketApi } from '../services/api';
 import { useNavigate } from 'react-router-dom';
 import { Item } from '../types';
 import { PublishOverlay } from '../components/publish/PublishOverlay';
+import { getPrimaryImage } from '../utils/images';
 import { useAuthCheck } from '../context/useAuthCheck';
 import { FavoriteButton } from '../components/common/FavoriteButton';
 import { BackToTop } from '../components/common/BackToTop';
@@ -55,11 +56,11 @@ export default function MarketList() {
 
   return (
     <div className="bg-white min-h-screen pb-20">
-      <div className="bg-surface-soft pt-12 pb-8">
-        <div className="max-w-[1280px] mx-auto px-6 md:px-20">
-          <div className="flex flex-col md:flex-row gap-6 items-end justify-between">
+      <div className="bg-surface-soft pt-10 sm:pt-12 pb-8">
+        <div className="max-w-[1280px] mx-auto px-4 sm:px-6 lg:px-20">
+          <div className="flex flex-col md:flex-row gap-4 sm:gap-6 items-stretch md:items-end justify-between">
             <div className="flex-1 max-w-2xl">
-               <h1 className="text-3xl font-bold text-ink mb-6">发现身边的好物</h1>
+               <h1 className="text-2xl sm:text-3xl font-bold text-ink mb-4 sm:mb-6">�������ߵĺ���</h1>
                <div className="relative group">
                  <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
                    <Search className="w-5 h-5 text-muted group-focus-within:text-primary transition-colors" />
@@ -69,16 +70,16 @@ export default function MarketList() {
                    placeholder="搜索商品..."
                    value={searchQuery}
                    onChange={(e) => setSearchQuery(e.target.value)}
-                   className="w-full pl-12 pr-4 py-4 bg-white border border-hairline rounded-2xl focus:ring-2 focus:ring-primary/10 transition-all outline-none text-sm font-medium"
+                   className="w-full pl-12 pr-4 py-3.5 sm:py-4 bg-white border border-hairline rounded-2xl focus:ring-2 focus:ring-primary/10 transition-all outline-none text-sm font-medium"
                  />
                </div>
             </div>
-            <button onClick={() => requireAuth(() => setIsPublishOpen(true))} className="px-8 py-4 bg-primary text-white rounded-2xl font-bold shadow-lg shadow-primary/10 hover:bg-primary-hover transition-all flex items-center gap-2">
+            <button onClick={() => requireAuth(() => setIsPublishOpen(true))} className="w-full md:w-auto justify-center px-6 sm:px-8 py-3.5 sm:py-4 bg-primary text-white rounded-2xl font-bold shadow-lg shadow-primary/10 hover:bg-primary-hover transition-all flex items-center gap-2">
                 <Plus className="w-5 h-5" /> 发布闲置
               </button>
           </div>
 
-          <div className="flex items-center gap-4 mt-8 overflow-x-auto no-scrollbar pb-2">
+          <div className="flex items-center gap-3 sm:gap-4 mt-6 sm:mt-8 overflow-x-auto no-scrollbar pb-2">
              {CATEGORIES.map((cat) => (
                <button
                  key={cat.id}
@@ -97,14 +98,14 @@ export default function MarketList() {
         </div>
       </div>
 
-      <main className="max-w-[1280px] mx-auto px-6 md:px-20 py-12">
-        <div className="flex items-center justify-between mb-8">
-          <h2 className="text-xl font-bold text-ink">附近好物</h2>
+      <main className="max-w-[1280px] mx-auto px-4 sm:px-6 lg:px-20 py-10 sm:py-12">
+        <div className="flex items-center justify-between mb-6 sm:mb-8">
+          <h2 className="text-lg sm:text-xl font-bold text-ink">附近好物</h2>
         </div>
 
         {error && <div className="text-center text-red-500 py-8">{error}</div>}
 
-        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-x-6 gap-y-10">
+        <div className="grid grid-cols-1 xs:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-x-4 sm:gap-x-6 gap-y-8 sm:gap-y-10">
           {loading ? (
             Array(10).fill(0).map((_, i) => (
               <div key={i} className="space-y-3">
@@ -114,7 +115,7 @@ export default function MarketList() {
               </div>
             ))
           ) : filteredItems.length === 0 ? (
-            <div className="col-span-5 text-center py-16 text-muted">暂无商品</div>
+            <div className="col-span-full text-center py-16 text-muted">暂无商品</div>
           ) : (
             filteredItems.map((item) => (
               <div
@@ -123,8 +124,8 @@ export default function MarketList() {
                 onClick={() => navigate(`/item/${item.id}`)}
               >
                 <div className="relative aspect-square rounded-2xl overflow-hidden mb-3 bg-surface-soft">
-                  {item.images && item.images[0] && item.images[0].trim() ? (
-                    <img src={item.images[0]} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" alt={item.title} />
+                  {getPrimaryImage(item.images) ? (
+                    <img src={getPrimaryImage(item.images)} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" alt={item.title} />
                   ) : (
                     <div className="w-full h-full bg-stone-200 flex items-center justify-center text-stone-400 text-xs">暂无图片</div>
                   )}

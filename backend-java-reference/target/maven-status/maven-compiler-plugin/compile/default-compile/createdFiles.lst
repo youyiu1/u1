@@ -46,6 +46,7 @@ com\neighborhood\app\mapper\ServiceReviewMapper.class
 com\neighborhood\app\service\impl\CacheServiceImpl.class
 com\neighborhood\app\common\ResultUtils.class
 com\neighborhood\app\controller\NewsController.class
+com\neighborhood\app\controller\AdminController$RoleSeed.class
 com\neighborhood\app\controller\ServiceController$1.class
 com\neighborhood\app\common\Result.class
 com\neighborhood\app\service\NewsService.class

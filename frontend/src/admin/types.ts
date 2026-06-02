@@ -1,4 +1,4 @@
-/**
+﻿/**
  * @license
  * SPDX-License-Identifier: Apache-2.0
  */
@@ -19,7 +19,7 @@ export interface User {
   avatar: string;
   tag?: string;
   status: 'normal' | 'disabled';
-  adminRole: 'USER' | 'READONLY_ADMIN' | 'SUPER_ADMIN';
+  adminRole: 'USER' | 'READONLY_ADMIN' | 'ADMIN' | 'SUPER_ADMIN';
   verified: 'verified' | 'unverified';
   region: string;
   registerTime: string;
@@ -53,7 +53,7 @@ export interface Goods {
   title: string;
   price: number;
   category: 'tech' | 'home' | 'fashion' | 'clothing' | 'sports' | 'others';
-  condition: string; // e.g., '九成新', '八成新'
+  condition: string; // e.g., '涔濇垚鏂?, '鍏垚鏂?
   sellerName: string;
   sellerId: string;
   sellerAvatar: string;
@@ -71,13 +71,14 @@ export interface Goods {
 export interface Service {
   id: string;
   title: string;
-  category: string; // e.g. "维修安装 / 家电清洗"
+  category: string; // e.g. "缁翠慨瀹夎 / 瀹剁數娓呮礂"
+  providerId?: string;
   providerName: string;
   providerAvatar: string;
   providerTag?: string;
   isVerifiedProvider?: boolean;
   price: number;
-  unit: string; // e.g., "/次", "/小时"
+  unit: string; // e.g., "/娆?, "/灏忔椂"
   rating: number | string; // e.g., 4.9 or '-'
   reviewCount: number;
   time: string;
@@ -101,12 +102,16 @@ export interface FeeItem {
 
 export interface Order {
   id: string;
+  buyerId?: string;
   buyerName: string;
   buyerTag?: string;
+  buyerAvatar?: string;
   buyerPhone: string;
   buyerAddress: string;
+  sellerId?: string;
   sellerName: string;
   sellerTag?: string;
+  sellerAvatar?: string;
   sellerPhone: string;
   sellerRating: string;
   serviceName: string;
@@ -262,3 +267,4 @@ export interface SystemPermission {
   status: 'active' | 'disabled';
   createTime: string;
 }
+

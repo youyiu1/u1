@@ -2,6 +2,7 @@
 import { useNavigate } from 'react-router-dom';
 import { AlertCircle, Clock3, MapPin, Star } from 'lucide-react';
 import { Item, Service } from '../../types';
+import { getPrimaryImage } from '../../utils/images';
 
 interface ProfileMarketItemProps {
   item: Item | Service;
@@ -13,6 +14,7 @@ export const ProfileMarketItem: React.FC<ProfileMarketItemProps> = ({ item }) =>
   const navigate = useNavigate();
   const itemType = isItem(item);
   const reviewState = getReviewState(item.status, item.rejectReason);
+  const primaryImage = getPrimaryImage(item.images);
 
   return (
     <div
@@ -20,8 +22,8 @@ export const ProfileMarketItem: React.FC<ProfileMarketItemProps> = ({ item }) =>
       className="bg-white border border-hairline rounded-2xl overflow-hidden hover:shadow-lg hover:border-primary/20 transition-all cursor-pointer group"
     >
       <div className="relative aspect-square bg-surface-soft">
-        {item.images?.[0] && item.images[0].trim() ? (
-          <img src={item.images[0]} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" alt={item.title} />
+        {primaryImage ? (
+          <img src={primaryImage} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" alt={item.title} />
         ) : (
           <div className="w-full h-full flex items-center justify-center text-stone-400 text-xs">暂无图片</div>
         )}
