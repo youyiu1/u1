@@ -5,11 +5,12 @@
 
 package com.neighborhood.app.service.impl;
 
-import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.baomidou.mybatisplus.extension.conditions.query.LambdaQueryChainWrapper;
-import com.neighborhood.app.entity.Order;
-import com.neighborhood.app.mapper.OrderMapper;
+import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
+import com.neighborhood.app.entity.service.Order;
+import com.neighborhood.app.mapper.service.OrderMapper;
 import com.neighborhood.app.service.OrderService;
+import com.neighborhood.app.utils.OrderBuildUtil;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
@@ -23,75 +24,48 @@ public class OrderServiceImpl extends ServiceImpl<OrderMapper, Order> implements
 
     @Override
     public List<Order> listByUserId(String userId) {
-        return userOrderQuery(userId)
-                .orderByDesc(Order::getCreateTime)
-                .list();
+        return userOrders(userId, null);
     }
 
     @Override
     public List<Order> listCompletedByUserId(String userId) {
-        return userOrderQuery(userId)
-                .eq(Order::getStatus, "completed")
-                .orderByDesc(Order::getCreateTime)
-                .list();
+        return userOrders(userId, "completed");
     }
 
     @Override
     public List<Order> listInProgressByUserId(String userId) {
-        return userOrderQuery(userId)
-                .eq(Order::getStatus, "in_progress")
-                .orderByDesc(Order::getCreateTime)
-                .list();
-    }
-
-    @Override
-    public Order getById(Long id) {
-        return lambdaQuery()
-                .eq(Order::getId, id)
-                .one();
+        return userOrders(userId, "in_progress");
     }
 
     @Override
     public boolean createFromBooking(Long bookingId, String buyerId, String sellerId, Long serviceId, String serviceTitle, String price, String bookingDate, String bookingTime, Integer duration) {
-        Order order = new Order();
-        order.setBookingId(bookingId);
-        order.setBuyerId(buyerId);
-        order.setSellerId(sellerId);
-        order.setServiceId(serviceId);
-        order.setServiceTitle(serviceTitle);
-        order.setPrice(new BigDecimal(price));
-        order.setBookingDate(LocalDateTime.parse(bookingDate));
-        order.setBookingTime(bookingTime);
-        order.setDuration(duration);
-        order.setStatus("confirmed");
-        order.setCreateTime(LocalDateTime.now());
-        order.setUpdateTime(LocalDateTime.now());
+        Order order = OrderBuildUtil.buildConfirmedOrder(
+                bookingId,
+                buyerId,
+                sellerId,
+                serviceId,
+                serviceTitle,
+                new BigDecimal(price),
+                LocalDateTime.parse(bookingDate),
+                bookingTime,
+                duration
+        );
         return save(order);
     }
 
     @Override
     public boolean confirmOrder(Long orderId) {
-        return lambdaUpdate()
-                .eq(Order::getId, orderId)
-                .set(Order::getStatus, "in_progress")
-                .update();
+        return updateOrderStatus(orderId, "in_progress", false);
     }
 
     @Override
     public boolean completeOrder(Long orderId) {
-        return lambdaUpdate()
-                .eq(Order::getId, orderId)
-                .set(Order::getStatus, "completed")
-                .set(Order::getCompletedTime, LocalDateTime.now())
-                .update();
+        return updateOrderStatus(orderId, "completed", true);
     }
 
     @Override
     public boolean cancelOrder(Long orderId) {
-        return lambdaUpdate()
-                .eq(Order::getId, orderId)
-                .set(Order::getStatus, "cancelled")
-                .update();
+        return updateOrderStatus(orderId, "cancelled", false);
     }
 
     private LambdaQueryChainWrapper<Order> userOrderQuery(String userId) {
@@ -100,5 +74,23 @@ public class OrderServiceImpl extends ServiceImpl<OrderMapper, Order> implements
                         .eq(Order::getBuyerId, userId)
                         .or()
                         .eq(Order::getSellerId, userId));
+    }
+
+    private List<Order> userOrders(String userId, String status) {
+        LambdaQueryChainWrapper<Order> query = userOrderQuery(userId);
+        if (status != null) {
+            query.eq(Order::getStatus, status);
+        }
+        return query.orderByDesc(Order::getCreateTime).list();
+    }
+
+    private boolean updateOrderStatus(Long orderId, String status, boolean completed) {
+        var update = lambdaUpdate()
+                .eq(Order::getId, orderId)
+                .set(Order::getStatus, status);
+        if (completed) {
+            update.set(Order::getCompletedTime, LocalDateTime.now());
+        }
+        return update.update();
     }
 }

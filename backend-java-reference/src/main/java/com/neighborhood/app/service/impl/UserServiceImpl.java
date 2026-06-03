@@ -3,19 +3,25 @@ package com.neighborhood.app.service.impl;
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.baomidou.mybatisplus.core.conditions.update.UpdateWrapper;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
-import com.neighborhood.app.dto.NotificationSettings;
-import com.neighborhood.app.dto.PrivacySettings;
-import com.neighborhood.app.entity.Follow;
-import com.neighborhood.app.entity.User;
-import com.neighborhood.app.mapper.FollowMapper;
-import com.neighborhood.app.mapper.UserMapper;
+import com.neighborhood.app.dto.user.NotificationSettings;
+import com.neighborhood.app.dto.user.PrivacySettings;
+import com.neighborhood.app.entity.user.Follow;
+import com.neighborhood.app.entity.user.User;
+import com.neighborhood.app.mapper.user.FollowMapper;
+import com.neighborhood.app.mapper.user.UserMapper;
 import com.neighborhood.app.service.CacheService;
 import com.neighborhood.app.service.UserService;
+import com.neighborhood.app.utils.CounterSqlUtil;
+import com.neighborhood.app.utils.FollowLookupUtil;
+import com.neighborhood.app.utils.UserLookupUtil;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
+import java.util.function.Consumer;
 import java.util.stream.Collectors;
 
 @Service
@@ -58,15 +64,7 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements Us
 
     @Override
     public User getById(String id) {
-        User cached = cacheService.getCachedUser(id);
-        if (cached != null) {
-            return cached;
-        }
-        User user = super.getById(id);
-        if (user != null) {
-            cacheService.cacheUser(id, user);
-        }
-        return user;
+        return UserLookupUtil.getById(cacheService, userMapper, id);
     }
 
     @Override
@@ -82,9 +80,9 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements Us
         }
         Follow follow = new Follow(followerId, followingId);
         followMapper.insert(follow);
+        cacheService.cacheFollowing(followerId, followingId);
         updateUserCounts(followerId, followingId, 1, 1);
-        cacheService.evictUser(followerId);
-        cacheService.evictUser(followingId);
+        evictUsers(followerId, followingId);
         return true;
     }
 
@@ -94,24 +92,20 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements Us
         if (followMapper.delete(followQuery(followerId, followingId)) == 0) {
             return false;
         }
+        cacheService.removeFollowing(followerId, followingId);
         updateUserCounts(followerId, followingId, -1, -1);
-        cacheService.evictUser(followerId);
-        cacheService.evictUser(followingId);
+        evictUsers(followerId, followingId);
         return true;
     }
 
     @Override
     public boolean isFollowing(String followerId, String followingId) {
-        return followMapper.selectCount(followQuery(followerId, followingId)) > 0;
+        return FollowLookupUtil.isFollowing(cacheService, followMapper, followerId, followingId);
     }
 
     @Override
     public boolean updateById(User user) {
-        boolean result = super.updateById(user);
-        if (result) {
-            cacheService.evictUser(user.getId());
-        }
-        return result;
+        return updateAndEvict(user, user.getId());
     }
 
     @Override
@@ -120,20 +114,10 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements Us
         if (user == null) {
             return false;
         }
-        if (settings.getProfileVisible() != null) {
-            user.setProfileVisible(settings.getProfileVisible());
-        }
-        if (settings.getPostsVisible() != null) {
-            user.setPostsVisible(settings.getPostsVisible());
-        }
-        if (settings.getShowLocation() != null) {
-            user.setShowLocation(settings.getShowLocation());
-        }
-        boolean result = super.updateById(user);
-        if (result) {
-            cacheService.evictUser(userId);
-        }
-        return result;
+        applyIfPresent(settings.getProfileVisible(), user::setProfileVisible);
+        applyIfPresent(settings.getPostsVisible(), user::setPostsVisible);
+        applyIfPresent(settings.getShowLocation(), user::setShowLocation);
+        return updateAndEvict(user, userId);
     }
 
     @Override
@@ -142,29 +126,13 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements Us
         if (user == null) {
             return false;
         }
-        if (settings.getPushEnabled() != null) {
-            user.setPushEnabled(settings.getPushEnabled());
-        }
-        if (settings.getMessageNotify() != null) {
-            user.setMessageNotify(settings.getMessageNotify());
-        }
-        if (settings.getFollowNotify() != null) {
-            user.setFollowNotify(settings.getFollowNotify());
-        }
-        if (settings.getLikeNotify() != null) {
-            user.setLikeNotify(settings.getLikeNotify());
-        }
-        if (settings.getCommentNotify() != null) {
-            user.setCommentNotify(settings.getCommentNotify());
-        }
-        if (settings.getSystemNotify() != null) {
-            user.setSystemNotify(settings.getSystemNotify());
-        }
-        boolean result = super.updateById(user);
-        if (result) {
-            cacheService.evictUser(userId);
-        }
-        return result;
+        applyIfPresent(settings.getPushEnabled(), user::setPushEnabled);
+        applyIfPresent(settings.getMessageNotify(), user::setMessageNotify);
+        applyIfPresent(settings.getFollowNotify(), user::setFollowNotify);
+        applyIfPresent(settings.getLikeNotify(), user::setLikeNotify);
+        applyIfPresent(settings.getCommentNotify(), user::setCommentNotify);
+        applyIfPresent(settings.getSystemNotify(), user::setSystemNotify);
+        return updateAndEvict(user, userId);
     }
 
     @Override
@@ -177,36 +145,34 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements Us
             return false;
         }
         user.setPassword(newPassword);
-        boolean result = super.updateById(user);
-        if (result) {
-            cacheService.evictUser(userId);
-        }
-        return result;
+        return updateAndEvict(user, userId);
     }
 
     private void updateUserCounts(String followerId, String followingId, int followerDelta, int followingDelta) {
         userMapper.update(null, new UpdateWrapper<User>()
                 .eq("id", followerId)
-                .setSql("following_count = GREATEST(COALESCE(following_count, 0) + (" + followingDelta + "), 0)"));
+                .setSql(CounterSqlUtil.nonNegativeCoalescedDelta("following_count", followingDelta)));
         userMapper.update(null, new UpdateWrapper<User>()
                 .eq("id", followingId)
-                .setSql("followers_count = GREATEST(COALESCE(followers_count, 0) + (" + followerDelta + "), 0)"));
+                .setSql(CounterSqlUtil.nonNegativeCoalescedDelta("followers_count", followerDelta)));
     }
 
     @Override
     public List<User> getFollowingList(String userId) {
-        List<Follow> follows = followMapper.selectList(followerQuery(userId));
-        if (follows.isEmpty()) {
+        List<String> followingIds = listFollowingIds(userId);
+        if (followingIds.isEmpty()) {
             return List.of();
         }
-        List<String> followingIds = follows.stream().map(Follow::getFollowingId).collect(Collectors.toList());
-        return getBaseMapper().selectBatchIds(followingIds);
+        Map<String, User> userMap = UserLookupUtil.mapByIds(cacheService, userMapper, followingIds);
+        return followingIds.stream()
+                .map(userMap::get)
+                .filter(java.util.Objects::nonNull)
+                .collect(Collectors.toList());
     }
 
     @Override
     public List<User> getSuggestedUsers(String currentUserId, int limit) {
-        List<Follow> follows = followMapper.selectList(followerQuery(currentUserId));
-        List<String> excludeIds = follows.stream().map(Follow::getFollowingId).collect(Collectors.toList());
+        List<String> excludeIds = listFollowingIds(currentUserId);
         excludeIds.add(currentUserId);
         return lambdaQuery()
                 .notIn(excludeIds.size() > 0, User::getId, excludeIds)
@@ -227,5 +193,32 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements Us
 
     private QueryWrapper<Follow> followerQuery(String followerId) {
         return new QueryWrapper<Follow>().eq("follower_id", followerId);
+    }
+
+    private List<String> listFollowingIds(String userId) {
+        return UserLookupUtil.normalizeIds(followMapper.selectObjs(followerQuery(userId).select("following_id")).stream()
+                .filter(String.class::isInstance)
+                .map(String.class::cast)
+                .collect(Collectors.toCollection(ArrayList::new)));
+    }
+
+    private boolean updateAndEvict(User user, String userId) {
+        boolean result = super.updateById(user);
+        if (result) {
+            cacheService.evictUser(userId);
+        }
+        return result;
+    }
+
+    private <T> void applyIfPresent(T value, Consumer<T> consumer) {
+        if (value != null) {
+            consumer.accept(value);
+        }
+    }
+
+    private void evictUsers(String... userIds) {
+        for (String userId : userIds) {
+            cacheService.evictUser(userId);
+        }
     }
 }

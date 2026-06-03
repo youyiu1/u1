@@ -4,9 +4,14 @@
  */
 
 import React, { useEffect, useMemo, useState } from 'react';
-import { AnimatePresence, motion } from 'motion/react';
-import { CheckCircle2, MessageSquareText, RefreshCw, Search, Trash2 } from 'lucide-react';
+import { CheckCircle2, MessageSquareText, RefreshCw, Trash2 } from 'lucide-react';
 import { ManagedMessage } from '../types';
+import { useToast } from '../hooks/useToast';
+import { groupItemsByOwner, type EntityOwnerGroup } from '../utils/entityGrouping';
+import { matchesAnyKeyword, normalizeSearchTerm } from '../utils/search';
+import AdminGroupHeader from './common/AdminGroupHeader';
+import AdminSearchInput from './common/AdminSearchInput';
+import AdminToast from './common/AdminToast';
 import UserSquareCard from './common/UserSquareCard';
 
 interface Props {
@@ -20,17 +25,17 @@ export default function MessageManagementView({ messages, onMarkRead, onDeleteMe
   const [searchQuery, setSearchQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState<'all' | 'read' | 'unread'>('all');
   const [activeSender, setActiveSender] = useState<string | null>(null);
-  const [toastMessage, setToastMessage] = useState<string | null>(null);
+  const { toast, showToast } = useToast(1800);
 
   const filteredMessages = useMemo(() => {
-    const keyword = searchQuery.trim().toLowerCase();
+    const keyword = normalizeSearchTerm(searchQuery);
     return messages.filter((item) => {
-      const matchesSearch =
-        !keyword ||
-        item.senderName.toLowerCase().includes(keyword) ||
-        item.receiverName.toLowerCase().includes(keyword) ||
-        item.content.toLowerCase().includes(keyword) ||
-        item.id.toLowerCase().includes(keyword);
+      const matchesSearch = matchesAnyKeyword(keyword, [
+        item.senderName,
+        item.receiverName,
+        item.content,
+        item.id,
+      ]);
       const matchesStatus =
         statusFilter === 'all' ||
         (statusFilter === 'read' && item.isRead) ||
@@ -39,19 +44,18 @@ export default function MessageManagementView({ messages, onMarkRead, onDeleteMe
     });
   }, [messages, searchQuery, statusFilter]);
 
-  const groupedBySender = useMemo(() => {
-    const map = new Map<string, ManagedMessage[]>();
-    filteredMessages.forEach((item) => {
-      const key = item.senderName || '未知用户';
-      const current = map.get(key);
-      if (current) current.push(item);
-      else map.set(key, [item]);
+  const groupedBySender = useMemo<EntityOwnerGroup<ManagedMessage>[]>(() => {
+    return groupItemsByOwner<ManagedMessage>(filteredMessages, {
+      getId: (item) => item.senderId || item.senderName,
+      getName: (item) => item.senderName,
+      getAvatar: (item) => item.senderAvatar || item.receiverAvatar || '',
+      getTag: (item) => item.senderTag,
+      fallbackName: '未知用户',
     });
-    return Array.from(map.entries()).sort((a, b) => b[1].length - a[1].length);
   }, [filteredMessages]);
 
   const activeSenderGroup = useMemo(
-    () => groupedBySender.find(([name]) => name === activeSender) || null,
+    () => groupedBySender.find((group) => group.name === activeSender) || null,
     [groupedBySender, activeSender]
   );
 
@@ -59,13 +63,7 @@ export default function MessageManagementView({ messages, onMarkRead, onDeleteMe
     if (activeSender && !activeSenderGroup) setActiveSender(null);
   }, [activeSender, activeSenderGroup]);
 
-  const showToast = (message: string) => {
-    setToastMessage(message);
-    window.setTimeout(() => setToastMessage(null), 1800);
-  };
-
-  const tableMessages = activeSenderGroup?.[1] || [];
-  const getSenderTag = (items: ManagedMessage[]) => items.find((item) => item.senderTag?.trim())?.senderTag || '未设置身份标签';
+  const tableMessages = activeSenderGroup?.items || [];
 
   return (
     <div className="space-y-4 sm:space-y-6 pb-8">
@@ -82,25 +80,17 @@ export default function MessageManagementView({ messages, onMarkRead, onDeleteMe
         </button>
       </div>
 
-      <AnimatePresence>
-        {toastMessage && (
-          <motion.div initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }} className="p-3 rounded-xl bg-emerald-50 border border-emerald-100 text-emerald-700 text-xs font-semibold">
-            {toastMessage}
-          </motion.div>
-        )}
-      </AnimatePresence>
+      <AdminToast toast={toast ? { ...toast, type: 'success' } : null} />
 
       <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-4">
         <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-          <div className="relative md:col-span-2">
-            <Search className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
-            <input
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full pl-9 pr-3 py-2.5 rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-950/40 text-sm outline-none"
-              placeholder="搜索发送者、接收者、内容或消息ID"
-            />
-          </div>
+          <AdminSearchInput
+            value={searchQuery}
+            onChange={setSearchQuery}
+            placeholder="搜索发送者、接收者、内容或消息ID"
+            containerClassName="relative md:col-span-2"
+            inputClassName="w-full pl-9 pr-3 py-2.5 rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-950/40 text-sm outline-none"
+          />
           <select
             value={statusFilter}
             onChange={(e) => setStatusFilter(e.target.value as 'all' | 'read' | 'unread')}
@@ -115,31 +105,31 @@ export default function MessageManagementView({ messages, onMarkRead, onDeleteMe
 
       {!activeSender ? (
         <div className="grid grid-cols-[repeat(auto-fill,minmax(9rem,1fr))] gap-2.5">
-          {groupedBySender.map(([senderName, senderMessages]) => (
+          {groupedBySender.map((group) => (
             <UserSquareCard
-              key={senderName}
-              title={senderName}
-              userType={getSenderTag(senderMessages)}
-              subtitle={`${senderMessages.length} 条消息`}
-              avatar={senderMessages[0]?.senderAvatar || senderMessages[0]?.receiverAvatar || undefined}
-              onClick={() => setActiveSender(senderName)}
+              key={group.id}
+              title={group.name}
+              userType={group.tag}
+              subtitle={`${group.items.length} 条消息`}
+              avatar={group.avatar}
+              onClick={() => setActiveSender(group.name)}
             />
           ))}
         </div>
       ) : (
         <div className="space-y-2">
-          <div className="flex items-center gap-2 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-lg px-2.5 py-1.5">
-            <button onClick={() => setActiveSender(null)} className="text-[10px] px-2 py-0.5 rounded-md bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 shrink-0">
-              返回用户列表
-            </button>
-            <div className="flex items-center gap-2 min-w-0">
-              <img src={tableMessages[0]?.senderAvatar || tableMessages[0]?.receiverAvatar || undefined} alt="" className="w-7 h-7 rounded-lg object-cover border border-slate-200 dark:border-slate-800" />
-              <div>
-                <p className="text-[11px] font-bold text-slate-800 dark:text-slate-100">{activeSenderGroup?.[0]}</p>
-                <p className="text-[10px] text-slate-400">{tableMessages.length} 条消息</p>
-              </div>
-            </div>
-          </div>
+          <AdminGroupHeader
+            backLabel="返回用户列表"
+            onBack={() => setActiveSender(null)}
+            title={activeSenderGroup?.name}
+            subtitle={`${tableMessages.length} 条消息`}
+            avatar={activeSenderGroup?.avatar || tableMessages[0]?.senderAvatar || tableMessages[0]?.receiverAvatar}
+            containerClassName="flex items-center gap-2 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-lg px-2.5 py-1.5"
+            backButtonClassName="text-[10px] px-2 py-0.5 rounded-md bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 shrink-0"
+            avatarClassName="w-7 h-7 rounded-lg object-cover border border-slate-200 dark:border-slate-800"
+            titleClassName="text-[11px] font-bold text-slate-800 dark:text-slate-100"
+            subtitleClassName="text-[10px] text-slate-400"
+          />
 
           <div className="bg-white dark:bg-slate-900 border border-slate-200/60 dark:border-slate-800/80 rounded-xl shadow-sm overflow-hidden">
             <div className="overflow-x-auto">

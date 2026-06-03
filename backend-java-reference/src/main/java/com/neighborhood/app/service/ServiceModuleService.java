@@ -6,8 +6,8 @@
 package com.neighborhood.app.service;
 
 import com.baomidou.mybatisplus.extension.service.IService;
-import com.neighborhood.app.entity.ServiceEntity;
-import com.neighborhood.app.vo.ServiceDetailVO;
+import com.neighborhood.app.entity.service.ServiceEntity;
+import com.neighborhood.app.vo.service.ServiceDetailVO;
 import java.util.List;
 
 public interface ServiceModuleService extends IService<ServiceEntity> {

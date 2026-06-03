@@ -1,4 +1,4 @@
-﻿/**
+/**
  * @license
  * SPDX-License-Identifier: Apache-2.0
  */
@@ -7,6 +7,7 @@ import React, { useEffect, useMemo, useState } from 'react';
 import { Key, RefreshCw, Search } from 'lucide-react';
 import { SystemPermission } from '../types';
 import { adminApi } from '../services/adminApi';
+import { matchesAnyKeyword, normalizeSearchTerm } from '../utils/search';
 
 const ALL_CATEGORY = '全部';
 
@@ -29,13 +30,13 @@ export default function PermissionManagementView() {
   }, [permissions]);
 
   const filteredPermissions = useMemo(() => {
-    const keyword = searchQuery.trim().toLowerCase();
+    const keyword = normalizeSearchTerm(searchQuery);
     return permissions.filter((perm) => {
-      const matchesSearch =
-        !keyword ||
-        perm.name.toLowerCase().includes(keyword) ||
-        perm.code.toLowerCase().includes(keyword) ||
-        perm.description.toLowerCase().includes(keyword);
+      const matchesSearch = matchesAnyKeyword(keyword, [
+        perm.name,
+        perm.code,
+        perm.description,
+      ]);
       const matchesCategory = activeCategory === ALL_CATEGORY || perm.category === activeCategory;
       return matchesSearch && matchesCategory;
     });

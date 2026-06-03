@@ -6,7 +6,7 @@
 package com.neighborhood.app.service;
 
 import com.baomidou.mybatisplus.extension.service.IService;
-import com.neighborhood.app.entity.Favorite;
+import com.neighborhood.app.entity.market.Favorite;
 
 public interface FavoriteService extends IService<Favorite> {
     /**

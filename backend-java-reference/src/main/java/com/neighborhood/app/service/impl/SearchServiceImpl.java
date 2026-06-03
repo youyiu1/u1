@@ -5,8 +5,11 @@
 
 package com.neighborhood.app.service.impl;
 
-import com.neighborhood.app.entity.*;
-import com.neighborhood.app.service.*;
+import com.neighborhood.app.entity.system.SearchResult;
+import com.neighborhood.app.service.MarketService;
+import com.neighborhood.app.service.NewsService;
+import com.neighborhood.app.service.SearchService;
+import com.neighborhood.app.service.ServiceModuleService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 

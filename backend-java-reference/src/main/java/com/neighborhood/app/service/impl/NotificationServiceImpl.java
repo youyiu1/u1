@@ -5,26 +5,30 @@
 
 package com.neighborhood.app.service.impl;
 
+import com.baomidou.mybatisplus.core.conditions.update.LambdaUpdateWrapper;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
-import com.neighborhood.app.entity.Booking;
-import com.neighborhood.app.entity.Notification;
-import com.neighborhood.app.entity.Order;
-import com.neighborhood.app.entity.ServiceEntity;
-import com.neighborhood.app.mapper.BookingMapper;
-import com.neighborhood.app.mapper.NotificationMapper;
+import com.neighborhood.app.entity.service.Booking;
+import com.neighborhood.app.entity.service.Notification;
+import com.neighborhood.app.entity.service.Order;
+import com.neighborhood.app.entity.service.ServiceEntity;
+import com.neighborhood.app.mapper.service.BookingMapper;
+import com.neighborhood.app.mapper.service.NotificationMapper;
+import com.neighborhood.app.service.NotificationDispatchService;
 import com.neighborhood.app.service.NotificationService;
+import com.neighborhood.app.service.NotificationWriteService;
 import com.neighborhood.app.service.OrderService;
 import com.neighborhood.app.service.ServiceModuleService;
+import com.neighborhood.app.utils.BookingDateTimeUtil;
+import com.neighborhood.app.utils.OrderBuildUtil;
+import com.neighborhood.app.utils.StringValueUtil;
 import lombok.RequiredArgsConstructor;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 
 import java.math.BigDecimal;
-import java.time.LocalDate;
 import java.time.LocalDateTime;
-import java.time.LocalTime;
-import java.time.format.DateTimeFormatter;
 import java.util.List;
+import java.util.function.Consumer;
 
 @Service
 @RequiredArgsConstructor
@@ -34,6 +38,8 @@ public class NotificationServiceImpl extends ServiceImpl<NotificationMapper, Not
     private static final int DEFAULT_DURATION = 1;
 
     private final BookingMapper bookingMapper;
+    private final NotificationDispatchService notificationDispatchService;
+    private final NotificationWriteService notificationWriteService;
     private final OrderService orderService;
     private final ServiceModuleService serviceModuleService;
 
@@ -63,16 +69,12 @@ public class NotificationServiceImpl extends ServiceImpl<NotificationMapper, Not
 
     @Override
     public void saveNotification(String userId, String title, String content, String serviceName) {
-        save(createNotification(userId, title, content, serviceName, false, null));
+        notificationDispatchService.dispatchNotification(userId, title, content, serviceName);
     }
 
     @Override
     public void saveNotificationWithBooking(String userId, String title, String content, String serviceName, Long bookingId) {
-        Notification notification = createNotification(userId, title, content, serviceName, false, bookingId);
-        save(notification);
-        if (bookingId != null) {
-            updateBookingNotificationId(bookingId, notification.getId());
-        }
+        notificationDispatchService.dispatchNotificationWithBooking(userId, title, content, serviceName, bookingId);
     }
 
     @Override
@@ -93,31 +95,25 @@ public class NotificationServiceImpl extends ServiceImpl<NotificationMapper, Not
             orderService.save(order);
             markProcessed(notificationId, order.getId());
             updateBookingStatus(notification.getRelatedBookingId(), "confirmed");
-            save(createNotification(
-                    context.buyerId,
+            saveProcessResultNotification(
+                    context,
                     "预约已确认",
-                    "您的服务预约「" + context.serviceTitle + "」已通过服务商确认，请按时到达。预约时间：" + context.bookingDate + " " + context.bookingTime,
-                    context.serviceTitle,
-                    true,
-                    null
-            ));
+                    "您的服务预约《" + context.serviceTitle + "》已通过服务商确认，请按时到达。预约时间：" + context.bookingDate + " " + context.bookingTime
+            );
         } else {
             markProcessed(notificationId, null);
-            save(createNotification(
-                    context.buyerId,
+            saveProcessResultNotification(
+                    context,
                     "预约被拒绝",
-                    "您的服务预约「" + context.serviceTitle + "」已被服务商拒绝，请尝试预约其他时间或服务。",
-                    context.serviceTitle,
-                    true,
-                    null
-            ));
+                    "您的服务预约《" + context.serviceTitle + "》已被服务商拒绝，请尝试预约其他时间或服务。"
+            );
             updateBookingStatus(notification.getRelatedBookingId(), "cancelled");
         }
         return true;
     }
 
     /**
-     * 每天凌晨2点清理7天前的通知
+     * 每天凌晨 2 点清理 7 天前的通知
      */
     @Scheduled(cron = "0 0 2 * * ?")
     public void cleanExpiredNotifications() {
@@ -125,19 +121,6 @@ public class NotificationServiceImpl extends ServiceImpl<NotificationMapper, Not
         lambdaUpdate()
                 .lt(Notification::getTime, threshold)
                 .remove();
-    }
-
-    private Notification createNotification(String userId, String title, String content, String serviceName, boolean processed, Long bookingId) {
-        Notification notification = new Notification();
-        notification.setUserId(userId);
-        notification.setTitle(title);
-        notification.setContent(content);
-        notification.setServiceName(serviceName);
-        notification.setTime(LocalDateTime.now());
-        notification.setIsRead(false);
-        notification.setIsProcessed(processed);
-        notification.setRelatedBookingId(bookingId);
-        return notification;
     }
 
     private Booking findBooking(Notification notification) {
@@ -161,7 +144,7 @@ public class NotificationServiceImpl extends ServiceImpl<NotificationMapper, Not
 
         String actualBuyerId = booking != null ? booking.getBuyerId() : buyerId;
         String actualSellerId = booking != null ? booking.getSellerId() : sellerId;
-        String actualServiceTitle = service != null ? service.getTitle() : firstNonBlank(serviceTitle, notification.getServiceName());
+        String actualServiceTitle = service != null ? service.getTitle() : StringValueUtil.emptyTo(serviceTitle, notification.getServiceName());
         BigDecimal actualPrice = service != null && service.getPrice() != null ? service.getPrice() : parsePrice(price);
         String actualBookingDate = booking != null && booking.getBookingDate() != null ? booking.getBookingDate().toLocalDate().toString() : bookingDate;
         String actualBookingTime = booking != null ? booking.getBookingTime() : bookingTime;
@@ -180,23 +163,17 @@ public class NotificationServiceImpl extends ServiceImpl<NotificationMapper, Not
     }
 
     private Order createConfirmedOrder(Notification notification, ProcessContext context) {
-        Order order = new Order();
-        order.setBookingId(notification.getRelatedBookingId());
-        order.setBuyerId(context.buyerId);
-        order.setSellerId(context.sellerId);
-        order.setServiceId(context.serviceId);
-        order.setServiceTitle(context.serviceTitle);
-        order.setPrice(context.price);
-        order.setBookingDate(LocalDateTime.of(
-                LocalDate.parse(context.bookingDate, DateTimeFormatter.ISO_LOCAL_DATE),
-                LocalTime.parse(context.bookingTime, DateTimeFormatter.ISO_LOCAL_TIME)
-        ));
-        order.setBookingTime(context.bookingTime);
-        order.setDuration(context.duration);
-        order.setStatus("confirmed");
-        order.setCreateTime(LocalDateTime.now());
-        order.setUpdateTime(LocalDateTime.now());
-        return order;
+        return OrderBuildUtil.buildConfirmedOrder(
+                notification.getRelatedBookingId(),
+                context.buyerId,
+                context.sellerId,
+                context.serviceId,
+                context.serviceTitle,
+                context.price,
+                BookingDateTimeUtil.combineDateAndTime(context.bookingDate, context.bookingTime),
+                context.bookingTime,
+                context.duration
+        );
     }
 
     private void markProcessed(Long notificationId, Long orderId) {
@@ -209,27 +186,29 @@ public class NotificationServiceImpl extends ServiceImpl<NotificationMapper, Not
         update.update();
     }
 
-    private void updateBookingNotificationId(Long bookingId, Long notificationId) {
-        com.baomidou.mybatisplus.core.conditions.update.LambdaUpdateWrapper<Booking> wrapper =
-                new com.baomidou.mybatisplus.core.conditions.update.LambdaUpdateWrapper<>();
-        wrapper.eq(Booking::getId, bookingId).set(Booking::getNotificationId, notificationId);
-        bookingMapper.update(null, wrapper);
+    private void saveProcessResultNotification(ProcessContext context, String title, String content) {
+        notificationWriteService.saveProcessedNotification(
+                context.buyerId,
+                title,
+                content,
+                context.serviceTitle
+        );
     }
 
     private void updateBookingStatus(Long bookingId, String status) {
+        updateBooking(bookingId, wrapper -> wrapper
+                .set(Booking::getStatus, status)
+                .set(Booking::getUpdateTime, LocalDateTime.now()));
+    }
+
+    private void updateBooking(Long bookingId, Consumer<LambdaUpdateWrapper<Booking>> customizer) {
         if (bookingId == null) {
             return;
         }
-        com.baomidou.mybatisplus.core.conditions.update.LambdaUpdateWrapper<Booking> wrapper =
-                new com.baomidou.mybatisplus.core.conditions.update.LambdaUpdateWrapper<>();
-        wrapper.eq(Booking::getId, bookingId)
-                .set(Booking::getStatus, status)
-                .set(Booking::getUpdateTime, LocalDateTime.now());
+        LambdaUpdateWrapper<Booking> wrapper = new LambdaUpdateWrapper<>();
+        wrapper.eq(Booking::getId, bookingId);
+        customizer.accept(wrapper);
         bookingMapper.update(null, wrapper);
-    }
-
-    private String firstNonBlank(String preferred, String fallback) {
-        return preferred == null || preferred.isEmpty() ? fallback : preferred;
     }
 
     private BigDecimal parsePrice(String price) {

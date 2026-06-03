@@ -6,7 +6,7 @@
 package com.neighborhood.app.service;
 
 import com.baomidou.mybatisplus.extension.service.IService;
-import com.neighborhood.app.entity.ServiceReview;
+import com.neighborhood.app.entity.service.ServiceReview;
 import java.util.List;
 
 public interface ServiceReviewService extends IService<ServiceReview> {
@@ -30,4 +30,5 @@ public interface ServiceReviewService extends IService<ServiceReview> {
      * 取消评价点赞
      */
     boolean unlikeReview(Long reviewId, String userId);
+    void refreshServiceStats(Long serviceId);
 }

@@ -5,10 +5,16 @@
 
 import React, { useEffect, useMemo, useState } from 'react';
 import {
-  Search, Trash2, CheckCircle, AlertTriangle, EyeOff, MessageSquare,
+  Trash2, CheckCircle, AlertTriangle, EyeOff, MessageSquare,
   RotateCcw, HelpCircle
 } from 'lucide-react';
 import { ManagedComment } from '../types';
+import { groupItemsByOwner, type EntityOwnerGroup } from '../utils/entityGrouping';
+import { matchesAnyKeyword, normalizeSearchTerm } from '../utils/search';
+import AdminGroupHeader from './common/AdminGroupHeader';
+import AdminSearchInput from './common/AdminSearchInput';
+import AdminStatCard from './common/AdminStatCard';
+import EmptyState from './common/EmptyState';
 import UserSquareCard from './common/UserSquareCard';
 
 interface CommentManagementViewProps {
@@ -26,35 +32,39 @@ export default function CommentManagementView({ comments, onUpdateCommentStatus,
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
   const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
 
-  const filteredComments = useMemo(() => comments.filter(comment => {
-    const q = searchQuery.toLowerCase();
-    const matchSearch = comment.content.toLowerCase().includes(q) || comment.authorName.toLowerCase().includes(q) || comment.targetTitle.toLowerCase().includes(q) || comment.id.toLowerCase().includes(q);
+  const filteredComments = useMemo(() => {
+    const q = normalizeSearchTerm(searchQuery);
+    return comments.filter(comment => {
+    const matchSearch = matchesAnyKeyword(q, [comment.content, comment.authorName, comment.targetTitle, comment.id]);
     const matchTarget = targetFilter === 'all' || comment.targetType === targetFilter;
     const matchStatus = statusFilter === 'all' || comment.status === statusFilter;
     return matchSearch && matchTarget && matchStatus;
-  }), [comments, searchQuery, targetFilter, statusFilter]);
-
-  const groupedByUser = useMemo(() => {
-    const map = new Map<string, ManagedComment[]>();
-    filteredComments.forEach((comment) => {
-      const key = comment.authorName || '未知用户';
-      const current = map.get(key);
-      if (current) current.push(comment);
-      else map.set(key, [comment]);
     });
-    return Array.from(map.entries()).sort((a, b) => b[1].length - a[1].length);
+  }, [comments, searchQuery, targetFilter, statusFilter]);
+
+  const groupedByUser = useMemo<EntityOwnerGroup<ManagedComment>[]>(() => {
+    return groupItemsByOwner<ManagedComment>(filteredComments, {
+      getId: (item) => item.authorName,
+      getName: (item) => item.authorName,
+      getAvatar: (item) => item.authorAvatar || '',
+      getTag: (item) => item.authorTag,
+      fallbackName: '未知用户',
+    });
   }, [filteredComments]);
 
-  const activeCommentAuthorGroup = useMemo(() => groupedByUser.find(([name]) => name === activeCommentAuthor) || null, [groupedByUser, activeCommentAuthor]);
+  const activeCommentAuthorGroup = useMemo(() => groupedByUser.find((group) => group.name === activeCommentAuthor) || null, [groupedByUser, activeCommentAuthor]);
+
+  const commentStats = useMemo(() => ({
+    pending: comments.filter((comment) => comment.status === 'pending').length,
+    flagged: comments.filter((comment) => comment.status === 'flagged').length,
+    hidden: comments.filter((comment) => comment.status === 'hidden').length,
+  }), [comments]);
 
   useEffect(() => {
     if (activeCommentAuthor && !activeCommentAuthorGroup) setActiveCommentAuthor(null);
   }, [activeCommentAuthor, activeCommentAuthorGroup]);
 
-  const tableComments = activeCommentAuthorGroup?.[1] || [];
-
-  const getAuthorTag = (items: ManagedComment[]) => items.find((item) => item.authorTag?.trim())?.authorTag || '未设置身份标签';
-  const getAuthorAvatar = (items: ManagedComment[]) => items.find((item) => item.authorAvatar)?.authorAvatar;
+  const tableComments = activeCommentAuthorGroup?.items || [];
 
   const toggleSelected = (id: string) => setSelectedIds(prev => prev.includes(id) ? prev.filter(item => item !== id) : [...prev, id]);
   const toggleSelectAll = () => setSelectedIds(selectedIds.length === tableComments.length ? [] : tableComments.map(c => c.id));
@@ -85,18 +95,21 @@ export default function CommentManagementView({ comments, onUpdateCommentStatus,
       </div>
 
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-        <StatCard title="评论总数" value={comments.length} color="text-slate-800" />
-        <StatCard title="待审核" value={comments.filter(c => c.status === 'pending').length} color="text-sky-500" />
-        <StatCard title="可疑/标记" value={comments.filter(c => c.status === 'flagged').length} color="text-amber-500" />
-        <StatCard title="已屏蔽" value={comments.filter(c => c.status === 'hidden').length} color="text-rose-500" />
+        <AdminStatCard title="评论总数" value={comments.length} colorClassName="text-slate-800" unitText="条" />
+        <AdminStatCard title="待审核" value={commentStats.pending} colorClassName="text-sky-500" unitText="条" />
+        <AdminStatCard title="可疑/标记" value={commentStats.flagged} colorClassName="text-amber-500" unitText="条" />
+        <AdminStatCard title="已屏蔽" value={commentStats.hidden} colorClassName="text-rose-500" unitText="条" />
       </div>
 
       <div className="bg-white dark:bg-slate-900 border border-slate-200/60 dark:border-slate-800/80 rounded-xl shadow-sm p-4 space-y-4">
         <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-          <div className="relative md:col-span-2">
-            <span className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-slate-400"><Search className="h-4 w-4" /></span>
-            <input type="text" placeholder="搜索评论内容、用户、帖子标题或ID..." value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} className="w-full pl-9 pr-4 py-2 border border-slate-200 dark:border-slate-800 rounded-lg text-sm bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-primary" />
-          </div>
+          <AdminSearchInput
+            value={searchQuery}
+            placeholder="搜索评论内容、用户、帖子标题或ID..."
+            onChange={setSearchQuery}
+            containerClassName="relative md:col-span-2"
+            inputClassName="w-full pl-9 pr-4 py-2 border border-slate-200 dark:border-slate-800 rounded-lg text-sm bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-primary"
+          />
           <select value={targetFilter} onChange={(e) => setTargetFilter(e.target.value as any)} className="w-full py-2 px-3 border border-slate-200 dark:border-slate-800 rounded-lg text-sm bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-primary">
             <option value="all">全部模块</option><option value="dynamic">动态</option><option value="goods">商品</option><option value="service">服务</option>
           </select>
@@ -120,16 +133,29 @@ export default function CommentManagementView({ comments, onUpdateCommentStatus,
 
       <div className="rounded-xl overflow-hidden">
         {filteredComments.length === 0 ? (
-          <div className="text-center py-12 px-4 space-y-3"><div className="w-12 h-12 bg-slate-100 dark:bg-slate-800 rounded-full flex items-center justify-center mx-auto text-slate-400"><MessageSquare className="h-6 w-6" /></div><p className="text-slate-500 dark:text-slate-400 text-sm font-medium">没有符合条件的评论</p></div>
+          <div className="space-y-3">
+            <div className="w-12 h-12 bg-slate-100 dark:bg-slate-800 rounded-full flex items-center justify-center mx-auto text-slate-400"><MessageSquare className="h-6 w-6" /></div>
+            <EmptyState text="没有符合条件的评论" />
+          </div>
         ) : !activeCommentAuthor ? (
           <div className="grid grid-cols-[repeat(auto-fill,minmax(9rem,1fr))] gap-2.5">
-            {groupedByUser.map(([authorName, userComments]) => <UserSquareCard key={authorName} title={authorName} userType={getAuthorTag(userComments)} subtitle={`${userComments.length} 条评论`} avatar={getAuthorAvatar(userComments)} onClick={() => setActiveCommentAuthor(authorName)} />)}
+            {groupedByUser.map((group) => <UserSquareCard key={group.id} title={group.name} userType={group.tag} subtitle={`${group.items.length} 条评论`} avatar={group.avatar} onClick={() => setActiveCommentAuthor(group.name)} />)}
           </div>
         ) : (
           <div className="space-y-2 bg-white dark:bg-slate-900 border border-slate-200/60 dark:border-slate-800/80 rounded-xl shadow-sm overflow-hidden">
-            <div className="mx-3 mt-3 flex items-center gap-2 rounded-lg border border-slate-200/60 dark:border-slate-800/80 px-2.5 py-1.5">
-              <button onClick={() => setActiveCommentAuthor(null)} className="text-[10px] px-2 py-0.5 rounded-md bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 shrink-0">返回用户列表</button>
-              <div className="flex items-center gap-2"><img src={tableComments[0]?.authorAvatar} alt={activeCommentAuthorGroup?.[0]} className="w-6 h-6 rounded-full object-cover" /><div><p className="text-[11px] font-bold text-slate-900 dark:text-white">{activeCommentAuthorGroup?.[0]}</p><p className="text-[10px] text-slate-400">{tableComments.length} 条评论</p></div></div>
+            <div className="mx-3 mt-3">
+              <AdminGroupHeader
+                backLabel="返回用户列表"
+                onBack={() => setActiveCommentAuthor(null)}
+                title={activeCommentAuthorGroup?.name}
+                subtitle={`${tableComments.length} 条评论`}
+                avatar={activeCommentAuthorGroup?.avatar || tableComments[0]?.authorAvatar}
+                containerClassName="flex items-center gap-2 rounded-lg border border-slate-200/60 dark:border-slate-800/80 px-2.5 py-1.5"
+                backButtonClassName="text-[10px] px-2 py-0.5 rounded-md bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 shrink-0"
+                avatarClassName="w-6 h-6 rounded-full object-cover"
+                titleClassName="text-[11px] font-bold text-slate-900 dark:text-white"
+                subtitleClassName="text-[10px] text-slate-400"
+              />
             </div>
             <div className="overflow-x-auto">
               <table className="w-full border-collapse text-left text-sm text-slate-600 dark:text-slate-350">
@@ -159,10 +185,6 @@ export default function CommentManagementView({ comments, onUpdateCommentStatus,
       </div>
     </div>
   );
-}
-
-function StatCard({ title, value, color }: { title: string; value: number; color: string }) {
-  return <div className="bg-white dark:bg-slate-900 border border-slate-200/60 dark:border-slate-800/80 rounded-xl p-4 shadow-sm"><p className="text-xs text-slate-400 dark:text-slate-500 font-bold uppercase">{title}</p><div className="mt-2 flex items-baseline gap-2"><span className={`text-2xl font-bold tracking-tight ${color}`}>{value}</span><span className="text-xs text-slate-500">条</span></div></div>;
 }
 
 function Badge({ color, children }: { color: 'sky' | 'emerald' | 'amber' | 'slate'; children: React.ReactNode }) {

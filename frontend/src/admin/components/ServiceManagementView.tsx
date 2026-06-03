@@ -13,7 +13,6 @@ import {
   Phone,
   PlusCircle,
   RotateCcw,
-  Search,
   ShieldCheck,
   Star,
   Wrench,
@@ -21,20 +20,23 @@ import {
 } from 'lucide-react';
 import { Service } from '../types';
 import { getPrimaryImage } from '../../utils/images';
+import { groupItemsByOwner, type EntityOwnerGroup } from '../utils/entityGrouping';
+import { matchesAnyKeyword, normalizeSearchTerm } from '../utils/search';
 import AdminToast from './common/AdminToast';
+import AdminBackButton from './common/AdminBackButton';
+import AdminFilterPills from './common/AdminFilterPills';
+import AdminGroupHeader from './common/AdminGroupHeader';
+import AdminInfoCard from './common/AdminInfoCard';
+import AdminSearchInput from './common/AdminSearchInput';
+import AdminStatusBadge, { serviceStatusMap } from './common/AdminStatusBadge';
+import EmptyState from './common/EmptyState';
 import UserSquareCard from './common/UserSquareCard';
 import { useToast } from '../hooks/useToast';
 
 type ServiceDraft = Pick<Service, 'title' | 'category' | 'providerName' | 'price' | 'unit' | 'status' | 'area' | 'phone' | 'description'>;
 type ServiceStatusFilter = 'all' | 'pending' | 'active' | 'rejected';
 
-type ProviderGroup = {
-  id: string;
-  name: string;
-  avatar: string;
-  tag: string;
-  items: Service[];
-};
+type ProviderGroup = EntityOwnerGroup<Service>;
 
 interface ServiceManagementViewProps {
   services: Service[];
@@ -66,43 +68,27 @@ export default function ServiceManagementView({ services, onUpdateServiceStatus,
   }, [initialTabFilter]);
 
   const filteredServices = useMemo(() => {
-    const keyword = searchTerm.trim().toLowerCase();
+    const keyword = normalizeSearchTerm(searchTerm);
     return services.filter((srv) => {
-      const matchesSearch =
-        !keyword ||
-        srv.title.toLowerCase().includes(keyword) ||
-        srv.providerName.toLowerCase().includes(keyword) ||
-        srv.category.toLowerCase().includes(keyword) ||
-        srv.id.toLowerCase().includes(keyword);
+      const matchesSearch = matchesAnyKeyword(keyword, [
+        srv.title,
+        srv.providerName,
+        srv.category,
+        srv.id,
+      ]);
       const matchesStatus = statusFilter === 'all' || srv.status === statusFilter;
       return matchesSearch && matchesStatus;
     });
   }, [services, searchTerm, statusFilter]);
 
   const groupedByProvider = useMemo<ProviderGroup[]>(() => {
-    const map = new Map<string, ProviderGroup>();
-    filteredServices.forEach((srv) => {
-      const key = srv.providerId || srv.providerName || `unknown-${srv.id}`;
-      const current = map.get(key);
-      if (current) {
-        current.items.push(srv);
-        if (!current.avatar) {
-          current.avatar = getPrimaryImage(srv.providerAvatar);
-        }
-        if (current.tag === '未设置身份标签' && srv.providerTag?.trim()) {
-          current.tag = srv.providerTag;
-        }
-        return;
-      }
-      map.set(key, {
-        id: key,
-        name: srv.providerName || '未知服务商',
-        avatar: getPrimaryImage(srv.providerAvatar),
-        tag: srv.providerTag?.trim() || '未设置身份标签',
-        items: [srv],
-      });
+    return groupItemsByOwner<Service>(filteredServices, {
+      getId: (item) => item.providerId,
+      getName: (item) => item.providerName,
+      getAvatar: (item) => getPrimaryImage(item.providerAvatar),
+      getTag: (item) => item.providerTag,
+      fallbackName: '未知服务商',
     });
-    return Array.from(map.values()).sort((a, b) => b.items.length - a.items.length);
   }, [filteredServices]);
 
   const activeProviderGroup = useMemo(
@@ -127,19 +113,6 @@ export default function ServiceManagementView({ services, onUpdateServiceStatus,
   }, [services, selectedService]);
 
   const providerServices = activeProviderGroup?.items || [];
-
-  const getStatusBadge = (status: string) => {
-    switch (status) {
-      case 'active':
-        return <span className="inline-flex items-center px-2 py-0.5 rounded-lg text-[10px] font-bold bg-emerald-500/10 text-emerald-600 border border-emerald-500/10">已上架</span>;
-      case 'pending':
-        return <span className="inline-flex items-center px-2 py-0.5 rounded-lg text-[10px] font-bold bg-amber-500/10 text-amber-600 border border-amber-500/10">待审核</span>;
-      case 'rejected':
-        return <span className="inline-flex items-center px-2 py-0.5 rounded-lg text-[10px] font-bold bg-rose-500/10 text-rose-600 border border-rose-500/10">已下架</span>;
-      default:
-        return null;
-    }
-  };
 
   const handleApprove = (id: string) => {
     onUpdateServiceStatus(id, 'active');
@@ -184,41 +157,32 @@ export default function ServiceManagementView({ services, onUpdateServiceStatus,
 
       <div className="bg-white dark:bg-gray-900 p-4 rounded-2xl border border-gray-100 dark:border-gray-800/60 shadow-sm flex flex-col gap-3">
         <div className="flex flex-wrap items-center gap-2">
-          {(['all', 'pending', 'active', 'rejected'] as const).map((status) => (
-            <button
-              key={status}
-              onClick={() => setStatusFilter(status)}
-              className={`px-2.5 py-1 rounded-lg text-[11px] font-semibold border-none cursor-pointer ${statusFilter === status ? 'bg-primary text-white' : 'bg-gray-50 dark:bg-gray-800 text-gray-500 dark:text-gray-300'}`}
-            >
-              {status === 'all' ? '全部' : status === 'pending' ? '待审核' : status === 'active' ? '已上架' : '已下架'}
-            </button>
-          ))}
+          <AdminFilterPills
+            options={[
+              { value: 'all', label: '全部' },
+              { value: 'pending', label: '待审核' },
+              { value: 'active', label: '已上架' },
+              { value: 'rejected', label: '已下架' },
+            ]}
+            activeValue={statusFilter}
+            onChange={setStatusFilter}
+          />
           {activeProviderId && (
-            <button
+            <AdminBackButton
               onClick={() => {
                 setActiveProviderId(null);
                 setSelectedService(null);
               }}
+              label="返回服务商列表"
               className="ml-auto text-[10px] px-2 py-1 rounded-md bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-300"
-            >
-              返回服务商列表
-            </button>
+            />
           )}
           <button onClick={() => setShowAddModal(true)} className="text-[10px] px-2 py-1 rounded-md bg-primary text-white flex items-center gap-1">
             <PlusCircle className="w-3 h-3" />
             新增服务
           </button>
         </div>
-        <div className="relative max-w-md">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 w-4 h-4" />
-          <input
-            type="text"
-            placeholder="搜索服务、商家、分类或ID..."
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-            className="w-full pl-9 pr-3 py-2 bg-gray-50 dark:bg-gray-800 border border-gray-100 dark:border-gray-800 rounded-xl text-xs outline-none dark:text-white"
-          />
-        </div>
+        <AdminSearchInput value={searchTerm} placeholder="搜索服务、商家、分类或ID..." onChange={setSearchTerm} />
       </div>
 
       {filteredServices.length === 0 ? (
@@ -239,24 +203,13 @@ export default function ServiceManagementView({ services, onUpdateServiceStatus,
         </div>
       ) : (
         <div className="space-y-2">
-          <div className="flex items-center gap-2 bg-white dark:bg-gray-900 rounded-lg border border-gray-100 dark:border-gray-800 px-2.5 py-1.5">
-            <button onClick={() => setActiveProviderId(null)} className="text-[10px] px-2 py-0.5 rounded-md bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-300 shrink-0">
-              返回服务商列表
-            </button>
-            <div className="flex items-center gap-2 min-w-0">
-              {activeProviderGroup?.avatar ? (
-                <img
-                  src={activeProviderGroup.avatar}
-                  alt={activeProviderGroup.name}
-                  className="w-8 h-8 rounded-full object-cover border border-gray-200 dark:border-gray-700"
-                />
-              ) : null}
-              <div>
-                <p className="text-[11px] font-bold text-gray-800 dark:text-gray-100">{activeProviderGroup?.name}</p>
-                <p className="text-[10px] text-gray-400">{providerServices.length} 项服务</p>
-              </div>
-            </div>
-          </div>
+          <AdminGroupHeader
+            backLabel="返回服务商列表"
+            onBack={() => setActiveProviderId(null)}
+            title={activeProviderGroup?.name}
+            subtitle={`${providerServices.length} 项服务`}
+            avatar={activeProviderGroup?.avatar}
+          />
 
           <div className="bg-white dark:bg-slate-900 border border-slate-200/60 dark:border-slate-800/80 rounded-xl shadow-sm overflow-hidden">
             <div className="overflow-x-auto">
@@ -301,7 +254,7 @@ export default function ServiceManagementView({ services, onUpdateServiceStatus,
                           {srv.rating}
                         </span>
                       </td>
-                      <td className="p-4">{getStatusBadge(srv.status)}</td>
+                      <td className="p-4"><AdminStatusBadge status={srv.status} statusMap={serviceStatusMap} /></td>
                       <td className="p-4 text-right" onClick={(e) => e.stopPropagation()}>
                         <div className="flex flex-wrap justify-end gap-1.5">
                           <button onClick={() => setSelectedService(srv)} className="text-[10px] px-2 py-0.5 rounded-md bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-200">
@@ -370,7 +323,7 @@ export default function ServiceManagementView({ services, onUpdateServiceStatus,
                   </div>
                   <div className="min-w-0">
                     <div className="flex items-center gap-2 flex-wrap">
-                      {getStatusBadge(selectedService.status)}
+                      <AdminStatusBadge status={selectedService.status} statusMap={serviceStatusMap} />
                       <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-xl bg-primary/10 text-primary font-bold text-[10px] border border-primary/20">
                         {selectedService.category}
                       </span>
@@ -415,12 +368,12 @@ export default function ServiceManagementView({ services, onUpdateServiceStatus,
                 </div>
 
                 <div className="grid grid-cols-2 gap-2 text-xs">
-                  <InfoCard label="服务商" value={selectedService.providerName} />
-                  <InfoCard label="身份标签" value={selectedService.providerTag || '未设置'} />
-                  <InfoCard label="分类" value={selectedService.category} />
-                  <InfoCard label="价格" value={`¥${Number(selectedService.price).toFixed(2)}${selectedService.unit}`} />
-                  <InfoCard label="服务区域" value={selectedService.area || '-'} />
-                  <InfoCard label="创建时间" value={selectedService.time || '-'} />
+                  <AdminInfoCard label="服务商" value={selectedService.providerName} />
+                  <AdminInfoCard label="身份标签" value={selectedService.providerTag || '未设置'} />
+                  <AdminInfoCard label="分类" value={selectedService.category} />
+                  <AdminInfoCard label="价格" value={`¥${Number(selectedService.price).toFixed(2)}${selectedService.unit}`} />
+                  <AdminInfoCard label="服务区域" value={selectedService.area || '-'} />
+                  <AdminInfoCard label="创建时间" value={selectedService.time || '-'} />
                 </div>
 
                 <div className="space-y-4">
@@ -545,12 +498,4 @@ export default function ServiceManagementView({ services, onUpdateServiceStatus,
       </AnimatePresence>
     </div>
   );
-}
-
-function EmptyState({ text }: { text: string }) {
-  return <div className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-100 dark:border-gray-800 shadow-sm p-12 text-center"><p className="text-sm font-semibold text-gray-700 dark:text-gray-200">{text}</p></div>;
-}
-
-function InfoCard({ label, value }: { label: string; value: string }) {
-  return <div className="rounded-lg border border-gray-100 dark:border-gray-800 p-2.5 bg-gray-50/40 dark:bg-gray-800/20"><p className="text-[10px] text-gray-400">{label}</p><p className="mt-1 text-[11px] font-semibold text-gray-700 dark:text-gray-200 break-words">{value}</p></div>;
 }

@@ -5,9 +5,15 @@
 
 import React, { useEffect, useMemo, useState } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { Search, Check, Trash2, AlertTriangle, X, ZoomIn, Minimize2 } from 'lucide-react';
+import { Check, Trash2, AlertTriangle, X, ZoomIn, Minimize2 } from 'lucide-react';
 import { ManagedImage } from '../types';
 import { getPrimaryImage } from '../../utils/images';
+import { groupItemsByOwner, type EntityOwnerGroup } from '../utils/entityGrouping';
+import { matchesAnyKeyword, normalizeSearchTerm } from '../utils/search';
+import AdminGroupHeader from './common/AdminGroupHeader';
+import AdminSearchInput from './common/AdminSearchInput';
+import AdminStatCard from './common/AdminStatCard';
+import EmptyState from './common/EmptyState';
 import UserSquareCard from './common/UserSquareCard';
 
 interface ImageManagementViewProps {
@@ -33,41 +39,45 @@ export default function ImageManagementView({ images, onUpdateImageStatus, onDel
 
   const filteredImages = useMemo(() => {
     const seen = new Set<string>();
+    const query = normalizeSearchTerm(searchQuery);
     return images.filter((img) => {
       const identity = img.url || img.id;
       if (seen.has(identity)) return false;
       seen.add(identity);
 
-      const query = searchQuery.toLowerCase();
-      const matchSearch = img.name.toLowerCase().includes(query) || img.uploader.toLowerCase().includes(query) || img.id.toLowerCase().includes(query);
+      const matchSearch = matchesAnyKeyword(query, [img.name, img.uploader, img.id]);
       const matchCat = categoryFilter === 'all' || img.category === categoryFilter;
       const matchStatus = statusFilter === 'all' || img.status === statusFilter;
       return matchSearch && matchCat && matchStatus;
     });
   }, [images, searchQuery, categoryFilter, statusFilter]);
 
-  const groupedByUploader = useMemo(() => {
-    const map = new Map<string, ManagedImage[]>();
-    filteredImages.forEach((img) => {
-      const key = img.uploader || '未知用户';
-      const existing = map.get(key);
-      if (existing) existing.push(img);
-      else map.set(key, [img]);
+  const groupedByUploader = useMemo<EntityOwnerGroup<ManagedImage>[]>(() => {
+    return groupItemsByOwner<ManagedImage>(filteredImages, {
+      getId: (item) => item.uploader,
+      getName: (item) => item.uploader,
+      getAvatar: (item) => getPrimaryImage(item.url),
+      getTag: (item) => item.uploaderTag,
+      fallbackName: '未知用户',
     });
-    return Array.from(map.entries()).sort((a, b) => b[1].length - a[1].length);
   }, [filteredImages]);
 
   const activeUploaderGroup = useMemo(
-    () => groupedByUploader.find(([name]) => name === activeUploader) || null,
+    () => groupedByUploader.find((group) => group.name === activeUploader) || null,
     [groupedByUploader, activeUploader]
   );
+
+  const imageStats = useMemo(() => ({
+    pending: images.filter((image) => image.status === 'pending').length,
+    approved: images.filter((image) => image.status === 'approved').length,
+    flagged: images.filter((image) => image.status === 'flagged').length,
+  }), [images]);
 
   useEffect(() => {
     if (activeUploader && !activeUploaderGroup) setActiveUploader(null);
   }, [activeUploader, activeUploaderGroup]);
 
-  const tableImages = activeUploaderGroup?.[1] || [];
-  const getUploaderTag = (items: ManagedImage[]) => items.find((item) => item.uploaderTag?.trim())?.uploaderTag || '未设置身份标签';
+  const tableImages = activeUploaderGroup?.items || [];
   const getImageUrl = (img: ManagedImage) => getPrimaryImage(img.url);
 
   return (
@@ -78,20 +88,21 @@ export default function ImageManagementView({ images, onUpdateImageStatus, onDel
       </div>
 
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-        <StatCard title="图片总数" value={images.length} color="text-slate-800" />
-        <StatCard title="待审核" value={images.filter((i) => i.status === 'pending').length} color="text-amber-500" />
-        <StatCard title="已放行" value={images.filter((i) => i.status === 'approved').length} color="text-emerald-500" />
-        <StatCard title="已封禁" value={images.filter((i) => i.status === 'flagged').length} color="text-rose-500" />
+        <AdminStatCard title="图片总数" value={images.length} colorClassName="text-slate-800" unitText="张" />
+        <AdminStatCard title="待审核" value={imageStats.pending} colorClassName="text-amber-500" unitText="张" />
+        <AdminStatCard title="已放行" value={imageStats.approved} colorClassName="text-emerald-500" unitText="张" />
+        <AdminStatCard title="已封禁" value={imageStats.flagged} colorClassName="text-rose-500" unitText="张" />
       </div>
 
       <div className="bg-white dark:bg-slate-900 border border-slate-200/60 dark:border-slate-800/80 rounded-xl shadow-sm p-4">
         <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-          <div className="relative md:col-span-2">
-            <span className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-slate-400">
-              <Search className="h-4 w-4" />
-            </span>
-            <input type="text" placeholder="搜索图片名、上传人或ID..." value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} className="w-full pl-9 pr-4 py-2 border border-slate-200 dark:border-slate-800 rounded-lg text-sm bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-emerald-500" />
-          </div>
+          <AdminSearchInput
+            value={searchQuery}
+            placeholder="搜索图片名、上传人或ID..."
+            onChange={setSearchQuery}
+            containerClassName="relative md:col-span-2"
+            inputClassName="w-full pl-9 pr-4 py-2 border border-slate-200 dark:border-slate-800 rounded-lg text-sm bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-emerald-500"
+          />
           <select value={categoryFilter} onChange={(e) => setCategoryFilter(e.target.value as typeof categoryFilter)} className="w-full py-2 px-3 border border-slate-200 dark:border-slate-800 rounded-lg text-sm bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-emerald-500">
             <option value="all">全部分类</option>
             <option value="dynamic">动态图片</option>
@@ -109,20 +120,27 @@ export default function ImageManagementView({ images, onUpdateImageStatus, onDel
       </div>
 
       {!activeUploader ? (
+        filteredImages.length === 0 ? (
+          <EmptyState text="暂无匹配图片" />
+        ) : (
         <div className="grid grid-cols-[repeat(auto-fill,minmax(9rem,1fr))] gap-2.5">
-          {groupedByUploader.map(([uploader, uploaderImages]) => (
-            <UserSquareCard key={uploader} title={uploader} userType={getUploaderTag(uploaderImages)} subtitle={`${uploaderImages.length} 张图片`} avatar={uploaderImages[0]?.url} onClick={() => setActiveUploader(uploader)} />
+          {groupedByUploader.map((group) => (
+            <UserSquareCard key={group.id} title={group.name} userType={group.tag} subtitle={`${group.items.length} 张图片`} avatar={group.avatar} onClick={() => setActiveUploader(group.name)} />
           ))}
         </div>
+        )
       ) : (
         <div className="space-y-2">
-          <div className="flex items-center gap-2 bg-white dark:bg-slate-900 border border-slate-200/60 dark:border-slate-800/60 rounded-lg px-2.5 py-1.5">
-            <button type="button" onClick={() => setActiveUploader(null)} className="text-[10px] px-2 py-0.5 rounded-md bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 shrink-0">返回用户列表</button>
-            <div>
-              <p className="text-[11px] font-bold text-slate-800 dark:text-slate-100">{activeUploaderGroup?.[0]}</p>
-              <p className="text-[10px] text-slate-400">{tableImages.length} 张图片</p>
-            </div>
-          </div>
+          <AdminGroupHeader
+            backLabel="返回用户列表"
+            onBack={() => setActiveUploader(null)}
+            title={activeUploaderGroup?.name}
+            subtitle={`${tableImages.length} 张图片`}
+            containerClassName="flex items-center gap-2 bg-white dark:bg-slate-900 border border-slate-200/60 dark:border-slate-800/60 rounded-lg px-2.5 py-1.5"
+            backButtonClassName="text-[10px] px-2 py-0.5 rounded-md bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 shrink-0"
+            titleClassName="text-[11px] font-bold text-slate-800 dark:text-slate-100"
+            subtitleClassName="text-[10px] text-slate-400"
+          />
 
           <div className="bg-white dark:bg-slate-900 border border-slate-200/60 dark:border-slate-800/80 rounded-xl shadow-sm overflow-hidden">
             <div className="overflow-x-auto">
@@ -180,18 +198,6 @@ export default function ImageManagementView({ images, onUpdateImageStatus, onDel
           </motion.div>
         )}
       </AnimatePresence>
-    </div>
-  );
-}
-
-function StatCard({ title, value, color }: { title: string; value: number; color: string }) {
-  return (
-    <div className="bg-white dark:bg-slate-900 border border-slate-200/60 dark:border-slate-800/80 rounded-xl p-4 shadow-sm">
-      <p className="text-xs text-slate-400 dark:text-slate-500 font-bold uppercase">{title}</p>
-      <div className="mt-2 flex items-baseline gap-2">
-        <span className={`text-2xl font-bold tracking-tight ${color}`}>{value}</span>
-        <span className="text-xs text-slate-500">张</span>
-      </div>
     </div>
   );
 }

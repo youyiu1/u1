@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
+import React, { createContext, useContext, useEffect, useMemo, useState, ReactNode } from 'react';
 import { User } from '../types';
 import { userApi, setToken, removeToken, getToken } from '../services/api';
 import { getStoredUser, removeStoredUser, setStoredUser } from '../utils/authStorage';
@@ -24,14 +24,26 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   const [user, setUser] = useState<User | null>(null);
 
   useEffect(() => {
-    const token = getToken();
-    const savedUser = getStoredUser();
-    if (token && savedUser) {
-      setUser(savedUser);
-      return;
-    }
-    removeToken();
-    removeStoredUser();
+    const syncAuthState = () => {
+      const token = getToken();
+      const savedUser = getStoredUser();
+      if (token && savedUser) {
+        setUser(savedUser);
+        return;
+      }
+      setUser(null);
+      removeToken();
+      removeStoredUser();
+    };
+
+    syncAuthState();
+    window.addEventListener('storage', syncAuthState);
+    window.addEventListener('focus', syncAuthState);
+
+    return () => {
+      window.removeEventListener('storage', syncAuthState);
+      window.removeEventListener('focus', syncAuthState);
+    };
   }, []);
 
   const login = async (email: string, password: string) => {
@@ -59,11 +71,12 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     setStoredUser(updatedUser);
   };
 
-  return (
-    <AuthContext.Provider value={{ user, login, register, logout, updateUser, isAuthenticated: !!user }}>
-      {children}
-    </AuthContext.Provider>
+  const value = useMemo(
+    () => ({ user, login, register, logout, updateUser, isAuthenticated: !!user && !!getToken() }),
+    [user]
   );
+
+  return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 };
 
 export const useAuth = () => {

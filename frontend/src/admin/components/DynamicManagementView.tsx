@@ -1,4 +1,4 @@
-﻿/**
+/**
  * @license
  * SPDX-License-Identifier: Apache-2.0
  */
@@ -6,32 +6,35 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { 
-  Search, 
   Tag, 
   SlidersHorizontal, 
   Heart, 
   MessageSquare, 
   Check, 
   X, 
-  ShieldAlert, 
   Clock, 
-  User, 
   Image as ImageIcon, 
   Gavel, 
   RotateCcw, 
   Flame, 
-  AlertCircle, 
   Sparkles, 
   Trash2,
   Send,
   UserX,
-  CheckCircle2,
   BadgeAlert,
-  Info,
   Eye,
   Bookmark
 } from 'lucide-react';
 import { Dynamic } from '../types';
+import { useToast } from '../hooks/useToast';
+import { groupItemsByOwner, type EntityOwnerGroup } from '../utils/entityGrouping';
+import { matchesAnyKeyword, normalizeSearchTerm } from '../utils/search';
+import AdminBackButton from './common/AdminBackButton';
+import AdminFilterPills from './common/AdminFilterPills';
+import AdminGroupHeader from './common/AdminGroupHeader';
+import AdminSearchInput from './common/AdminSearchInput';
+import AdminToast from './common/AdminToast';
+import EmptyState from './common/EmptyState';
 import UserSquareCard from './common/UserSquareCard';
 
 interface DynamicManagementViewProps {
@@ -43,6 +46,19 @@ interface DynamicManagementViewProps {
   initialTabFilter?: string;
 }
 
+type DynamicStatusFilter = 'all' | 'pending' | 'normal' | 'removed';
+type AuthorGroup = EntityOwnerGroup<Dynamic>;
+type DynamicGroupView = 'feed' | 'user';
+
+const CATEGORY_OPTIONS = ['生活记录', '同城发现', '探店动态', '邻里闲情', '物业反馈', '求助互助', '同城活动', '随手拍'] as const;
+
+const DYNAMIC_STATUS_OPTIONS: { value: DynamicStatusFilter; label: string }[] = [
+  { value: 'all', label: '全部' },
+  { value: 'pending', label: '待审核' },
+  { value: 'normal', label: '已公开' },
+  { value: 'removed', label: '违规屏蔽' },
+];
+
 export default function DynamicManagementView({
   dynamics,
   onUpdateDynamicStatus,
@@ -53,8 +69,8 @@ export default function DynamicManagementView({
 }: DynamicManagementViewProps) {
   const [searchTerm, setSearchTerm] = useState('');
   const [categoryFilter, setCategoryFilter] = useState<string>('all');
-  const [statusFilter, setStatusFilter] = useState<'all' | 'pending' | 'normal' | 'removed'>('all');
-  const [viewMode, setViewMode] = useState<'feed' | 'user'>('user');
+  const [statusFilter, setStatusFilter] = useState<DynamicStatusFilter>('all');
+  const [viewMode, setViewMode] = useState<DynamicGroupView>('user');
   const [activeAuthor, setActiveAuthor] = useState<string | null>(null);
 
   // Modal / Drawer status
@@ -65,15 +81,8 @@ export default function DynamicManagementView({
   const [commentInput, setCommentInput] = useState('');
 
   // Custom visual state alerts
-  const [toast, setToast] = useState<{ message: string; type: 'success' | 'info' | 'error' } | null>(null);
   const [banConfirmAuthor, setBanConfirmAuthor] = useState<string | null>(null);
-
-  const showToastMsg = (message: string, type: 'success' | 'info' | 'error' = 'success') => {
-    setToast({ message, type });
-    setTimeout(() => {
-      setToast(null);
-    }, 3000);
-  };
+  const { toast, showToast: showToastMsg } = useToast();
 
   // Trigger from outside tabs (such as pending tasks in dashboard)
   useEffect(() => {
@@ -92,8 +101,6 @@ export default function DynamicManagementView({
     }, 3000); // 300ms is standard, but keeping it lively
     return () => clearTimeout(timer);
   }, [searchTerm, categoryFilter, statusFilter]);
-
-  const CATEGORY_OPTIONS = ['生活记录', '同城发现', '探店动态', '邻里闲情', '物业反馈', '求助互助', '同城活动', '随手拍'];
 
   const normalizeCategory = (cat: string) => {
     if (!cat) return '生活记录';
@@ -146,50 +153,45 @@ export default function DynamicManagementView({
   };
 
   // Filter logic
-  const filteredDynamics = dynamics.filter((d) => {
-    const matchesSearch =
-      d.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      d.author.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      d.id.toLowerCase().includes(searchTerm.toLowerCase());
+  const filteredDynamics = useMemo(() => {
+    const keyword = normalizeSearchTerm(searchTerm);
+    return dynamics.filter((d) => {
+      const matchesSearch = matchesAnyKeyword(keyword, [d.title, d.author, d.id]);
 
-    const normalizedCategory = normalizeCategory(d.category);
-    const matchesCat = categoryFilter === 'all' ? true : normalizedCategory === categoryFilter;
-    const matchesStatus = statusFilter === 'all' ? true : d.status === statusFilter;
+      const normalizedCategory = normalizeCategory(d.category);
+      const matchesCat = categoryFilter === 'all' ? true : normalizedCategory === categoryFilter;
+      const matchesStatus = statusFilter === 'all' ? true : d.status === statusFilter;
 
-    return matchesSearch && matchesCat && matchesStatus;
-  });
-
-  const groupedByUser = useMemo(() => {
-    const map = new Map<string, { author: string; avatar: string; tag?: string; verified: boolean; items: Dynamic[] }>();
-    filteredDynamics.forEach((item) => {
-      const key = item.author || '匿名用户';
-      const existing = map.get(key);
-      if (existing) {
-        existing.items.push(item);
-        if (!existing.tag && item.authorTag) existing.tag = item.authorTag;
-        if (!existing.avatar && item.authorAvatar) existing.avatar = item.authorAvatar;
-      } else {
-        map.set(key, {
-          author: key,
-          avatar: item.authorAvatar,
-          tag: item.authorTag,
-          verified: !!item.verifiedUser,
-          items: [item],
-        });
-      }
+      return matchesSearch && matchesCat && matchesStatus;
     });
-    return Array.from(map.values()).sort((a, b) => b.items.length - a.items.length);
+  }, [categoryFilter, dynamics, searchTerm, statusFilter]);
+
+  const groupedByUser = useMemo<AuthorGroup[]>(() => {
+    return groupItemsByOwner<Dynamic>(filteredDynamics, {
+      getId: (item) => item.author || item.id,
+      getName: (item) => item.author,
+      getAvatar: (item) => item.authorAvatar || '',
+      getTag: (item) => item.authorTag,
+      fallbackName: '匿名用户',
+      fallbackTag: '未设置身份标签',
+    });
   }, [filteredDynamics]);
 
   const activeAuthorGroup = useMemo(
-    () => groupedByUser.find((group) => group.author === activeAuthor) || null,
+    () => groupedByUser.find((group) => group.name === activeAuthor) || null,
     [groupedByUser, activeAuthor]
   );
 
+  const activeGroupItems = activeAuthorGroup?.items || [];
+
+  const returnToUserList = () => {
+    setActiveAuthor(null);
+    setViewMode('user');
+  };
+
   useEffect(() => {
     if (activeAuthor && !activeAuthorGroup) {
-      setActiveAuthor(null);
-      setViewMode('user');
+      returnToUserList();
     }
   }, [activeAuthor, activeAuthorGroup]);
 
@@ -252,22 +254,7 @@ export default function DynamicManagementView({
 
   return (
     <div className="relative">
-      {/* Dynamic Native Custom Toast alert System */}
-      <AnimatePresence>
-        {toast && (
-          <motion.div
-            initial={{ opacity: 0, y: -24, scale: 0.95 }}
-            animate={{ opacity: 1, y: 0, scale: 1 }}
-            exit={{ opacity: 0, y: -24, scale: 0.95 }}
-            className="fixed top-6 left-1/2 -translate-x-1/2 z-[100] flex items-center gap-2.5 px-4 py-3 rounded-xl shadow-xl border bg-white dark:bg-gray-900 border-gray-100 dark:border-gray-800"
-          >
-            {toast.type === 'success' && <CheckCircle2 className="w-5 h-5 text-emerald-500" />}
-            {toast.type === 'info' && <Info className="w-5 h-5 text-sky-500" />}
-            {toast.type === 'error' && <AlertCircle className="w-5 h-5 text-rose-500" />}
-            <span className="text-sm font-semibold text-gray-800 dark:text-gray-100">{toast.message}</span>
-          </motion.div>
-        )}
-      </AnimatePresence>
+      <AdminToast toast={toast} />
 
       {/* Custom Ban confirmation Popup modal */}
       <AnimatePresence>
@@ -357,34 +344,22 @@ export default function DynamicManagementView({
                 状态筛选:
               </span>
               <div className="inline-flex rounded-xl bg-gray-50 dark:bg-gray-800/40 p-1 border border-gray-100 dark:border-gray-800/60">
-                {(['all', 'pending', 'normal', 'removed'] as const).map((st) => (
-                  <button
-                    key={st}
-                    onClick={() => setStatusFilter(st)}
-                    className={`px-3 py-1 font-semibold rounded-lg text-xs transition-all cursor-pointer border-none focus:outline-none ${
-                      statusFilter === st
-                        ? 'bg-white dark:bg-gray-800 text-primary shadow-sm font-bold'
-                        : 'text-gray-500 hover:text-gray-900 dark:text-gray-400 dark:hover:text-white'
-                    }`}
-                  >
-                    {st === 'all' ? '全部' : st === 'pending' ? '待审核' : st === 'normal' ? '已公开' : '违规屏蔽'}
-                  </button>
-                ))}
+                <AdminFilterPills
+                  options={DYNAMIC_STATUS_OPTIONS}
+                  activeValue={statusFilter}
+                  onChange={setStatusFilter}
+                />
               </div>
             </div>
           </div>
 
           {/* Search box row bar */}
-          <div className="relative max-w-md">
-            <Search className="absolute left-3 top.5 top-1/2 -translate-y-1/2 text-gray-400 w-4.5 h-4.5 pointer-events-none" />
-            <input
-              type="text"
-              placeholder="搜索同城发布文案、发布者昵称、动态ID..."
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              className="w-full pl-10 pr-4 py-2 bg-gray-50 dark:bg-gray-850 border border-gray-100 dark:border-gray-800 rounded-xl font-medium text-xs focus:ring-2 focus:ring-primary/20 focus:border-primary placeholder-gray-400 dark:placeholder-gray-500 outline-none transition-all dark:text-white"
-            />
-          </div>
+          <AdminSearchInput
+            value={searchTerm}
+            placeholder="搜索同城发布文案、发布者昵称、动态ID..."
+            onChange={setSearchTerm}
+            inputClassName="w-full pl-9 pr-4 py-2 bg-gray-50 dark:bg-gray-850 border border-gray-100 dark:border-gray-800 rounded-xl font-medium text-xs focus:ring-2 focus:ring-primary/20 focus:border-primary placeholder-gray-400 dark:placeholder-gray-500 outline-none transition-all dark:text-white"
+          />
         </div>
 
         {/* Dynamics List / Feed */}
@@ -415,7 +390,7 @@ export default function DynamicManagementView({
               <div className="p-4 bg-gray-50 dark:bg-gray-800/50 rounded-full mb-4">
                 <SlidersHorizontal className="w-10 h-10 text-gray-400" />
               </div>
-              <p className="text-base font-bold text-gray-800 dark:text-gray-100">没有查找到符合该过滤条件的公开动态</p>
+              <EmptyState text="没有查找到符合该过滤条件的公开动态" />
               <p className="text-xs text-gray-400 mt-1">您可以试着切换更丰富的大类或重新校正检索文字</p>
             </div>
           ) : viewMode === 'user' ? (
@@ -423,13 +398,13 @@ export default function DynamicManagementView({
               <div className="grid grid-cols-[repeat(auto-fill,minmax(9rem,1fr))] gap-2.5">
                 {groupedByUser.map((group) => (
                   <UserSquareCard
-                    key={group.author}
-                    title={group.author}
-                    userType={group.tag || '未设置身份标签'}
+                    key={group.id}
+                    title={group.name}
+                    userType={group.tag}
                     subtitle={`${group.items.length} 条动态`}
                     avatar={group.avatar}
                     onClick={() => {
-                      setActiveAuthor(group.author);
+                      setActiveAuthor(group.name);
                       setViewMode('feed');
                     }}
                   />
@@ -437,26 +412,16 @@ export default function DynamicManagementView({
               </div>
             ) : (
               <div className="space-y-2">
-                <div className="flex items-center gap-2 bg-white dark:bg-gray-900 rounded-lg border border-gray-100 dark:border-gray-800 px-2.5 py-1.5">
-                  <button
-                    onClick={() => {
-                      setActiveAuthor(null);
-                      setViewMode('user');
-                    }}
-                    className="text-[10px] px-2 py-0.5 rounded-md bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-300 shrink-0"
-                  >
-                    返回用户列表
-                  </button>
-                  <div className="flex items-center gap-2 min-w-0">
-                    <img src={activeAuthorGroup?.avatar} alt={activeAuthorGroup?.author} className="w-7 h-7 rounded-full object-cover border border-gray-200 dark:border-gray-700" />
-                    <div>
-                      <p className="text-[11px] font-bold text-gray-800 dark:text-gray-100">{activeAuthorGroup?.author}</p>
-                      <p className="text-[10px] text-gray-400">{activeAuthorGroup?.items.length || 0} 条动态</p>
-                    </div>
-                  </div>
-                </div>
+                <AdminGroupHeader
+                  backLabel="返回用户列表"
+                  onBack={returnToUserList}
+                  title={activeAuthorGroup?.name}
+                  subtitle={`${activeGroupItems.length} 条动态`}
+                  avatar={activeAuthorGroup?.avatar}
+                  avatarClassName="w-7 h-7 rounded-full object-cover border border-gray-200 dark:border-gray-700"
+                />
                 <div className="space-y-1.5">
-                  {(activeAuthorGroup?.items || []).map((item) => (
+                  {activeGroupItems.map((item) => (
                     (() => {
                       const favoriteCount = readNumberField(item, ['favoriteCount', 'favorites', 'collectCount', 'collectionCount'], 0);
                       const viewCount = readNumberField(item, ['viewCount', 'views', 'browseCount', 'readCount', 'pv'], 0);
@@ -527,24 +492,14 @@ export default function DynamicManagementView({
           ) : (
             <div className="space-y-2">
               {activeAuthorGroup && (
-                <div className="flex items-center gap-2 bg-white dark:bg-gray-900 rounded-lg border border-gray-100 dark:border-gray-800 px-2.5 py-1.5">
-                  <button
-                    onClick={() => {
-                      setActiveAuthor(null);
-                      setViewMode('user');
-                    }}
-                    className="text-[10px] px-2 py-0.5 rounded-md bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-300 shrink-0"
-                  >
-                    返回用户列表
-                  </button>
-                  <div className="flex items-center gap-2 min-w-0">
-                    <img src={activeAuthorGroup.avatar} alt={activeAuthorGroup.author} className="w-7 h-7 rounded-full object-cover border border-gray-200 dark:border-gray-700" />
-                    <div>
-                      <p className="text-[11px] font-bold text-gray-800 dark:text-gray-100">{activeAuthorGroup.author}</p>
-                      <p className="text-[10px] text-gray-400">{activeAuthorGroup.items.length} 条动态</p>
-                    </div>
-                  </div>
-                </div>
+                <AdminGroupHeader
+                  backLabel="返回用户列表"
+                  onBack={returnToUserList}
+                  title={activeAuthorGroup.name}
+                  subtitle={`${activeAuthorGroup.items.length} 条动态`}
+                  avatar={activeAuthorGroup.avatar}
+                  avatarClassName="w-7 h-7 rounded-full object-cover border border-gray-200 dark:border-gray-700"
+                />
               )}
               <div className="bg-white dark:bg-slate-900 border border-slate-200/60 dark:border-slate-800/80 rounded-xl shadow-sm overflow-hidden">
               <div className="overflow-x-auto">

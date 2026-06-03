@@ -6,13 +6,16 @@
 package com.neighborhood.app.service.impl;
 
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
-import com.neighborhood.app.entity.MarketItem;
-import com.neighborhood.app.vo.MarketItemVO;
-import com.neighborhood.app.entity.User;
-import com.neighborhood.app.mapper.MarketMapper;
-import com.neighborhood.app.mapper.UserMapper;
+import com.neighborhood.app.entity.market.MarketItem;
+import com.neighborhood.app.vo.market.MarketItemVO;
+import com.neighborhood.app.entity.user.User;
+import com.neighborhood.app.mapper.market.MarketMapper;
+import com.neighborhood.app.mapper.user.UserMapper;
 import com.neighborhood.app.service.CacheService;
 import com.neighborhood.app.service.MarketService;
+import com.neighborhood.app.utils.CacheLookupUtil;
+import com.neighborhood.app.utils.StringValueUtil;
+import com.neighborhood.app.utils.UserLookupUtil;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import java.util.List;
@@ -28,38 +31,32 @@ public class MarketServiceImpl extends ServiceImpl<MarketMapper, MarketItem> imp
 
     @Override
     public List<MarketItem> list() {
-        List<MarketItem> cached = cacheService.getCachedMarketList();
-        if (cached != null) {
-            return cached;
-        }
-        List<MarketItem> list = lambdaQuery()
-                .eq(MarketItem::getStatus, "active")
-                .orderByDesc(MarketItem::getId)
-                .list();
-        cacheService.cacheMarketList(list);
-        return list;
+        return CacheLookupUtil.getOrLoad(
+                cacheService::getCachedMarketList,
+                () -> lambdaQuery()
+                        .eq(MarketItem::getStatus, "active")
+                        .orderByDesc(MarketItem::getId)
+                        .list(),
+                cacheService::cacheMarketList
+        );
     }
 
     @Override
     public MarketItem getById(Long id) {
-        MarketItem cached = cacheService.getCachedMarketItem(id);
-        if (cached != null) {
-            return cached;
-        }
-        MarketItem item = super.getById(id);
-        if (item != null) {
-            cacheService.cacheMarketItem(id, item);
-        }
-        return item;
+        return CacheLookupUtil.getOrLoad(
+                () -> cacheService.getCachedMarketItem(id),
+                () -> super.getById(id),
+                item -> cacheService.cacheMarketItem(id, item)
+        );
     }
 
     @Override
     public MarketItemVO getMarketItemVOById(Long id) {
         MarketItem item = getById(id);
-        if (item == null || !"active".equals(emptyTo(item.getStatus(), "active"))) {
+        if (item == null || !"active".equals(StringValueUtil.emptyTo(item.getStatus(), "active"))) {
             return null;
         }
-        User seller = userMapper.selectById(item.getSellerId());
+        User seller = UserLookupUtil.getById(cacheService, userMapper, item.getSellerId());
         return MarketItemVO.fromMarketItem(item, seller);
     }
 
@@ -70,12 +67,7 @@ public class MarketServiceImpl extends ServiceImpl<MarketMapper, MarketItem> imp
             return List.of();
         }
         // 批量获取卖家信息
-        List<String> sellerIds = items.stream()
-                .map(MarketItem::getSellerId)
-                .distinct()
-                .collect(Collectors.toList());
-        Map<String, User> userMap = userMapper.selectBatchIds(sellerIds).stream()
-                .collect(Collectors.toMap(User::getId, u -> u));
+        Map<String, User> userMap = UserLookupUtil.mapByExtractor(cacheService, userMapper, items, MarketItem::getSellerId);
         return items.stream()
                 .map(item -> MarketItemVO.fromMarketItem(item, userMap.get(item.getSellerId())))
                 .collect(Collectors.toList());
@@ -89,8 +81,7 @@ public class MarketServiceImpl extends ServiceImpl<MarketMapper, MarketItem> imp
         item.setFreeShipping(item.getFreeShipping() != null && item.getFreeShipping());
         boolean result = super.save(item);
         if (result) {
-            cacheService.evictMarketList();
-            cacheService.evictHomeIndex();
+            evictMarketCaches(null, true);
         }
         return result;
     }
@@ -99,7 +90,7 @@ public class MarketServiceImpl extends ServiceImpl<MarketMapper, MarketItem> imp
     public boolean updateById(MarketItem item) {
         boolean result = super.updateById(item);
         if (result) {
-            cacheService.evictMarketItem(item.getId());
+            evictMarketCaches(item.getId(), false);
         }
         return result;
     }
@@ -113,13 +104,20 @@ public class MarketServiceImpl extends ServiceImpl<MarketMapper, MarketItem> imp
         if (items.isEmpty()) {
             return List.of();
         }
-        User seller = userMapper.selectById(userId);
+        User seller = UserLookupUtil.getById(cacheService, userMapper, userId);
         return items.stream()
                 .map(item -> MarketItemVO.fromMarketItem(item, seller))
                 .collect(Collectors.toList());
     }
 
-    private String emptyTo(String value, String fallback) {
-        return value == null || value.isBlank() ? fallback : value;
+    private void evictMarketCaches(Long itemId, boolean includeHome) {
+        if (itemId == null) {
+            cacheService.evictMarketList();
+        } else {
+            cacheService.evictMarketItem(itemId);
+        }
+        if (includeHome) {
+            cacheService.evictHomeIndex();
+        }
     }
 }

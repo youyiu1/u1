@@ -1,13 +1,14 @@
-﻿/**
+/**
  * @license
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import React, { useState } from 'react';
+import React, { useMemo, useState } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { Menu } from 'lucide-react';
 import { NotificationItem, User, Dynamic, Goods, Service, Order } from '../types';
 import { getPrimaryImage } from '../../utils/images';
+import { matchesAnyKeyword, normalizeSearchTerm } from '../utils/search';
 
 interface HeaderProps {
   username: string;
@@ -73,22 +74,27 @@ export default function Header({
   const adminMeta = adminTag?.trim() ? `${adminRoleLabel} · ${adminTag}` : adminRoleLabel;
   const unreadCount = notifications.filter((n) => !n.read).length;
 
-  const normalizedQuery = searchQuery.trim().toLowerCase();
-  const matchedUsers = normalizedQuery
-    ? users.filter((u) => u.name.toLowerCase().includes(normalizedQuery) || u.email.toLowerCase().includes(normalizedQuery))
-    : [];
-  const matchedDynamics = normalizedQuery
-    ? dynamics.filter((d) => d.title.toLowerCase().includes(normalizedQuery) || d.author.toLowerCase().includes(normalizedQuery))
-    : [];
-  const matchedGoods = normalizedQuery
-    ? goods.filter((g) => g.title.toLowerCase().includes(normalizedQuery) || g.sellerName.toLowerCase().includes(normalizedQuery))
-    : [];
-  const matchedServices = normalizedQuery
-    ? services.filter((s) => s.title.toLowerCase().includes(normalizedQuery) || s.providerName.toLowerCase().includes(normalizedQuery))
-    : [];
-  const matchedOrders = normalizedQuery
-    ? orders.filter((o) => o.id.toLowerCase().includes(normalizedQuery) || o.buyerName.toLowerCase().includes(normalizedQuery))
-    : [];
+  const normalizedQuery = normalizeSearchTerm(searchQuery);
+  const matchedUsers = useMemo(
+    () => (normalizedQuery ? users.filter((u) => matchesAnyKeyword(normalizedQuery, [u.name, u.email])) : []),
+    [normalizedQuery, users]
+  );
+  const matchedDynamics = useMemo(
+    () => (normalizedQuery ? dynamics.filter((d) => matchesAnyKeyword(normalizedQuery, [d.title, d.author])) : []),
+    [dynamics, normalizedQuery]
+  );
+  const matchedGoods = useMemo(
+    () => (normalizedQuery ? goods.filter((g) => matchesAnyKeyword(normalizedQuery, [g.title, g.sellerName])) : []),
+    [goods, normalizedQuery]
+  );
+  const matchedServices = useMemo(
+    () => (normalizedQuery ? services.filter((s) => matchesAnyKeyword(normalizedQuery, [s.title, s.providerName])) : []),
+    [normalizedQuery, services]
+  );
+  const matchedOrders = useMemo(
+    () => (normalizedQuery ? orders.filter((o) => matchesAnyKeyword(normalizedQuery, [o.id, o.buyerName])) : []),
+    [normalizedQuery, orders]
+  );
 
   const hasResults =
     matchedUsers.length > 0 ||

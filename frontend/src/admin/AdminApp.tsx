@@ -89,7 +89,7 @@ function isUnauthorized(res: Result<unknown>) {
 }
 
 function toAlertMessage(res: Result<unknown>) {
-  return res.message || '鎿嶄綔澶辫触';
+  return res.message || '操作失败';
 }
 
 type UserProfile = {
@@ -481,7 +481,7 @@ export default function AdminApp() {
 
   const runAction = async (action: Promise<Result<void>>) => {
     if (isReadonlyAdmin) {
-      alert('当前账号为只读管理员，不能执行写操作');
+      alert('瑜版挸澧犵拹锕€褰挎稉鍝勫涧鐠囪崵顓搁悶鍡楁喅閿涘奔绗夐懗鑺ュ⒔鐞涘苯鍟撻幙宥勭稊');
       return;
     }
     const res = await action;
@@ -634,7 +634,7 @@ export default function AdminApp() {
                   ))}
                 </div>
                 <div className="h-[300px] bg-slate-200/40 border border-outline-variant/20 rounded-xl animate-pulse flex items-center justify-center p-6 text-outline select-none font-semibold">
-                  页面切换中，正在加载最新数据...
+                  濡炪倗鏁诲浼村礆閸ャ劌搴婂☉鎿冨弿缁辨繂顫㈤敐鍛含闁告梻濮惧ù鍥嫉閳ь剟寮悧鍫熸闁?..
                 </div>
               </motion.div>
             ) : null}

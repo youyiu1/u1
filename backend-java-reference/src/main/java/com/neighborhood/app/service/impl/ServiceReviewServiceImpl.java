@@ -6,18 +6,20 @@
 package com.neighborhood.app.service.impl;
 
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
-import com.neighborhood.app.entity.ServiceReview;
-import com.neighborhood.app.mapper.ServiceReviewMapper;
+import com.neighborhood.app.entity.service.ServiceReview;
+import com.neighborhood.app.mapper.service.ServiceReviewMapper;
 import com.neighborhood.app.service.CacheService;
-import com.neighborhood.app.service.ServiceReviewService;
 import com.neighborhood.app.service.ReviewLikeService;
+import com.neighborhood.app.service.ServiceReviewService;
+import com.neighborhood.app.utils.ServiceReviewResponseUtil;
 import lombok.RequiredArgsConstructor;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Service;
+
 import java.time.LocalDateTime;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 @Service
 @RequiredArgsConstructor
@@ -29,7 +31,6 @@ public class ServiceReviewServiceImpl extends ServiceImpl<ServiceReviewMapper, S
 
     @Override
     public List<ServiceReview> getByServiceId(Long serviceId) {
-        ensureReviewStatusColumnExists();
         return lambdaQuery()
                 .eq(ServiceReview::getServiceId, serviceId)
                 .eq(ServiceReview::getStatus, "normal")
@@ -39,27 +40,24 @@ public class ServiceReviewServiceImpl extends ServiceImpl<ServiceReviewMapper, S
 
     @Override
     public List<Map<String, Object>> getByServiceIdWithLikeStatus(Long serviceId, String userId) {
-        return getByServiceId(serviceId).stream()
-                .map(review -> toReviewResponse(review, reviewLikeService.isLiked(review.getId(), userId)))
+        List<ServiceReview> reviews = getByServiceId(serviceId);
+        if (reviews.isEmpty()) {
+            return List.of();
+        }
+        Set<Long> likedReviewIds = reviewLikeService.likedReviewIds(reviews.stream()
+                .map(ServiceReview::getId)
+                .toList(), userId);
+        return reviews.stream()
+                .map(review -> ServiceReviewResponseUtil.toReviewResponse(review, likedReviewIds.contains(review.getId())))
                 .toList();
     }
 
     @Override
     public boolean addReview(Long serviceId, String userId, String userName, String userAvatar, Integer rating, String content) {
-        ServiceReview review = new ServiceReview();
-        review.setServiceId(serviceId);
-        review.setUserId(userId);
-        review.setUserName(userName);
-        review.setUserAvatar(userAvatar);
-        review.setRating(rating);
-        review.setContent(content);
-        review.setLikes(0);
-        review.setStatus("normal");
-        review.setCreateTime(LocalDateTime.now());
+        ServiceReview review = buildReview(serviceId, userId, userName, userAvatar, rating, content);
         boolean saved = save(review);
         if (saved) {
-            cacheService.evictService(serviceId);
-            cacheService.evictHomeIndex();
+            evictServiceCaches(serviceId);
         }
         return saved;
     }
@@ -74,30 +72,44 @@ public class ServiceReviewServiceImpl extends ServiceImpl<ServiceReviewMapper, S
         return reviewLikeService.unlike(reviewId, userId);
     }
 
-    private Map<String, Object> toReviewResponse(ServiceReview review, boolean liked) {
-        Map<String, Object> map = new HashMap<>();
-        map.put("id", review.getId());
-        map.put("serviceId", review.getServiceId());
-        map.put("userId", review.getUserId());
-        map.put("userName", review.getUserName());
-        map.put("userAvatar", review.getUserAvatar());
-        map.put("rating", review.getRating());
-        map.put("content", review.getContent());
-        map.put("likes", review.getLikes());
-        map.put("status", review.getStatus());
-        map.put("createTime", review.getCreateTime());
-        map.put("isLiked", liked);
-        return map;
+    @Override
+    public void refreshServiceStats(Long serviceId) {
+        if (serviceId == null || serviceId <= 0) {
+            return;
+        }
+        jdbcTemplate.update("""
+                UPDATE t_service
+                SET reviews = (
+                    SELECT COUNT(1)
+                    FROM t_service_review
+                    WHERE service_id = ? AND status = 'normal'
+                ),
+                rating = COALESCE((
+                    SELECT AVG(rating)
+                    FROM t_service_review
+                    WHERE service_id = ? AND status = 'normal'
+                ), 0)
+                WHERE id = ?
+                """, serviceId, serviceId, serviceId);
+        evictServiceCaches(serviceId);
     }
 
-    private void ensureReviewStatusColumnExists() {
-        try {
-            jdbcTemplate.execute("ALTER TABLE t_service_review ADD COLUMN status VARCHAR(20) DEFAULT 'normal'");
-        } catch (Exception ignored) {
-        }
-        try {
-            jdbcTemplate.update("UPDATE t_service_review SET status = 'normal' WHERE status = 'pending'");
-        } catch (Exception ignored) {
-        }
+    private void evictServiceCaches(Long serviceId) {
+        cacheService.evictService(serviceId);
+        cacheService.evictHomeIndex();
+    }
+
+    private ServiceReview buildReview(Long serviceId, String userId, String userName, String userAvatar, Integer rating, String content) {
+        ServiceReview review = new ServiceReview();
+        review.setServiceId(serviceId);
+        review.setUserId(userId);
+        review.setUserName(userName);
+        review.setUserAvatar(userAvatar);
+        review.setRating(rating);
+        review.setContent(content);
+        review.setLikes(0);
+        review.setStatus("normal");
+        review.setCreateTime(LocalDateTime.now());
+        return review;
     }
 }

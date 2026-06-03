@@ -1,43 +1,51 @@
-/**
+﻿/**
  * @license
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import React, { useState } from 'react';
+import React, { useMemo, useState } from 'react';
 import { motion } from 'motion/react';
-import { 
-  Search, ShieldAlert, CheckCircle, XCircle, Filter, RotateCcw, 
-  MapPin, Laptop, Smartphone, HelpCircle, Calendar 
+import {
+  Search, ShieldAlert, CheckCircle, XCircle, Filter, RotateCcw,
+  MapPin, Laptop, Smartphone, HelpCircle, Calendar
 } from 'lucide-react';
 import { LoginLogItem } from '../types';
+import { matchesAnyKeyword, normalizeSearchTerm } from '../utils/search';
 
 interface LoginLogViewProps {
   logs: LoginLogItem[];
 }
 
 export default function LoginLogView({ logs }: LoginLogViewProps) {
-  // Query states
   const [searchQuery, setSearchQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState<'all' | 'success' | 'failed'>('all');
 
-  // Filters calculation
-  const filteredLogs = logs.filter(log => {
-    const matchSearch =
-      log.username.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      log.userId.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      log.ip.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      log.device.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      log.location.toLowerCase().includes(searchQuery.toLowerCase());
+  const filteredLogs = useMemo(() => {
+    const keyword = normalizeSearchTerm(searchQuery);
+    return logs.filter((log) => {
+      const matchSearch = matchesAnyKeyword(keyword, [
+        log.username,
+        log.userId,
+        log.ip,
+        log.device,
+        log.location,
+      ]);
+      const matchStatus = statusFilter === 'all' || log.status === statusFilter;
+      return matchSearch && matchStatus;
+    });
+  }, [logs, searchQuery, statusFilter]);
 
-    const matchStatus = statusFilter === 'all' || log.status === statusFilter;
-
-    return matchSearch && matchStatus;
-  });
+  const logStats = useMemo(() => {
+    const successCount = logs.filter((log) => log.status === 'success').length;
+    const failedCount = logs.filter((log) => log.status === 'failed').length;
+    return {
+      failedCount,
+      successRate: ((successCount / (logs.length || 1)) * 100).toFixed(0),
+    };
+  }, [logs]);
 
   return (
     <div className="space-y-6" id="login-logs-view-root">
-      
-      {/* Title & Banner headings */}
       <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
         <div>
           <h1 className="text-2xl font-bold tracking-tight text-slate-900 dark:text-white flex items-center gap-2">
@@ -50,7 +58,6 @@ export default function LoginLogView({ logs }: LoginLogViewProps) {
         </div>
       </div>
 
-      {/* Counters layout */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
         <div className="bg-white dark:bg-slate-900 border border-slate-200/60 dark:border-slate-800/80 rounded-xl p-4 shadow-sm">
           <p className="text-xs text-slate-400 dark:text-slate-505 font-bold uppercase">全网登录峰值</p>
@@ -62,16 +69,14 @@ export default function LoginLogView({ logs }: LoginLogViewProps) {
         <div className="bg-white dark:bg-slate-900 border border-slate-200/60 dark:border-slate-800/80 rounded-xl p-4 shadow-sm">
           <p className="text-xs text-slate-400 dark:text-slate-505 font-bold uppercase">认证成功率</p>
           <div className="mt-2 flex items-baseline gap-2">
-            <span className="text-2xl font-bold text-emerald-500">
-              {((logs.filter(l => l.status === 'success').length / (logs.length || 1)) * 100).toFixed(0)}%
-            </span>
+            <span className="text-2xl font-bold text-emerald-500">{logStats.successRate}%</span>
             <span className="text-xs text-emerald-500">在线</span>
           </div>
         </div>
         <div className="bg-white dark:bg-slate-900 border border-slate-200/60 dark:border-slate-800/80 rounded-xl p-4 shadow-sm">
           <p className="text-xs text-slate-400 dark:text-slate-505 font-bold uppercase">异常碰撞拦截</p>
           <div className="mt-2 flex items-baseline gap-2">
-            <span className="text-2xl font-bold text-rose-500">{logs.filter(l => l.status === 'failed').length}</span>
+            <span className="text-2xl font-bold text-rose-500">{logStats.failedCount}</span>
             <span className="text-xs text-slate-500 font-sans">起被锁</span>
           </div>
         </div>
@@ -84,10 +89,7 @@ export default function LoginLogView({ logs }: LoginLogViewProps) {
         </div>
       </div>
 
-      {/* Filter Interactive controls */}
       <div className="bg-white dark:bg-slate-900 border border-slate-200/60 dark:border-slate-800/80 rounded-xl shadow-sm p-4 flex flex-col md:flex-row md:items-center justify-between gap-4">
-        
-        {/* Search bar */}
         <div className="relative flex-grow max-w-md">
           <span className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-slate-400">
             <Search className="h-4 w-4" />
@@ -101,13 +103,12 @@ export default function LoginLogView({ logs }: LoginLogViewProps) {
           />
         </div>
 
-        {/* Level scope filter dropdown */}
         <div className="flex items-center gap-2">
           <span className="text-xs text-slate-400 font-bold flex items-center gap-0.5 whitespace-nowrap">
             <Filter className="h-4 w-4" /> 认证判定状态:
           </span>
           <div className="inline-flex rounded-lg p-0.5 bg-slate-105 dark:bg-slate-950">
-            {(['all', 'success', 'failed'] as const).map(state => (
+            {(['all', 'success', 'failed'] as const).map((state) => (
               <button
                 key={state}
                 onClick={() => setStatusFilter(state)}
@@ -124,10 +125,8 @@ export default function LoginLogView({ logs }: LoginLogViewProps) {
             ))}
           </div>
         </div>
-
       </div>
 
-      {/* Main Table Records log view */}
       <div className="bg-white dark:bg-slate-900 border border-slate-200/60 dark:border-slate-800/85 rounded-xl shadow-sm overflow-hidden">
         {filteredLogs.length === 0 ? (
           <div className="text-center py-12 px-4 space-y-3">
@@ -158,29 +157,20 @@ export default function LoginLogView({ logs }: LoginLogViewProps) {
                     key={log.id}
                     className="hover:bg-slate-50/50 dark:hover:bg-slate-800/30 transition-all font-sans"
                   >
-                    {/* Log ID */}
                     <td className="p-4 whitespace-nowrap font-mono text-[11px] font-bold text-slate-400">
                       {log.id}
                     </td>
-
-                    {/* Account Title */}
                     <td className="p-4 font-bold">
                       <div className="flex flex-col">
-                        <span className="text-slate-900 dark:text-white leading-none">
-                          {log.username}
-                        </span>
+                        <span className="text-slate-900 dark:text-white leading-none">{log.username}</span>
                         <span className="text-[10px] font-mono text-slate-400 mt-1 uppercase" title={log.userId}>
                           {log.userId === 'UID-SYSTEM-ADMIN' ? '核心总代后台' : `UID: ${log.userId.slice(-6)}`}
                         </span>
                       </div>
                     </td>
-
-                    {/* IP */}
                     <td className="p-4 whitespace-nowrap font-mono text-xs font-bold text-slate-700 dark:text-slate-300">
                       {log.ip}
                     </td>
-
-                    {/* Device icon and title */}
                     <td className="p-4 text-xs font-semibold">
                       <div className="flex items-center gap-2">
                         {log.device.toLowerCase().includes('mac') || log.device.toLowerCase().includes('chrome') ? (
@@ -191,21 +181,15 @@ export default function LoginLogView({ logs }: LoginLogViewProps) {
                         <span className="truncate max-w-[180px] block" title={log.device}>{log.device}</span>
                       </div>
                     </td>
-
-                    {/* Geography Location */}
                     <td className="p-4 text-xs font-bold whitespace-nowrap">
                       <div className="flex items-center gap-1.5 text-slate-800 dark:text-slate-200">
                         <MapPin className="h-3.5 w-3.5 text-sky-500" />
                         <span>{log.location}</span>
                       </div>
                     </td>
-
-                    {/* Time */}
                     <td className="p-4 whitespace-nowrap text-xs text-slate-400 font-semibold dark:text-slate-500">
                       {log.time}
                     </td>
-
-                    {/* Status Badges */}
                     <td className="p-4 text-center whitespace-nowrap">
                       {log.status === 'success' ? (
                         <span className="inline-flex items-center gap-1 bg-emerald-50 dark:bg-emerald-950/30 text-emerald-700 dark:text-emerald-400 text-xs px-2.5 py-1 rounded-full font-bold">
@@ -217,12 +201,9 @@ export default function LoginLogView({ logs }: LoginLogViewProps) {
                         </span>
                       )}
                     </td>
-
-                    {/* Reject context text comment if login failed */}
                     <td className="p-4 text-right text-xs text-rose-500 font-bold max-w-xs truncate" title={log.failReason}>
                       {log.status === 'failed' ? log.failReason : <span className="text-slate-400 dark:text-slate-600 font-semibold">-</span>}
                     </td>
-
                   </tr>
                 ))}
               </tbody>
@@ -230,7 +211,6 @@ export default function LoginLogView({ logs }: LoginLogViewProps) {
           </div>
         )}
       </div>
-
     </div>
   );
 }

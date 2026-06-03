@@ -5,7 +5,7 @@
 
 package com.neighborhood.app.service;
 
-import com.neighborhood.app.entity.SearchResult;
+import com.neighborhood.app.entity.system.SearchResult;
 
 public interface SearchService {
     SearchResult search(String keyword);

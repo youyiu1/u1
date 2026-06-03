@@ -50,4 +50,8 @@ public interface CacheService {
     void addFavorite(String userId, String targetType, Long targetId);
     void removeFavorite(String userId, String targetType, Long targetId);
     boolean isFavorited(String userId, String targetType, Long targetId);
+
+    void cacheFollowing(String followerId, String followingId);
+    void removeFollowing(String followerId, String followingId);
+    boolean isFollowingCached(String followerId, String followingId);
 }

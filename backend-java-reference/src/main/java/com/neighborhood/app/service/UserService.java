@@ -1,9 +1,9 @@
 package com.neighborhood.app.service;
 
 import com.baomidou.mybatisplus.extension.service.IService;
-import com.neighborhood.app.dto.NotificationSettings;
-import com.neighborhood.app.dto.PrivacySettings;
-import com.neighborhood.app.entity.User;
+import com.neighborhood.app.dto.user.NotificationSettings;
+import com.neighborhood.app.dto.user.PrivacySettings;
+import com.neighborhood.app.entity.user.User;
 
 import java.util.List;
 

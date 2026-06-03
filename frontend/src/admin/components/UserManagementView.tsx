@@ -1,6 +1,7 @@
-﻿import React, { useMemo, useState } from 'react';
+import React, { useMemo, useState } from 'react';
 import { AnimatePresence, motion } from 'motion/react';
 import { User } from '../types';
+import { matchesAnyKeyword, normalizeSearchTerm } from '../utils/search';
 
 type AdminRole = 'USER' | 'READONLY_ADMIN' | 'ADMIN' | 'SUPER_ADMIN';
 
@@ -37,14 +38,9 @@ export default function UserManagementView({
   const [selectedUser, setSelectedUser] = useState<User | null>(null);
 
   const filteredUsers = useMemo(() => {
-    const term = searchTerm.trim().toLowerCase();
+    const term = normalizeSearchTerm(searchTerm);
     return users.filter((u) => {
-      const matchSearch =
-        !term ||
-        u.name.toLowerCase().includes(term) ||
-        u.id.toLowerCase().includes(term) ||
-        u.email.toLowerCase().includes(term) ||
-        u.region.toLowerCase().includes(term);
+      const matchSearch = matchesAnyKeyword(term, [u.name, u.id, u.email, u.region]);
       const matchStatus = statusFilter === 'all' || u.status === statusFilter;
       return matchSearch && matchStatus;
     });

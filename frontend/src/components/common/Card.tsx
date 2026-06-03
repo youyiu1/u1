@@ -7,7 +7,7 @@ import React from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Star } from 'lucide-react';
 import { Service, Item } from '../../types';
-import { getPrimaryImage } from '../../utils/images';
+import { getItemPrimaryImage, getServicePrimaryImage } from '../../utils/images';
 
 import { LikeButton } from './LikeButton';
 
@@ -21,13 +21,14 @@ export const GlobalCard: React.FC<CardProps> = ({ type, data }) => {
   const isService = type === 'service';
   const service = data as Service;
   const item = data as Item;
+  const primaryImage = isService ? getServicePrimaryImage(service) : getItemPrimaryImage(item);
 
   return (
     <div className="group cursor-pointer content-visibility-auto">
       <div onClick={() => navigate(`/${isService ? 'service' : 'item'}/${data.id}`, { state: { from: '/' } })}>
         <div className="aspect-[4/5] overflow-hidden mb-6 relative rounded-[32px] bg-stone-100 shadow-inner transition-shadow duration-300 ease-out">
           <img
-            src={getPrimaryImage(data.images) || undefined}
+            src={primaryImage || undefined}
             alt={data.title}
             loading="lazy"
             decoding="async"

@@ -1,3 +1,5 @@
+import type { Item, Service } from '../types';
+
 export function parseImages(value: unknown): string[] {
   if (Array.isArray(value)) {
     return value.filter((item): item is string => typeof item === 'string' && item.length > 0);
@@ -26,4 +28,12 @@ export function getPrimaryImage(...values: unknown[]): string {
     }
   }
   return '';
+}
+
+export function getItemPrimaryImage(item: Pick<Item, 'images' | 'image'>): string {
+  return getPrimaryImage(item.images, item.image);
+}
+
+export function getServicePrimaryImage(service: Pick<Service, 'images' | 'image'>): string {
+  return getPrimaryImage(service.images, service.image);
 }

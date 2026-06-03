@@ -1,35 +1,21 @@
-/**
+﻿/**
  * @license
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import React, { useState } from 'react';
+import React, { useMemo, useState } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { 
-  Bell, 
-  Tag, 
-  SlidersHorizontal, 
-  PlusCircle, 
-  RotateCcw, 
-  Check, 
-  X, 
-  AlertCircle, 
-  Compass, 
-  Volume2, 
-  CheckCircle2, 
-  Info,
+import {
+  AlertCircle,
   Calendar,
-  Send,
-  Trash2,
-  Bookmark,
-  Sparkles,
+  CheckCircle2,
   Inbox,
+  Info,
+  Layers,
   MailCheck,
   Megaphone,
-  Layers,
-  Settings,
-  Flame,
-  BadgeAlert
+  PlusCircle,
+  Send,
 } from 'lucide-react';
 import { CategoryItem, NotificationItem } from '../types';
 
@@ -50,41 +36,32 @@ export default function NoticeCategoryView({
   onAddCategory,
   onToggleNotificationRead,
   onAddNotification,
-  vMode
+  vMode,
 }: NoticeCategoryViewProps) {
-  // Classification type selection tab
   const [activeCategoryTab, setActiveCategoryTab] = useState<'dynamic' | 'goods' | 'service'>('dynamic');
-
-  // Input states for adding classification
   const [newCategoryName, setNewCategoryName] = useState('');
   const [showAddCatModal, setShowAddCatModal] = useState(false);
-
-  // Input states for adding notice alerts triggers
   const [showAddNoticeModal, setShowAddNoticeModal] = useState(false);
   const [noticeTitle, setNoticeTitle] = useState('');
   const [noticeContent, setNoticeContent] = useState('');
   const [noticeTarget, setNoticeTarget] = useState<'all' | 'specific'>('all');
   const [isScheduled, setIsScheduled] = useState(false);
-
-  // Custom visual state Alert system
   const [toast, setToast] = useState<{ message: string; type: 'success' | 'info' | 'error' } | null>(null);
 
   const showToastMsg = (message: string, type: 'success' | 'info' | 'error' = 'success') => {
     setToast({ message, type });
-    setTimeout(() => {
-      setToast(null);
-    }, 3000);
+    setTimeout(() => setToast(null), 3000);
   };
 
   const handleAddCategorySubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (!newCategoryName.trim()) return;
 
-    onAddCategory(newCategoryName.trim(), activeCategoryTab);
-    const catName = newCategoryName.trim();
+    const categoryName = newCategoryName.trim();
+    onAddCategory(categoryName, activeCategoryTab);
     setNewCategoryName('');
     setShowAddCatModal(false);
-    showToastMsg(`成功登入新子目类目：“${catName}”！`, 'success');
+    showToastMsg(`已新增分类：${categoryName}`, 'success');
   };
 
   const handleAddNoticeSubmit = (e: React.FormEvent) => {
@@ -92,36 +69,39 @@ export default function NoticeCategoryView({
     if (!noticeTitle.trim() || !noticeContent.trim()) return;
 
     onAddNotification(noticeTitle.trim(), noticeContent.trim(), noticeTarget, isScheduled);
-
-    // reset
     setNoticeTitle('');
     setNoticeContent('');
     setNoticeTarget('all');
     setIsScheduled(false);
     setShowAddNoticeModal(false);
 
-    showToastMsg(
-      isScheduled ? '定时群发公告任务已成功排期至后台对账队列中！' : '该全网公告已即时群发发布至市民端大厅！',
-      'success'
-    );
+    showToastMsg(isScheduled ? '定时公告已加入发送队列' : '公告已立即发送', 'success');
   };
 
-  const filteredCategories = categories.filter((c) => c.type === activeCategoryTab);
+  const filteredCategories = useMemo(
+    () => categories.filter((category) => category.type === activeCategoryTab),
+    [activeCategoryTab, categories],
+  );
+
+  const tabLabel = (tab: 'dynamic' | 'goods' | 'service') => {
+    if (tab === 'dynamic') return '社区动态';
+    if (tab === 'goods') return '闲置商品';
+    return '生活服务';
+  };
 
   return (
     <div className="relative">
-      {/* Toast Alert System */}
       <AnimatePresence>
         {toast && (
           <motion.div
             initial={{ opacity: 0, y: -24, scale: 0.95 }}
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={{ opacity: 0, y: -24, scale: 0.95 }}
-            className="fixed top-6 left-1/2 -translate-x-1/2 z-[100] flex items-center gap-2.5 px-4 py-3 rounded-xl shadow-xl border bg-white dark:bg-gray-900 border-gray-100 dark:border-gray-800"
+            className="fixed top-6 left-1/2 z-[100] flex -translate-x-1/2 items-center gap-2.5 rounded-xl border border-gray-100 bg-white px-4 py-3 shadow-xl dark:border-gray-800 dark:bg-gray-900"
           >
-            {toast.type === 'success' && <CheckCircle2 className="w-5 h-5 text-emerald-500" />}
-            {toast.type === 'info' && <Info className="w-5 h-5 text-sky-500" />}
-            {toast.type === 'error' && <AlertCircle className="w-5 h-5 text-rose-500" />}
+            {toast.type === 'success' && <CheckCircle2 className="h-5 w-5 text-emerald-500" />}
+            {toast.type === 'info' && <Info className="h-5 w-5 text-sky-500" />}
+            {toast.type === 'error' && <AlertCircle className="h-5 w-5 text-rose-500" />}
             <span className="text-sm font-semibold text-gray-800 dark:text-gray-100">{toast.message}</span>
           </motion.div>
         )}
@@ -131,59 +111,55 @@ export default function NoticeCategoryView({
         initial={{ opacity: 0, y: 10 }}
         animate={{ opacity: 1, y: 0 }}
         exit={{ opacity: 0 }}
-        className="grid grid-cols-1 lg:grid-cols-12 gap-6 text-gray-800 dark:text-white"
+        className="grid grid-cols-1 gap-6 text-gray-800 dark:text-white lg:grid-cols-12"
       >
-        {/* LEFT COLUMN: Classification Management */}
         {(!vMode || vMode === 'categories') && (
-          <div className={`${vMode === 'categories' ? 'lg:col-span-12' : 'lg:col-span-6'} bg-white dark:bg-gray-900 p-6 rounded-2xl border border-gray-100 dark:border-gray-800/60 shadow-sm flex flex-col justify-between min-h-[460px]`}>
+          <div className={`${vMode === 'categories' ? 'lg:col-span-12' : 'lg:col-span-6'} flex min-h-[460px] flex-col justify-between rounded-2xl border border-gray-100 bg-white p-6 shadow-sm dark:border-gray-800/60 dark:bg-gray-900`}>
             <div>
-              {/* Header */}
-              <div className="flex justify-between items-center pb-3.5 border-b border-gray-100 dark:border-gray-800/80 mb-5 select-none">
+              <div className="mb-5 flex items-center justify-between border-b border-gray-100 pb-3.5 select-none dark:border-gray-800/80">
                 <div className="flex items-center gap-2">
-                  <Layers className="w-5 h-5 text-primary" />
-                  <h3 className="font-headline-md text-sm font-black tracking-wide">同城大分类字典目词设置</h3>
+                  <Layers className="h-5 w-5 text-primary" />
+                  <h3 className="font-headline-md text-sm font-black tracking-wide">分类管理</h3>
                 </div>
                 <button
                   onClick={() => setShowAddCatModal(true)}
-                  className="py-1.5 px-3 border border-primary/30 text-primary hover:bg-primary hover:text-white text-xs font-bold rounded-xl cursor-pointer transition-colors focus:outline-none flex items-center gap-1"
+                  className="flex cursor-pointer items-center gap-1 rounded-xl border border-primary/30 px-3 py-1.5 text-xs font-bold text-primary transition-colors hover:bg-primary hover:text-white focus:outline-none"
                 >
-                  <PlusCircle className="w-3.5 h-3.5" />
-                  <span>添加细分大类</span>
+                  <PlusCircle className="h-3.5 w-3.5" />
+                  <span>新增分类</span>
                 </button>
               </div>
 
-              {/* Module Selector tabs */}
-              <div className="flex bg-gray-50 dark:bg-gray-800 rounded-xl p-1 border border-gray-100 dark:border-gray-800/50 mb-5 select-none">
+              <div className="mb-5 flex rounded-xl border border-gray-100 bg-gray-50 p-1 select-none dark:border-gray-800/50 dark:bg-gray-800">
                 {(['dynamic', 'goods', 'service'] as const).map((tab) => (
                   <button
                     key={tab}
                     onClick={() => setActiveCategoryTab(tab)}
-                    className={`flex-1 py-1.5 font-semibold text-xs rounded-lg transition-all cursor-pointer border-none focus:outline-none ${
+                    className={`flex-1 rounded-lg border-none py-1.5 text-xs font-semibold transition-all focus:outline-none ${
                       activeCategoryTab === tab
-                        ? 'bg-white dark:bg-gray-700 text-primary shadow-sm font-black'
+                        ? 'bg-white font-black text-primary shadow-sm dark:bg-gray-700'
                         : 'text-gray-400 hover:text-gray-800 dark:hover:text-white'
                     }`}
                   >
-                    {tab === 'dynamic' ? '市民社区动态大类' : tab === 'goods' ? '二手闲置宝贝栏目' : '便民快捷服务的类'}
+                    {tabLabel(tab)}
                   </button>
                 ))}
               </div>
 
-              {/* Classification list */}
-              <div className="space-y-2.5 max-h-[320px] overflow-y-auto pr-1">
+              <div className="max-h-[320px] space-y-2.5 overflow-y-auto pr-1">
                 {filteredCategories.map((cat, index) => (
                   <div
                     key={cat.id}
-                    className={`p-3.5 rounded-xl border flex items-center justify-between transition-all ${
+                    className={`flex items-center justify-between rounded-xl border p-3.5 transition-all ${
                       cat.status === 'disabled'
-                        ? 'bg-gray-50/40 dark:bg-gray-950/20 border-dashed border-gray-200 dark:border-gray-805 opacity-60'
-                        : 'bg-white dark:bg-gray-850 border-gray-100 dark:border-gray-800 hover:border-primary/20 hover:shadow-xs'
+                        ? 'border-gray-200 bg-gray-50/40 opacity-60 dark:border-gray-700 dark:bg-gray-950/20'
+                        : 'border-gray-100 bg-white hover:border-primary/20 dark:border-gray-800 dark:bg-gray-850'
                     }`}
                   >
                     <div className="flex items-center gap-3">
-                      <span className="font-mono font-bold text-xs text-gray-400 w-5 select-none">{index + 1}</span>
+                      <span className="w-5 select-none font-mono text-xs font-bold text-gray-400">{index + 1}</span>
                       <div>
-                        <span className={`font-bold text-xs ${cat.status === 'disabled' ? 'line-through text-gray-400' : 'text-gray-800 dark:text-gray-100'}`}>
+                        <span className={`text-xs font-bold ${cat.status === 'disabled' ? 'text-gray-400 line-through' : 'text-gray-800 dark:text-gray-100'}`}>
                           {cat.name}
                         </span>
                         <span className="ml-2 font-mono text-[9px] text-gray-400">({cat.id})</span>
@@ -191,19 +167,19 @@ export default function NoticeCategoryView({
                     </div>
 
                     <div className="flex items-center gap-3 select-none">
-                      <span className="font-mono text-[9px] text-gray-400 font-bold">排位代号: {cat.order}</span>
+                      <span className="font-mono text-[9px] font-bold text-gray-400">排序: {cat.order}</span>
                       <button
                         onClick={() => {
                           onToggleCategoryStatus(cat.id);
-                          showToastMsg(`已成功将分类 “${cat.name}” 的状态重置！`, 'info');
+                          showToastMsg(`已更新分类状态：${cat.name}`, 'info');
                         }}
-                        className={`text-[10px] px-2.5 py-1 rounded-lg font-bold cursor-pointer transition-colors border-none focus:outline-none ${
+                        className={`rounded-lg px-2.5 py-1 text-[10px] font-bold transition-colors focus:outline-none ${
                           cat.status === 'normal'
                             ? 'bg-emerald-500/10 text-emerald-600 hover:bg-emerald-600 hover:text-white'
                             : 'bg-rose-500/10 text-rose-600 hover:bg-rose-600 hover:text-white'
                         }`}
                       >
-                        {cat.status === 'normal' ? '可用中' : '已停售'}
+                        {cat.status === 'normal' ? '启用中' : '已停用'}
                       </button>
                     </div>
                   </div>
@@ -211,85 +187,70 @@ export default function NoticeCategoryView({
               </div>
             </div>
 
-            {/* Footnotes */}
-            <div className="text-[10px] text-gray-450 leading-relaxed border-t border-gray-100 dark:border-gray-800/80 pt-4 mt-4 select-none flex items-start gap-1.5 text-gray-400">
-              <Info className="w-4 h-4 text-primary flex-shrink-0 mt-0.5" />
+            <div className="mt-4 flex items-start gap-1.5 border-t border-gray-100 pt-4 text-[10px] leading-relaxed text-gray-400 select-none dark:border-gray-800/80">
+              <Info className="mt-0.5 h-4 w-4 flex-shrink-0 text-primary" />
               <p>
-                <strong>实时热更规则明晰：</strong>字典大类目的修改实时热更至同城小程序、公众号双端。
-                如若对大类状态设为“已停用”屏蔽展示，前端入口会于 5 秒内自适应剔除该项录入菜单。
+                <strong>说明：</strong>分类状态更新后会同步影响前端展示，停用分类后相关入口会自动隐藏。
               </p>
             </div>
           </div>
         )}
 
-        {/* RIGHT COLUMN: Notification Bulletins */}
         {(!vMode || vMode === 'notifications') && (
-          <div className={`${vMode === 'notifications' ? 'lg:col-span-12' : 'lg:col-span-6'} bg-white dark:bg-gray-900 p-6 rounded-2xl border border-gray-100 dark:border-gray-800/60 shadow-sm flex flex-col justify-between min-h-[460px]`}>
+          <div className={`${vMode === 'notifications' ? 'lg:col-span-12' : 'lg:col-span-6'} flex min-h-[460px] flex-col justify-between rounded-2xl border border-gray-100 bg-white p-6 shadow-sm dark:border-gray-800/60 dark:bg-gray-900`}>
             <div>
-              {/* Header */}
-              <div className="flex justify-between items-center pb-3.5 border-b border-gray-100 dark:border-gray-800/80 mb-5 select-none">
+              <div className="mb-5 flex items-center justify-between border-b border-gray-100 pb-3.5 select-none dark:border-gray-800/80">
                 <div className="flex items-center gap-2">
-                  <Megaphone className="w-5 h-5 text-primary" />
-                  <h3 className="font-headline-md text-sm font-black tracking-wide">全城公告群发广播大厅</h3>
+                  <Megaphone className="h-5 w-5 text-primary" />
+                  <h3 className="font-headline-md text-sm font-black tracking-wide">公告通知</h3>
                 </div>
                 <button
                   onClick={() => setShowAddNoticeModal(true)}
-                  className="py-1.5 px-3 bg-primary hover:bg-primary-container text-white text-xs font-bold rounded-xl shadow-md shadow-primary/10 cursor-pointer transition-colors focus:outline-none flex items-center gap-1"
+                  className="flex cursor-pointer items-center gap-1 rounded-xl bg-primary px-3 py-1.5 text-xs font-bold text-white shadow-md shadow-primary/10 transition-colors hover:bg-primary-container focus:outline-none"
                 >
-                  <Send className="w-3.5 h-3.5" />
-                  <span>拟新群发公告</span>
+                  <Send className="h-3.5 w-3.5" />
+                  <span>新建公告</span>
                 </button>
               </div>
 
-              {/* Bulletin Feed */}
-              <div className="space-y-4 max-h-[350px] overflow-y-auto pr-1">
+              <div className="max-h-[350px] space-y-4 overflow-y-auto pr-1">
                 {notifications.map((ntf) => (
                   <div
                     key={ntf.id}
-                    className={`p-4 rounded-xl border transition-all relative ${
+                    className={`relative rounded-xl border p-4 transition-all ${
                       ntf.read
-                        ? 'bg-gray-50/50 dark:bg-gray-850/50 border-gray-100 dark:border-gray-800/80 opacity-65 hover:opacity-90'
-                        : 'bg-primary/5 border-primary/20 shadow-xs'
+                        ? 'border-gray-100 bg-gray-50/50 opacity-65 hover:opacity-90 dark:border-gray-800/80 dark:bg-gray-850/50'
+                        : 'border-primary/20 bg-primary/5 shadow-xs'
                     }`}
                   >
-                    {/* Floating check flag */}
-                    {!ntf.read && (
-                      <span className="absolute top-4 right-14 w-1.5 h-1.5 rounded-full bg-rose-500 animate-ping select-none border-none" />
-                    )}
+                    {!ntf.read && <span className="absolute right-14 top-4 h-1.5 w-1.5 animate-ping rounded-full bg-rose-500" />}
 
-                    {/* Read toggle on corner */}
                     <button
                       onClick={() => {
                         onToggleNotificationRead(ntf.id);
-                        showToastMsg(ntf.read ? '由于未读重新标记' : '此轮推文已成功阅卷归档', 'info');
+                        showToastMsg(ntf.read ? '已恢复为未读' : '已标记为已读', 'info');
                       }}
-                      className="absolute top-3.5 right-4 text-gray-400 hover:text-gray-900 dark:hover:text-white cursor-pointer border-none bg-transparent select-none focus:outline-none"
-                      title={ntf.read ? '直接标回未读' : '快速标记归档'}
+                      className="absolute right-4 top-3.5 border-none bg-transparent text-gray-400 focus:outline-none dark:hover:text-white"
+                      title={ntf.read ? '标记为未读' : '标记为已读'}
                     >
-                      <Inbox className="w-4 h-4 text-primary" />
+                      <Inbox className="h-4 w-4 text-primary" />
                     </button>
 
                     <div className="space-y-1.5">
-                      <div className="flex items-center gap-2 select-none text-[9px] font-mono font-bold">
-                        <span className={`px-1.5 py-0.5 rounded text-[8px] tracking-wider uppercase ${
+                      <div className="flex items-center gap-2 font-mono text-[9px] font-bold select-none">
+                        <span className={`rounded px-1.5 py-0.5 text-[8px] uppercase tracking-wider ${
                           ntf.status === 'scheduled' ? 'bg-amber-100 text-amber-700' : 'bg-primary/10 text-primary'
                         }`}>
-                          {ntf.status === 'scheduled' ? '定时审核' : '群发成功'}
+                          {ntf.status === 'scheduled' ? '定时发送' : '已发送'}
                         </span>
-                        <span className="text-gray-400">
-                          覆盖: {ntf.target === 'all' ? '同城全体商网' : '指定个体行业'}
-                        </span>
+                        <span className="text-gray-400">范围: {ntf.target === 'all' ? '全体用户' : '指定用户'}</span>
                       </div>
 
-                      <h4 className="font-bold text-xs text-gray-900 dark:text-gray-100 truncate pr-6">
-                        {ntf.title}
-                      </h4>
-                      <p className="text-gray-600 dark:text-gray-300 text-xs leading-relaxed select-text font-medium break-all">
-                        {ntf.content}
-                      </p>
-                      <p className="font-mono text-[9px] text-gray-400 pt-1 select-none flex items-center gap-1">
-                        <Calendar className="w-3 h-3" />
-                        推送时戳戳记: {ntf.time}
+                      <h4 className="truncate pr-6 text-xs font-bold text-gray-900 dark:text-gray-100">{ntf.title}</h4>
+                      <p className="break-all text-xs font-medium leading-relaxed text-gray-600 dark:text-gray-300">{ntf.content}</p>
+                      <p className="flex items-center gap-1 pt-1 font-mono text-[9px] text-gray-400 select-none">
+                        <Calendar className="h-3 w-3" />
+                        时间: {ntf.time}
                       </p>
                     </div>
                   </div>
@@ -297,18 +258,16 @@ export default function NoticeCategoryView({
               </div>
             </div>
 
-            {/* Read All */}
-            <div className="border-t border-gray-100 dark:border-gray-800/80 pt-4 mt-4 text-right select-none flex justify-between items-center text-[10px] text-gray-400 leading-normal">
-              <span className="flex items-center gap-1 text-emerald-600 font-semibold">
-                <MailCheck className="w-4 h-4" />
-                自动连通顶部通知栏未读计数
+            <div className="mt-4 flex items-center justify-between border-t border-gray-100 pt-4 text-[10px] leading-normal text-gray-400 select-none dark:border-gray-800/80">
+              <span className="flex items-center gap-1 font-semibold text-emerald-600">
+                <MailCheck className="h-4 w-4" />
+                自动同步顶部通知未读数
               </span>
-              <span>点按卡盘信件或收件箱按钮即可直接将本轮通知归档。</span>
+              <span>点击卡片右上角按钮即可快速处理通知状态。</span>
             </div>
           </div>
         )}
 
-        {/* CLASSIFICATION APPEND MODAL POPUP */}
         <AnimatePresence>
           {showAddCatModal && (
             <>
@@ -316,55 +275,52 @@ export default function NoticeCategoryView({
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 0.5 }}
                 exit={{ opacity: 0 }}
-                className="fixed inset-0 bg-black z-[100]"
+                className="fixed inset-0 z-[100] bg-black"
                 onClick={() => setShowAddCatModal(false)}
               />
-              <div className="fixed inset-0 overflow-y-auto z-[105] flex items-center justify-center p-4">
+              <div className="fixed inset-0 z-[105] flex items-center justify-center overflow-y-auto p-4">
                 <motion.div
                   initial={{ scale: 0.95, opacity: 0 }}
                   animate={{ scale: 1, opacity: 1 }}
                   exit={{ scale: 0.95, opacity: 0 }}
-                  className="bg-white dark:bg-gray-900 max-w-sm w-full rounded-2xl border border-gray-100 dark:border-gray-800 p-6 shadow-2xl space-y-4 text-gray-800 dark:text-white"
+                  className="w-full max-w-sm space-y-4 rounded-2xl border border-gray-100 bg-white p-6 text-gray-800 shadow-2xl dark:border-gray-800 dark:bg-gray-900 dark:text-white"
                 >
-                  <div className="flex items-center gap-2 select-none border-b border-gray-100 dark:border-gray-800 pb-3">
-                    <div className="p-2 bg-primary/10 text-primary rounded-xl">
-                      <Layers className="w-5 h-5 text-primary" />
+                  <div className="flex items-center gap-2 border-b border-gray-100 pb-3 select-none dark:border-gray-800">
+                    <div className="rounded-xl bg-primary/10 p-2 text-primary">
+                      <Layers className="h-5 w-5 text-primary" />
                     </div>
-                    <h4 className="font-extrabold text-base">添加大分类细分子目录</h4>
+                    <h4 className="text-base font-extrabold">新增分类</h4>
                   </div>
 
-                  <form onSubmit={handleAddCategorySubmit} className="space-y-4 font-sans text-xs">
+                  <form onSubmit={handleAddCategorySubmit} className="space-y-4 text-xs font-sans">
                     <div className="space-y-1.5">
-                      <label className="block text-gray-400 font-bold uppercase text-[9px] select-none">绑定的父级系统板块</label>
-                      <div className="block w-full p-2.5 bg-gray-50 dark:bg-gray-800 border border-gray-200/80 dark:border-gray-750 rounded-xl font-bold text-xs select-all text-primary">
-                        {activeCategoryTab === 'dynamic' ? '市民社区动态板块字典' : activeCategoryTab === 'goods' ? '二手闲置宝贝板块字典' : '同城便民快捷服务板块字典'}
+                      <label className="block text-[9px] font-bold uppercase text-gray-400 select-none">所属板块</label>
+                      <div className="block w-full rounded-xl border border-gray-200/80 bg-gray-50 p-2.5 text-xs font-bold text-primary select-all dark:border-gray-750 dark:bg-gray-800">
+                        {tabLabel(activeCategoryTab)}
                       </div>
                     </div>
 
                     <div className="space-y-1.5">
-                      <label className="block text-gray-500 font-bold uppercase text-[9px] select-none" htmlFor="new-cat-name-input">新类目子目名称 *</label>
+                      <label className="block text-[9px] font-bold uppercase text-gray-500 select-none" htmlFor="new-cat-name-input">分类名称 *</label>
                       <input
                         id="new-cat-name-input"
                         type="text"
-                        placeholder="例：数码摄影 / 美食街区"
+                        placeholder="例如：家电维修 / 美食推荐"
                         value={newCategoryName}
                         onChange={(e) => setNewCategoryName(e.target.value)}
-                        className="w-full px-3 py-2.5 bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-705 rounded-xl outline-none font-bold text-xs text-gray-900 dark:text-white"
+                        className="w-full rounded-xl border border-gray-200 bg-gray-50 px-3 py-2.5 text-xs font-bold text-gray-900 outline-none dark:border-gray-705 dark:bg-gray-800 dark:text-white"
                         required
                       />
                     </div>
 
                     <div className="flex gap-3 pt-3 select-none">
-                      <button
-                        type="submit"
-                        className="flex-1 py-2.5 bg-primary hover:bg-primary-container text-white font-bold text-xs rounded-xl shadow-md cursor-pointer border-none"
-                      >
-                        提交字典类目
+                      <button type="submit" className="flex-1 rounded-xl bg-primary py-2.5 text-xs font-bold text-white shadow-md">
+                        提交
                       </button>
                       <button
                         type="button"
                         onClick={() => setShowAddCatModal(false)}
-                        className="flex-1 py-2.5 bg-gray-100 hover:bg-gray-200 dark:bg-gray-800 dark:hover:bg-gray-700 text-gray-700 dark:text-gray-200 font-semibold text-xs rounded-xl cursor-pointer transition-colors focus:outline-none"
+                        className="flex-1 rounded-xl bg-gray-100 py-2.5 text-xs font-semibold text-gray-700 transition-colors hover:bg-gray-200 focus:outline-none dark:bg-gray-800 dark:text-gray-200 dark:hover:bg-gray-700"
                       >
                         取消
                       </button>
@@ -376,7 +332,6 @@ export default function NoticeCategoryView({
           )}
         </AnimatePresence>
 
-        {/* NOTICE BROADCAST POST MODAL POPUP */}
         <AnimatePresence>
           {showAddNoticeModal && (
             <>
@@ -384,81 +339,79 @@ export default function NoticeCategoryView({
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 0.5 }}
                 exit={{ opacity: 0 }}
-                className="fixed inset-0 bg-black z-[100] backdrop-blur-xs"
+                className="fixed inset-0 z-[100] bg-black backdrop-blur-xs"
                 onClick={() => setShowAddNoticeModal(false)}
               />
-              <div className="fixed inset-0 overflow-y-auto z-[105] flex items-center justify-center p-4">
+              <div className="fixed inset-0 z-[105] flex items-center justify-center overflow-y-auto p-4">
                 <motion.div
                   initial={{ scale: 0.95, opacity: 0 }}
                   animate={{ scale: 1, opacity: 1 }}
                   exit={{ scale: 0.95, opacity: 0 }}
-                  className="bg-white dark:bg-gray-900 max-w-md w-full rounded-2xl border border-gray-100 dark:border-gray-800 p-6 shadow-2xl space-y-4 text-gray-800 dark:text-white"
+                  className="w-full max-w-md space-y-4 rounded-2xl border border-gray-100 bg-white p-6 text-gray-800 shadow-2xl dark:border-gray-800 dark:bg-gray-900 dark:text-white"
                 >
-                  <div className="flex items-center gap-2 select-none border-b border-gray-100 dark:border-gray-800 pb-3">
-                    <div className="p-2 bg-primary/10 text-primary rounded-xl animate-pulse">
-                      <Megaphone className="w-5 h-5 text-primary" />
+                  <div className="flex items-center gap-2 border-b border-gray-100 pb-3 select-none dark:border-gray-800">
+                    <div className="animate-pulse rounded-xl bg-primary/10 p-2 text-primary">
+                      <Megaphone className="h-5 w-5 text-primary" />
                     </div>
                     <div>
-                      <h4 className="text-base font-extrabold text-gray-900 dark:text-white">拟草撰写全城推文广播</h4>
-                      <p className="text-[10px] text-gray-400 mt-0.5">本公告将在全网市民小程序主屏幕即时浮动推送</p>
+                      <h4 className="text-base font-extrabold text-gray-900 dark:text-white">新建公告</h4>
+                      <p className="mt-0.5 text-[10px] text-gray-400">公告将推送到用户端通知区域</p>
                     </div>
                   </div>
 
                   <form onSubmit={handleAddNoticeSubmit} className="space-y-4 text-xs font-sans">
                     <div className="space-y-1.5">
-                      <label className="block text-gray-500 font-bold uppercase text-[9px] select-none" htmlFor="notice-title-input">群发推文主题标语 *</label>
+                      <label className="block text-[9px] font-bold uppercase text-gray-500 select-none" htmlFor="notice-title-input">公告标题 *</label>
                       <input
                         id="notice-title-input"
                         type="text"
-                        placeholder="请输入25字以内公告核心标语..."
+                        placeholder="请输入 25 字以内标题"
                         value={noticeTitle}
                         onChange={(e) => setNoticeTitle(e.target.value)}
-                        className="w-full px-3 py-2.5 bg-gray-50 dark:bg-gray-800 border border-gray-205 dark:border-gray-700 rounded-xl outline-none font-bold text-xs text-gray-900 dark:text-white"
+                        className="w-full rounded-xl border border-gray-205 bg-gray-50 px-3 py-2.5 text-xs font-bold text-gray-900 outline-none dark:border-gray-700 dark:bg-gray-800 dark:text-white"
                         required
                         maxLength={25}
                       />
                     </div>
 
                     <div className="space-y-1.5">
-                      <label className="block text-gray-500 font-bold uppercase text-[9px] select-none" htmlFor="notice-content-input">广播详细正文描述 *</label>
+                      <label className="block text-[9px] font-bold uppercase text-gray-500 select-none" htmlFor="notice-content-input">公告内容 *</label>
                       <textarea
                         id="notice-content-input"
                         rows={4}
-                        placeholder="请输入要通知群发到用户端主界面的正文，建议包含时间地点及官方解释，支持多段落文字排版..."
+                        placeholder="请输入公告详细内容"
                         value={noticeContent}
                         onChange={(e) => setNoticeContent(e.target.value)}
-                        className="w-full p-3 bg-gray-50 dark:bg-gray-800 border border-gray-205 dark:border-gray-700 rounded-xl outline-none font-medium text-xs resize-none text-gray-800 dark:text-white"
+                        className="w-full resize-none rounded-xl border border-gray-205 bg-gray-50 p-3 text-xs font-medium text-gray-800 outline-none dark:border-gray-700 dark:bg-gray-800 dark:text-white"
                         required
                       />
                     </div>
 
                     <div className="grid grid-cols-2 gap-4">
-                      {/* Targeting */}
-                      <div className="space-y-1.5 border-none p-0 bg-transparent">
-                        <label className="block text-gray-550 font-bold uppercase text-[9px] select-none">接收人覆盖网络</label>
+                      <div className="space-y-1.5">
+                        <label className="block text-[9px] font-bold uppercase text-gray-550 select-none">推送范围</label>
                         <select
                           value={noticeTarget}
-                          onChange={(e) => setNoticeTarget(e.target.value as any)}
-                          className="w-full p-2.5 bg-gray-50 dark:bg-gray-800 border border-gray-205 dark:border-gray-700 rounded-xl outline-none font-bold text-xs cursor-pointer text-gray-800 dark:text-white"
+                          onChange={(e) => setNoticeTarget(e.target.value as 'all' | 'specific')}
+                          className="w-full cursor-pointer rounded-xl border border-gray-205 bg-gray-50 p-2.5 text-xs font-bold text-gray-800 outline-none dark:border-gray-700 dark:bg-gray-800 dark:text-white"
                         >
-                          <option value="all">全体同城市民 (广播群发)</option>
-                          <option value="specific">特定商户匠人 (定向委派)</option>
+                          <option value="all">全体用户</option>
+                          <option value="specific">指定用户</option>
                         </select>
                       </div>
 
-                      {/* Timeline scheduling calendar checkbox options */}
                       <div className="space-y-1.5 select-none">
-                        <label className="block text-gray-550 font-bold uppercase text-[9px]">群发执行执行时点</label>
-                        <div className="flex items-center h-10 select-none">
+                        <label className="block text-[9px] font-bold uppercase text-gray-550">发送方式</label>
+                        <div className="flex h-10 items-center">
                           <input
                             id="notice-scheduled-input"
                             type="checkbox"
                             checked={isScheduled}
                             onChange={(e) => setIsScheduled(e.target.checked)}
-                            className="h-4.5 w-4.5 text-primary border-gray-250 border border-gray-300 dark:border-gray-700 rounded-md cursor-pointer"
+                            className="h-4.5 w-4.5 cursor-pointer rounded-md border border-gray-300 text-primary dark:border-gray-700"
                           />
-                          <label className="ml-2 block text-xs text-gray-600 dark:text-gray-300 font-extrabold cursor-pointer" htmlFor="notice-scheduled-input">
-                            预设定时：夜间例会集中推送
+                          <label className="ml-2 block cursor-pointer text-xs font-extrabold text-gray-600 dark:text-gray-300" htmlFor="notice-scheduled-input">
+                            定时发送
                           </label>
                         </div>
                       </div>
@@ -467,15 +420,15 @@ export default function NoticeCategoryView({
                     <div className="flex gap-3 pt-3 select-none">
                       <button
                         type="submit"
-                        className="flex-1 py-2.5 bg-primary hover:bg-primary-container text-white font-bold text-xs rounded-xl shadow-md border-none transition-all cursor-pointer flex items-center justify-center gap-1"
+                        className="flex flex-1 items-center justify-center gap-1 rounded-xl bg-primary py-2.5 text-xs font-bold text-white shadow-md transition-all"
                       >
-                        <Send className="w-3.5 h-3.5" />
-                        <span>下达执行群发</span>
+                        <Send className="h-3.5 w-3.5" />
+                        <span>发布公告</span>
                       </button>
                       <button
                         type="button"
                         onClick={() => setShowAddNoticeModal(false)}
-                        className="flex-1 py-2.5 bg-gray-100 hover:bg-gray-200 dark:bg-gray-800 dark:hover:bg-gray-700 text-gray-700 dark:text-gray-200 font-semibold text-xs rounded-xl cursor-pointer transition-colors focus:outline-none"
+                        className="flex-1 rounded-xl bg-gray-100 py-2.5 text-xs font-semibold text-gray-700 transition-colors hover:bg-gray-200 focus:outline-none dark:bg-gray-800 dark:text-gray-200 dark:hover:bg-gray-700"
                       >
                         取消
                       </button>

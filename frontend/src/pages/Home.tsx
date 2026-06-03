@@ -1,4 +1,4 @@
-﻿/**
+/**
  * @license
  * SPDX-License-Identifier: Apache-2.0
  */
@@ -63,7 +63,7 @@ export default function Home() {
           hotNews: res.hotNews || [],
         });
       } catch (err: any) {
-        setError(err.message || '鍔犺浇澶辫触');
+        setError(err.message || '加载失败');
       } finally {
         setLoading(false);
       }

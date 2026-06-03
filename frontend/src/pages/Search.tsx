@@ -8,7 +8,7 @@ import { useSearchParams, Link, useNavigate } from 'react-router-dom';
 import { Search as SearchIcon, ChevronRight, Star, MapPin, ThumbsUp, MessageCircle } from 'lucide-react';
 import { searchApi } from '../services/api';
 import { Service, Item, Post } from '../types';
-import { getPrimaryImage, parseImages } from '../utils/images';
+import { getItemPrimaryImage, getServicePrimaryImage, parseImages } from '../utils/images';
 
 export default function SearchPage() {
   const [searchParams, setSearchParams] = useSearchParams();
@@ -45,7 +45,8 @@ export default function SearchPage() {
   };
 
   const totalResults = results ? results.services.length + results.items.length + results.posts.length : 0;
-  const itemImage = (item: Item) => getPrimaryImage(item.images, item.image);
+  const itemImage = (item: Item) => getItemPrimaryImage(item);
+  const serviceImage = (service: Service) => getServicePrimaryImage(service);
 
   return (
     <div className="min-h-screen bg-surface-soft">
@@ -97,8 +98,8 @@ export default function SearchPage() {
                       className="bg-white border border-hairline rounded-3xl overflow-hidden hover:shadow-xl transition-all cursor-pointer"
                     >
                       <div className="relative h-40 overflow-hidden">
-                        {service.images?.[0] ? (
-                          <img src={service.images[0]} className="w-full h-full object-cover" alt={service.title} />
+                        {serviceImage(service) ? (
+                          <img src={serviceImage(service)} className="w-full h-full object-cover" alt={service.title} />
                         ) : (
                           <div className="w-full h-full bg-stone-200" />
                         )}

@@ -9,16 +9,24 @@ import {
   AlertCircle,
   AlertTriangle,
   Ban,
-  CheckCircle2,
   Info,
   MapPin,
-  Search,
   ShoppingBag,
   UserRound,
   X,
 } from 'lucide-react';
 import { Order } from '../types';
 import { getPrimaryImage } from '../../utils/images';
+import { useToast } from '../hooks/useToast';
+import { groupItemsByOwner, type EntityOwnerGroup } from '../utils/entityGrouping';
+import { matchesAnyKeyword, normalizeSearchTerm } from '../utils/search';
+import AdminBackButton from './common/AdminBackButton';
+import AdminFilterPills from './common/AdminFilterPills';
+import AdminGroupHeader from './common/AdminGroupHeader';
+import AdminInfoCard from './common/AdminInfoCard';
+import AdminSearchInput from './common/AdminSearchInput';
+import AdminToast from './common/AdminToast';
+import EmptyState from './common/EmptyState';
 import UserSquareCard from './common/UserSquareCard';
 
 interface OrderManagementViewProps {
@@ -30,13 +38,7 @@ interface OrderManagementViewProps {
 
 type OrderStatus = 'all' | 'pending_payment' | 'pending_execution' | 'completed' | 'canceled' | 'abnormal';
 
-type BuyerGroup = {
-  id: string;
-  name: string;
-  avatar: string;
-  tag: string;
-  items: Order[];
-};
+type BuyerGroup = EntityOwnerGroup<Order>;
 
 export default function OrderManagementView({ orders, onForceCancelOrder, initialSelectedOrderId, initialTabFilter }: OrderManagementViewProps) {
   const [searchTerm, setSearchTerm] = useState('');
@@ -45,12 +47,7 @@ export default function OrderManagementView({ orders, onForceCancelOrder, initia
   const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
   const [showCancelModal, setShowCancelModal] = useState<string | null>(null);
   const [cancelReason, setCancelReason] = useState('买卖双方协商一致，申请平台关闭订单并退款');
-  const [toast, setToast] = useState<{ message: string; type: 'success' | 'info' | 'error' } | null>(null);
-
-  const showToast = (message: string, type: 'success' | 'info' | 'error' = 'success') => {
-    setToast({ message, type });
-    window.setTimeout(() => setToast(null), 2200);
-  };
+  const { toast, showToast } = useToast(2200);
 
   const getBuyerGroupKey = (order: Order) => order.buyerId || order.buyerName || `unknown-${order.id}`;
 
@@ -61,8 +58,8 @@ export default function OrderManagementView({ orders, onForceCancelOrder, initia
   const filteredOrders = useMemo(
     () =>
       orders.filter((o) => {
-        const q = searchTerm.trim().toLowerCase();
-        const matchesSearch = !q || o.id.toLowerCase().includes(q) || o.buyerName.toLowerCase().includes(q) || o.sellerName.toLowerCase().includes(q) || o.serviceName.toLowerCase().includes(q);
+        const q = normalizeSearchTerm(searchTerm);
+        const matchesSearch = matchesAnyKeyword(q, [o.id, o.buyerName, o.sellerName, o.serviceName]);
         const matchesStatus = statusFilter === 'all' || o.status === statusFilter;
         return matchesSearch && matchesStatus;
       }),
@@ -70,29 +67,13 @@ export default function OrderManagementView({ orders, onForceCancelOrder, initia
   );
 
   const groupedByBuyer = useMemo<BuyerGroup[]>(() => {
-    const map = new Map<string, BuyerGroup>();
-    filteredOrders.forEach((order) => {
-      const key = getBuyerGroupKey(order);
-      const current = map.get(key);
-      if (current) {
-        current.items.push(order);
-        if (!current.avatar) {
-          current.avatar = getPrimaryImage(order.buyerAvatar);
-        }
-        if (current.tag === '未设置身份标签' && order.buyerTag?.trim()) {
-          current.tag = order.buyerTag;
-        }
-        return;
-      }
-      map.set(key, {
-        id: key,
-        name: order.buyerName || '未知用户',
-        avatar: getPrimaryImage(order.buyerAvatar),
-        tag: order.buyerTag?.trim() || '未设置身份标签',
-        items: [order],
-      });
+    return groupItemsByOwner<Order>(filteredOrders, {
+      getId: (item) => item.buyerId || getBuyerGroupKey(item),
+      getName: (item) => item.buyerName,
+      getAvatar: (item) => getPrimaryImage(item.buyerAvatar),
+      getTag: (item) => item.buyerTag,
+      fallbackName: '未知用户',
     });
-    return Array.from(map.values()).sort((a, b) => b.items.length - a.items.length);
   }, [filteredOrders]);
 
   const activeBuyerGroup = useMemo(
@@ -176,50 +157,34 @@ export default function OrderManagementView({ orders, onForceCancelOrder, initia
 
   return (
     <div className="relative space-y-6">
-      <AnimatePresence>
-        {toast && (
-          <motion.div initial={{ opacity: 0, y: -20 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -20 }} className="fixed top-6 left-1/2 -translate-x-1/2 z-[100] flex items-center gap-2 px-4 py-2.5 rounded-xl shadow-lg border bg-white dark:bg-gray-900 border-gray-100 dark:border-gray-800">
-            {toast.type === 'success' && <CheckCircle2 className="w-4 h-4 text-emerald-500" />}
-            {toast.type === 'info' && <Info className="w-4 h-4 text-sky-500" />}
-            {toast.type === 'error' && <AlertCircle className="w-4 h-4 text-rose-500" />}
-            <span className="text-xs font-semibold text-gray-800 dark:text-gray-100">{toast.message}</span>
-          </motion.div>
-        )}
-      </AnimatePresence>
+      <AdminToast toast={toast} />
 
       <div className="bg-white dark:bg-gray-900 p-4 rounded-2xl border border-gray-100 dark:border-gray-800/60 shadow-sm flex flex-col gap-3">
         <div className="flex flex-wrap items-center gap-2">
-          {(['all', 'pending_payment', 'pending_execution', 'completed', 'canceled', 'abnormal'] as const).map((st) => (
-            <button
-              key={st}
-              onClick={() => setStatusFilter(st)}
-              className={`px-2.5 py-1 rounded-lg text-[11px] font-semibold border-none cursor-pointer ${statusFilter === st ? 'bg-primary text-white' : 'bg-gray-50 dark:bg-gray-800 text-gray-500 dark:text-gray-300'}`}
-            >
-              {st === 'all' ? '全部' : st === 'pending_payment' ? '待付款' : st === 'pending_execution' ? '待服务' : st === 'completed' ? '已完成' : st === 'canceled' ? '已取消' : '异常单'}
-            </button>
-          ))}
+          <AdminFilterPills
+            options={[
+              { value: 'all', label: '全部' },
+              { value: 'pending_payment', label: '待付款' },
+              { value: 'pending_execution', label: '待服务' },
+              { value: 'completed', label: '已完成' },
+              { value: 'canceled', label: '已取消' },
+              { value: 'abnormal', label: '异常单' },
+            ]}
+            activeValue={statusFilter}
+            onChange={setStatusFilter}
+          />
           {activeBuyerId && (
-            <button
+            <AdminBackButton
               onClick={() => {
                 setActiveBuyerId(null);
                 setSelectedOrder(null);
               }}
+              label="返回买家列表"
               className="ml-auto text-[10px] px-2 py-1 rounded-md bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-300"
-            >
-              返回买家列表
-            </button>
+            />
           )}
         </div>
-        <div className="relative max-w-md">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 w-4 h-4" />
-          <input
-            type="text"
-            placeholder="搜索订单号、买家、商家、服务名..."
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-            className="w-full pl-9 pr-3 py-2 bg-gray-50 dark:bg-gray-800 border border-gray-100 dark:border-gray-800 rounded-xl text-xs outline-none dark:text-white"
-          />
-        </div>
+        <AdminSearchInput value={searchTerm} placeholder="搜索订单号、买家、商家、服务名..." onChange={setSearchTerm} />
       </div>
 
       {filteredOrders.length === 0 ? (
@@ -240,24 +205,13 @@ export default function OrderManagementView({ orders, onForceCancelOrder, initia
         </div>
       ) : (
         <div className="space-y-2">
-          <div className="flex items-center gap-2 bg-white dark:bg-gray-900 rounded-lg border border-gray-100 dark:border-gray-800 px-2.5 py-1.5">
-            <button onClick={() => setActiveBuyerId(null)} className="text-[10px] px-2 py-0.5 rounded-md bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-300 shrink-0">
-              返回买家列表
-            </button>
-            <div className="flex items-center gap-2 min-w-0">
-              {activeBuyerGroup?.avatar ? (
-                <img
-                  src={activeBuyerGroup.avatar}
-                  alt={activeBuyerGroup.name}
-                  className="w-8 h-8 rounded-full object-cover border border-gray-200 dark:border-gray-700"
-                />
-              ) : null}
-              <div>
-                <p className="text-[11px] font-bold text-gray-800 dark:text-gray-100">{activeBuyerGroup?.name}</p>
-                <p className="text-[10px] text-gray-400">{tableOrders.length} 笔订单</p>
-              </div>
-            </div>
-          </div>
+          <AdminGroupHeader
+            backLabel="返回买家列表"
+            onBack={() => setActiveBuyerId(null)}
+            title={activeBuyerGroup?.name}
+            subtitle={`${tableOrders.length} 笔订单`}
+            avatar={activeBuyerGroup?.avatar}
+          />
 
           <div className="bg-white dark:bg-slate-900 border border-slate-200/60 dark:border-slate-800/80 rounded-xl shadow-sm overflow-hidden">
             <div className="overflow-x-auto">
@@ -366,12 +320,12 @@ export default function OrderManagementView({ orders, onForceCancelOrder, initia
                 </div>
 
                 <div className="grid grid-cols-2 gap-2 text-xs">
-                  <InfoCard label="预约时间" value={selectedOrder.scheduleTime || '-'} />
-                  <InfoCard label="创建时间" value={selectedOrder.buildTime || '-'} />
-                  <InfoCard label="买家标签" value={selectedOrder.buyerTag || '未设置'} />
-                  <InfoCard label="商家标签" value={selectedOrder.sellerTag || '未设置'} />
-                  <InfoCard label="买家电话" value={selectedOrder.buyerPhone || '-'} />
-                  <InfoCard label="商家电话" value={selectedOrder.sellerPhone || '-'} />
+                  <AdminInfoCard label="预约时间" value={selectedOrder.scheduleTime || '-'} />
+                  <AdminInfoCard label="创建时间" value={selectedOrder.buildTime || '-'} />
+                  <AdminInfoCard label="买家标签" value={selectedOrder.buyerTag || '未设置'} />
+                  <AdminInfoCard label="商家标签" value={selectedOrder.sellerTag || '未设置'} />
+                  <AdminInfoCard label="买家电话" value={selectedOrder.buyerPhone || '-'} />
+                  <AdminInfoCard label="商家电话" value={selectedOrder.sellerPhone || '-'} />
                 </div>
 
                 <div className="rounded-2xl border border-gray-100 dark:border-gray-800 p-4 bg-gray-50/50 dark:bg-gray-800/20 space-y-3">
@@ -465,14 +419,6 @@ export default function OrderManagementView({ orders, onForceCancelOrder, initia
       </AnimatePresence>
     </div>
   );
-}
-
-function EmptyState({ text }: { text: string }) {
-  return <div className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-100 dark:border-gray-800 shadow-sm p-12 text-center"><p className="text-sm font-semibold text-gray-700 dark:text-gray-200">{text}</p></div>;
-}
-
-function InfoCard({ label, value }: { label: string; value: string }) {
-  return <div className="rounded-lg border border-gray-100 dark:border-gray-800 p-2.5 bg-gray-50/40 dark:bg-gray-800/20"><p className="text-[10px] text-gray-400">{label}</p><p className="mt-1 text-[11px] font-semibold text-gray-700 dark:text-gray-200 break-words">{value}</p></div>;
 }
 
 function PersonCard({ title, name, tag, avatar }: { title: string; name: string; tag?: string; avatar?: string }) {

@@ -1,4 +1,4 @@
-﻿/**
+/**
  * @license
  * SPDX-License-Identifier: Apache-2.0
  */
@@ -7,6 +7,7 @@ import React, { useEffect, useMemo, useState } from 'react';
 import { Search, Settings, RefreshCw, Folder, FileText, Key } from 'lucide-react';
 import { SystemMenu } from '../types';
 import { adminApi } from '../services/adminApi';
+import { matchesAnyKeyword, normalizeSearchTerm } from '../utils/search';
 
 export default function MenuManagementView() {
   const [menus, setMenus] = useState<SystemMenu[]>([]);
@@ -23,14 +24,14 @@ export default function MenuManagementView() {
   }, []);
 
   const filteredMenus = useMemo(() => {
-    const keyword = searchQuery.trim().toLowerCase();
+    const keyword = normalizeSearchTerm(searchQuery);
     return menus.filter((menu) => {
-      const matchesSearch =
-        !keyword ||
-        menu.name.toLowerCase().includes(keyword) ||
-        menu.id.toLowerCase().includes(keyword) ||
-        menu.path.toLowerCase().includes(keyword) ||
-        (menu.permissionCode || '').toLowerCase().includes(keyword);
+      const matchesSearch = matchesAnyKeyword(keyword, [
+        menu.name,
+        menu.id,
+        menu.path,
+        menu.permissionCode,
+      ]);
       const matchesType = filterType === 'all' || menu.type === filterType;
       return matchesSearch && matchesType;
     });

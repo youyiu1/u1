@@ -6,21 +6,22 @@
 package com.neighborhood.app.service.impl;
 
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
-import com.neighborhood.app.entity.Booking;
-import com.neighborhood.app.entity.ServiceEntity;
-import com.neighborhood.app.vo.ServiceDetailVO;
-import com.neighborhood.app.entity.User;
-import com.neighborhood.app.mapper.BookingMapper;
-import com.neighborhood.app.mapper.ServiceMapper;
+import com.neighborhood.app.entity.service.Booking;
+import com.neighborhood.app.entity.service.ServiceEntity;
+import com.neighborhood.app.entity.user.User;
+import com.neighborhood.app.mapper.service.BookingMapper;
+import com.neighborhood.app.mapper.service.ServiceMapper;
 import com.neighborhood.app.service.CacheService;
 import com.neighborhood.app.service.ServiceModuleService;
 import com.neighborhood.app.service.UserService;
+import com.neighborhood.app.utils.BookingDateTimeUtil;
+import com.neighborhood.app.utils.CacheLookupUtil;
+import com.neighborhood.app.utils.StringValueUtil;
+import com.neighborhood.app.vo.service.ServiceDetailVO;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
-import java.time.LocalDate;
+
 import java.time.LocalDateTime;
-import java.time.LocalTime;
-import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.HashMap;
@@ -37,37 +38,31 @@ public class ServiceModuleServiceImpl extends ServiceImpl<ServiceMapper, Service
 
     @Override
     public List<ServiceEntity> list() {
-        List<ServiceEntity> cached = cacheService.getCachedServiceList();
-        if (cached != null) {
-            return cached;
-        }
-        List<ServiceEntity> list = lambdaQuery()
-                .eq(ServiceEntity::getStatus, "active")
-                .orderByDesc(ServiceEntity::getId)
-                .list();
-        cacheService.cacheServiceList(list);
-        return list;
+        return CacheLookupUtil.getOrLoad(
+                cacheService::getCachedServiceList,
+                () -> lambdaQuery()
+                        .eq(ServiceEntity::getStatus, "active")
+                        .orderByDesc(ServiceEntity::getId)
+                        .list(),
+                cacheService::cacheServiceList
+        );
     }
 
     @Override
     public ServiceEntity getById(Long id) {
-        ServiceEntity cached = cacheService.getCachedService(id);
-        if (cached != null) {
-            return cached;
-        }
-        ServiceEntity service = super.getById(id);
-        if (service != null) {
-            cacheService.cacheService(id, service);
-        }
-        return service;
+        return CacheLookupUtil.getOrLoad(
+                () -> cacheService.getCachedService(id),
+                () -> super.getById(id),
+                service -> cacheService.cacheService(id, service)
+        );
     }
 
     /**
-     * 获取服务详情（含卖家信息）
+     * 获取服务详情，包含服务商信息。
      */
     public ServiceDetailVO getServiceDetail(Long id, Double buyerLat, Double buyerLng) {
         ServiceEntity service = getById(id);
-        if (service == null || !"active".equals(emptyTo(service.getStatus(), "active"))) {
+        if (service == null || !"active".equals(StringValueUtil.emptyTo(service.getStatus(), "active"))) {
             return null;
         }
         User seller = userService.getById(service.getSellerId());
@@ -82,8 +77,7 @@ public class ServiceModuleServiceImpl extends ServiceImpl<ServiceMapper, Service
         service.setReviews(service.getReviews() == null ? 0 : service.getReviews());
         boolean result = super.save(service);
         if (result) {
-            cacheService.evictService(service.getId());
-            cacheService.evictHomeIndex();
+            evictServiceCaches(service.getId(), true);
         }
         return result;
     }
@@ -92,7 +86,7 @@ public class ServiceModuleServiceImpl extends ServiceImpl<ServiceMapper, Service
     public boolean updateById(ServiceEntity service) {
         boolean result = super.updateById(service);
         if (result) {
-            cacheService.evictService(service.getId());
+            evictServiceCaches(service.getId(), false);
         }
         return result;
     }
@@ -103,10 +97,7 @@ public class ServiceModuleServiceImpl extends ServiceImpl<ServiceMapper, Service
         booking.setServiceId(serviceId);
         booking.setBuyerId(buyerId);
         booking.setSellerId(sellerId);
-        booking.setBookingDate(LocalDateTime.of(
-            LocalDate.parse(bookingDate, DateTimeFormatter.ISO_LOCAL_DATE),
-            LocalTime.parse(bookingTime, DateTimeFormatter.ISO_LOCAL_TIME)
-        ));
+        booking.setBookingDate(BookingDateTimeUtil.combineDateAndTime(bookingDate, bookingTime));
         booking.setBookingTime(bookingTime);
         booking.setDuration(duration);
         booking.setStatus("pending");
@@ -126,15 +117,12 @@ public class ServiceModuleServiceImpl extends ServiceImpl<ServiceMapper, Service
     @Override
     public List<ServiceEntity> listWithDistance(Double buyerLat, Double buyerLng) {
         List<ServiceEntity> source = list();
-        List<ServiceEntity> list = new ArrayList<>(source.size());
-        for (ServiceEntity item : source) {
-            list.add(copyForDistance(item));
-        }
+        List<ServiceEntity> list = source.stream()
+                .map(this::copyForDistance)
+                .collect(java.util.stream.Collectors.toCollection(() -> new ArrayList<>(source.size())));
 
         if (buyerLat == null || buyerLng == null) {
-            for (ServiceEntity service : list) {
-                fillUnknownDistance(service);
-            }
+            list.forEach(this::fillUnknownDistance);
             return list;
         }
 
@@ -195,8 +183,10 @@ public class ServiceModuleServiceImpl extends ServiceImpl<ServiceMapper, Service
         }
     }
 
-    private String emptyTo(String value, String fallback) {
-        return value == null || value.isBlank() ? fallback : value;
+    private void evictServiceCaches(Long serviceId, boolean includeHome) {
+        cacheService.evictService(serviceId);
+        if (includeHome) {
+            cacheService.evictHomeIndex();
+        }
     }
 }
-

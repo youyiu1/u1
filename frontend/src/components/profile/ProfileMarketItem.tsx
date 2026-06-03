@@ -2,7 +2,7 @@
 import { useNavigate } from 'react-router-dom';
 import { AlertCircle, Clock3, MapPin, Star } from 'lucide-react';
 import { Item, Service } from '../../types';
-import { getPrimaryImage } from '../../utils/images';
+import { getItemPrimaryImage, getServicePrimaryImage } from '../../utils/images';
 
 interface ProfileMarketItemProps {
   item: Item | Service;
@@ -14,7 +14,7 @@ export const ProfileMarketItem: React.FC<ProfileMarketItemProps> = ({ item }) =>
   const navigate = useNavigate();
   const itemType = isItem(item);
   const reviewState = getReviewState(item.status, item.rejectReason);
-  const primaryImage = getPrimaryImage(item.images);
+  const primaryImage = itemType ? getItemPrimaryImage(item) : getServicePrimaryImage(item);
 
   return (
     <div

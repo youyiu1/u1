@@ -1,4 +1,4 @@
-﻿import React, { createContext, useContext, useState, useCallback, useEffect, ReactNode } from 'react';
+import React, { createContext, useContext, useState, useCallback, useEffect, ReactNode } from 'react';
 import { Message, ChatPartner } from '../types';
 import { chatApi, userApi } from '../services/api';
 import { useAuth } from './AuthContext';
@@ -30,7 +30,7 @@ export const ChatProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   const [unreadMessages, setUnreadMessages] = useState<Record<string, number>>({});
   const [chatOpenTick, setChatOpenTick] = useState(0);
 
-  // 璁＄畻鎬绘湭璇绘暟
+  // 计算总未读数
   const unreadCount = Object.values(unreadMessages).reduce((a: number, b: number) => a + b, 0);
 
   const scheduleBackgroundRefresh = useCallback((task: () => void) => {
@@ -52,7 +52,7 @@ export const ChatProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     return () => scope.clearTimeout(timer);
   }, []);
 
-  // 鍔犺浇鎸囧畾瀵硅瘽
+  // 加载指定会话
   const loadConversation = useCallback(async (partnerId: string) => {
     if (!user?.id) return;
     try {
@@ -63,7 +63,7 @@ export const ChatProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     }
   }, [user?.id]);
 
-  // 鏍囪浼氳瘽宸茶
+  // 标记会话已读
   const markChatRead = useCallback(async (partnerId: string) => {
     if (!user?.id) return;
     try {
@@ -74,7 +74,7 @@ export const ChatProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     }
   }, [user?.id]);
 
-  // 鍔犺浇浼氳瘽鍒楄〃
+  // 加载会话列表
   const refreshConversations = useCallback(async () => {
     if (!user?.id) return;
     try {
@@ -106,7 +106,7 @@ export const ChatProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
             try {
               partnerUser = await userApi.getUser(partner.id);
             } catch {
-              // 濡傛灉鐢↖D鏌ヤ笉鍒帮紝灏濊瘯鐢↖D褰撶敤鎴峰悕鏌ワ紙鍏煎鏃ф暟鎹級
+              // 如果按 ID 查不到，就尝试把 ID 当用户名查询，兼容旧数据
               partnerUser = await userApi.getUserByName(partner.id);
             }
             partner.name = partnerUser.name;
@@ -161,7 +161,7 @@ export const ChatProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     }
   }, [user?.id]);
 
-  // 鎵撳紑鑱婂ぉ
+  // 打开聊天
   const openChat = useCallback(async (partner?: ChatPartner) => {
     if (!getToken()) return; // 未登录不打开聊天
     setIsChatOpen(true);
@@ -184,7 +184,7 @@ export const ChatProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     setActivePartner(null);
   };
 
-  // 鍒濆鍔犺浇浼氳瘽鍒楄〃锛堜粎褰撶敤鎴峰凡鐧诲綍涓旀湁token鏃讹級
+  // 初始化加载会话列表，仅在用户已登录且存在 token 时执行
   useEffect(() => {
     if (!user?.id || !getToken()) return;
     const cancel = scheduleBackgroundRefresh(() => {

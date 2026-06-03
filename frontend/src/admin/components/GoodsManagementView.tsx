@@ -1,4 +1,4 @@
-﻿/**
+/**
  * @license
  * SPDX-License-Identifier: Apache-2.0
  */
@@ -7,20 +7,28 @@ import React, { useEffect, useMemo, useState } from 'react';
 import { AnimatePresence, motion } from 'motion/react';
 import {
   Check,
-  CheckCircle2,
   Gavel,
   Image as ImageIcon,
   Info,
   MapPin,
   RotateCcw,
-  Search,
-  ShieldAlert,
   ShieldCheck,
   Star,
   X,
 } from 'lucide-react';
 import { Goods } from '../types';
 import { getPrimaryImage } from '../../utils/images';
+import { useToast } from '../hooks/useToast';
+import { groupItemsByOwner, type EntityOwnerGroup } from '../utils/entityGrouping';
+import { matchesAnyKeyword, normalizeSearchTerm } from '../utils/search';
+import AdminToast from './common/AdminToast';
+import AdminBackButton from './common/AdminBackButton';
+import AdminFilterPills from './common/AdminFilterPills';
+import AdminGroupHeader from './common/AdminGroupHeader';
+import AdminInfoCard from './common/AdminInfoCard';
+import AdminSearchInput from './common/AdminSearchInput';
+import AdminStatusBadge, { goodsStatusMap } from './common/AdminStatusBadge';
+import EmptyState from './common/EmptyState';
 import UserSquareCard from './common/UserSquareCard';
 
 interface GoodsManagementViewProps {
@@ -30,13 +38,7 @@ interface GoodsManagementViewProps {
 
 type GoodsStatusFilter = 'all' | 'active' | 'sold' | 'removed' | 'pending';
 
-type SellerGroup = {
-  id: string;
-  name: string;
-  avatar: string;
-  tag: string;
-  items: Goods[];
-};
+type SellerGroup = EntityOwnerGroup<Goods>;
 
 export default function GoodsManagementView({ goods, onUpdateGoodsStatus }: GoodsManagementViewProps) {
   const [searchTerm, setSearchTerm] = useState('');
@@ -45,51 +47,30 @@ export default function GoodsManagementView({ goods, onUpdateGoodsStatus }: Good
   const [selectedItem, setSelectedItem] = useState<Goods | null>(null);
   const [showRejectModal, setShowRejectModal] = useState<string | null>(null);
   const [rejectReason, setRejectReason] = useState('商品内容不符合平台规范');
-  const [toast, setToast] = useState<{ message: string; type: 'success' | 'info' | 'error' } | null>(null);
-
-  const showToastMsg = (message: string, type: 'success' | 'info' | 'error' = 'success') => {
-    setToast({ message, type });
-    window.setTimeout(() => setToast(null), 2200);
-  };
+  const { toast, showToast: showToastMsg } = useToast(2200);
 
   const filteredGoods = useMemo(() => {
-    const keyword = searchTerm.trim().toLowerCase();
+    const keyword = normalizeSearchTerm(searchTerm);
     return goods.filter((item) => {
-      const matchesSearch =
-        !keyword ||
-        item.title.toLowerCase().includes(keyword) ||
-        item.id.toLowerCase().includes(keyword) ||
-        item.sellerName.toLowerCase().includes(keyword) ||
-        item.category.toLowerCase().includes(keyword);
+      const matchesSearch = matchesAnyKeyword(keyword, [
+        item.title,
+        item.id,
+        item.sellerName,
+        item.category,
+      ]);
       const matchesStatus = statusFilter === 'all' || item.status === statusFilter;
       return matchesSearch && matchesStatus;
     });
   }, [goods, searchTerm, statusFilter]);
 
   const groupedBySeller = useMemo<SellerGroup[]>(() => {
-    const map = new Map<string, SellerGroup>();
-    filteredGoods.forEach((item) => {
-      const key = item.sellerId || item.sellerName || `unknown-${item.id}`;
-      const current = map.get(key);
-      if (current) {
-        current.items.push(item);
-        if (!current.avatar) {
-          current.avatar = getPrimaryImage(item.sellerAvatar);
-        }
-        if (!current.tag && item.sellerTag?.trim()) {
-          current.tag = item.sellerTag;
-        }
-        return;
-      }
-      map.set(key, {
-        id: key,
-        name: item.sellerName || '未知用户',
-        avatar: getPrimaryImage(item.sellerAvatar),
-        tag: item.sellerTag?.trim() || '未设置身份标签',
-        items: [item],
-      });
+    return groupItemsByOwner<Goods>(filteredGoods, {
+      getId: (item) => item.sellerId,
+      getName: (item) => item.sellerName,
+      getAvatar: (item) => getPrimaryImage(item.sellerAvatar),
+      getTag: (item) => item.sellerTag,
+      fallbackName: '未知用户',
     });
-    return Array.from(map.values()).sort((a, b) => b.items.length - a.items.length);
   }, [filteredGoods]);
 
   const activeSellerGroup = useMemo(
@@ -117,16 +98,6 @@ export default function GoodsManagementView({ goods, onUpdateGoodsStatus }: Good
   const getGoodsImage = (item: Goods) => getPrimaryImage(item.images);
   const getSellerAvatar = (value?: string) => getPrimaryImage(value);
 
-  const getStatusBadge = (status: string) => {
-    switch (status) {
-      case 'active': return <span className="inline-flex items-center px-2 py-0.5 rounded-lg text-[10px] font-bold bg-emerald-500/10 text-emerald-600 border border-emerald-500/20">在售</span>;
-      case 'sold': return <span className="inline-flex items-center px-2 py-0.5 rounded-lg text-[10px] font-bold bg-gray-100 text-gray-500 border border-gray-200">已售出</span>;
-      case 'removed': return <span className="inline-flex items-center px-2 py-0.5 rounded-lg text-[10px] font-bold bg-rose-50 text-rose-500 border border-rose-100">已下架</span>;
-      case 'pending': return <span className="inline-flex items-center px-2 py-0.5 rounded-lg text-[10px] font-bold bg-amber-50 text-amber-600 border border-amber-200">待审核</span>;
-      default: return null;
-    }
-  };
-
   const handleApprove = (id: string) => {
     onUpdateGoodsStatus(id, 'active');
     setSelectedItem((current) => (current?.id === id ? { ...current, status: 'active', rejectReason: undefined } : current));
@@ -152,40 +123,33 @@ export default function GoodsManagementView({ goods, onUpdateGoodsStatus }: Good
 
   return (
     <div className="relative space-y-6">
-      <AnimatePresence>
-        {toast && (
-          <motion.div initial={{ opacity: 0, y: -18 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -18 }} className="fixed top-6 left-1/2 -translate-x-1/2 z-[100] flex items-center gap-2 px-4 py-2.5 rounded-xl shadow-lg border bg-white dark:bg-gray-900 border-gray-100 dark:border-gray-800">
-            {toast.type === 'success' && <CheckCircle2 className="w-4 h-4 text-emerald-500" />}
-            {toast.type === 'info' && <Info className="w-4 h-4 text-sky-500" />}
-            {toast.type === 'error' && <ShieldAlert className="w-4 h-4 text-rose-500" />}
-            <span className="text-xs font-semibold text-gray-800 dark:text-gray-100">{toast.message}</span>
-          </motion.div>
-        )}
-      </AnimatePresence>
+      <AdminToast toast={toast} />
 
       <div className="bg-white dark:bg-gray-900 p-4 rounded-2xl border border-gray-100 dark:border-gray-800/60 shadow-sm flex flex-col gap-3">
         <div className="flex flex-wrap items-center gap-2">
-          {(['all', 'active', 'sold', 'removed', 'pending'] as const).map((status) => (
-            <button key={status} onClick={() => setStatusFilter(status)} className={`px-2.5 py-1 rounded-lg text-[11px] font-semibold border-none cursor-pointer ${statusFilter === status ? 'bg-primary text-white' : 'bg-gray-50 dark:bg-gray-800 text-gray-500 dark:text-gray-300'}`}>
-              {status === 'all' ? '全部' : status === 'active' ? '在售' : status === 'sold' ? '已售' : status === 'removed' ? '下架' : '待审'}
-            </button>
-          ))}
+          <AdminFilterPills
+            options={[
+              { value: 'all', label: '全部' },
+              { value: 'active', label: '在售' },
+              { value: 'sold', label: '已售' },
+              { value: 'removed', label: '下架' },
+              { value: 'pending', label: '待审' },
+            ]}
+            activeValue={statusFilter}
+            onChange={setStatusFilter}
+          />
           {activeSellerId && (
-            <button
+            <AdminBackButton
               onClick={() => {
                 setActiveSellerId(null);
                 setSelectedItem(null);
               }}
+              label="返回用户列表"
               className="ml-auto text-[10px] px-2 py-1 rounded-md bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-300"
-            >
-              返回用户列表
-            </button>
+            />
           )}
         </div>
-        <div className="relative max-w-md">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 w-4 h-4" />
-          <input type="text" placeholder="搜索商品、卖家、分类或ID..." value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} className="w-full pl-9 pr-3 py-2 bg-gray-50 dark:bg-gray-850 border border-gray-100 dark:border-gray-800 rounded-xl text-xs outline-none dark:text-white" />
-        </div>
+        <AdminSearchInput value={searchTerm} placeholder="搜索商品、卖家、分类或ID..." onChange={setSearchTerm} />
       </div>
 
       {filteredGoods.length === 0 ? (
@@ -206,22 +170,13 @@ export default function GoodsManagementView({ goods, onUpdateGoodsStatus }: Good
         </div>
       ) : (
         <div className="space-y-2">
-          <div className="flex items-center gap-2 bg-white dark:bg-gray-900 rounded-lg border border-gray-100 dark:border-gray-800 px-2.5 py-1.5">
-            <button onClick={() => setActiveSellerId(null)} className="text-[10px] px-2 py-0.5 rounded-md bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-300 shrink-0">返回用户列表</button>
-            <div className="flex items-center gap-2 min-w-0">
-              {activeSellerGroup?.avatar ? (
-                <img
-                  src={activeSellerGroup.avatar}
-                  alt={activeSellerGroup.name}
-                  className="w-8 h-8 rounded-full object-cover border border-gray-200 dark:border-gray-700"
-                />
-              ) : null}
-              <div>
-                <p className="text-[11px] font-bold text-gray-800 dark:text-gray-100">{activeSellerGroup?.name}</p>
-                <p className="text-[10px] text-gray-400">{sellerGoods.length} 件商品</p>
-              </div>
-            </div>
-          </div>
+          <AdminGroupHeader
+            backLabel="返回用户列表"
+            onBack={() => setActiveSellerId(null)}
+            title={activeSellerGroup?.name}
+            subtitle={`${sellerGoods.length} 件商品`}
+            avatar={activeSellerGroup?.avatar}
+          />
           <div className="bg-white dark:bg-slate-900 border border-slate-200/60 dark:border-slate-800/80 rounded-xl shadow-sm overflow-hidden">
             <div className="overflow-x-auto">
               <table className="w-full border-collapse text-left text-sm text-slate-600 dark:text-slate-350">
@@ -252,7 +207,7 @@ export default function GoodsManagementView({ goods, onUpdateGoodsStatus }: Good
                         </td>
                         <td className="p-4 text-xs"><p>{item.category}</p><p className="text-[10px] text-slate-400">{item.condition}</p></td>
                         <td className="p-4 text-xs font-bold text-rose-500">¥{item.price.toFixed(2)}</td>
-                        <td className="p-4">{getStatusBadge(item.status)}</td>
+                        <td className="p-4"><AdminStatusBadge status={item.status} statusMap={goodsStatusMap} /></td>
                         <td className="p-4 text-right" onClick={(e) => e.stopPropagation()}>
                           <div className="flex flex-wrap justify-end gap-1.5">
                             <button onClick={() => setSelectedItem(item)} className="text-[10px] px-2 py-0.5 rounded-md bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-200">详情</button>
@@ -313,7 +268,7 @@ export default function GoodsManagementView({ goods, onUpdateGoodsStatus }: Good
                     </div>
                   )}
                   <div className="absolute bottom-3 right-3 text-status-normal font-bold z-10 scale-95 origin-bottom-right">
-                    {getStatusBadge(selectedItem.status)}
+                    <AdminStatusBadge status={selectedItem.status} statusMap={goodsStatusMap} />
                   </div>
                 </div>
 
@@ -351,12 +306,12 @@ export default function GoodsManagementView({ goods, onUpdateGoodsStatus }: Good
                   </div>
 
                   <div className="grid grid-cols-2 gap-2 text-xs">
-                    <InfoCard label="卖家" value={selectedItem.sellerName} />
-                    <InfoCard label="身份标签" value={selectedItem.sellerTag || '未设置'} />
-                    <InfoCard label="分类" value={selectedItem.category} />
-                    <InfoCard label="成色" value={selectedItem.condition} />
-                    <InfoCard label="价格" value={`¥${selectedItem.price.toFixed(2)}`} />
-                    <InfoCard label="地点" value={selectedItem.location || '-'} />
+                    <AdminInfoCard label="卖家" value={selectedItem.sellerName} />
+                    <AdminInfoCard label="身份标签" value={selectedItem.sellerTag || '未设置'} />
+                    <AdminInfoCard label="分类" value={selectedItem.category} />
+                    <AdminInfoCard label="成色" value={selectedItem.condition} />
+                    <AdminInfoCard label="价格" value={`¥${selectedItem.price.toFixed(2)}`} />
+                    <AdminInfoCard label="地点" value={selectedItem.location || '-'} />
                   </div>
 
                   <p className="text-xs text-gray-600 dark:text-gray-300 leading-relaxed p-4 bg-gray-50 dark:bg-gray-800/20 rounded-2xl border border-gray-100 dark:border-gray-805 whitespace-pre-wrap">
@@ -446,12 +401,4 @@ export default function GoodsManagementView({ goods, onUpdateGoodsStatus }: Good
       </AnimatePresence>
     </div>
   );
-}
-
-function EmptyState({ text }: { text: string }) {
-  return <div className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-100 dark:border-gray-800 shadow-sm p-12 text-center"><p className="text-sm font-semibold text-gray-700 dark:text-gray-200">{text}</p></div>;
-}
-
-function InfoCard({ label, value }: { label: string; value: string }) {
-  return <div className="rounded-lg border border-gray-100 dark:border-gray-800 p-2.5 bg-gray-50/40 dark:bg-gray-800/20"><p className="text-[10px] text-gray-400">{label}</p><p className="mt-1 text-[11px] font-semibold text-gray-700 dark:text-gray-200">{value}</p></div>;
 }

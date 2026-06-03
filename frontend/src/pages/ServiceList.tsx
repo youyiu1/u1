@@ -1,9 +1,9 @@
-/**
+﻿/**
  * @license
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import React, { useState, useEffect } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { Search, Star, MapPin, CheckCircle2, Heart, Sparkles, Clock, ShieldCheck, Wrench, Brush, Scissors, Dumbbell, Plus } from 'lucide-react';
 import { motion } from 'motion/react';
 import { serviceApi } from '../services/api';
@@ -14,7 +14,8 @@ import { usePublish } from '../context/PublishContext';
 import { Service } from '../types';
 import { FavoriteButton } from '../components/common/FavoriteButton';
 import { BackToTop } from '../components/common/BackToTop';
-import { parseImages } from '../utils/images';
+import { getServicePrimaryImage, parseImages } from '../utils/images';
+import { matchesAnyKeyword, normalizeSearchTerm } from '../utils/search';
 
 const CATEGORIES = [
   { id: 'all', name: '全部分类', icon: <Sparkles className="w-4 h-4" /> },
@@ -83,15 +84,21 @@ export default function ServiceList() {
       setLocating(false);
     }
   };
-  const filteredServices = services.filter(s =>
-    (activeCategory === 'all' || s.category === activeCategory) &&
-    s.title.toLowerCase().includes(searchQuery.toLowerCase())
-  );
+
+  const filteredServices = useMemo(() => {
+    const keyword = normalizeSearchTerm(searchQuery);
+    return services.filter((service) =>
+      (activeCategory === 'all' || service.category === activeCategory) &&
+      matchesAnyKeyword(keyword, [service.title])
+    );
+  }, [activeCategory, searchQuery, services]);
 
   const displayDistance = (distance?: string) => {
     if (!distance || !distance.trim()) return '距离未知';
     return distance;
   };
+
+  const serviceImage = (service: Service) => getServicePrimaryImage(service);
 
   return (
     <div className="bg-white min-h-screen pb-20">
@@ -173,60 +180,63 @@ export default function ServiceList() {
           ) : filteredServices.length === 0 ? (
             <div className="col-span-full text-center py-16 text-muted">暂无服务</div>
           ) : (
-            filteredServices.map((service) => (
-              <div
-                key={service.id}
-                className="bg-white border border-hairline rounded-3xl overflow-hidden hover:shadow-xl transition-all group cursor-pointer"
-                onClick={() => navigate(`/service/${service.id}`)}
-              >
-                <div className="relative h-48 overflow-hidden">
-                  {service.images && service.images[0] && service.images[0].trim() ? (
-                    <img src={service.images[0]} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" alt={service.title} />
-                  ) : (
-                    <div className="w-full h-full bg-stone-200 flex items-center justify-center text-stone-400 text-xs">暂无图片</div>
-                  )}
-                  <div className="absolute top-4 left-4 px-3 py-1 bg-white/90 backdrop-blur-md rounded-lg flex items-center gap-1.5 shadow-sm">
-                    <Star className="w-3 h-3 text-yellow-400 fill-current" />
-                    <span className="text-xs font-bold text-ink">{service.rating}</span>
-                    <span className="text-[10px] text-muted font-medium">({service.reviews} 评价)</span>
-                  </div>
-                  <FavoriteButton targetId={service.id} targetType="service" />
-                </div>
-
-                <div className="p-6">
-                  <div className="flex items-center gap-3 mb-3">
-                     <span className="px-2 py-0.5 bg-primary/5 text-primary text-[10px] font-bold rounded">
-                       {CATEGORIES.find(c => c.id === service.category)?.name || service.category}
-                     </span>
-                     <div className="flex items-center gap-1">
-                        <CheckCircle2 className="w-3 h-3 text-green-500" />
-                        <span className="text-[10px] text-green-600 font-bold">平台认证</span>
-                     </div>
-                  </div>
-                  <h3 className="text-lg font-bold text-ink mb-2 group-hover:text-primary transition-colors">{service.title}</h3>
-
-                  <div className="flex flex-wrap gap-2 mb-6">
-                    {parseImages(service.highlights).map((h, i) => (
-                      <span key={i} className="text-[10px] text-secondary bg-surface-soft px-2 py-0.5 rounded">
-                        {h}
-                      </span>
-                    ))}
-                  </div>
-
-                  <div className="flex items-center justify-between pt-4 border-t border-hairline">
-                    <div className="flex items-baseline gap-1">
-                      <span className="text-[10px] text-muted font-medium">起步价</span>
-                      <span className="text-xl font-bold text-primary">¥{service.price}</span>
-                      <span className="text-[10px] text-muted">/{service.unit}</span>
+            filteredServices.map((service) => {
+              const primaryImage = serviceImage(service);
+              return (
+                <div
+                  key={service.id}
+                  className="bg-white border border-hairline rounded-3xl overflow-hidden hover:shadow-xl transition-all group cursor-pointer"
+                  onClick={() => navigate(`/service/${service.id}`)}
+                >
+                  <div className="relative h-48 overflow-hidden">
+                    {primaryImage ? (
+                      <img src={primaryImage} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" alt={service.title} />
+                    ) : (
+                      <div className="w-full h-full bg-stone-200 flex items-center justify-center text-stone-400 text-xs">暂无图片</div>
+                    )}
+                    <div className="absolute top-4 left-4 px-3 py-1 bg-white/90 backdrop-blur-md rounded-lg flex items-center gap-1.5 shadow-sm">
+                      <Star className="w-3 h-3 text-yellow-400 fill-current" />
+                      <span className="text-xs font-bold text-ink">{service.rating}</span>
+                      <span className="text-[10px] text-muted font-medium">({service.reviews} 评价)</span>
                     </div>
-                    <div className="flex items-center gap-1.5 text-secondary">
-                       <MapPin className="w-3 h-3 text-muted" />
-                       <span className="text-[10px] font-medium">{displayDistance(service.distance)}</span>
+                    <FavoriteButton targetId={service.id} targetType="service" />
+                  </div>
+
+                  <div className="p-6">
+                    <div className="flex items-center gap-3 mb-3">
+                       <span className="px-2 py-0.5 bg-primary/5 text-primary text-[10px] font-bold rounded">
+                         {CATEGORIES.find(c => c.id === service.category)?.name || service.category}
+                       </span>
+                       <div className="flex items-center gap-1">
+                          <CheckCircle2 className="w-3 h-3 text-green-500" />
+                          <span className="text-[10px] text-green-600 font-bold">平台认证</span>
+                       </div>
+                    </div>
+                    <h3 className="text-lg font-bold text-ink mb-2 group-hover:text-primary transition-colors">{service.title}</h3>
+
+                    <div className="flex flex-wrap gap-2 mb-6">
+                      {parseImages(service.highlights).map((h, i) => (
+                        <span key={i} className="text-[10px] text-secondary bg-surface-soft px-2 py-0.5 rounded">
+                          {h}
+                        </span>
+                      ))}
+                    </div>
+
+                    <div className="flex items-center justify-between pt-4 border-t border-hairline">
+                      <div className="flex items-baseline gap-1">
+                        <span className="text-[10px] text-muted font-medium">起步价</span>
+                        <span className="text-xl font-bold text-primary">¥{service.price}</span>
+                        <span className="text-[10px] text-muted">/{service.unit}</span>
+                      </div>
+                      <div className="flex items-center gap-1.5 text-secondary">
+                         <MapPin className="w-3 h-3 text-muted" />
+                         <span className="text-[10px] font-medium">{displayDistance(service.distance)}</span>
+                      </div>
                     </div>
                   </div>
                 </div>
-              </div>
-            ))
+              );
+            })
           )}
         </div>
       </main>
@@ -234,4 +244,3 @@ export default function ServiceList() {
     </div>
   );
 }
-

@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import React, { useState } from 'react';
+import React, { useMemo, useState } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { 
   Search, ShieldAlert, CheckCircle, XCircle, Filter, ChevronDown, 
@@ -12,6 +12,7 @@ import {
 } from 'lucide-react';
 import { OperationLogItem } from '../types';
 import { adminApi } from '../services/adminApi';
+import { matchesAnyKeyword, normalizeSearchTerm } from '../utils/search';
 
 interface OperationLogViewProps {
   logs: OperationLogItem[];
@@ -88,23 +89,27 @@ export default function OperationLogView({ logs, onUpdateLogs }: OperationLogVie
   };
 
   // Filters calculation
-  const filteredLogs = logs.filter(log => {
-    const matchSearch =
-      log.operator.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      log.role.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      log.action.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      log.target.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      log.id.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      (log.details && log.details.toLowerCase().includes(searchQuery.toLowerCase()));
+  const filteredLogs = useMemo(() => {
+    const keyword = normalizeSearchTerm(searchQuery);
+    return logs.filter(log => {
+      const matchSearch = matchesAnyKeyword(keyword, [
+        log.operator,
+        log.role,
+        log.action,
+        log.target,
+        log.id,
+        log.details,
+      ]);
 
-    const isSystemRole = log.operator === '系统自动审计' || log.role.includes('AI') || log.role.includes('系统');
-    const matchRole =
-      roleFilter === 'all' ||
-      (roleFilter === 'admin' && !isSystemRole) ||
-      (roleFilter === 'ai' && isSystemRole);
+      const isSystemRole = log.operator === '系统自动审计' || log.role.includes('AI') || log.role.includes('系统');
+      const matchRole =
+        roleFilter === 'all' ||
+        (roleFilter === 'admin' && !isSystemRole) ||
+        (roleFilter === 'ai' && isSystemRole);
 
-    return matchSearch && matchRole;
-  });
+      return matchSearch && matchRole;
+    });
+  }, [logs, roleFilter, searchQuery]);
 
   const toggleExpandLog = (id: string) => {
     setExpandedLogId(prev => (prev === id ? null : id));

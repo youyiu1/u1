@@ -8,16 +8,25 @@ package com.neighborhood.app.service.impl;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.core.conditions.update.LambdaUpdateWrapper;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
-import com.neighborhood.app.entity.Comment;
-import com.neighborhood.app.entity.CommentLike;
-import com.neighborhood.app.mapper.CommentMapper;
-import com.neighborhood.app.mapper.CommentLikeMapper;
+import com.neighborhood.app.entity.content.Comment;
+import com.neighborhood.app.entity.content.CommentLike;
+import com.neighborhood.app.mapper.content.CommentLikeMapper;
+import com.neighborhood.app.mapper.content.CommentMapper;
 import com.neighborhood.app.service.CacheService;
 import com.neighborhood.app.service.CommentLikeService;
+import com.neighborhood.app.utils.CounterSqlUtil;
+import com.neighborhood.app.utils.SqlCollectionUtil;
 import lombok.RequiredArgsConstructor;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+
+import java.util.Collection;
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
@@ -27,41 +36,15 @@ public class CommentLikeServiceImpl extends ServiceImpl<CommentLikeMapper, Comme
     private final JdbcTemplate jdbcTemplate;
     private final CommentMapper commentMapper;
 
-    private void ensureLikeTableExists() {
-        try {
-            jdbcTemplate.execute(
-                    "CREATE TABLE IF NOT EXISTS t_comment_like (" +
-                            "id BIGINT PRIMARY KEY AUTO_INCREMENT COMMENT 'comment like id'," +
-                            "comment_id BIGINT NOT NULL COMMENT 'comment id'," +
-                            "user_id VARCHAR(64) NOT NULL COMMENT 'user id'," +
-                            "create_time DATETIME DEFAULT CURRENT_TIMESTAMP," +
-                            "UNIQUE KEY uk_comment_user (comment_id, user_id)," +
-                            "INDEX idx_comment_id (comment_id)," +
-                            "INDEX idx_user_id (user_id)" +
-                            ") ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='comment like table'"
-            );
-        } catch (Exception ignored) {
-            // 读接口不因建表权限问题失败，后续查询自行兜底
-        }
-    }
-
     @Override
     @Transactional
     public boolean like(Long commentId, String userId) {
-        ensureLikeTableExists();
-        if (isLiked(commentId, userId)) {
-            return false;
-        }
         try {
-            CommentLike like = new CommentLike();
-            like.setCommentId(commentId);
-            like.setUserId(userId);
-            boolean saved = save(like);
+            boolean saved = save(buildCommentLike(commentId, userId));
             if (!saved) {
                 return false;
             }
-            updateCommentLikes(commentId, 1);
-            cacheService.addCommentLike(commentId, userId);
+            syncCommentLikeState(commentId, userId, true);
             return true;
         } catch (Exception e) {
             return false;
@@ -71,19 +54,39 @@ public class CommentLikeServiceImpl extends ServiceImpl<CommentLikeMapper, Comme
     @Override
     @Transactional
     public boolean unlike(Long commentId, String userId) {
-        ensureLikeTableExists();
         int deleted = baseMapper.delete(commentLikeQuery(commentId, userId));
         if (deleted <= 0) {
             return false;
         }
-        updateCommentLikes(commentId, -1);
-        cacheService.removeCommentLike(commentId, userId);
+        syncCommentLikeState(commentId, userId, false);
         return true;
     }
 
     @Override
+    @Transactional
+    public Boolean toggleLike(Long commentId, String userId) {
+        try {
+            int deleted = baseMapper.delete(commentLikeQuery(commentId, userId));
+            if (deleted > 0) {
+                syncCommentLikeState(commentId, userId, false);
+                return false;
+            }
+            boolean saved = save(buildCommentLike(commentId, userId));
+            if (!saved) {
+                return null;
+            }
+            syncCommentLikeState(commentId, userId, true);
+            return true;
+        } catch (Exception e) {
+            return null;
+        }
+    }
+
+    @Override
     public boolean isLiked(Long commentId, String userId) {
-        ensureLikeTableExists();
+        if (cacheService.isCommentLiked(commentId, userId)) {
+            return true;
+        }
         try {
             boolean liked = count(commentLikeQuery(commentId, userId)) > 0;
             if (liked) {
@@ -99,7 +102,6 @@ public class CommentLikeServiceImpl extends ServiceImpl<CommentLikeMapper, Comme
 
     @Override
     public long countLikes(Long commentId) {
-        ensureLikeTableExists();
         try {
             return lambdaQuery()
                     .eq(CommentLike::getCommentId, commentId)
@@ -109,18 +111,76 @@ public class CommentLikeServiceImpl extends ServiceImpl<CommentLikeMapper, Comme
         }
     }
 
+    @Override
+    public Map<Long, Long> countLikesByCommentIds(Collection<Long> commentIds) {
+        List<Long> ids = SqlCollectionUtil.normalizePositiveLongIds(commentIds);
+        if (ids.isEmpty()) {
+            return Map.of();
+        }
+        String sql = "SELECT comment_id, COUNT(1) cnt FROM t_comment_like WHERE comment_id IN (" +
+                SqlCollectionUtil.placeholders(ids.size()) +
+                ") GROUP BY comment_id";
+        try {
+            Map<Long, Long> counts = new LinkedHashMap<>();
+            for (Map<String, Object> row : jdbcTemplate.queryForList(sql, ids.toArray())) {
+                Number commentId = (Number) row.get("comment_id");
+                Number count = (Number) row.get("cnt");
+                if (commentId != null && count != null) {
+                    counts.put(commentId.longValue(), count.longValue());
+                }
+            }
+            return counts;
+        } catch (Exception e) {
+            return Map.of();
+        }
+    }
+
+    @Override
+    public Set<Long> likedCommentIds(Collection<Long> commentIds, String userId) {
+        List<Long> ids = SqlCollectionUtil.normalizePositiveLongIds(commentIds);
+        if (ids.isEmpty() || userId == null || userId.isBlank()) {
+            return Set.of();
+        }
+        String sql = "SELECT comment_id FROM t_comment_like WHERE user_id = ? AND comment_id IN (" +
+                SqlCollectionUtil.placeholders(ids.size()) +
+                ")";
+        try {
+            Set<Long> likedIds = jdbcTemplate.queryForList(sql, Long.class, SqlCollectionUtil.prependArg(userId, ids)).stream()
+                    .filter(id -> id != null && id > 0)
+                    .collect(Collectors.toSet());
+            likedIds.forEach(id -> cacheService.addCommentLike(id, userId));
+            return likedIds;
+        } catch (Exception e) {
+            return Set.of();
+        }
+    }
+
     private LambdaQueryWrapper<CommentLike> commentLikeQuery(Long commentId, String userId) {
         return new LambdaQueryWrapper<CommentLike>()
                 .eq(CommentLike::getCommentId, commentId)
                 .eq(CommentLike::getUserId, userId);
     }
 
+    private CommentLike buildCommentLike(Long commentId, String userId) {
+        CommentLike like = new CommentLike();
+        like.setCommentId(commentId);
+        like.setUserId(userId);
+        return like;
+    }
+
     private void updateCommentLikes(Long commentId, int delta) {
-        String expression = delta > 0
-                ? "likes = GREATEST(COALESCE(likes, 0) + 1, 0)"
-                : "likes = GREATEST(COALESCE(likes, 0) - 1, 0)";
         commentMapper.update(null, new LambdaUpdateWrapper<Comment>()
                 .eq(Comment::getId, commentId)
-                .setSql(expression));
+                .setSql(CounterSqlUtil.nonNegativeCoalescedDelta("likes", delta)));
     }
+
+    private void syncCommentLikeState(Long commentId, String userId, boolean liked) {
+        updateCommentLikes(commentId, liked ? 1 : -1);
+        if (liked) {
+            cacheService.addCommentLike(commentId, userId);
+        } else {
+            cacheService.removeCommentLike(commentId, userId);
+        }
+    }
+
 }

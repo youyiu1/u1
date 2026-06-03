@@ -3,13 +3,14 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import React, { useState } from 'react';
+import React, { useMemo, useState } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { 
   Search, ShieldAlert, Plus, X, Trash2, Shield, User, Globe, FileText,
   AlertOctagon, CheckSquare, Sparkles, Filter 
 } from 'lucide-react';
 import { BlacklistItem } from '../types';
+import { matchesAnyKeyword, normalizeSearchTerm } from '../utils/search';
 
 interface BlacklistManagementViewProps {
   blacklist: BlacklistItem[];
@@ -114,24 +115,23 @@ export default function BlacklistManagementView({
   };
 
   // Run filtering
-  const filteredList = blacklist.filter(item => {
-    const matchSearch =
-      item.targetValue.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      item.reason.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      item.id.toLowerCase().includes(searchQuery.toLowerCase());
-    
-    const matchType = typeFilter === 'all' || item.targetType === typeFilter;
+  const filteredList = useMemo(() => {
+    const keyword = normalizeSearchTerm(searchQuery);
+    return blacklist.filter(item => {
+      const matchSearch = matchesAnyKeyword(keyword, [item.targetValue, item.reason, item.id]);
+      const matchType = typeFilter === 'all' || item.targetType === typeFilter;
 
-    return matchSearch && matchType;
-  });
+      return matchSearch && matchType;
+    });
+  }, [blacklist, searchQuery, typeFilter]);
 
   // Calculate Operational Metrics
-  const metrics = {
+  const metrics = useMemo(() => ({
     total: blacklist.length,
     users: blacklist.filter(i => i.targetType === 'user').length,
     keywords: blacklist.filter(i => i.targetType === 'keyword').length,
     ips: blacklist.filter(i => i.targetType === 'ip').length,
-  };
+  }), [blacklist]);
 
   return (
     <div className="space-y-6" id="blacklist-view-root">

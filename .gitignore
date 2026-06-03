@@ -7,6 +7,9 @@ coverage/
 .env*
 !.env.example
 
-# 后端
+# 鍚庣
 backend-java-reference/target/
 backend-java-reference/uploads/
+
+runtime-logs/
+frontend/dist/

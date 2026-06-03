@@ -2,8 +2,8 @@ package com.neighborhood.app.service.impl;
 
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.baomidou.mybatisplus.extension.conditions.query.LambdaQueryChainWrapper;
-import com.neighborhood.app.entity.Message;
-import com.neighborhood.app.mapper.MessageMapper;
+import com.neighborhood.app.entity.message.Message;
+import com.neighborhood.app.mapper.message.MessageMapper;
 import com.neighborhood.app.service.MessageService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -30,14 +30,7 @@ public class MessageServiceImpl extends ServiceImpl<MessageMapper, Message> impl
 
     @Override
     public Message sendMessage(String senderId, String receiverId, String content, String messageType, String mediaUrl) {
-        Message message = new Message();
-        message.setSenderId(senderId);
-        message.setReceiverId(receiverId);
-        message.setContent(content == null ? "" : content);
-        message.setMessageType(messageType == null || messageType.isBlank() ? "text" : messageType);
-        message.setMediaUrl(mediaUrl == null ? "" : mediaUrl);
-        message.setIsRead(false);
-        message.setCreateTime(LocalDateTime.now());
+        Message message = buildMessage(senderId, receiverId, content, messageType, mediaUrl);
         save(message);
         return message;
     }
@@ -74,5 +67,17 @@ public class MessageServiceImpl extends ServiceImpl<MessageMapper, Message> impl
                         .eq(Message::getSenderId, userId)
                         .or()
                         .eq(Message::getReceiverId, userId));
+    }
+
+    private Message buildMessage(String senderId, String receiverId, String content, String messageType, String mediaUrl) {
+        Message message = new Message();
+        message.setSenderId(senderId);
+        message.setReceiverId(receiverId);
+        message.setContent(content == null ? "" : content);
+        message.setMessageType(messageType == null || messageType.isBlank() ? "text" : messageType);
+        message.setMediaUrl(mediaUrl == null ? "" : mediaUrl);
+        message.setIsRead(false);
+        message.setCreateTime(LocalDateTime.now());
+        return message;
     }
 }

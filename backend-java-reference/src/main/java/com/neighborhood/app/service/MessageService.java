@@ -1,7 +1,7 @@
 package com.neighborhood.app.service;
 
 import com.baomidou.mybatisplus.extension.service.IService;
-import com.neighborhood.app.entity.Message;
+import com.neighborhood.app.entity.message.Message;
 import java.util.List;
 
 public interface MessageService extends IService<Message> {

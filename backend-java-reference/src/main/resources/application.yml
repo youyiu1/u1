@@ -1,16 +1,19 @@
 server:
   port: 8080
+  compression:
+    enabled: true
+    mime-types: application/json,text/html,text/xml,text/plain,text/css,text/javascript,application/javascript
+    min-response-size: 2048
 
 spring:
+  application:
+    name: neighborhood-app
+
   servlet:
     multipart:
       max-file-size: 10MB
       max-request-size: 20MB
 
-  application:
-    name: neighborhood-app
-
-  # MySQL 数据源配置
   datasource:
     driver-class-name: com.mysql.cj.jdbc.Driver
     url: jdbc:mysql://localhost:3306/neighborhood_db?useUnicode=true&characterEncoding=utf8&useSSL=false&serverTimezone=Asia/Shanghai&allowPublicKeyRetrieval=true
@@ -24,7 +27,6 @@ spring:
       max-lifetime: 1800000
       connection-timeout: 30000
 
-  # Redis 配置
   data:
     redis:
       host: localhost
@@ -38,7 +40,27 @@ spring:
           min-idle: 0
           max-wait: -1ms
 
-  # QQ邮箱SMTP配置
+  cache:
+    type: caffeine
+    cache-names:
+      - hotData
+      - stateData
+
+  rabbitmq:
+    host: localhost
+    port: 5672
+    username: guest
+    password: guest
+    listener:
+      simple:
+        default-requeue-rejected: false
+        retry:
+          enabled: true
+          initial-interval: 1000ms
+          max-attempts: 3
+          max-interval: 5000ms
+          multiplier: 2
+
   mail:
     host: smtp.qq.com
     port: 587
@@ -54,7 +76,6 @@ mybatis-plus:
     map-underscore-to-camel-case: true
     log-impl: org.apache.ibatis.logging.stdout.StdOutImpl
 
-# 缓存配置
 cache:
   user:
     ttl: 1800
@@ -65,14 +86,48 @@ cache:
   hot:
     ttl: 300
 
-# JWT配置
 jwt:
   secret: neighborhood-app-secret-key-2024-very-long-key-for-hs256
   expiration: 86400000
 
-# RustFS 对象存储配置
 rustfs:
   endpoint: http://localhost:9000
   access-key: 4a36qGmg5XTWojNU2Lb7
   secret-key: 4tOJYvgIXHWw7GD2j0deLmA9ZnFrqyxBb1UaC6sl
   bucket: neighborhood
+
+app:
+  cache:
+    caffeine:
+      initial-capacity: 256
+      maximum-size: 5000
+      expire-after-write-seconds: 45
+  messaging:
+    rabbit:
+      enabled: false
+      notification-queue: neighborhood.notification.write
+      notification-exchange: neighborhood.notification.exchange
+      notification-routing-key: notification.write
+      admin-log-queue: neighborhood.admin.log.write
+      admin-log-exchange: neighborhood.admin.log.exchange
+      admin-log-routing-key: admin.log.write
+
+management:
+  endpoints:
+    web:
+      base-path: /actuator
+      exposure:
+        include: health,info,metrics,prometheus,caches
+  endpoint:
+    health:
+      show-details: always
+  metrics:
+    tags:
+      application: ${spring.application.name}
+    distribution:
+      percentiles-histogram:
+        http.server.requests: true
+  prometheus:
+    metrics:
+      export:
+        enabled: true

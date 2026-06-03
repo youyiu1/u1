@@ -1,7 +1,10 @@
 package com.neighborhood.app.interceptor;
 
-import com.neighborhood.app.entity.User;
-import com.neighborhood.app.mapper.UserMapper;
+import com.neighborhood.app.entity.user.User;
+import com.neighborhood.app.mapper.user.UserMapper;
+import com.neighborhood.app.service.CacheService;
+import com.neighborhood.app.utils.CollectionStringUtil;
+import com.neighborhood.app.utils.UserLookupUtil;
 import com.neighborhood.app.util.JwtUtil;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
@@ -12,8 +15,8 @@ import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Component;
 import org.springframework.web.servlet.HandlerInterceptor;
 
-import java.util.Arrays;
 import java.util.List;
+import java.util.Map;
 import java.util.concurrent.TimeUnit;
 
 @Slf4j
@@ -33,6 +36,13 @@ public class AuthInterceptor implements HandlerInterceptor {
     private final RedisTemplate<String, Object> redisTemplate;
     private final UserMapper userMapper;
     private final JdbcTemplate jdbcTemplate;
+    private final CacheService cacheService;
+
+    private record AuthState(String token, String userId, boolean tokenValid, boolean valid) {
+    }
+
+    private record RoleMeta(String status, List<String> permissionCodes) {
+    }
 
     @Override
     public boolean preHandle(HttpServletRequest request, HttpServletResponse response, Object handler) throws Exception {
@@ -41,47 +51,30 @@ public class AuthInterceptor implements HandlerInterceptor {
         }
 
         String path = request.getRequestURI();
-        String authHeader = request.getHeader(HEADER_AUTH);
-
-        if (authHeader != null && authHeader.startsWith(BEARER_PREFIX)) {
-            String token = authHeader.substring(BEARER_PREFIX.length());
-            if (jwtUtil.validateToken(token)) {
-                String userId = jwtUtil.getUserIdFromToken(token);
-                Object redisToken = redisTemplate.opsForValue().get(TOKEN_PREFIX + userId);
-                if (redisToken != null && token.equals(redisToken.toString())) {
-                    redisTemplate.expire(TOKEN_PREFIX + userId, jwtUtil.getExpiration(), TimeUnit.MILLISECONDS);
-                    request.setAttribute("userId", userId);
-                }
-            }
+        AuthState authState = authenticateRequest(request);
+        if (authState.valid()) {
+            request.setAttribute("userId", authState.userId());
         }
 
         if (isPublicPath(path)) {
             return true;
         }
 
-        if (authHeader == null || !authHeader.startsWith(BEARER_PREFIX)) {
-            writeJson(response, HttpServletResponse.SC_UNAUTHORIZED, "{\"success\":false,\"message\":\"未登录\"}");
+        if (authState.token() == null) {
+            writeJson(response, HttpServletResponse.SC_UNAUTHORIZED, "{\"success\":false,\"message\":\"请先登录\"}");
             return false;
         }
-
-        String token = authHeader.substring(BEARER_PREFIX.length());
-        if (!jwtUtil.validateToken(token)) {
-            writeJson(response, HttpServletResponse.SC_UNAUTHORIZED, "{\"success\":false,\"message\":\"Token无效\"}");
+        if (!authState.valid()) {
+            if (!authState.tokenValid()) {
+                writeJson(response, HttpServletResponse.SC_UNAUTHORIZED, "{\"success\":false,\"message\":\"Token 无效\"}");
+            } else {
+                writeJson(response, HttpServletResponse.SC_UNAUTHORIZED, "{\"success\":false,\"message\":\"Token 已过期，请重新登录\"}");
+            }
             return false;
         }
-
-        String userId = jwtUtil.getUserIdFromToken(token);
-        Object redisToken = redisTemplate.opsForValue().get(TOKEN_PREFIX + userId);
-        if (redisToken == null || !token.equals(redisToken.toString())) {
-            writeJson(response, HttpServletResponse.SC_UNAUTHORIZED, "{\"success\":false,\"message\":\"Token已过期\"}");
-            return false;
-        }
-
-        redisTemplate.expire(TOKEN_PREFIX + userId, jwtUtil.getExpiration(), TimeUnit.MILLISECONDS);
-        request.setAttribute("userId", userId);
 
         if (path.startsWith("/api/admin/")) {
-            User user = userMapper.selectById(userId);
+            User user = cachedUser(authState.userId());
             String role = normalizeRole(user == null ? null : user.getAdminRole());
 
             if (ROLE_USER.equals(role)) {
@@ -89,8 +82,9 @@ public class AuthInterceptor implements HandlerInterceptor {
                 return false;
             }
 
-            if (!isRoleEnabled(role)) {
-                writeJson(response, HttpServletResponse.SC_FORBIDDEN, "{\"success\":false,\"message\":\"当前管理员角色已停用\"}");
+            RoleMeta roleMeta = loadRoleMeta(role);
+            if (!isRoleEnabled(role, roleMeta)) {
+                writeJson(response, HttpServletResponse.SC_FORBIDDEN, "{\"success\":false,\"message\":\"当前管理员角色已被停用\"}");
                 return false;
             }
 
@@ -99,12 +93,12 @@ public class AuthInterceptor implements HandlerInterceptor {
             }
 
             if (ROLE_READONLY_ADMIN.equals(role)) {
-                writeJson(response, HttpServletResponse.SC_FORBIDDEN, "{\"success\":false,\"message\":\"当前账号无操作权限\"}");
+                writeJson(response, HttpServletResponse.SC_FORBIDDEN, "{\"success\":false,\"message\":\"只读管理员不能执行写操作\"}");
                 return false;
             }
 
             String requiredPermission = resolveRequiredPermission(path, request.getMethod());
-            if (requiredPermission != null && !hasPermission(role, requiredPermission)) {
+            if (requiredPermission != null && !hasPermission(role, requiredPermission, roleMeta)) {
                 writeJson(response, HttpServletResponse.SC_FORBIDDEN, "{\"success\":false,\"message\":\"当前账号缺少对应权限\"}");
                 return false;
             }
@@ -118,6 +112,28 @@ public class AuthInterceptor implements HandlerInterceptor {
         return true;
     }
 
+    private AuthState authenticateRequest(HttpServletRequest request) {
+        String authHeader = request.getHeader(HEADER_AUTH);
+        if (authHeader == null || !authHeader.startsWith(BEARER_PREFIX)) {
+            return new AuthState(null, null, false, false);
+        }
+        String token = authHeader.substring(BEARER_PREFIX.length());
+        if (!jwtUtil.validateToken(token)) {
+            return new AuthState(token, null, false, false);
+        }
+        String userId = jwtUtil.getUserIdFromToken(token);
+        Object redisToken = redisTemplate.opsForValue().get(TOKEN_PREFIX + userId);
+        if (redisToken == null || !token.equals(redisToken.toString())) {
+            return new AuthState(token, userId, true, false);
+        }
+        redisTemplate.expire(TOKEN_PREFIX + userId, jwtUtil.getExpiration(), TimeUnit.MILLISECONDS);
+        return new AuthState(token, userId, true, true);
+    }
+
+    private User cachedUser(String userId) {
+        return UserLookupUtil.getById(cacheService, userMapper, userId);
+    }
+
     private String normalizeRole(String role) {
         if (ROLE_SUPER_ADMIN.equals(role)) return ROLE_SUPER_ADMIN;
         if (ROLE_ADMIN.equals(role)) return ROLE_ADMIN;
@@ -125,28 +141,40 @@ public class AuthInterceptor implements HandlerInterceptor {
         return ROLE_USER;
     }
 
-    private boolean isRoleEnabled(String role) {
-        if (ROLE_USER.equals(role)) {
-            return false;
-        }
+    private RoleMeta loadRoleMeta(String role) {
         try {
-            String status = jdbcTemplate.queryForObject("SELECT status FROM t_admin_role WHERE code = ?", String.class, role);
-            return status == null || !"disabled".equalsIgnoreCase(status);
+            List<Map<String, Object>> rows = jdbcTemplate.queryForList(
+                    "SELECT status, permission_codes FROM t_admin_role WHERE code = ?",
+                    role
+            );
+            if (rows.isEmpty()) {
+                return new RoleMeta(null, List.of());
+            }
+            Map<String, Object> row = rows.get(0);
+            return new RoleMeta(
+                    row.get("status") == null ? null : String.valueOf(row.get("status")),
+                    CollectionStringUtil.parseStringArray(row.get("permission_codes") == null ? null : String.valueOf(row.get("permission_codes")))
+            );
         } catch (Exception ignored) {
-            return ROLE_SUPER_ADMIN.equals(role) || ROLE_ADMIN.equals(role) || ROLE_READONLY_ADMIN.equals(role);
+            return new RoleMeta(null, List.of());
         }
     }
 
-    private boolean hasPermission(String role, String requiredPermission) {
+    private boolean isRoleEnabled(String role, RoleMeta roleMeta) {
+        if (ROLE_USER.equals(role)) {
+            return false;
+        }
+        if (roleMeta.status() == null) {
+            return ROLE_SUPER_ADMIN.equals(role) || ROLE_ADMIN.equals(role) || ROLE_READONLY_ADMIN.equals(role);
+        }
+        return !"disabled".equalsIgnoreCase(roleMeta.status());
+    }
+
+    private boolean hasPermission(String role, String requiredPermission, RoleMeta roleMeta) {
         if (requiredPermission == null || ROLE_SUPER_ADMIN.equals(role)) {
             return true;
         }
-        try {
-            String raw = jdbcTemplate.queryForObject("SELECT permission_codes FROM t_admin_role WHERE code = ?", String.class, role);
-            return parseStringArray(raw).contains(requiredPermission);
-        } catch (Exception ignored) {
-            return false;
-        }
+        return roleMeta.permissionCodes().contains(requiredPermission);
     }
 
     private String resolveRequiredPermission(String path, String method) {
@@ -185,16 +213,6 @@ public class AuthInterceptor implements HandlerInterceptor {
         if (path.matches("/api/admin/roles/[^/]+")) return "roles:manage";
         if (path.equals("/api/admin/permissions")) return null;
         return null;
-    }
-
-    private List<String> parseStringArray(String raw) {
-        if (raw == null || raw.isBlank() || "[]".equals(raw.trim())) {
-            return List.of();
-        }
-        return Arrays.stream(raw.replace("[", "").replace("]", "").replace("\"", "").split(","))
-                .map(String::trim)
-                .filter(item -> !item.isBlank())
-                .toList();
     }
 
     private boolean isSafeAdminMethod(String method) {
