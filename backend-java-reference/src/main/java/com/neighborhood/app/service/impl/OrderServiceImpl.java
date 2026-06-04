@@ -22,6 +22,11 @@ import java.util.List;
 @RequiredArgsConstructor
 public class OrderServiceImpl extends ServiceImpl<OrderMapper, Order> implements OrderService {
 
+    private static final String STATUS_CONFIRMED = "confirmed";
+    private static final String STATUS_COMPLETED = "completed";
+    private static final String STATUS_IN_PROGRESS = "in_progress";
+    private static final String STATUS_CANCELLED = "cancelled";
+
     @Override
     public List<Order> listByUserId(String userId) {
         return userOrders(userId, null);
@@ -29,12 +34,12 @@ public class OrderServiceImpl extends ServiceImpl<OrderMapper, Order> implements
 
     @Override
     public List<Order> listCompletedByUserId(String userId) {
-        return userOrders(userId, "completed");
+        return userOrders(userId, STATUS_COMPLETED);
     }
 
     @Override
     public List<Order> listInProgressByUserId(String userId) {
-        return userOrders(userId, "in_progress");
+        return userOrders(userId, STATUS_IN_PROGRESS);
     }
 
     @Override
@@ -55,17 +60,23 @@ public class OrderServiceImpl extends ServiceImpl<OrderMapper, Order> implements
 
     @Override
     public boolean confirmOrder(Long orderId) {
-        return updateOrderStatus(orderId, "in_progress", false);
+        return updateOrderStatus(orderId, STATUS_CONFIRMED, STATUS_IN_PROGRESS, false);
     }
 
     @Override
     public boolean completeOrder(Long orderId) {
-        return updateOrderStatus(orderId, "completed", true);
+        return updateOrderStatus(orderId, STATUS_IN_PROGRESS, STATUS_COMPLETED, true);
     }
 
     @Override
     public boolean cancelOrder(Long orderId) {
-        return updateOrderStatus(orderId, "cancelled", false);
+        return lambdaUpdate()
+                .eq(Order::getId, orderId)
+                .ne(Order::getStatus, STATUS_COMPLETED)
+                .ne(Order::getStatus, STATUS_CANCELLED)
+                .set(Order::getStatus, STATUS_CANCELLED)
+                .set(Order::getUpdateTime, LocalDateTime.now())
+                .update();
     }
 
     private LambdaQueryChainWrapper<Order> userOrderQuery(String userId) {
@@ -84,10 +95,12 @@ public class OrderServiceImpl extends ServiceImpl<OrderMapper, Order> implements
         return query.orderByDesc(Order::getCreateTime).list();
     }
 
-    private boolean updateOrderStatus(Long orderId, String status, boolean completed) {
+    private boolean updateOrderStatus(Long orderId, String currentStatus, String nextStatus, boolean completed) {
         var update = lambdaUpdate()
                 .eq(Order::getId, orderId)
-                .set(Order::getStatus, status);
+                .eq(Order::getStatus, currentStatus)
+                .set(Order::getStatus, nextStatus)
+                .set(Order::getUpdateTime, LocalDateTime.now());
         if (completed) {
             update.set(Order::getCompletedTime, LocalDateTime.now());
         }

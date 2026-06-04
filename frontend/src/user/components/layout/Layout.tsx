@@ -3,22 +3,23 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import React from 'react';
+import { AnimatePresence, motion } from 'motion/react';
 import { Outlet, useLocation } from 'react-router-dom';
-import Header from './Header';
-import Footer from './Footer';
 import { ChatOverlay } from '../chat/ChatOverlay';
-import { motion, AnimatePresence } from 'motion/react';
+import Footer from './Footer';
+import Header from './Header';
+
+const PUBLISH_PATH = '/publish';
 
 export default function Layout() {
   const location = useLocation();
 
-  const isPublishPage = location.pathname === '/publish';
+  const showHeader = location.pathname !== PUBLISH_PATH;
 
   return (
-    <div className="min-h-screen flex flex-col bg-stone-50/30">
-      {!isPublishPage && <Header />}
-      <main className="flex-1">
+    <div className="flex min-h-screen min-w-0 flex-col overflow-x-hidden bg-stone-50/30">
+      {showHeader ? <Header /> : null}
+      <main className="min-w-0 flex-1">
         <AnimatePresence mode="wait">
           <motion.div
             key={location.pathname}
@@ -26,6 +27,7 @@ export default function Layout() {
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -10 }}
             transition={{ duration: 0.3 }}
+            className="min-w-0"
           >
             <Outlet />
           </motion.div>

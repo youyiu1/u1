@@ -34,7 +34,7 @@ import { usePublish } from '../../context/PublishContext';
 import { Item, Order, Post, Service, User } from '../../types';
 import { getFallbackAvatar } from '../../utils/avatar';
 import { getErrorMessage } from '../../utils/error';
-import { getFollowState, setFollowState } from '../../utils/followStorage';
+import { resolveFollowState } from '../../utils/followStorage';
 
 type FavoriteRecord = {
   id: string;
@@ -191,23 +191,9 @@ export default function ProfilePage() {
         setStats({ followers: user.followersCount || 0, isFollowing: false });
 
         if (!isOwnProfile && currentUser?.id && user.id) {
-          const saved = getFollowState(user.id);
-          setStats({ followers: user.followersCount || 0, isFollowing: saved });
-          if (!saved) {
-            userApi
-              .isFollowing(currentUser.id, user.id)
-              .then((followingState) => {
-                if (cancelled) {
-                  return;
-                }
-                setStats({ followers: user.followersCount || 0, isFollowing: followingState });
-                setFollowState(user.id, followingState);
-              })
-              .catch(() => {
-                if (!cancelled) {
-                  setStats({ followers: user.followersCount || 0, isFollowing: false });
-                }
-              });
+          const followingState = await resolveFollowState(currentUser.id, user.id, userApi.isFollowing);
+          if (!cancelled) {
+            setStats({ followers: user.followersCount || 0, isFollowing: followingState });
           }
         }
       } catch (fetchError: unknown) {

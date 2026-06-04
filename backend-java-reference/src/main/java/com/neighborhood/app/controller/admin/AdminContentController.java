@@ -2,6 +2,7 @@ package com.neighborhood.app.controller.admin;
 
 import com.neighborhood.app.common.Result;
 import com.neighborhood.app.dto.admin.AdminContentRequests.CommentStatusRequest;
+import com.neighborhood.app.dto.admin.AdminContentRequests.ImageDeleteRequest;
 import com.neighborhood.app.dto.admin.AdminContentRequests.DynamicCommentRequest;
 import com.neighborhood.app.dto.admin.AdminContentRequests.ImageStatusRequest;
 import com.neighborhood.app.dto.admin.AdminCommonRequests.StatusRequest;
@@ -65,13 +66,13 @@ public class AdminContentController {
         return module.images();
     }
 
-    @PostMapping("/images/{id}/status")
-    public Result<Void> updateImageStatus(@PathVariable String id, @RequestBody ImageStatusRequest body) {
-        return module.updateImageStatus(id, body);
+    @PostMapping("/images/status")
+    public Result<Void> updateImageStatus(@RequestBody ImageStatusRequest body) {
+        return module.updateImageStatus(body);
     }
 
-    @DeleteMapping("/images/{id}")
-    public Result<Void> deleteImage(@PathVariable String id) {
-        return module.deleteImage(id);
+    @DeleteMapping("/images")
+    public Result<Void> deleteImage(@RequestBody ImageDeleteRequest body) {
+        return module.deleteImage(body);
     }
 }

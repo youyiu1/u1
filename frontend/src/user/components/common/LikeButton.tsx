@@ -9,6 +9,8 @@ import { Heart } from 'lucide-react';
 import { useAuthCheck } from '../../context/useAuthCheck';
 import { getLiked, setLiked } from '../../utils/interactionStorage';
 
+const BURST_DURATION_MS = 900;
+
 interface LikeButtonProps {
   postId: string;
   initialLikes?: number;
@@ -67,19 +69,30 @@ export const LikeButton: React.FC<LikeButtonProps> = ({
   const { requireAuth } = useAuthCheck();
   const effectiveSize = lg ? 'lg' : size;
 
-  const toggleLike = (event: React.MouseEvent) => {
+  const stopEvent = (event: React.MouseEvent) => {
     event.preventDefault();
     event.stopPropagation();
+  };
+
+  const getNextCount = (currentCount: number, nextLiked: boolean) =>
+    nextLiked ? currentCount + 1 : Math.max(0, currentCount - 1);
+
+  const triggerBurst = () => {
+    setBurst(true);
+    setTimeout(() => setBurst(false), BURST_DURATION_MS);
+  };
+
+  const toggleLike = (event: React.MouseEvent) => {
+    stopEvent(event);
 
     requireAuth(() => {
       const nextLiked = !isLiked;
       setIsLiked(nextLiked);
-      setShowCountVal((prev) => (nextLiked ? prev + 1 : Math.max(0, prev - 1)));
+      setShowCountVal((prev) => getNextCount(prev, nextLiked));
       setLiked(postId, nextLiked, initialLikes);
 
       if (nextLiked) {
-        setBurst(true);
-        setTimeout(() => setBurst(false), 900);
+        triggerBurst();
       }
     });
   };

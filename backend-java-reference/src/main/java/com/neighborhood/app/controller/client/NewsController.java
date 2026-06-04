@@ -6,6 +6,7 @@ import com.neighborhood.app.entity.content.Comment;
 import com.neighborhood.app.entity.content.News;
 import com.neighborhood.app.service.CommentLikeService;
 import com.neighborhood.app.service.NewsService;
+import com.neighborhood.app.service.UserService;
 import com.neighborhood.app.utils.RequestUserUtil;
 import com.neighborhood.app.utils.RequestValueUtil;
 import com.neighborhood.app.vo.content.NewsVO;
@@ -31,6 +32,7 @@ public class NewsController {
 
     private final NewsService newsService;
     private final CommentLikeService commentLikeService;
+    private final UserService userService;
 
     @GetMapping("/list")
     public Result<List<NewsVO>> list(HttpServletRequest request) {
@@ -65,6 +67,9 @@ public class NewsController {
     @PostMapping("/{id}/like")
     public Result<Boolean> like(@PathVariable Long id, HttpServletRequest request) {
         String userId = RequestUserUtil.currentUserId(request);
+        if (userId == null || userId.isBlank()) {
+            return Result.fail("请先登录");
+        }
         if (newsService.isLiked(id, userId)) {
             return Result.ok(newsService.unlike(id, userId));
         }
@@ -73,7 +78,11 @@ public class NewsController {
 
     @PostMapping("/{id}/unlike")
     public Result<Boolean> unlike(@PathVariable Long id, HttpServletRequest request) {
-        return Result.ok(newsService.unlike(id, RequestUserUtil.currentUserId(request)));
+        String userId = RequestUserUtil.currentUserId(request);
+        if (userId == null || userId.isBlank()) {
+            return Result.fail("请先登录");
+        }
+        return Result.ok(newsService.unlike(id, userId));
     }
 
     @GetMapping("/{id}/comments")
@@ -96,7 +105,7 @@ public class NewsController {
             @PathVariable Long id,
             @RequestParam(required = false) String userId,
             HttpServletRequest request) {
-        String effectiveUserId = RequestUserUtil.getEffectiveUserId(request, userId);
+        String effectiveUserId = RequestUserUtil.currentUserId(request);
         if (effectiveUserId == null || effectiveUserId.isBlank()) {
             return Result.fail("请先登录");
         }
@@ -108,12 +117,20 @@ public class NewsController {
     }
 
     @PostMapping("/{id}/comment")
-    public Result<Void> addComment(@PathVariable Long id, @RequestBody CommentRequest request) {
+    public Result<Void> addComment(@PathVariable Long id, @RequestBody CommentRequest request, HttpServletRequest httpRequest) {
+        String userId = RequestUserUtil.currentUserId(httpRequest);
+        if (userId == null || userId.isBlank()) {
+            return Result.fail("请先登录");
+        }
+        var user = userService.getById(userId);
+        if (user == null) {
+            return Result.fail("用户不存在");
+        }
         Comment comment = new Comment();
         comment.setContent(request.getContent());
-        comment.setUserId(request.getUserId());
-        comment.setUserName(request.getUserName());
-        comment.setUserAvatar(request.getUserAvatar());
+        comment.setUserId(user.getId());
+        comment.setUserName(user.getName());
+        comment.setUserAvatar(user.getAvatar());
         comment.setParentId(request.getParentId());
         newsService.addComment(id, comment);
         return Result.ok();

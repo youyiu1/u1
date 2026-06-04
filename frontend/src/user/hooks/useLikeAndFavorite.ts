@@ -1,4 +1,4 @@
-/**
+﻿/**
  * @license
  * SPDX-License-Identifier: Apache-2.0
  */
@@ -36,6 +36,49 @@ export function useLikeAndFavorite(
   const prevPostIdRef = useRef<string | null>(null);
   const prevInitialRef = useRef<LikeAndFavoriteState | null>(null);
 
+  const updateState = useCallback((patch: Partial<LikeAndFavoriteState>) => {
+    setState((current) => ({ ...current, ...patch }));
+  }, []);
+
+  const getCurrentUserId = useCallback(() => getStoredUser()?.id || '', []);
+
+  const stopEvent = useCallback((event?: React.MouseEvent) => {
+    if (!event) {
+      return;
+    }
+    event.stopPropagation();
+    event.preventDefault();
+  }, []);
+
+  const canCommitState = useCallback(() => isMountedRef.current, []);
+
+  const resolveNextCount = useCallback(
+    (currentCount: number, enabled: boolean) => (enabled ? currentCount + 1 : Math.max(0, currentCount - 1)),
+    []
+  );
+
+  const finishPendingState = useCallback((setter: (value: boolean) => void) => {
+    if (canCommitState()) {
+      setter(false);
+    }
+  }, [canCommitState]);
+
+  const applyLikeState = useCallback(
+    (nextLiked: boolean, nextLikes: number) => {
+      updateState({ isLiked: nextLiked, likes: nextLikes });
+      options.onLikeChange?.(nextLiked, nextLikes);
+    },
+    [options, updateState]
+  );
+
+  const applyFavoriteState = useCallback(
+    (nextFavorited: boolean, nextCollections: number) => {
+      updateState({ isFavorited: nextFavorited, collections: nextCollections });
+      options.onFavoriteChange?.(nextFavorited, nextCollections);
+    },
+    [options, updateState]
+  );
+
   useEffect(() => {
     isMountedRef.current = true;
     return () => {
@@ -55,37 +98,34 @@ export function useLikeAndFavorite(
       } else if (prevInitialRef.current) {
         const prev = prevInitialRef.current;
         if (prev.isFavorited !== initialState.isFavorited) {
-          setState((current) => ({ ...current, isFavorited: initialState.isFavorited ?? current.isFavorited }));
+          updateState({ isFavorited: initialState.isFavorited });
         }
         if (prev.isLiked !== initialState.isLiked) {
-          setState((current) => ({ ...current, isLiked: initialState.isLiked ?? current.isLiked }));
+          updateState({ isLiked: initialState.isLiked });
         }
         if (prev.likes !== initialState.likes) {
-          setState((current) => ({ ...current, likes: initialState.likes ?? current.likes }));
+          updateState({ likes: initialState.likes });
         }
         if (prev.collections !== initialState.collections) {
-          setState((current) => ({ ...current, collections: initialState.collections ?? current.collections }));
+          updateState({ collections: initialState.collections });
         }
       }
     }
 
     prevPostIdRef.current = postId;
     prevInitialRef.current = { ...initialState };
-  }, [initialState.collections, initialState.isFavorited, initialState.isLiked, initialState.likes, postId]);
+  }, [initialState.collections, initialState.isFavorited, initialState.isLiked, initialState.likes, postId, updateState]);
 
   const toggleLike = useCallback(
     async (event?: React.MouseEvent) => {
-      if (event) {
-        event.stopPropagation();
-        event.preventDefault();
-      }
+      stopEvent(event);
 
       if (isLiking || !requireAuth()) {
         return;
       }
 
-      const currentUser = getStoredUser();
-      if (!currentUser?.id) {
+      const currentUserId = getCurrentUserId();
+      if (!currentUserId) {
         return;
       }
 
@@ -95,42 +135,49 @@ export function useLikeAndFavorite(
 
       try {
         await newsApi.like(postId);
-        if (!isMountedRef.current) {
+        if (!canCommitState()) {
           return;
         }
         const nextLiked = !previous;
-        const nextLikes = previous ? Math.max(0, previousLikes - 1) : previousLikes + 1;
-        setState((current) => ({ ...current, isLiked: nextLiked, likes: nextLikes }));
-        options.onLikeChange?.(nextLiked, nextLikes);
+        const nextLikes = resolveNextCount(previousLikes, nextLiked);
+        applyLikeState(nextLiked, nextLikes);
         showToast(nextLiked ? '点赞成功' : '已取消点赞', 'success');
       } catch {
-        if (!isMountedRef.current) {
+        if (!canCommitState()) {
           return;
         }
-        setState((current) => ({ ...current, isLiked: previous, likes: previousLikes }));
+        applyLikeState(previous, previousLikes);
         showToast('点赞失败，请稍后重试', 'error');
       } finally {
-        if (isMountedRef.current) {
-          setIsLiking(false);
-        }
+        finishPendingState(setIsLiking);
       }
     },
-    [isLiking, options, postId, requireAuth, showToast, state.isLiked, state.likes]
+    [
+      applyLikeState,
+      canCommitState,
+      finishPendingState,
+      getCurrentUserId,
+      isLiking,
+      postId,
+      requireAuth,
+      resolveNextCount,
+      showToast,
+      state.isLiked,
+      state.likes,
+      stopEvent,
+    ]
   );
 
   const toggleFavorite = useCallback(
     async (event?: React.MouseEvent) => {
-      if (event) {
-        event.stopPropagation();
-        event.preventDefault();
-      }
+      stopEvent(event);
 
       if (isFavoriting || !requireAuth()) {
         return;
       }
 
-      const currentUser = getStoredUser();
-      if (!currentUser?.id) {
+      const currentUserId = getCurrentUserId();
+      if (!currentUserId) {
         return;
       }
 
@@ -140,33 +187,43 @@ export function useLikeAndFavorite(
 
       try {
         if (previous) {
-          await favoriteApi.remove(currentUser.id, 'news', postId);
+          await favoriteApi.remove(currentUserId, 'news', postId);
         } else {
-          await favoriteApi.add(currentUser.id, 'news', postId);
+          await favoriteApi.add(currentUserId, 'news', postId);
         }
 
-        if (!isMountedRef.current) {
+        if (!canCommitState()) {
           return;
         }
 
         const nextFavorited = !previous;
-        const nextCollections = previous ? Math.max(0, previousCollections - 1) : previousCollections + 1;
-        setState((current) => ({ ...current, isFavorited: nextFavorited, collections: nextCollections }));
-        options.onFavoriteChange?.(nextFavorited, nextCollections);
+        const nextCollections = resolveNextCount(previousCollections, nextFavorited);
+        applyFavoriteState(nextFavorited, nextCollections);
         showToast(nextFavorited ? '收藏成功' : '已取消收藏', 'success');
       } catch {
-        if (!isMountedRef.current) {
+        if (!canCommitState()) {
           return;
         }
-        setState((current) => ({ ...current, isFavorited: previous, collections: previousCollections }));
+        applyFavoriteState(previous, previousCollections);
         showToast('收藏失败，请稍后重试', 'error');
       } finally {
-        if (isMountedRef.current) {
-          setIsFavoriting(false);
-        }
+        finishPendingState(setIsFavoriting);
       }
     },
-    [isFavoriting, options, postId, requireAuth, showToast, state.collections, state.isFavorited]
+    [
+      applyFavoriteState,
+      canCommitState,
+      finishPendingState,
+      getCurrentUserId,
+      isFavoriting,
+      postId,
+      requireAuth,
+      resolveNextCount,
+      showToast,
+      state.collections,
+      state.isFavorited,
+      stopEvent,
+    ]
   );
 
   return {
@@ -177,3 +234,4 @@ export function useLikeAndFavorite(
     toggleFavorite,
   };
 }
+

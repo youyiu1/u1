@@ -17,7 +17,13 @@ public final class AdminContentRequests {
     }
 
     public record ImageStatusRequest(
+            String imageUrl,
             String status
+    ) {
+    }
+
+    public record ImageDeleteRequest(
+            String imageUrl
     ) {
     }
 }

@@ -7,6 +7,7 @@ import com.neighborhood.app.service.MarketService;
 import com.neighborhood.app.service.NewsService;
 import com.neighborhood.app.service.SearchService;
 import com.neighborhood.app.service.ServiceModuleService;
+import com.neighborhood.app.utils.CacheLookupUtil;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
@@ -22,19 +23,19 @@ public class SearchServiceImpl implements SearchService {
 
     @Override
     public SearchResult search(String keyword) {
-        SearchResult cached = cacheService.getCachedSearchResult(keyword);
-        if (cached != null) {
-            appMetricsService.recordSearch(true);
-            return cached;
-        }
+        return CacheLookupUtil.getOrLoadAndTrack(
+                () -> cacheService.getCachedSearchResult(keyword),
+                this::buildSearchResult,
+                result -> cacheService.cacheSearchResult(keyword, result),
+                appMetricsService::recordSearch
+        );
+    }
 
+    private SearchResult buildSearchResult() {
         SearchResult result = new SearchResult();
         result.setPosts(newsService.list());
         result.setItems(marketService.list());
         result.setServices(serviceModuleService.list());
-
-        cacheService.cacheSearchResult(keyword, result);
-        appMetricsService.recordSearch(false);
         return result;
     }
 }

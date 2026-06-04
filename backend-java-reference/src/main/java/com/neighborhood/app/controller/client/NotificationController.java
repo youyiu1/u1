@@ -29,25 +29,34 @@ public class NotificationController {
     @GetMapping("/list")
     public Result<List<Notification>> list(
             @RequestParam(required = false) String userId,
-            HttpServletRequest request) {
-        return Result.ok(notificationService.listByUserId(RequestUserUtil.getEffectiveUserId(request, userId)));
+            HttpServletRequest request
+    ) {
+        return Result.ok(notificationService.listByUserId(effectiveUserId(request, userId)));
     }
 
     @PostMapping("/{id}/read")
-    public Result<Boolean> markRead(@PathVariable Long id) {
+    public Result<Boolean> markRead(@PathVariable Long id, HttpServletRequest request) {
+        if (!ownsNotification(id, RequestUserUtil.currentUserId(request))) {
+            return ResultUtils.fail("无权操作该通知");
+        }
         return ResultUtils.bool(notificationService.markRead(id));
     }
 
     @PostMapping("/read-all")
     public Result<Boolean> markAllRead(
             @RequestParam(required = false) String userId,
-            HttpServletRequest request) {
-        return ResultUtils.bool(notificationService.markAllRead(RequestUserUtil.getEffectiveUserId(request, userId)));
+            HttpServletRequest request
+    ) {
+        return ResultUtils.bool(notificationService.markAllRead(RequestUserUtil.currentUserId(request)));
     }
 
-    /** 发送通知给用户。 */
+    /** 发送通知给当前登录用户。 */
     @PostMapping("/send")
-    public Result<Boolean> send(@RequestBody SendNotificationRequest request) {
+    public Result<Boolean> send(@RequestBody SendNotificationRequest request, HttpServletRequest httpRequest) {
+        String userId = RequestUserUtil.currentUserId(httpRequest);
+        if (request == null || userId == null || userId.isBlank() || !userId.equals(request.getUserId())) {
+            return ResultUtils.fail("无权发送该通知");
+        }
         notificationService.saveNotification(
                 request.getUserId(),
                 request.getTitle(),
@@ -57,11 +66,16 @@ public class NotificationController {
         return ResultUtils.bool(true);
     }
 
-    /** 处理预约通知，同意或拒绝。 */
+    /** 处理预约通知，仅允许通知接收方处理真实预约通知。 */
     @PostMapping("/process")
-    public Result<Boolean> process(@RequestBody ProcessNotificationRequest request) {
+    public Result<Boolean> process(@RequestBody ProcessNotificationRequest request, HttpServletRequest httpRequest) {
+        String userId = RequestUserUtil.currentUserId(httpRequest);
+        if (!ownsNotification(request.getNotificationId(), userId)) {
+            return ResultUtils.fail("无权操作该通知");
+        }
         return ResultUtils.bool(notificationService.processNotification(
                 request.getNotificationId(),
+                userId,
                 request.isAccept(),
                 request.getBuyerId(),
                 request.getSellerId(),
@@ -72,5 +86,17 @@ public class NotificationController {
                 request.getBookingTime(),
                 request.getDuration()
         ));
+    }
+
+    private String effectiveUserId(HttpServletRequest request, String userId) {
+        return RequestUserUtil.getEffectiveUserId(request, userId);
+    }
+
+    private boolean ownsNotification(Long notificationId, String userId) {
+        if (notificationId == null || userId == null || userId.isBlank()) {
+            return false;
+        }
+        Notification notification = notificationService.getById(notificationId);
+        return notification != null && userId.equals(notification.getUserId());
     }
 }

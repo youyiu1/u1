@@ -116,6 +116,9 @@ app:
       admin-log-routing-key: admin.log.write
 
 management:
+  health:
+    mail:
+      enabled: false
   endpoints:
     web:
       base-path: /actuator

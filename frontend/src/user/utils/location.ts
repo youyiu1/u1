@@ -3,9 +3,10 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
+import { readStorageJson, writeStorageJson } from './jsonStorage';
+
 /**
- * 获取浏览器当前位置
- * @returns Promise<{latitude: number, longitude: number} | null>
+ * 获取浏览器当前位�? * @returns Promise<{latitude: number, longitude: number} | null>
  */
 const LOCATION_CACHE_KEY = 'cached_location_v1';
 const LOCATION_CACHE_TTL_MS = 24 * 60 * 60 * 1000;
@@ -13,26 +14,18 @@ const LOCATION_CACHE_TTL_MS = 24 * 60 * 60 * 1000;
 type LocationPoint = { latitude: number; longitude: number };
 
 export function readCachedLocation(): LocationPoint | null {
-  try {
-    const raw = sessionStorage.getItem(LOCATION_CACHE_KEY);
-    if (!raw) return null;
-    const parsed = JSON.parse(raw) as { latitude: number; longitude: number; ts: number };
-    if (!parsed || !parsed.ts) return null;
-    if (Date.now() - parsed.ts > LOCATION_CACHE_TTL_MS) return null;
-    return { latitude: parsed.latitude, longitude: parsed.longitude };
-  } catch {
-    return null;
-  }
+  const parsed = readStorageJson<{ latitude: number; longitude: number; ts: number } | null>(
+    sessionStorage,
+    LOCATION_CACHE_KEY,
+    null
+  );
+  if (!parsed?.ts) return null;
+  if (Date.now() - parsed.ts > LOCATION_CACHE_TTL_MS) return null;
+  return { latitude: parsed.latitude, longitude: parsed.longitude };
 }
 
 function writeCachedLocation(location: LocationPoint) {
-  try {
-    sessionStorage.setItem(
-      LOCATION_CACHE_KEY,
-      JSON.stringify({ ...location, ts: Date.now() })
-    );
-  } catch {
-  }
+  writeStorageJson(sessionStorage, LOCATION_CACHE_KEY, { ...location, ts: Date.now() });
 }
 
 export async function getCurrentLocation(maxWaitMs = 1800): Promise<LocationPoint | null> {

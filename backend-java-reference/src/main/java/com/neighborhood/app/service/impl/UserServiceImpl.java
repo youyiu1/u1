@@ -21,6 +21,7 @@ import org.springframework.transaction.annotation.Transactional;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.function.Consumer;
 import java.util.stream.Collectors;
 
@@ -28,30 +29,15 @@ import java.util.stream.Collectors;
 @RequiredArgsConstructor
 public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements UserService {
 
+    private static final String DEFAULT_AVATAR = "/api/file/931f8e1a2d834e03a288800df5a7e6ec.jpg";
+
     private final FollowMapper followMapper;
     private final CacheService cacheService;
     private final UserMapper userMapper;
 
     @Override
     public User register(String name, String email, String password) {
-        User user = new User();
-        user.setName(name);
-        user.setEmail(email);
-        user.setPassword(password);
-        user.setAvatar("/api/file/931f8e1a2d834e03a288800df5a7e6ec.jpg");
-        user.setTag("新晋邻居");
-        user.setIsVerified(false);
-        user.setFollowersCount(0);
-        user.setFollowingCount(0);
-        user.setPushEnabled(true);
-        user.setMessageNotify(true);
-        user.setFollowNotify(true);
-        user.setLikeNotify(true);
-        user.setCommentNotify(true);
-        user.setSystemNotify(false);
-        user.setProfileVisible("public");
-        user.setPostsVisible("public");
-        user.setShowLocation(true);
+        User user = buildRegisteredUser(name, email, password);
         save(user);
         cacheService.cacheUser(user.getId(), user);
         return user;
@@ -59,7 +45,10 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements Us
 
     @Override
     public User login(String email, String password) {
-        return getOne(userQuery().eq("email", email).eq("password", password));
+        return lambdaQuery()
+                .eq(User::getEmail, email)
+                .eq(User::getPassword, password)
+                .one();
     }
 
     @Override
@@ -69,7 +58,9 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements Us
 
     @Override
     public User getByName(String name) {
-        return getOne(userQuery().eq("name", name));
+        return lambdaQuery()
+                .eq(User::getName, name)
+                .one();
     }
 
     @Override
@@ -78,11 +69,8 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements Us
         if (isFollowing(followerId, followingId)) {
             return false;
         }
-        Follow follow = new Follow(followerId, followingId);
-        followMapper.insert(follow);
-        cacheService.cacheFollowing(followerId, followingId);
-        updateUserCounts(followerId, followingId, 1, 1);
-        evictUsers(followerId, followingId);
+        followMapper.insert(new Follow(followerId, followingId));
+        syncFollowState(followerId, followingId, true);
         return true;
     }
 
@@ -92,9 +80,7 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements Us
         if (followMapper.delete(followQuery(followerId, followingId)) == 0) {
             return false;
         }
-        cacheService.removeFollowing(followerId, followingId);
-        updateUserCounts(followerId, followingId, -1, -1);
-        evictUsers(followerId, followingId);
+        syncFollowState(followerId, followingId, false);
         return true;
     }
 
@@ -138,23 +124,11 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements Us
     @Override
     public boolean changePassword(String userId, String oldPassword, String newPassword) {
         User user = getById(userId);
-        if (user == null) {
-            return false;
-        }
-        if (!user.getPassword().equals(oldPassword)) {
+        if (user == null || !user.getPassword().equals(oldPassword)) {
             return false;
         }
         user.setPassword(newPassword);
         return updateAndEvict(user, userId);
-    }
-
-    private void updateUserCounts(String followerId, String followingId, int followerDelta, int followingDelta) {
-        userMapper.update(null, new UpdateWrapper<User>()
-                .eq("id", followerId)
-                .setSql(CounterSqlUtil.nonNegativeCoalescedDelta("following_count", followingDelta)));
-        userMapper.update(null, new UpdateWrapper<User>()
-                .eq("id", followingId)
-                .setSql(CounterSqlUtil.nonNegativeCoalescedDelta("followers_count", followerDelta)));
     }
 
     @Override
@@ -166,23 +140,31 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements Us
         Map<String, User> userMap = UserLookupUtil.mapByIds(cacheService, userMapper, followingIds);
         return followingIds.stream()
                 .map(userMap::get)
-                .filter(java.util.Objects::nonNull)
+                .filter(Objects::nonNull)
                 .collect(Collectors.toList());
     }
 
     @Override
     public List<User> getSuggestedUsers(String currentUserId, int limit) {
-        List<String> excludeIds = listFollowingIds(currentUserId);
-        excludeIds.add(currentUserId);
+        List<String> excludeIds = new ArrayList<>(listFollowingIds(currentUserId));
+        if (currentUserId != null && !currentUserId.isBlank()) {
+            excludeIds.add(currentUserId);
+        }
+        int safeLimit = Math.max(1, limit);
         return lambdaQuery()
-                .notIn(excludeIds.size() > 0, User::getId, excludeIds)
+                .notIn(!excludeIds.isEmpty(), User::getId, excludeIds)
                 .orderByDesc(User::getFollowersCount)
-                .last("LIMIT " + limit)
+                .last("LIMIT " + safeLimit)
                 .list();
     }
 
-    private QueryWrapper<User> userQuery() {
-        return new QueryWrapper<>();
+    private void updateUserCounts(String followerId, String followingId, int followerDelta, int followingDelta) {
+        userMapper.update(null, new UpdateWrapper<User>()
+                .eq("id", followerId)
+                .setSql(CounterSqlUtil.nonNegativeCoalescedDelta("following_count", followingDelta)));
+        userMapper.update(null, new UpdateWrapper<User>()
+                .eq("id", followingId)
+                .setSql(CounterSqlUtil.nonNegativeCoalescedDelta("followers_count", followerDelta)));
     }
 
     private QueryWrapper<Follow> followQuery(String followerId, String followingId) {
@@ -214,6 +196,39 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements Us
         if (value != null) {
             consumer.accept(value);
         }
+    }
+
+    private User buildRegisteredUser(String name, String email, String password) {
+        User user = new User();
+        user.setName(name);
+        user.setEmail(email);
+        user.setPassword(password);
+        user.setAvatar(DEFAULT_AVATAR);
+        user.setTag("鏂版檵閭诲眳");
+        user.setIsVerified(false);
+        user.setFollowersCount(0);
+        user.setFollowingCount(0);
+        user.setPushEnabled(true);
+        user.setMessageNotify(true);
+        user.setFollowNotify(true);
+        user.setLikeNotify(true);
+        user.setCommentNotify(true);
+        user.setSystemNotify(false);
+        user.setProfileVisible("public");
+        user.setPostsVisible("public");
+        user.setShowLocation(true);
+        return user;
+    }
+
+    private void syncFollowState(String followerId, String followingId, boolean following) {
+        if (following) {
+            cacheService.cacheFollowing(followerId, followingId);
+            updateUserCounts(followerId, followingId, 1, 1);
+        } else {
+            cacheService.removeFollowing(followerId, followingId);
+            updateUserCounts(followerId, followingId, -1, -1);
+        }
+        evictUsers(followerId, followingId);
     }
 
     private void evictUsers(String... userIds) {

@@ -24,27 +24,45 @@ public class NotificationWriteServiceImpl implements NotificationWriteService {
     @Override
     @Transactional
     public void saveNotification(String userId, String title, String content, String serviceName) {
-        notificationMapper.insert(createNotification(userId, title, content, serviceName, false, null));
-        evictNotificationList(userId);
+        persistNotification(userId, title, content, serviceName, false, null);
     }
 
     @Override
     @Transactional
     public void saveNotificationWithBooking(String userId, String title, String content, String serviceName, Long bookingId) {
-        Notification notification = createNotification(userId, title, content, serviceName, false, bookingId);
-        notificationMapper.insert(notification);
-        updateBookingNotificationId(bookingId, notification.getId());
-        evictNotificationList(userId);
+        persistNotification(userId, title, content, serviceName, false, bookingId);
     }
 
     @Override
     @Transactional
     public void saveProcessedNotification(String userId, String title, String content, String serviceName) {
-        notificationMapper.insert(createNotification(userId, title, content, serviceName, true, null));
-        evictNotificationList(userId);
+        persistNotification(userId, title, content, serviceName, true, null);
     }
 
-    private Notification createNotification(String userId, String title, String content, String serviceName, boolean processed, Long bookingId) {
+    private void persistNotification(
+            String userId,
+            String title,
+            String content,
+            String serviceName,
+            boolean processed,
+            Long bookingId
+    ) {
+        Notification notification = createNotification(userId, title, content, serviceName, processed, bookingId);
+        notificationMapper.insert(notification);
+        if (bookingId != null && !processed) {
+            updateBookingNotificationId(bookingId, notification.getId());
+        }
+        cacheService.evictNotificationList(userId);
+    }
+
+    private Notification createNotification(
+            String userId,
+            String title,
+            String content,
+            String serviceName,
+            boolean processed,
+            Long bookingId
+    ) {
         Notification notification = new Notification();
         notification.setUserId(userId);
         notification.setTitle(title);
@@ -64,9 +82,5 @@ public class NotificationWriteServiceImpl implements NotificationWriteService {
         bookingMapper.update(null, new LambdaUpdateWrapper<Booking>()
                 .eq(Booking::getId, bookingId)
                 .set(Booking::getNotificationId, notificationId));
-    }
-
-    private void evictNotificationList(String userId) {
-        cacheService.evictNotificationList(userId);
     }
 }

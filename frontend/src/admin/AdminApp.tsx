@@ -80,6 +80,11 @@ const VALID_PATHS = new Set([
   '/admin/login',
 ]);
 
+const ADMIN_DESKTOP_MEDIA_QUERY = '(min-width: 1024px)';
+const ADMIN_LOGIN_PATH = '/admin/login';
+const ADMIN_DASHBOARD_PATH = '/admin/dashboard';
+const ADMIN_ROOT_REDIRECT_PATHS = new Set(['/', ADMIN_LOGIN_PATH, '/index.html']);
+
 function ok<T>(res: Result<T>) {
   return res.success;
 }
@@ -90,6 +95,10 @@ function isUnauthorized(res: Result<unknown>) {
 
 function toAlertMessage(res: Result<unknown>) {
   return res.message || '操作失败';
+}
+
+function normalizeAdminPath(pathname: string) {
+  return VALID_PATHS.has(pathname) ? pathname : ADMIN_DASHBOARD_PATH;
 }
 
 type UserProfile = {
@@ -205,11 +214,11 @@ function enrichWithUserProfiles(payload: {
 }
 
 export default function AdminApp() {
-  const [isDesktopLayout, setIsDesktopLayout] = useState(() => window.innerWidth >= 1024);
-  const [isLoggedIn, setIsLoggedIn] = useState(() => !!localStorage.getItem('admin_token'));
-  const [adminUser, setAdminUser] = useState(() => localStorage.getItem('admin_username') || 'admin');
-  const [adminRole, setAdminRole] = useState(() => localStorage.getItem('admin_role') || 'USER');
-  const [isReadonlyAdmin, setIsReadonlyAdmin] = useState(() => localStorage.getItem('admin_readonly') === 'true');
+  const [isDesktopLayout, setIsDesktopLayout] = useState(() => window.matchMedia(ADMIN_DESKTOP_MEDIA_QUERY).matches);
+  const [isLoggedIn, setIsLoggedIn] = useState(() => adminApi.hasStoredSession());
+  const [adminUser, setAdminUser] = useState(() => adminApi.getStoredUsername());
+  const [adminRole, setAdminRole] = useState(() => adminApi.getStoredAdminRole());
+  const [isReadonlyAdmin, setIsReadonlyAdmin] = useState(() => adminApi.isReadonlyAdmin());
 
   const [dashboardStats, setDashboardStats] = useState<DashboardStats>(EMPTY_STATS);
   const [users, setUsers] = useState<User[]>([]);
@@ -227,10 +236,7 @@ export default function AdminApp() {
   const [opLogs, setOpLogs] = useState<OperationLogItem[]>([]);
   const [systemMenus, setSystemMenus] = useState<SystemMenu[]>([]);
 
-  const [currentPath, setCurrentPath] = useState(() => {
-    const p = window.location.pathname;
-    return VALID_PATHS.has(p) ? p : '/admin/dashboard';
-  });
+  const [currentPath, setCurrentPath] = useState(() => normalizeAdminPath(window.location.pathname));
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
   const [isMobileSidebarOpen, setIsMobileSidebarOpen] = useState(false);
   const [exteriorTabFilter, setExteriorTabFilter] = useState<string | undefined>();
@@ -238,21 +244,23 @@ export default function AdminApp() {
   const [isTabTransitioning, setIsTabTransitioning] = useState(false);
 
   const handleUnauthorized = () => {
-    localStorage.removeItem('admin_token');
-    localStorage.removeItem('admin_username');
-    localStorage.removeItem('admin_role');
-    localStorage.removeItem('admin_readonly');
-    localStorage.removeItem('admin_permissions');
+    void adminApi.logout();
     setSystemMenus([]);
     setIsLoggedIn(false);
-    window.history.pushState({}, '', '/admin/login');
-    setCurrentPath('/admin/login');
+    window.history.pushState({}, '', ADMIN_LOGIN_PATH);
+    setCurrentPath(ADMIN_LOGIN_PATH);
   };
 
   const syncUsersFromResult = (res: Result<User[]>) => {
     const userList = ok(res) ? res.data : users;
     if (ok(res)) setUsers(userList);
     return userList;
+  };
+
+  const applySessionState = (username: string, role: string, readonly: boolean) => {
+    setAdminUser(username);
+    setAdminRole(role);
+    setIsReadonlyAdmin(readonly);
   };
 
   const applyEnrichedData = <K extends keyof EnrichPayload>(
@@ -281,6 +289,17 @@ export default function AdminApp() {
     }
   };
 
+  const loadSimpleData = async <T,>(request: Promise<Result<T>>, setter: (value: T) => void) => {
+    const res = await request;
+    if (isUnauthorized(res)) {
+      handleUnauthorized();
+      return;
+    }
+    if (ok(res)) {
+      setter(res.data);
+    }
+  };
+
   const loadAdminShellData = async () => {
     const [sessionRes, menuRes] = await Promise.all([adminApi.getAdminInfo(), adminApi.getMenus()]);
     if (isUnauthorized(sessionRes) || isUnauthorized(menuRes)) {
@@ -288,9 +307,11 @@ export default function AdminApp() {
       return;
     }
     if (ok(sessionRes)) {
-      setAdminUser(sessionRes.data.username || localStorage.getItem('admin_username') || 'admin');
-      setAdminRole(sessionRes.data.adminRole || adminApi.getStoredAdminRole());
-      setIsReadonlyAdmin(sessionRes.data.readonly === 'true');
+      applySessionState(
+        sessionRes.data.username || adminApi.getStoredUsername(),
+        sessionRes.data.adminRole || adminApi.getStoredAdminRole(),
+        sessionRes.data.readonly === 'true'
+      );
     }
     if (ok(menuRes)) {
       setSystemMenus(menuRes.data);
@@ -298,51 +319,59 @@ export default function AdminApp() {
   };
 
   useEffect(() => {
-    const handleResize = () => {
-      const desktop = window.innerWidth >= 1024;
-      setIsDesktopLayout(desktop);
-      if (desktop) {
+    const mediaQuery = window.matchMedia(ADMIN_DESKTOP_MEDIA_QUERY);
+
+    const syncDesktopLayout = (matches: boolean) => {
+      setIsDesktopLayout(matches);
+      if (matches) {
         setIsMobileSidebarOpen(false);
       }
     };
 
-    handleResize();
-    window.addEventListener('resize', handleResize);
-    return () => window.removeEventListener('resize', handleResize);
+    const handleChange = (event: MediaQueryListEvent) => {
+      syncDesktopLayout(event.matches);
+    };
+
+    syncDesktopLayout(mediaQuery.matches);
+    if (typeof mediaQuery.addEventListener === 'function') {
+      mediaQuery.addEventListener('change', handleChange);
+      return () => mediaQuery.removeEventListener('change', handleChange);
+    }
+
+    const legacyListener = (event: MediaQueryListEvent) => handleChange(event);
+    mediaQuery.addListener(legacyListener);
+    return () => {
+      mediaQuery.removeListener(legacyListener);
+    };
   }, []);
 
   useEffect(() => {
-    const token = localStorage.getItem('admin_token');
-    const username = localStorage.getItem('admin_username') || 'admin';
-    if (token) {
+    if (adminApi.hasStoredSession()) {
       setIsLoggedIn(true);
-      setAdminUser(username);
-      setAdminRole(adminApi.getStoredAdminRole());
-      setIsReadonlyAdmin(adminApi.isReadonlyAdmin());
+      applySessionState(adminApi.getStoredUsername(), adminApi.getStoredAdminRole(), adminApi.isReadonlyAdmin());
       void loadAdminShellData();
-      if (window.location.pathname === '/' || window.location.pathname === '/admin/login' || window.location.pathname === '/index.html') {
-        window.history.replaceState({}, '', '/admin/dashboard');
-        setCurrentPath('/admin/dashboard');
+      if (ADMIN_ROOT_REDIRECT_PATHS.has(window.location.pathname)) {
+        window.history.replaceState({}, '', ADMIN_DASHBOARD_PATH);
+        setCurrentPath(ADMIN_DASHBOARD_PATH);
       } else {
-        setCurrentPath(VALID_PATHS.has(window.location.pathname) ? window.location.pathname : '/admin/dashboard');
+        setCurrentPath(normalizeAdminPath(window.location.pathname));
       }
     } else {
       setIsLoggedIn(false);
-      window.history.replaceState({}, '', '/admin/login');
-      setCurrentPath('/admin/login');
+      window.history.replaceState({}, '', ADMIN_LOGIN_PATH);
+      setCurrentPath(ADMIN_LOGIN_PATH);
     }
 
     const handlePopState = () => {
-      const nextPath = VALID_PATHS.has(window.location.pathname) ? window.location.pathname : '/admin/dashboard';
-      setCurrentPath(nextPath);
+      setCurrentPath(normalizeAdminPath(window.location.pathname));
     };
     window.addEventListener('popstate', handlePopState);
     return () => window.removeEventListener('popstate', handlePopState);
   }, []);
 
   const fetchActivePageData = async (path: string) => {
-    if (path === '/admin/login') return;
-    if (!localStorage.getItem('admin_token')) {
+    if (path === ADMIN_LOGIN_PATH) return;
+    if (!adminApi.hasStoredSession()) {
       handleUnauthorized();
       return;
     }
@@ -367,9 +396,7 @@ export default function AdminApp() {
           break;
         }
         case '/admin/users': {
-          const res = await adminApi.getUsers();
-          if (isUnauthorized(res)) return handleUnauthorized();
-          if (ok(res)) setUsers(res.data);
+          await loadSimpleData(adminApi.getUsers(), setUsers);
           break;
         }
         case '/admin/posts': {
@@ -389,15 +416,11 @@ export default function AdminApp() {
           break;
         }
         case '/admin/notifications': {
-          const res = await adminApi.getNotifications();
-          if (isUnauthorized(res)) return handleUnauthorized();
-          if (ok(res)) setNotifications(res.data);
+          await loadSimpleData(adminApi.getNotifications(), setNotifications);
           break;
         }
         case '/admin/categories': {
-          const res = await adminApi.getCategories();
-          if (isUnauthorized(res)) return handleUnauthorized();
-          if (ok(res)) setCategories(res.data);
+          await loadSimpleData(adminApi.getCategories(), setCategories);
           break;
         }
         case '/admin/comments': {
@@ -405,9 +428,7 @@ export default function AdminApp() {
           break;
         }
         case '/admin/blacklist': {
-          const res = await adminApi.getBlacklist();
-          if (isUnauthorized(res)) return handleUnauthorized();
-          if (ok(res)) setBlacklist(res.data);
+          await loadSimpleData(adminApi.getBlacklist(), setBlacklist);
           break;
         }
         case '/admin/images': {
@@ -419,15 +440,11 @@ export default function AdminApp() {
           break;
         }
         case '/admin/login-logs': {
-          const res = await adminApi.getLoginLogs();
-          if (isUnauthorized(res)) return handleUnauthorized();
-          if (ok(res)) setLoginLogs(res.data);
+          await loadSimpleData(adminApi.getLoginLogs(), setLoginLogs);
           break;
         }
         case '/admin/op-logs': {
-          const res = await adminApi.getOperationLogs();
-          if (isUnauthorized(res)) return handleUnauthorized();
-          if (ok(res)) setOpLogs(res.data);
+          await loadSimpleData(adminApi.getOperationLogs(), setOpLogs);
           break;
         }
         default:
@@ -468,20 +485,18 @@ export default function AdminApp() {
   };
 
   const handleLoginSuccess = (userAccountName: string) => {
-    setAdminUser(userAccountName);
-    setAdminRole(adminApi.getStoredAdminRole());
-    setIsReadonlyAdmin(adminApi.isReadonlyAdmin());
+    applySessionState(userAccountName, adminApi.getStoredAdminRole(), adminApi.isReadonlyAdmin());
     setIsLoggedIn(true);
     void loadAdminShellData();
-    window.history.pushState({}, '', '/admin/dashboard');
-    setCurrentPath('/admin/dashboard');
+    window.history.pushState({}, '', ADMIN_DASHBOARD_PATH);
+    setCurrentPath(ADMIN_DASHBOARD_PATH);
   };
 
   const handleLogout = async () => {
     await adminApi.logout();
     setIsLoggedIn(false);
-    window.history.pushState({}, '', '/admin/login');
-    setCurrentPath('/admin/login');
+    window.history.pushState({}, '', ADMIN_LOGIN_PATH);
+    setCurrentPath(ADMIN_LOGIN_PATH);
   };
 
   const runAction = async (action: Promise<Result<void>>) => {
@@ -581,8 +596,10 @@ export default function AdminApp() {
   };
 
   const currentAdminProfile = users.find((user) => user.name === adminUser || user.email === adminUser);
+  const unreadNotificationCount = notifications.filter((notification) => !notification.read).length;
+  const refreshCurrentPage = () => fetchActivePageData(currentPath);
 
-  if (!isLoggedIn || currentPath === '/admin/login') {
+  if (!isLoggedIn || currentPath === ADMIN_LOGIN_PATH) {
     return <Login onLoginSuccess={handleLoginSuccess} />;
   }
 
@@ -593,7 +610,7 @@ export default function AdminApp() {
         onTabChange={handleNavigateWithFilters}
         isCollapsed={isDesktopLayout ? isSidebarCollapsed : false}
         onToggleCollapse={() => setIsSidebarCollapsed(!isSidebarCollapsed)}
-        unreadCount={notifications.filter((n) => !n.read).length}
+        unreadCount={unreadNotificationCount}
         menus={systemMenus}
         isDesktopLayout={isDesktopLayout}
         isMobileOpen={isMobileSidebarOpen}
@@ -615,7 +632,7 @@ export default function AdminApp() {
           goods={goods}
           services={services}
           orders={orders}
-          onRefresh={() => fetchActivePageData(currentPath)}
+          onRefresh={refreshCurrentPage}
           onToggleSidebar={() => setIsMobileSidebarOpen((current) => !current)}
           isDesktopLayout={isDesktopLayout}
         />

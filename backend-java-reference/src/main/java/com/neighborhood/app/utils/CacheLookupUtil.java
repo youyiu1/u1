@@ -1,5 +1,7 @@
 package com.neighborhood.app.utils;
 
+import com.neighborhood.app.service.AppMetricsService;
+
 import java.util.function.Consumer;
 import java.util.function.Supplier;
 
@@ -17,6 +19,46 @@ public final class CacheLookupUtil {
         if (loaded != null) {
             cacheWriter.accept(loaded);
         }
+        return loaded;
+    }
+
+    public static <T> T getOrLoadWithMetrics(
+            Supplier<T> cacheGetter,
+            Supplier<T> loader,
+            Consumer<T> cacheWriter,
+            AppMetricsService metricsService,
+            String module,
+            String operation
+    ) {
+        T cached = cacheGetter.get();
+        if (cached != null) {
+            metricsService.recordContentAccess(module, operation, true);
+            return cached;
+        }
+        T loaded = loader.get();
+        if (loaded != null) {
+            cacheWriter.accept(loaded);
+        }
+        metricsService.recordContentAccess(module, operation, false);
+        return loaded;
+    }
+
+    public static <T> T getOrLoadAndTrack(
+            Supplier<T> cacheGetter,
+            Supplier<T> loader,
+            Consumer<T> cacheWriter,
+            Consumer<Boolean> hitTracker
+    ) {
+        T cached = cacheGetter.get();
+        if (cached != null) {
+            hitTracker.accept(true);
+            return cached;
+        }
+        T loaded = loader.get();
+        if (loaded != null) {
+            cacheWriter.accept(loaded);
+        }
+        hitTracker.accept(false);
         return loaded;
     }
 }

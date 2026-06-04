@@ -13,6 +13,7 @@ import com.neighborhood.app.service.EmailService;
 import com.neighborhood.app.service.UserService;
 import com.neighborhood.app.util.JwtUtil;
 import com.neighborhood.app.utils.RequestUserUtil;
+import com.neighborhood.app.vo.user.PublicUserVO;
 import com.neighborhood.app.vo.user.UserVO;
 import jakarta.servlet.http.HttpServletRequest;
 import java.util.List;
@@ -89,14 +90,20 @@ public class UserController {
 
     /** 关注用户。 */
     @PostMapping("/follow")
-    public Result<Boolean> follow(@RequestBody FollowRequest request) {
-        return ResultUtils.bool(userService.follow(request.getFollowerId(), request.getFollowingId()));
+    public Result<Boolean> follow(@RequestBody FollowRequest request, HttpServletRequest httpRequest) {
+        return ResultUtils.bool(userService.follow(
+                RequestUserUtil.currentUserId(httpRequest),
+                request.getFollowingId()
+        ));
     }
 
     /** 取消关注用户。 */
     @PostMapping("/unfollow")
-    public Result<Boolean> unfollow(@RequestBody FollowRequest request) {
-        return ResultUtils.bool(userService.unfollow(request.getFollowerId(), request.getFollowingId()));
+    public Result<Boolean> unfollow(@RequestBody FollowRequest request, HttpServletRequest httpRequest) {
+        return ResultUtils.bool(userService.unfollow(
+                RequestUserUtil.currentUserId(httpRequest),
+                request.getFollowingId()
+        ));
     }
 
     /** 查询是否已关注用户。 */
@@ -107,20 +114,24 @@ public class UserController {
 
     /** 获取用户关注列表。 */
     @GetMapping("/{userId}/following")
-    public Result<List<User>> getFollowingList(@PathVariable String userId) {
-        return ResultUtils.ok(userService.getFollowingList(userId));
+    public Result<List<PublicUserVO>> getFollowingList(@PathVariable String userId) {
+        return ResultUtils.ok(userService.getFollowingList(userId).stream()
+                .map(PublicUserVO::fromUser)
+                .toList());
     }
 
     /** 获取推荐用户列表。 */
     @GetMapping("/suggested")
-    public Result<List<User>> getSuggestedUsers(
+    public Result<List<PublicUserVO>> getSuggestedUsers(
             @RequestParam(required = false) String currentUserId,
             @RequestParam(defaultValue = "5") int limit,
             HttpServletRequest request) {
         return ResultUtils.ok(userService.getSuggestedUsers(
-                RequestUserUtil.getEffectiveUserId(request, currentUserId),
+                effectiveUserId(request, currentUserId),
                 limit
-        ));
+        ).stream()
+                .map(PublicUserVO::fromUser)
+                .toList());
     }
 
     /** 更新当前用户资料。 */
@@ -166,12 +177,20 @@ public class UserController {
             return ResultUtils.fail(OPERATION_FAILED_MESSAGE);
         }
         String token = jwtUtil.generateToken(user.getId());
+        cacheToken(user.getId(), token);
+        return ResultUtils.ok(new AuthResponse(UserVO.fromUser(user), token));
+    }
+
+    private String effectiveUserId(HttpServletRequest request, String userId) {
+        return RequestUserUtil.getEffectiveUserId(request, userId);
+    }
+
+    private void cacheToken(String userId, String token) {
         redisTemplate.opsForValue().set(
-                TOKEN_PREFIX + user.getId(),
+                TOKEN_PREFIX + userId,
                 token,
                 jwtUtil.getExpiration(),
                 TimeUnit.MILLISECONDS
         );
-        return ResultUtils.ok(new AuthResponse(UserVO.fromUser(user), token));
     }
 }

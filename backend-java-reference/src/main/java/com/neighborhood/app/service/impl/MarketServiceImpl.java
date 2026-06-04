@@ -24,49 +24,47 @@ import java.util.stream.Collectors;
 @RequiredArgsConstructor
 public class MarketServiceImpl extends ServiceImpl<MarketMapper, MarketItem> implements MarketService {
 
+    private static final String ACTIVE_STATUS = "active";
+
     private final CacheService cacheService;
     private final UserMapper userMapper;
     private final AppMetricsService appMetricsService;
 
     @Override
     public List<MarketItem> list() {
-        List<MarketItem> cached = cacheService.getCachedMarketList();
-        if (cached != null) {
-            appMetricsService.recordContentAccess("market", "list", true);
-            return cached;
-        }
-        List<MarketItem> result = lambdaQuery()
-                .eq(MarketItem::getStatus, "active")
-                .orderByDesc(MarketItem::getId)
-                .list();
-        cacheService.cacheMarketList(result);
-        appMetricsService.recordContentAccess("market", "list", false);
-        return result;
+        return CacheLookupUtil.getOrLoadWithMetrics(
+                cacheService::getCachedMarketList,
+                () -> lambdaQuery()
+                        .eq(MarketItem::getStatus, ACTIVE_STATUS)
+                        .orderByDesc(MarketItem::getId)
+                        .list(),
+                cacheService::cacheMarketList,
+                appMetricsService,
+                "market",
+                "list"
+        );
     }
 
     @Override
     public MarketItem getById(Long id) {
-        MarketItem cached = cacheService.getCachedMarketItem(id);
-        if (cached != null) {
-            appMetricsService.recordContentAccess("market", "detail", true);
-            return cached;
-        }
-        MarketItem result = super.getById(id);
-        if (result != null) {
-            cacheService.cacheMarketItem(id, result);
-        }
-        appMetricsService.recordContentAccess("market", "detail", false);
-        return result;
+        return CacheLookupUtil.getOrLoadWithMetrics(
+                () -> cacheService.getCachedMarketItem(id),
+                () -> super.getById(id),
+                result -> cacheService.cacheMarketItem(id, result),
+                appMetricsService,
+                "market",
+                "detail"
+        );
     }
 
     @Override
     public MarketItemVO getMarketItemVOById(Long id) {
         MarketItem item = getById(id);
-        if (item == null || !"active".equals(StringValueUtil.emptyTo(item.getStatus(), "active"))) {
+        if (item == null || !ACTIVE_STATUS.equals(StringValueUtil.emptyTo(item.getStatus(), ACTIVE_STATUS))) {
             return null;
         }
         User seller = UserLookupUtil.getById(cacheService, userMapper, item.getSellerId());
-        return MarketItemVO.fromMarketItem(item, seller);
+        return toMarketItemVO(item, seller);
     }
 
     @Override
@@ -77,7 +75,7 @@ public class MarketServiceImpl extends ServiceImpl<MarketMapper, MarketItem> imp
         }
         Map<String, User> userMap = UserLookupUtil.mapByExtractor(cacheService, userMapper, items, MarketItem::getSellerId);
         return items.stream()
-                .map(item -> MarketItemVO.fromMarketItem(item, userMap.get(item.getSellerId())))
+                .map(item -> toMarketItemVO(item, userMap.get(item.getSellerId())))
                 .collect(Collectors.toList());
     }
 
@@ -111,8 +109,12 @@ public class MarketServiceImpl extends ServiceImpl<MarketMapper, MarketItem> imp
         }
         User seller = UserLookupUtil.getById(cacheService, userMapper, userId);
         return items.stream()
-                .map(item -> MarketItemVO.fromMarketItem(item, seller))
+                .map(item -> toMarketItemVO(item, seller))
                 .collect(Collectors.toList());
+    }
+
+    private MarketItemVO toMarketItemVO(MarketItem item, User seller) {
+        return MarketItemVO.fromMarketItem(item, seller);
     }
 
     private void evictMarketCaches(Long itemId, boolean includeHome) {

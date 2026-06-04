@@ -1,17 +1,12 @@
-/**
- * @license
- * SPDX-License-Identifier: Apache-2.0
- */
-
 package com.neighborhood.app.service.impl;
 
-import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
+import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.core.conditions.update.UpdateWrapper;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
-import com.neighborhood.app.entity.market.Favorite;
 import com.neighborhood.app.entity.content.News;
-import com.neighborhood.app.mapper.market.FavoriteMapper;
+import com.neighborhood.app.entity.market.Favorite;
 import com.neighborhood.app.mapper.content.NewsMapper;
+import com.neighborhood.app.mapper.market.FavoriteMapper;
 import com.neighborhood.app.service.CacheService;
 import com.neighborhood.app.service.FavoriteService;
 import com.neighborhood.app.utils.CounterSqlUtil;
@@ -34,31 +29,32 @@ public class FavoriteServiceImpl extends ServiceImpl<FavoriteMapper, Favorite> i
         if (isFavorited(userId, targetType, targetId)) {
             return false;
         }
-        Favorite favorite = new Favorite();
-        favorite.setUserId(userId);
-        favorite.setTargetType(targetType);
-        favorite.setTargetId(targetId);
-        boolean result = save(favorite);
-        if (result) {
-            syncFavoriteState(userId, targetType, targetId, true);
-        }
-        return result;
+        return persistFavoriteChange(
+                save(buildFavorite(userId, targetType, targetId)),
+                userId,
+                targetType,
+                targetId,
+                true
+        );
     }
 
     @Override
     public boolean removeFavorite(String userId, String targetType, Long targetId) {
-        boolean result = remove(favoriteQuery(userId, targetType, targetId));
-        if (result) {
-            syncFavoriteState(userId, targetType, targetId, false);
-        }
-        return result;
+        return persistFavoriteChange(
+                remove(favoriteQuery(userId, targetType, targetId)),
+                userId,
+                targetType,
+                targetId,
+                false
+        );
     }
 
     @Override
     public List<Favorite> getUserFavorites(String userId) {
-        return list(new QueryWrapper<Favorite>()
-                .eq("user_id", userId)
-                .orderByDesc("create_time"));
+        return lambdaQuery()
+                .eq(Favorite::getUserId, userId)
+                .orderByDesc(Favorite::getCreateTime)
+                .list();
     }
 
     @Override
@@ -67,18 +63,21 @@ public class FavoriteServiceImpl extends ServiceImpl<FavoriteMapper, Favorite> i
             return true;
         }
         boolean favorited = count(favoriteQuery(userId, targetType, targetId)) > 0;
-        if (favorited) {
-            cacheService.addFavorite(userId, targetType, targetId);
-        }
+        syncFavoriteCache(userId, targetType, targetId, favorited);
         return favorited;
     }
 
     private void syncFavoriteState(String userId, String targetType, Long targetId, boolean favorited) {
         syncFavoriteCache(userId, targetType, targetId, favorited);
-        if (TARGET_TYPE_NEWS.equals(targetType)) {
-            updateNewsCollections(targetId, favorited ? 1 : -1);
-            cacheService.evictNews(targetId);
+        syncNewsFavoriteState(targetType, targetId, favorited);
+    }
+
+    private void syncNewsFavoriteState(String targetType, Long targetId, boolean favorited) {
+        if (!isNewsTarget(targetType)) {
+            return;
         }
+        updateNewsCollections(targetId, favorited ? 1 : -1);
+        cacheService.evictNews(targetId);
     }
 
     private void updateNewsCollections(Long newsId, int delta) {
@@ -88,11 +87,37 @@ public class FavoriteServiceImpl extends ServiceImpl<FavoriteMapper, Favorite> i
         newsMapper.update(null, wrapper);
     }
 
-    private QueryWrapper<Favorite> favoriteQuery(String userId, String targetType, Long targetId) {
-        return new QueryWrapper<Favorite>()
-                .eq("user_id", userId)
-                .eq("target_type", targetType)
-                .eq("target_id", targetId);
+    private LambdaQueryWrapper<Favorite> favoriteQuery(String userId, String targetType, Long targetId) {
+        return new LambdaQueryWrapper<Favorite>()
+                .eq(Favorite::getUserId, userId)
+                .eq(Favorite::getTargetType, targetType)
+                .eq(Favorite::getTargetId, targetId);
+    }
+
+    private Favorite buildFavorite(String userId, String targetType, Long targetId) {
+        Favorite favorite = new Favorite();
+        favorite.setUserId(userId);
+        favorite.setTargetType(targetType);
+        favorite.setTargetId(targetId);
+        return favorite;
+    }
+
+    private boolean persistFavoriteChange(
+            boolean changed,
+            String userId,
+            String targetType,
+            Long targetId,
+            boolean favorited
+    ) {
+        if (!changed) {
+            return false;
+        }
+        syncFavoriteState(userId, targetType, targetId, favorited);
+        return true;
+    }
+
+    private boolean isNewsTarget(String targetType) {
+        return TARGET_TYPE_NEWS.equals(targetType);
     }
 
     private void syncFavoriteCache(String userId, String targetType, Long targetId, boolean favorited) {

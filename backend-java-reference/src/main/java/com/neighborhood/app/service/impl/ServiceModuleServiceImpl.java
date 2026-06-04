@@ -12,10 +12,12 @@ import com.neighborhood.app.service.ServiceModuleService;
 import com.neighborhood.app.service.UserService;
 import com.neighborhood.app.utils.BookingDateTimeUtil;
 import com.neighborhood.app.utils.CacheLookupUtil;
+import com.neighborhood.app.utils.DistanceUtil;
 import com.neighborhood.app.utils.EntityDefaultsUtil;
 import com.neighborhood.app.utils.StringValueUtil;
 import com.neighborhood.app.vo.service.ServiceDetailVO;
 import lombok.RequiredArgsConstructor;
+import org.springframework.beans.BeanUtils;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
@@ -29,6 +31,10 @@ import java.util.Map;
 @RequiredArgsConstructor
 public class ServiceModuleServiceImpl extends ServiceImpl<ServiceMapper, ServiceEntity> implements ServiceModuleService {
 
+    private static final String ACTIVE_STATUS = "active";
+    private static final String PENDING_STATUS = "pending";
+    private static final String UNKNOWN_DISTANCE = "距离未知";
+
     private final CacheService cacheService;
     private final BookingMapper bookingMapper;
     private final UserService userService;
@@ -36,39 +42,35 @@ public class ServiceModuleServiceImpl extends ServiceImpl<ServiceMapper, Service
 
     @Override
     public List<ServiceEntity> list() {
-        List<ServiceEntity> cached = cacheService.getCachedServiceList();
-        if (cached != null) {
-            appMetricsService.recordContentAccess("service", "list", true);
-            return cached;
-        }
-        List<ServiceEntity> result = lambdaQuery()
-                .eq(ServiceEntity::getStatus, "active")
-                .orderByDesc(ServiceEntity::getId)
-                .list();
-        cacheService.cacheServiceList(result);
-        appMetricsService.recordContentAccess("service", "list", false);
-        return result;
+        return CacheLookupUtil.getOrLoadWithMetrics(
+                cacheService::getCachedServiceList,
+                () -> lambdaQuery()
+                        .eq(ServiceEntity::getStatus, ACTIVE_STATUS)
+                        .orderByDesc(ServiceEntity::getId)
+                        .list(),
+                cacheService::cacheServiceList,
+                appMetricsService,
+                "service",
+                "list"
+        );
     }
 
     @Override
     public ServiceEntity getById(Long id) {
-        ServiceEntity cached = cacheService.getCachedService(id);
-        if (cached != null) {
-            appMetricsService.recordContentAccess("service", "detail", true);
-            return cached;
-        }
-        ServiceEntity result = super.getById(id);
-        if (result != null) {
-            cacheService.cacheService(id, result);
-        }
-        appMetricsService.recordContentAccess("service", "detail", false);
-        return result;
+        return CacheLookupUtil.getOrLoadWithMetrics(
+                () -> cacheService.getCachedService(id),
+                () -> super.getById(id),
+                result -> cacheService.cacheService(id, result),
+                appMetricsService,
+                "service",
+                "detail"
+        );
     }
 
     /** 获取服务详情，包含服务商信息。 */
     public ServiceDetailVO getServiceDetail(Long id, Double buyerLat, Double buyerLng) {
         ServiceEntity service = getById(id);
-        if (service == null || !"active".equals(StringValueUtil.emptyTo(service.getStatus(), "active"))) {
+        if (service == null || !ACTIVE_STATUS.equals(StringValueUtil.emptyTo(service.getStatus(), ACTIVE_STATUS))) {
             return null;
         }
         User seller = userService.getById(service.getSellerId());
@@ -96,16 +98,7 @@ public class ServiceModuleServiceImpl extends ServiceImpl<ServiceMapper, Service
 
     @Override
     public Long book(Long serviceId, String buyerId, String sellerId, String bookingDate, String bookingTime, Integer duration) {
-        Booking booking = new Booking();
-        booking.setServiceId(serviceId);
-        booking.setBuyerId(buyerId);
-        booking.setSellerId(sellerId);
-        booking.setBookingDate(BookingDateTimeUtil.combineDateAndTime(bookingDate, bookingTime));
-        booking.setBookingTime(bookingTime);
-        booking.setDuration(duration);
-        booking.setStatus("pending");
-        booking.setCreateTime(LocalDateTime.now());
-        booking.setUpdateTime(LocalDateTime.now());
+        Booking booking = buildBooking(serviceId, buyerId, sellerId, bookingDate, bookingTime, duration);
         return bookingMapper.insert(booking) > 0 ? booking.getId() : null;
     }
 
@@ -119,71 +112,64 @@ public class ServiceModuleServiceImpl extends ServiceImpl<ServiceMapper, Service
 
     @Override
     public List<ServiceEntity> listWithDistance(Double buyerLat, Double buyerLng) {
-        List<ServiceEntity> source = list();
-        List<ServiceEntity> list = source.stream()
-                .map(this::copyForDistance)
-                .collect(java.util.stream.Collectors.toCollection(() -> new ArrayList<>(source.size())));
-
+        List<ServiceEntity> list = new ArrayList<>(list().stream().map(this::copyForDistance).toList());
         if (buyerLat == null || buyerLng == null) {
             list.forEach(this::fillUnknownDistance);
             return list;
         }
 
         Map<Long, Double> distanceMap = new HashMap<>();
-        for (ServiceEntity service : list) {
-            applyDistance(service, buyerLat, buyerLng, distanceMap);
-        }
-
-        list.sort(Comparator.comparingDouble(service -> {
-            if (service.getId() == null) {
-                return Double.MAX_VALUE;
-            }
-            double distance = distanceMap.getOrDefault(service.getId(), Double.MAX_VALUE);
-            return Double.isFinite(distance) ? distance : Double.MAX_VALUE;
-        }));
-
+        list.forEach(service -> applyDistance(service, buyerLat, buyerLng, distanceMap));
+        list.sort(Comparator.comparingDouble(service -> sortDistance(service, distanceMap)));
         return list;
+    }
+
+    private Booking buildBooking(Long serviceId, String buyerId, String sellerId, String bookingDate, String bookingTime, Integer duration) {
+        LocalDateTime now = LocalDateTime.now();
+        Booking booking = new Booking();
+        booking.setServiceId(serviceId);
+        booking.setBuyerId(buyerId);
+        booking.setSellerId(sellerId);
+        booking.setBookingDate(BookingDateTimeUtil.combineDateAndTime(bookingDate, bookingTime));
+        booking.setBookingTime(bookingTime);
+        booking.setDuration(duration);
+        booking.setStatus(PENDING_STATUS);
+        booking.setCreateTime(now);
+        booking.setUpdateTime(now);
+        return booking;
     }
 
     private ServiceEntity copyForDistance(ServiceEntity item) {
         ServiceEntity copied = new ServiceEntity();
-        copied.setId(item.getId());
-        copied.setTitle(item.getTitle());
-        copied.setDescription(item.getDescription());
-        copied.setCategory(item.getCategory());
-        copied.setPrice(item.getPrice());
-        copied.setSellerId(item.getSellerId());
-        copied.setRating(item.getRating());
-        copied.setReviews(item.getReviews());
-        copied.setDistance(item.getDistance());
-        copied.setUnit(item.getUnit());
-        copied.setHighlights(item.getHighlights());
-        copied.setStatus(item.getStatus());
-        copied.setRejectReason(item.getRejectReason());
-        copied.setLatitude(item.getLatitude());
-        copied.setLongitude(item.getLongitude());
-        copied.setImages(item.getImages());
+        BeanUtils.copyProperties(item, copied);
         return copied;
     }
 
     private void fillUnknownDistance(ServiceEntity service) {
         if (service.getDistance() == null || service.getDistance().isBlank()) {
-            service.setDistance("距离未知");
+            service.setDistance(UNKNOWN_DISTANCE);
         }
     }
 
     private void applyDistance(ServiceEntity service, Double buyerLat, Double buyerLng, Map<Long, Double> distanceMap) {
         if (service.getLatitude() == null || service.getLongitude() == null) {
-            service.setDistance("距离未知");
+            service.setDistance(UNKNOWN_DISTANCE);
             return;
         }
 
-        double dist = com.neighborhood.app.utils.DistanceUtil.calculateDistance(
-                buyerLat, buyerLng, service.getLatitude(), service.getLongitude());
-        service.setDistance(com.neighborhood.app.utils.DistanceUtil.formatDistance(dist));
+        double distance = DistanceUtil.calculateDistance(buyerLat, buyerLng, service.getLatitude(), service.getLongitude());
+        service.setDistance(DistanceUtil.formatDistance(distance));
         if (service.getId() != null) {
-            distanceMap.put(service.getId(), dist);
+            distanceMap.put(service.getId(), distance);
         }
+    }
+
+    private double sortDistance(ServiceEntity service, Map<Long, Double> distanceMap) {
+        if (service.getId() == null) {
+            return Double.MAX_VALUE;
+        }
+        double distance = distanceMap.getOrDefault(service.getId(), Double.MAX_VALUE);
+        return Double.isFinite(distance) ? distance : Double.MAX_VALUE;
     }
 
     private void evictServiceCaches(Long serviceId, boolean includeHome) {

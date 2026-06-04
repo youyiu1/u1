@@ -5,6 +5,8 @@ import com.neighborhood.app.common.ResultUtils;
 import com.neighborhood.app.dto.interaction.AddFavoriteRequest;
 import com.neighborhood.app.entity.market.Favorite;
 import com.neighborhood.app.service.FavoriteService;
+import com.neighborhood.app.utils.RequestUserUtil;
+import jakarta.servlet.http.HttpServletRequest;
 import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -24,9 +26,9 @@ public class FavoriteController {
 
     /** 添加收藏 */
     @PostMapping("/add")
-    public Result<Boolean> add(@RequestBody AddFavoriteRequest request) {
+    public Result<Boolean> add(@RequestBody AddFavoriteRequest request, HttpServletRequest httpRequest) {
         return ResultUtils.bool(favoriteService.addFavorite(
-                request.getUserId(),
+                RequestUserUtil.currentUserId(httpRequest),
                 request.getTargetType(),
                 request.getTargetId()
         ));
@@ -34,26 +36,31 @@ public class FavoriteController {
 
     /** 取消收藏 */
     @PostMapping("/remove")
-    public Result<Boolean> remove(@RequestBody AddFavoriteRequest request) {
+    public Result<Boolean> remove(@RequestBody AddFavoriteRequest request, HttpServletRequest httpRequest) {
         return ResultUtils.bool(favoriteService.removeFavorite(
-                request.getUserId(),
+                RequestUserUtil.currentUserId(httpRequest),
                 request.getTargetType(),
                 request.getTargetId()
         ));
     }
 
-    /** 获取用户收藏列表 */
+    /** 获取当前用户收藏列表 */
     @GetMapping("/list")
-    public Result<List<Favorite>> list(@RequestParam String userId) {
-        return Result.ok(favoriteService.getUserFavorites(userId));
+    public Result<List<Favorite>> list(@RequestParam(required = false) String userId, HttpServletRequest httpRequest) {
+        return Result.ok(favoriteService.getUserFavorites(RequestUserUtil.getEffectiveUserId(httpRequest, userId)));
     }
 
-    /** 检查是否已收藏 */
+    /** 检查当前用户是否已收藏 */
     @GetMapping("/check")
     public Result<Boolean> check(
-            @RequestParam String userId,
+            @RequestParam(required = false) String userId,
             @RequestParam String targetType,
-            @RequestParam Long targetId) {
-        return ResultUtils.bool(favoriteService.isFavorited(userId, targetType, targetId));
+            @RequestParam Long targetId,
+            HttpServletRequest httpRequest) {
+        return ResultUtils.bool(favoriteService.isFavorited(
+                RequestUserUtil.getEffectiveUserId(httpRequest, userId),
+                targetType,
+                targetId
+        ));
     }
 }

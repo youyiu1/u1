@@ -6,9 +6,11 @@ import com.neighborhood.app.controller.admin.AdminSupport;
 import com.neighborhood.app.dto.admin.AdminCommerceRequests.CancelOrderRequest;
 import com.neighborhood.app.dto.admin.AdminCommerceRequests.ServiceCreateRequest;
 import com.neighborhood.app.dto.admin.AdminCommonRequests.StatusRequest;
+import com.neighborhood.app.entity.market.MarketItem;
 import com.neighborhood.app.entity.service.Order;
 import com.neighborhood.app.entity.service.ServiceEntity;
 import com.neighborhood.app.mapper.service.ServiceMapper;
+import com.neighborhood.app.service.MarketService;
 import com.neighborhood.app.service.OrderService;
 import com.neighborhood.app.service.ServiceModuleService;
 import lombok.RequiredArgsConstructor;
@@ -24,6 +26,7 @@ public class AdminCommerceModule {
 
     private final AdminSupport support;
     private final ServiceMapper serviceMapper;
+    private final MarketService marketService;
     private final ServiceModuleService serviceModuleService;
     private final OrderService orderService;
 
@@ -34,6 +37,18 @@ public class AdminCommerceModule {
                 ORDER BY m.created_at DESC
                 """;
         return Result.ok(support.mapQueryList(sql, support::goodsItem));
+    }
+
+    public Result<Void> updateGoodsStatus(Long id, StatusRequest body) {
+        MarketItem item = marketService.getById(id);
+        if (item == null) {
+            return Result.fail("商品不存在");
+        }
+        item.setStatus(support.requestStatus(body, "active"));
+        item.setRejectReason(support.requestRejectReason(body));
+        marketService.updateById(item);
+        support.evictMarketRelated(id);
+        return Result.ok();
     }
 
     public Result<List<Map<String, Object>>> services() {

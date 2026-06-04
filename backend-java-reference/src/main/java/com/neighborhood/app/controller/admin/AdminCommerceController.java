@@ -28,6 +28,11 @@ public class AdminCommerceController {
         return module.goods();
     }
 
+    @PostMapping("/goods/{id}/status")
+    public Result<Void> updateGoodsStatus(@PathVariable Long id, @RequestBody StatusRequest body) {
+        return module.updateGoodsStatus(id, body);
+    }
+
     @GetMapping("/services")
     public Result<List<Map<String, Object>>> services() {
         return module.services();

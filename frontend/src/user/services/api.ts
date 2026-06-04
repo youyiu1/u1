@@ -5,6 +5,7 @@
 
 import { Category, Comment, Item, Message, Notification, Post, Review, Service, ServiceDetail, User } from '../types';
 import { removeStoredUser } from '../utils/authStorage';
+import { readStorageValue, removeStorageValue, writeStorageValue } from '../utils/jsonStorage';
 
 const BASE_URL = '/api';
 const TOKEN_KEY = 'auth_token';
@@ -34,6 +35,11 @@ const AUTH_ERROR_MESSAGES: Record<string, string> = {
 type QueryValue = string | number | boolean | null | undefined;
 type QueryParams = Record<string, QueryValue>;
 type JsonBodyMethod = 'POST' | 'PUT' | 'DELETE';
+type TargetPayload = {
+  userId: string;
+  targetType: string;
+  targetId: string | number;
+};
 
 function isLocalDevRuntime(): boolean {
   if (typeof window === 'undefined') {
@@ -144,6 +150,10 @@ function postJson<T>(url: string, body?: unknown) {
   });
 }
 
+function postFlag(path: string, body?: unknown) {
+  return postJson<boolean>(path, body);
+}
+
 function requestWithQuery<T>(path: string, params?: QueryParams) {
   return request<T>(`${path}${params ? buildQuery(params) : ''}`);
 }
@@ -159,17 +169,33 @@ function postWithQuery<T>(path: string, params?: QueryParams, body?: unknown) {
   return mutateJson<T>('POST', `${path}${params ? buildQuery(params) : ''}`, body);
 }
 
+function buildTargetPayload(userId: string, targetType: string, targetId: string | number): TargetPayload {
+  return { userId, targetType, targetId };
+}
+
+function postTargetFlag(path: string, userId: string, targetType: string, targetId: string | number) {
+  return postFlag(path, buildTargetPayload(userId, targetType, targetId));
+}
+
+function queryTargetFlag(path: string, userId: string, targetType: string, targetId: string | number) {
+  return requestWithQuery<boolean>(path, buildTargetPayload(userId, targetType, targetId));
+}
+
+function queryByUserId<T>(path: string, userId: string) {
+  return requestWithQuery<T>(path, { userId });
+}
+
 export function getToken(): string | null {
-  return localStorage.getItem(TOKEN_KEY);
+  return readStorageValue(localStorage, TOKEN_KEY);
 }
 
 export function setToken(token: string): void {
-  localStorage.setItem(TOKEN_KEY, token);
+  writeStorageValue(localStorage, TOKEN_KEY, token);
   authInvalidated = false;
 }
 
 export function removeToken(): void {
-  localStorage.removeItem(TOKEN_KEY);
+  removeStorageValue(localStorage, TOKEN_KEY);
 }
 
 export const userApi = {
@@ -180,11 +206,11 @@ export const userApi = {
   getUser: (id: string) => request<User>(`/user/${id}`),
   getUserByName: (name: string) => request<User>(`/user/name/${encodeURIComponent(name)}`),
   getCurrentUser: () => request<User>('/user/profile/current'),
-  update: (user: Partial<User>) => postJson<boolean>('/user/update', user),
+  update: (user: Partial<User>) => postFlag('/user/update', user),
   changePassword: (oldPassword: string, newPassword: string) =>
-    postJson<boolean>('/user/change-password', { oldPassword, newPassword }),
+    postFlag('/user/change-password', { oldPassword, newPassword }),
   updatePrivacy: (settings: { profileVisible?: string; postsVisible?: string; showLocation?: boolean }) =>
-    postJson<boolean>('/user/privacy', settings),
+    postFlag('/user/privacy', settings),
   updateNotificationSettings: (settings: {
     pushEnabled?: boolean;
     messageNotify?: boolean;
@@ -192,9 +218,9 @@ export const userApi = {
     likeNotify?: boolean;
     commentNotify?: boolean;
     systemNotify?: boolean;
-  }) => postJson<boolean>('/user/notification-settings', settings),
-  follow: (followerId: string, followingId: string) => postJson<boolean>('/user/follow', { followerId, followingId }),
-  unfollow: (followerId: string, followingId: string) => postJson<boolean>('/user/unfollow', { followerId, followingId }),
+  }) => postFlag('/user/notification-settings', settings),
+  follow: (followerId: string, followingId: string) => postFlag('/user/follow', { followerId, followingId }),
+  unfollow: (followerId: string, followingId: string) => postFlag('/user/unfollow', { followerId, followingId }),
   isFollowing: (followerId: string, followingId: string) => requestWithQuery<boolean>('/user/isfollowing', { followerId, followingId }),
   getFollowingList: (userId: string) => request<User[]>(`/user/${userId}/following`),
   getSuggestedUsers: (limit = 5) => requestWithQuery<User[]>('/user/suggested', { limit }),
@@ -205,15 +231,15 @@ export const newsApi = {
   get: (id: string, userId?: string) => requestWithQuery<Post>(`/news/${id}`, { userId }),
   getByUserId: (userId: string) => request<Post[]>(`/news/user/${userId}`),
   create: (post: { title: string; content: string; category: string; images?: string[] | string; location?: string }) =>
-    postJson<boolean>('/news/create', post),
-  like: (id: string) => postJson<boolean>(`/news/${id}/like`),
+    postFlag('/news/create', post),
+  like: (id: string) => postFlag(`/news/${id}/like`),
   getComments: (id: string, limit = 20, offset = 0, userId?: string) => requestWithQuery<Comment[]>(`/news/${id}/comments`, { limit, offset, userId }),
   addComment: (
     id: string,
     comment: { content: string; userId: string; userName: string; userAvatar: string; parentId?: string }
-  ) => postJson<boolean>(`/news/${id}/comment`, comment),
+  ) => postFlag(`/news/${id}/comment`, comment),
   getTrending: (limit = 5) => requestWithQuery<Post[]>('/news/trending', { limit }),
-  delete: (id: string) => postJson<boolean>(`/news/${id}/delete`),
+  delete: (id: string) => postFlag(`/news/${id}/delete`),
   likeComment: (commentId: string, userId: string) => postWithQuery<boolean>(`/news/comment/${commentId}/like`, { userId }),
 };
 
@@ -221,7 +247,7 @@ export const marketApi = {
   list: () => request<Item[]>('/market/list'),
   get: (id: string) => request<Item>(`/market/${id}`),
   getByUserId: (userId: string) => request<Item[]>(`/market/user/${userId}`),
-  create: (item: Partial<Item>) => postJson<boolean>('/market/create', item),
+  create: (item: Partial<Item>) => postFlag('/market/create', item),
 };
 
 export const serviceApi = {
@@ -229,7 +255,7 @@ export const serviceApi = {
   get: (id: string, lat?: number, lng?: number) => requestWithQuery<ServiceDetail>(`/service/${id}`, { lat, lng }),
   getByUserId: (userId: string) => request<Service[]>(`/service/user/${userId}`),
   getReviews: (id: string) => request<Review[]>(`/service/${id}/reviews`),
-  create: (service: Partial<Service>) => postJson<boolean>('/service/create', service),
+  create: (service: Partial<Service>) => postFlag('/service/create', service),
   book: (booking: {
     serviceId: string;
     buyerId: string;
@@ -237,7 +263,7 @@ export const serviceApi = {
     bookingDate: string;
     bookingTime: string;
     duration: number;
-  }) => postJson<boolean>('/service/book', booking),
+  }) => postFlag('/service/book', booking),
 };
 
 export const homeApi = {
@@ -246,10 +272,10 @@ export const homeApi = {
 
 export const notificationApi = {
   list: (userId: string) => requestWithQuery<Notification[]>('/notification/list', { userId }),
-  markRead: (id: string) => postJson<boolean>(`/notification/${id}/read`),
+  markRead: (id: string) => postFlag(`/notification/${id}/read`),
   markAllRead: (userId: string) => postWithQuery<boolean>('/notification/read-all', { userId }),
   send: (userId: string, title: string, content: string, serviceName?: string) =>
-    postJson<boolean>('/notification/send', { userId, title, content, serviceName }),
+    postFlag('/notification/send', { userId, title, content, serviceName }),
   process: (params: {
     notificationId: string;
     accept: boolean;
@@ -261,7 +287,7 @@ export const notificationApi = {
     bookingDate?: string;
     bookingTime?: string;
     duration?: number;
-  }) => postJson<boolean>('/notification/process', params),
+  }) => postFlag('/notification/process', params),
 };
 
 export const chatApi = {
@@ -274,12 +300,10 @@ export const chatApi = {
 };
 
 export const favoriteApi = {
-  list: (userId: string) => requestWithQuery<any[]>('/favorite/list', { userId }),
-  add: (userId: string, targetType: string, targetId: string | number) =>
-    postJson<boolean>('/favorite/add', { userId, targetType, targetId }),
-  remove: (userId: string, targetType: string, targetId: string | number) =>
-    postJson<boolean>('/favorite/remove', { userId, targetType, targetId }),
-  check: (userId: string, targetType: string, targetId: string | number) => requestWithQuery<boolean>('/favorite/check', { userId, targetType, targetId }),
+  list: (userId: string) => queryByUserId<any[]>('/favorite/list', userId),
+  add: (userId: string, targetType: string, targetId: string | number) => postTargetFlag('/favorite/add', userId, targetType, targetId),
+  remove: (userId: string, targetType: string, targetId: string | number) => postTargetFlag('/favorite/remove', userId, targetType, targetId),
+  check: (userId: string, targetType: string, targetId: string | number) => queryTargetFlag('/favorite/check', userId, targetType, targetId),
 };
 
 export const categoryApi = {
@@ -287,22 +311,22 @@ export const categoryApi = {
 };
 
 export const orderApi = {
-  list: (userId: string) => requestWithQuery<any[]>('/order/list', { userId }),
-  completedList: (userId: string) => requestWithQuery<any[]>('/order/list/completed', { userId }),
-  inProgressList: (userId: string) => requestWithQuery<any[]>('/order/list/in_progress', { userId }),
+  list: (userId: string) => queryByUserId<any[]>('/order/list', userId),
+  completedList: (userId: string) => queryByUserId<any[]>('/order/list/completed', userId),
+  inProgressList: (userId: string) => queryByUserId<any[]>('/order/list/in_progress', userId),
   get: (id: string) => request<any>(`/order/${id}`),
-  confirm: (id: string) => postJson<boolean>(`/order/${id}/confirm`),
-  complete: (id: string) => postJson<boolean>(`/order/${id}/complete`),
-  cancel: (id: string) => postJson<boolean>(`/order/${id}/cancel`),
+  confirm: (id: string) => postFlag(`/order/${id}/confirm`),
+  complete: (id: string) => postFlag(`/order/${id}/complete`),
+  cancel: (id: string) => postFlag(`/order/${id}/cancel`),
 };
 
 export const reviewApi = {
   addServiceReview: (
     serviceId: string,
     data: { userId: string; userName: string; userAvatar: string; rating: number; content: string }
-  ) => postJson<boolean>(`/service/${serviceId}/review`, data),
-  likeReview: (reviewId: string) => postJson<boolean>(`/service/review/${reviewId}/like`),
-  unlikeReview: (reviewId: string) => postJson<boolean>(`/service/review/${reviewId}/unlike`),
+  ) => postFlag(`/service/${serviceId}/review`, data),
+  likeReview: (reviewId: string) => postFlag(`/service/review/${reviewId}/like`),
+  unlikeReview: (reviewId: string) => postFlag(`/service/review/${reviewId}/unlike`),
 };
 
 export const searchApi = {

@@ -1,4 +1,4 @@
-/**
+﻿/**
  * @license
  * SPDX-License-Identifier: Apache-2.0
  */
@@ -29,7 +29,8 @@ import { Item } from '../../types';
 import { getStoredUser } from '../../utils/authStorage';
 import { formatCurrency, fallbackText } from '../../utils/display';
 import { getErrorMessage } from '../../utils/error';
-import { getFollowState, setFollowState } from '../../utils/followStorage';
+import { resolveFollowState } from '../../utils/followStorage';
+import { resolveFavoriteState } from '../../utils/interactionStorage';
 import { parseImages } from '../../utils/images';
 
 const categoryMap: Record<string, string> = {
@@ -119,22 +120,18 @@ export default function ItemDetailPage() {
         const storedUser = getStoredUser();
         const dataSellerId = data.seller?.id || data.sellerId || '';
         if (storedUser?.id && dataSellerId && storedUser.id !== dataSellerId) {
-          const saved = getFollowState(dataSellerId);
-          setIsFollowing(saved);
-          if (!saved) {
-            try {
-              const following = await userApi.isFollowing(storedUser.id, dataSellerId);
-              setIsFollowing(following);
-              setFollowState(dataSellerId, following);
-            } catch {
-              // ignore
-            }
-          }
+          const following = await resolveFollowState(storedUser.id, dataSellerId, userApi.isFollowing);
+          setIsFollowing(following);
         }
 
         if (storedUser?.id && getToken()) {
           try {
-            const favorited = await favoriteApi.check(storedUser.id, 'market', Number(id));
+            const favorited = await resolveFavoriteState(
+              storedUser.id,
+              'market',
+              Number(id),
+              favoriteApi.check
+            );
             setIsLiked(favorited);
           } catch {
             // ignore

@@ -1,4 +1,4 @@
-/**
+﻿/**
  * @license
  * SPDX-License-Identifier: Apache-2.0
  */
@@ -38,7 +38,9 @@ import { getStoredUser } from '../../utils/authStorage';
 import { formatDateTime } from '../../utils/dateTime';
 import { formatCurrency, fallbackText } from '../../utils/display';
 import { getErrorMessage } from '../../utils/error';
-import { getFollowState, setFollowState } from '../../utils/followStorage';
+import { resolveFollowState } from '../../utils/followStorage';
+import { resolveFavoriteState } from '../../utils/interactionStorage';
+import { readStorageValue, writeStorageJson, writeStorageValue } from '../../utils/jsonStorage';
 import { readCachedLocation } from '../../utils/location';
 
 const CATEGORY_NAMES: Record<string, string> = {
@@ -320,30 +322,21 @@ export default function ServiceDetailPage() {
         const currentUser = getStoredUser();
         const currentSellerId = data.seller?.id || data.sellerId || '';
         if (currentUser?.id && currentSellerId && currentUser.id !== currentSellerId) {
-          const cachedFollowState = getFollowState(currentSellerId);
-          setIsFollowing(cachedFollowState);
-
-          if (!cachedFollowState) {
-            try {
-              const following = await userApi.isFollowing(currentUser.id, currentSellerId);
-              if (mounted) {
-                setIsFollowing(following);
-                setFollowState(currentSellerId, following);
-              }
-            } catch {
-              // ignore
-            }
+          const following = await resolveFollowState(currentUser.id, currentSellerId, userApi.isFollowing);
+          if (mounted) {
+            setIsFollowing(following);
           }
+        }
 
-          if (getToken()) {
-            try {
-              const favorited = await favoriteApi.check(currentUser.id, 'service', Number(id));
-              if (mounted) {
-                setIsLiked(favorited);
-              }
-            } catch {
-              // ignore
-            }
+        if (currentUser?.id && getToken()) {
+          const favorited = await resolveFavoriteState(
+            currentUser.id,
+            'service',
+            Number(id),
+            favoriteApi.check
+          );
+          if (mounted) {
+            setIsLiked(favorited);
           }
         }
 

@@ -1,14 +1,16 @@
-/**
+﻿/**
  * @license
  * SPDX-License-Identifier: Apache-2.0
  */
 
 import { readJson, writeJson } from './jsonStorage';
 
-// 互动状态存储（点赞、收藏）
-// 存储结构：{ postId: { liked: bool, baseLikes: number, favorited: bool, baseCollections: number } }
+// 浜掑姩鐘舵€佸瓨鍌紙鐐硅禐銆佹敹钘忥級
+// 瀛樺偍缁撴瀯锛歿 postId: { liked: bool, baseLikes: number, favorited: bool, baseCollections: number } }
 
 const INTERACTION_KEY = 'interaction_states_v1';
+
+type FavoriteTargetType = 'news' | 'market' | 'service';
 
 interface InteractionState {
   liked?: boolean;
@@ -31,9 +33,7 @@ export function setInteractionState(postId: string, state: Partial<InteractionSt
 export function getLiked(postId: string, initialLikes: number): { liked: boolean; displayCount: number } {
   const state = getInteractionState(postId);
   const liked = state.liked ?? false;
-  // 如果本地记录了baseLikes用本地，否则用服务端初始值
   const base = state.baseLikes ?? initialLikes;
-  // 初始值已经是服务端返回的，如果之前点过赞，服务端不知道，所以要+1
   const displayCount = liked ? base + 1 : base;
   return { liked, displayCount };
 }
@@ -53,3 +53,22 @@ export function getFavorited(postId: string, initialCollections: number): { favo
 export function setFavorited(postId: string, favorited: boolean, baseCollections: number): void {
   setInteractionState(postId, { favorited, baseCollections });
 }
+
+export async function resolveFavoriteState(
+  currentUserId: string | undefined,
+  targetType: FavoriteTargetType,
+  targetId: string | number | undefined,
+  fetchFavoriteState: (userId: string, targetType: FavoriteTargetType, targetId: string | number) => Promise<boolean>,
+  fallback = false
+): Promise<boolean> {
+  if (!currentUserId || targetId === undefined || targetId === null || targetId === '') {
+    return fallback;
+  }
+
+  try {
+    return await fetchFavoriteState(currentUserId, targetType, targetId);
+  } catch {
+    return fallback;
+  }
+}
+

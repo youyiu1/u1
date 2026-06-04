@@ -78,12 +78,16 @@ public class ServiceController {
 
     /** 新增服务评价。 */
     @PostMapping("/{id}/review")
-    public Result<Boolean> addReview(@PathVariable Long id, @RequestBody AddReviewRequest request) {
+    public Result<Boolean> addReview(@PathVariable Long id, @RequestBody AddReviewRequest request, HttpServletRequest httpRequest) {
+        User user = userService.getById(RequestUserUtil.currentUserId(httpRequest));
+        if (user == null) {
+            return ResultUtils.fail("用户不存在");
+        }
         boolean success = serviceReviewService.addReview(
                 id,
-                request.getUserId(),
-                request.getUserName(),
-                request.getUserAvatar(),
+                user.getId(),
+                user.getName(),
+                user.getAvatar(),
                 request.getRating(),
                 request.getContent()
         );
@@ -125,20 +129,27 @@ public class ServiceController {
 
     /** 提交服务预约。 */
     @PostMapping("/book")
-    public Result<Boolean> book(@RequestBody BookingRequest request) {
+    public Result<Boolean> book(@RequestBody BookingRequest request, HttpServletRequest httpRequest) {
         Long serviceId = Long.parseLong(request.getServiceId());
+        ServiceEntity service = serviceModuleService.getById(serviceId);
+        if (service == null) {
+            return ResultUtils.fail("服务不存在");
+        }
+        String buyerId = RequestUserUtil.currentUserId(httpRequest);
+        String sellerId = service.getSellerId();
         Long bookingId = serviceModuleService.book(
                 serviceId,
-                request.getBuyerId(),
-                request.getSellerId(),
+                buyerId,
+                sellerId,
                 request.getBookingDate(),
                 request.getBookingTime(),
                 request.getDuration()
         );
         if (bookingId != null) {
-            ServiceEntity service = serviceModuleService.getById(serviceId);
-            User buyer = userService.getById(request.getBuyerId());
+            User buyer = userService.getById(buyerId);
             notifyBookingCreated(
+                    buyerId,
+                    sellerId,
                     request,
                     bookingId,
                     service == null ? "" : service.getTitle(),
@@ -154,15 +165,22 @@ public class ServiceController {
                 .toList();
     }
 
-    private void notifyBookingCreated(BookingRequest request, Long bookingId, String serviceName, String buyerName) {
+    private void notifyBookingCreated(
+            String buyerId,
+            String sellerId,
+            BookingRequest request,
+            Long bookingId,
+            String serviceName,
+            String buyerName
+    ) {
         notificationService.saveNotification(
-                request.getBuyerId(),
+                buyerId,
                 BOOKING_SUCCESS_TITLE,
                 "您已成功预约服务，请等待服务商确认。",
                 serviceName
         );
         notificationService.saveNotificationWithBooking(
-                request.getSellerId(),
+                sellerId,
                 BOOKING_REQUEST_TITLE,
                 "用户 " + buyerName + " 预约了您的服务《" + serviceName + "》，时间：" + request.getBookingDate() + " " + request.getBookingTime(),
                 serviceName,

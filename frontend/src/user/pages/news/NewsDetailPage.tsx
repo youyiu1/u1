@@ -40,6 +40,11 @@ function buildCommentMap(comments: Comment[]) {
   return { commentById, repliesByParentId };
 }
 
+function getCommentParentId(comment: Comment): string {
+  const rawParentId = comment.parentId ?? comment.parent_id;
+  return rawParentId ? String(rawParentId) : '0';
+}
+
 export default function NewsDetailPage() {
   const { id } = useParams();
   const navigate = useNavigate();
@@ -86,16 +91,17 @@ export default function NewsDetailPage() {
   const postImages = useMemo(() => parseImages(post?.images), [post?.images]);
   const locationLabel = fallbackText(post?.location, '同城社区');
 
+  const commentTree = useMemo(() => buildCommentMap(comments), [comments]);
+
   const rootComments = useMemo(() => {
-    const { commentById } = buildCommentMap(comments);
+    const { commentById } = commentTree;
     return comments.filter((comment) => {
-      const rawParentId = comment.parentId ?? comment.parent_id;
-      const parentId = rawParentId ? String(rawParentId) : '0';
+      const parentId = getCommentParentId(comment);
       return parentId === '0' || !commentById.has(parentId);
     });
-  }, [comments]);
+  }, [commentTree, comments]);
 
-  const repliesByParentId = useMemo(() => buildCommentMap(comments).repliesByParentId, [comments]);
+  const { repliesByParentId } = commentTree;
 
   const handleBack = () => {
     if (fromProfile) {

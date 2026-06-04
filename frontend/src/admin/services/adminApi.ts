@@ -22,6 +22,13 @@ import type {
   SystemRole,
   SystemPermission,
 } from '../types';
+import {
+  readStorageJson,
+  readStorageValue,
+  removeStorageItems,
+  writeStorageJson,
+  writeStorageValue,
+} from '../../user/utils/jsonStorage';
 
 export interface Result<T = unknown> {
   success: boolean;
@@ -50,9 +57,11 @@ const PERMISSIONS_KEY = 'admin_permissions';
 const SESSION_STORAGE_KEYS = [TOKEN_KEY, USERNAME_KEY, ROLE_KEY, READONLY_KEY, PERMISSIONS_KEY] as const;
 
 type AdminHttpMethod = 'GET' | 'POST' | 'DELETE';
+type AdminStatus = 'success' | 'failed';
+type AdminStatusPayload = { status: string; rejectReason?: string };
 
 function headers(): HeadersInit {
-  const token = localStorage.getItem(TOKEN_KEY);
+  const token = readStorageValue(localStorage, TOKEN_KEY);
   return {
     'Content-Type': 'application/json',
     ...(token ? { Authorization: `Bearer ${token}` } : {}),
@@ -90,23 +99,43 @@ function post<T>(path: string, body?: unknown) {
   return adminRequest<T>(path, 'POST', body);
 }
 
-function remove<T>(path: string) {
-  return adminRequest<T>(path, 'DELETE');
+function remove<T>(path: string, body?: unknown) {
+  return adminRequest<T>(path, 'DELETE', body);
+}
+
+function postById<T>(resource: string, id: string, action: string, body?: unknown) {
+  return post<T>(`/${resource}/${id}/${action}`, body);
+}
+
+function removeById<T>(resource: string, id: string) {
+  return remove<T>(`/${resource}/${id}`);
+}
+
+function postStatus<T>(path: string, status: string, rejectReason?: string) {
+  const payload: AdminStatusPayload = { status };
+  if (rejectReason) {
+    payload.rejectReason = rejectReason;
+  }
+  return post<T>(path, payload);
 }
 
 function setAuth(token: string, username: string) {
-  localStorage.setItem(TOKEN_KEY, token);
-  localStorage.setItem(USERNAME_KEY, username);
+  writeStorageValue(localStorage, TOKEN_KEY, token);
+  writeStorageValue(localStorage, USERNAME_KEY, username);
 }
 
 function setSessionMeta(data: Partial<AdminSessionResponse>) {
-  localStorage.setItem(ROLE_KEY, data.adminRole || 'USER');
-  localStorage.setItem(READONLY_KEY, data.readonly || 'false');
-  localStorage.setItem(PERMISSIONS_KEY, JSON.stringify(data.permissionCodes || []));
+  writeStorageValue(localStorage, ROLE_KEY, data.adminRole || 'USER');
+  writeStorageValue(localStorage, READONLY_KEY, data.readonly || 'false');
+  writeStorageJson(localStorage, PERMISSIONS_KEY, data.permissionCodes || []);
 }
 
 function clearAuth() {
-  SESSION_STORAGE_KEYS.forEach((key) => localStorage.removeItem(key));
+  removeStorageItems(localStorage, SESSION_STORAGE_KEYS);
+}
+
+function successResult<T>(data: T): Result<T> {
+  return { success: true, message: 'success', data, total: null, code: 200, msg: 'success' };
 }
 
 export const adminApi = {
@@ -121,7 +150,7 @@ export const adminApi = {
 
   async logout(): Promise<Result<void>> {
     clearAuth();
-    return { success: true, message: 'success', data: undefined, total: null, code: 200, msg: 'success' };
+    return successResult(undefined);
   },
 
   async getAdminInfo(): Promise<Result<Omit<AdminSessionResponse, 'token'>>> {
@@ -133,19 +162,23 @@ export const adminApi = {
   },
 
   getStoredAdminRole(): string {
-    return localStorage.getItem(ROLE_KEY) || 'USER';
+    return readStorageValue(localStorage, ROLE_KEY) || 'USER';
+  },
+
+  getStoredUsername(): string {
+    return readStorageValue(localStorage, USERNAME_KEY) || 'admin';
+  },
+
+  hasStoredSession(): boolean {
+    return Boolean(readStorageValue(localStorage, TOKEN_KEY));
   },
 
   isReadonlyAdmin(): boolean {
-    return localStorage.getItem(READONLY_KEY) === 'true';
+    return readStorageValue(localStorage, READONLY_KEY) === 'true';
   },
 
   getStoredPermissionCodes(): string[] {
-    try {
-      return JSON.parse(localStorage.getItem(PERMISSIONS_KEY) || '[]');
-    } catch {
-      return [];
-    }
+    return readStorageJson<string[]>(localStorage, PERMISSIONS_KEY, []);
   },
 
   async getDashboardStats(): Promise<Result<DashboardStats>> {
@@ -157,15 +190,15 @@ export const adminApi = {
   },
 
   async updateUserStatus(id: string, status: 'normal' | 'disabled'): Promise<Result<void>> {
-    return post<void>(`/users/${id}/status`, { status });
+    return postById<void>('users', id, 'status', { status });
   },
 
   async updateUserVerified(id: string, verified: 'verified' | 'unverified'): Promise<Result<void>> {
-    return post<void>(`/users/${id}/verified`, { verified });
+    return postById<void>('users', id, 'verified', { verified });
   },
 
   async updateUserAdminRole(id: string, adminRole: 'USER' | 'READONLY_ADMIN' | 'ADMIN' | 'SUPER_ADMIN'): Promise<Result<void>> {
-    return post<void>(`/users/${id}/admin-role`, { adminRole });
+    return postById<void>('users', id, 'admin-role', { adminRole });
   },
 
   async getDynamics(): Promise<Result<Dynamic[]>> {
@@ -173,7 +206,7 @@ export const adminApi = {
   },
 
   async updateDynamicStatus(id: string, status: 'pending' | 'normal' | 'removed', rejectReason?: string): Promise<Result<void>> {
-    return post<void>(`/dynamics/${id}/status`, { status, rejectReason });
+    return postStatus<void>(`/dynamics/${id}/status`, status, rejectReason);
   },
 
   async addComment(dynId: string, commenter: string, text: string): Promise<Result<void>> {
@@ -189,7 +222,7 @@ export const adminApi = {
   },
 
   async updateGoodsStatus(id: string, status: 'active' | 'sold' | 'removed' | 'pending', rejectReason?: string): Promise<Result<void>> {
-    return post<void>(`/goods/${id}/status`, { status, rejectReason });
+    return postStatus<void>(`/goods/${id}/status`, status, rejectReason);
   },
 
   async getServices(): Promise<Result<Service[]>> {
@@ -197,7 +230,7 @@ export const adminApi = {
   },
 
   async updateServiceStatus(id: string, status: 'pending' | 'active' | 'rejected', rejectReason?: string): Promise<Result<void>> {
-    return post<void>(`/services/${id}/status`, { status, rejectReason });
+    return postStatus<void>(`/services/${id}/status`, status, rejectReason);
   },
 
   async addNewService(srv: Partial<Service>): Promise<Result<void>> {
@@ -209,7 +242,7 @@ export const adminApi = {
   },
 
   async forceCancelOrder(id: string, reason: string): Promise<Result<void>> {
-    return post<void>(`/orders/${id}/cancel`, { reason });
+    return postById<void>('orders', id, 'cancel', { reason });
   },
 
   async getCategories(): Promise<Result<CategoryItem[]>> {
@@ -217,7 +250,7 @@ export const adminApi = {
   },
 
   async toggleCategoryStatus(id: string): Promise<Result<void>> {
-    return post<void>(`/categories/${id}/toggle`);
+    return postById<void>('categories', id, 'toggle');
   },
 
   async addCategory(name: string, type: 'dynamic' | 'goods' | 'service'): Promise<Result<void>> {
@@ -229,7 +262,7 @@ export const adminApi = {
   },
 
   async toggleNotificationRead(id: string): Promise<Result<void>> {
-    return post<void>(`/notifications/${id}/toggle`);
+    return postById<void>('notifications', id, 'toggle');
   },
 
   async addNotification(title: string, content: string, target: 'all' | 'specific', isScheduled: boolean): Promise<Result<void>> {
@@ -241,11 +274,11 @@ export const adminApi = {
   },
 
   async updateCommentStatus(id: string, status: 'pending' | 'normal' | 'flagged' | 'hidden'): Promise<Result<void>> {
-    return post<void>(`/comments/${id}/status`, { status });
+    return postStatus<void>(`/comments/${id}/status`, status);
   },
 
   async deleteManagedComment(id: string): Promise<Result<void>> {
-    return remove<void>(`/comments/${id}`);
+    return removeById<void>('comments', id);
   },
 
   async getBlacklist(): Promise<Result<BlacklistItem[]>> {
@@ -257,7 +290,7 @@ export const adminApi = {
   },
 
   async deleteBlacklist(id: string): Promise<Result<void>> {
-    return remove<void>(`/blacklist/${id}`);
+    return removeById<void>('blacklist', id);
   },
 
   async getImages(): Promise<Result<ManagedImage[]>> {
@@ -269,19 +302,19 @@ export const adminApi = {
   },
 
   async markMessageRead(id: string): Promise<Result<void>> {
-    return post<void>(`/messages/${id}/read`);
+    return postById<void>('messages', id, 'read');
   },
 
   async deleteMessage(id: string): Promise<Result<void>> {
-    return remove<void>(`/messages/${id}`);
+    return removeById<void>('messages', id);
   },
 
   async updateImageStatus(id: string, status: 'approved' | 'pending' | 'flagged'): Promise<Result<void>> {
-    return post<void>(`/images/${id}/status`, { status });
+    return post<void>('/images/status', { imageUrl: id, status });
   },
 
   async deleteImage(id: string): Promise<Result<void>> {
-    return remove<void>(`/images/${id}`);
+    return remove<void>('/images', { imageUrl: id });
   },
 
   async getLoginLogs(): Promise<Result<LoginLogItem[]>> {
@@ -292,7 +325,7 @@ export const adminApi = {
     return get<OperationLogItem[]>('/operation-logs');
   },
 
-  async addOperationLog(operator: string, role: string, action: string, target: string, ip: string, status: 'success' | 'failed', details?: string): Promise<Result<void>> {
+  async addOperationLog(operator: string, role: string, action: string, target: string, ip: string, status: AdminStatus, details?: string): Promise<Result<void>> {
     return post<void>('/operation-logs', { operator, role, action, target, ip, status, details });
   },
 

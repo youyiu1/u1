@@ -5,6 +5,7 @@ import com.neighborhood.app.common.Result;
 import com.neighborhood.app.controller.admin.AdminSupport;
 import com.neighborhood.app.dto.admin.AdminContentRequests.CommentStatusRequest;
 import com.neighborhood.app.dto.admin.AdminContentRequests.DynamicCommentRequest;
+import com.neighborhood.app.dto.admin.AdminContentRequests.ImageDeleteRequest;
 import com.neighborhood.app.dto.admin.AdminContentRequests.ImageStatusRequest;
 import com.neighborhood.app.dto.admin.AdminCommonRequests.StatusRequest;
 import com.neighborhood.app.entity.content.Comment;
@@ -201,13 +202,21 @@ public class AdminContentModule {
         return Result.ok(new ArrayList<>(images.values()));
     }
 
-    public Result<Void> updateImageStatus(String id, ImageStatusRequest body) {
-        adminImageStatusService.saveStatus(id, body == null ? "approved" : support.emptyTo(body.status(), "approved"));
+    public Result<Void> updateImageStatus(ImageStatusRequest body) {
+        String imageUrl = body == null ? "" : support.empty(body.imageUrl());
+        if (imageUrl.isBlank()) {
+            return Result.fail("图片地址不能为空");
+        }
+        adminImageStatusService.saveStatus(imageUrl, support.emptyTo(body.status(), "approved"));
         return Result.ok();
     }
 
-    public Result<Void> deleteImage(String id) {
-        adminImageStatusService.deleteStatus(id);
+    public Result<Void> deleteImage(ImageDeleteRequest body) {
+        String imageUrl = body == null ? "" : support.empty(body.imageUrl());
+        if (imageUrl.isBlank()) {
+            return Result.fail("图片地址不能为空");
+        }
+        adminImageStatusService.deleteStatus(imageUrl);
         return Result.ok();
     }
 

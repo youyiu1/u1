@@ -23,3 +23,26 @@ export function setFollowState(key: string, value: boolean): void {
   saved[key] = value;
   writeJson(FOLLOW_KEY, saved);
 }
+
+export async function resolveFollowState(
+  currentUserId: string | undefined,
+  targetUserId: string | undefined,
+  fetchFollowState: (currentUserId: string, targetUserId: string) => Promise<boolean>
+): Promise<boolean> {
+  if (!currentUserId || !targetUserId || currentUserId === targetUserId) {
+    return false;
+  }
+
+  const cachedState = getFollowState(targetUserId);
+  if (cachedState) {
+    return true;
+  }
+
+  try {
+    const following = await fetchFollowState(currentUserId, targetUserId);
+    setFollowState(targetUserId, following);
+    return following;
+  } catch {
+    return false;
+  }
+}

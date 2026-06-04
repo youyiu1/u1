@@ -1,5 +1,7 @@
 import React, { createContext, useContext, useState, useCallback, useEffect, ReactNode } from 'react';
 
+const NOTIFICATION_CREATED_EVENT = 'notification-created';
+
 interface NotificationContextType {
   unreadCount: number;
   increaseUnread: (count?: number) => void;
@@ -15,7 +17,7 @@ export const NotificationProvider: React.FC<{ children: ReactNode }> = ({ childr
   const [refreshTrigger, setRefreshTrigger] = useState(0);
 
   const increaseUnread = useCallback((count: number = 1) => {
-    setUnreadCount(prev => prev + count);
+    setUnreadCount((prev) => prev + count);
   }, []);
 
   const clearUnread = useCallback(() => {
@@ -23,16 +25,15 @@ export const NotificationProvider: React.FC<{ children: ReactNode }> = ({ childr
   }, []);
 
   const triggerRefresh = useCallback(() => {
-    setRefreshTrigger(prev => prev + 1);
+    setRefreshTrigger((prev) => prev + 1);
   }, []);
 
-  // 监听自定义事件
   useEffect(() => {
     const handleNotificationCreated = () => {
       triggerRefresh();
     };
-    window.addEventListener('notification-created', handleNotificationCreated);
-    return () => window.removeEventListener('notification-created', handleNotificationCreated);
+    window.addEventListener(NOTIFICATION_CREATED_EVENT, handleNotificationCreated);
+    return () => window.removeEventListener(NOTIFICATION_CREATED_EVENT, handleNotificationCreated);
   }, [triggerRefresh]);
 
   return (

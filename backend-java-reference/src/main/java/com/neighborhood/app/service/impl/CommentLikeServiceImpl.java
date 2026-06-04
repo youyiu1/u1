@@ -1,8 +1,3 @@
-/**
- * @license
- * SPDX-License-Identifier: Apache-2.0
- */
-
 package com.neighborhood.app.service.impl;
 
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
@@ -15,6 +10,7 @@ import com.neighborhood.app.mapper.content.CommentMapper;
 import com.neighborhood.app.service.CacheService;
 import com.neighborhood.app.service.CommentLikeService;
 import com.neighborhood.app.utils.CounterSqlUtil;
+import com.neighborhood.app.utils.ServiceExecutionUtil;
 import com.neighborhood.app.utils.SqlCollectionUtil;
 import lombok.RequiredArgsConstructor;
 import org.springframework.jdbc.core.JdbcTemplate;
@@ -39,16 +35,13 @@ public class CommentLikeServiceImpl extends ServiceImpl<CommentLikeMapper, Comme
     @Override
     @Transactional
     public boolean like(Long commentId, String userId) {
-        try {
-            boolean saved = save(buildCommentLike(commentId, userId));
-            if (!saved) {
+        return ServiceExecutionUtil.getOrDefault(() -> {
+            if (!save(buildCommentLike(commentId, userId))) {
                 return false;
             }
             syncCommentLikeState(commentId, userId, true);
             return true;
-        } catch (Exception e) {
-            return false;
-        }
+        }, false);
     }
 
     @Override
@@ -65,21 +58,18 @@ public class CommentLikeServiceImpl extends ServiceImpl<CommentLikeMapper, Comme
     @Override
     @Transactional
     public Boolean toggleLike(Long commentId, String userId) {
-        try {
+        return ServiceExecutionUtil.getOrDefault(() -> {
             int deleted = baseMapper.delete(commentLikeQuery(commentId, userId));
             if (deleted > 0) {
                 syncCommentLikeState(commentId, userId, false);
                 return false;
             }
-            boolean saved = save(buildCommentLike(commentId, userId));
-            if (!saved) {
+            if (!save(buildCommentLike(commentId, userId))) {
                 return null;
             }
             syncCommentLikeState(commentId, userId, true);
             return true;
-        } catch (Exception e) {
-            return null;
-        }
+        }, null);
     }
 
     @Override
@@ -87,28 +77,21 @@ public class CommentLikeServiceImpl extends ServiceImpl<CommentLikeMapper, Comme
         if (cacheService.isCommentLiked(commentId, userId)) {
             return true;
         }
-        try {
+        return ServiceExecutionUtil.getOrDefault(() -> {
             boolean liked = count(commentLikeQuery(commentId, userId)) > 0;
-            if (liked) {
-                cacheService.addCommentLike(commentId, userId);
-            } else {
-                cacheService.removeCommentLike(commentId, userId);
-            }
+            syncCommentCache(commentId, userId, liked);
             return liked;
-        } catch (Exception e) {
-            return false;
-        }
+        }, false);
     }
 
     @Override
     public long countLikes(Long commentId) {
-        try {
-            return lambdaQuery()
-                    .eq(CommentLike::getCommentId, commentId)
-                    .count();
-        } catch (Exception e) {
-            return 0L;
-        }
+        return ServiceExecutionUtil.getOrDefault(
+                () -> lambdaQuery()
+                        .eq(CommentLike::getCommentId, commentId)
+                        .count(),
+                0L
+        );
     }
 
     @Override
@@ -117,10 +100,10 @@ public class CommentLikeServiceImpl extends ServiceImpl<CommentLikeMapper, Comme
         if (ids.isEmpty()) {
             return Map.of();
         }
-        String sql = "SELECT comment_id, COUNT(1) cnt FROM t_comment_like WHERE comment_id IN (" +
-                SqlCollectionUtil.placeholders(ids.size()) +
-                ") GROUP BY comment_id";
-        try {
+        String sql = "SELECT comment_id, COUNT(1) cnt FROM t_comment_like WHERE comment_id IN ("
+                + SqlCollectionUtil.placeholders(ids.size())
+                + ") GROUP BY comment_id";
+        return ServiceExecutionUtil.getOrDefault(() -> {
             Map<Long, Long> counts = new LinkedHashMap<>();
             for (Map<String, Object> row : jdbcTemplate.queryForList(sql, ids.toArray())) {
                 Number commentId = (Number) row.get("comment_id");
@@ -130,9 +113,7 @@ public class CommentLikeServiceImpl extends ServiceImpl<CommentLikeMapper, Comme
                 }
             }
             return counts;
-        } catch (Exception e) {
-            return Map.of();
-        }
+        }, Map.of());
     }
 
     @Override
@@ -141,18 +122,16 @@ public class CommentLikeServiceImpl extends ServiceImpl<CommentLikeMapper, Comme
         if (ids.isEmpty() || userId == null || userId.isBlank()) {
             return Set.of();
         }
-        String sql = "SELECT comment_id FROM t_comment_like WHERE user_id = ? AND comment_id IN (" +
-                SqlCollectionUtil.placeholders(ids.size()) +
-                ")";
-        try {
+        String sql = "SELECT comment_id FROM t_comment_like WHERE user_id = ? AND comment_id IN ("
+                + SqlCollectionUtil.placeholders(ids.size())
+                + ")";
+        return ServiceExecutionUtil.getOrDefault(() -> {
             Set<Long> likedIds = jdbcTemplate.queryForList(sql, Long.class, SqlCollectionUtil.prependArg(userId, ids)).stream()
                     .filter(id -> id != null && id > 0)
                     .collect(Collectors.toSet());
             likedIds.forEach(id -> cacheService.addCommentLike(id, userId));
             return likedIds;
-        } catch (Exception e) {
-            return Set.of();
-        }
+        }, Set.of());
     }
 
     private LambdaQueryWrapper<CommentLike> commentLikeQuery(Long commentId, String userId) {
@@ -176,11 +155,14 @@ public class CommentLikeServiceImpl extends ServiceImpl<CommentLikeMapper, Comme
 
     private void syncCommentLikeState(Long commentId, String userId, boolean liked) {
         updateCommentLikes(commentId, liked ? 1 : -1);
+        syncCommentCache(commentId, userId, liked);
+    }
+
+    private void syncCommentCache(Long commentId, String userId, boolean liked) {
         if (liked) {
             cacheService.addCommentLike(commentId, userId);
         } else {
             cacheService.removeCommentLike(commentId, userId);
         }
     }
-
 }

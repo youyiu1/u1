@@ -27,6 +27,7 @@ import java.util.UUID;
 @RequiredArgsConstructor
 public class FileServiceImpl implements FileService {
 
+    private static final String FILE_PROXY_PREFIX = "/api/file/";
     private static final String DEFAULT_CONTENT_TYPE = "application/octet-stream";
     private static final String DEFAULT_IMAGE_CONTENT_TYPE = "image/jpeg";
 
@@ -46,8 +47,8 @@ public class FileServiceImpl implements FileService {
             throw new IllegalArgumentException("文件不能为空");
         }
         String key = generateKey(file.getOriginalFilename());
-        putObject(key, file.getInputStream(), file.getSize(), file.getContentType());
-        String proxyPath = "/api/file/" + key;
+        putObject(key, file.getInputStream(), file.getSize(), resolveContentType(file.getContentType(), DEFAULT_CONTENT_TYPE));
+        String proxyPath = FILE_PROXY_PREFIX + key;
         log.info("文件上传成功: {}", proxyPath);
         return proxyPath;
     }
@@ -58,14 +59,7 @@ public class FileServiceImpl implements FileService {
             throw new IllegalArgumentException("数据不能为空");
         }
         String key = generateKey(filename);
-        s3Client.putObject(
-                PutObjectRequest.builder()
-                        .bucket(s3Config.getBucket())
-                        .key(key)
-                        .contentType(DEFAULT_IMAGE_CONTENT_TYPE)
-                        .build(),
-                RequestBody.fromBytes(data)
-        );
+        s3Client.putObject(buildPutRequest(key, DEFAULT_IMAGE_CONTENT_TYPE), RequestBody.fromBytes(data));
         log.info("字节数据上传成功: {}", key);
         return buildPublicUrl(key);
     }
@@ -73,10 +67,7 @@ public class FileServiceImpl implements FileService {
     @Override
     public byte[] getFile(String key) throws IOException {
         log.info("获取文件: bucket={}, key={}", s3Config.getBucket(), key);
-        try (var response = s3Client.getObject(GetObjectRequest.builder()
-                .bucket(s3Config.getBucket())
-                .key(key)
-                .build())) {
+        try (var response = s3Client.getObject(buildGetRequest(key))) {
             return response.readAllBytes();
         }
     }
@@ -111,12 +102,9 @@ public class FileServiceImpl implements FileService {
     @Override
     public String generatePresignedUrl(String key, int expirationMinutes) {
         String presignedUrl = s3Presigner.presignGetObject(GetObjectPresignRequest.builder()
-                .signatureDuration(Duration.ofMinutes(expirationMinutes))
-                .getObjectRequest(GetObjectRequest.builder()
-                        .bucket(s3Config.getBucket())
-                        .key(key)
+                        .signatureDuration(Duration.ofMinutes(expirationMinutes))
+                        .getObjectRequest(buildGetRequest(key))
                         .build())
-                .build())
                 .url()
                 .toString();
         return s3Config.getEndpoint() + "/" + s3Config.getBucket() + "/" + key
@@ -125,9 +113,7 @@ public class FileServiceImpl implements FileService {
 
     @Override
     public String buildPublicUrl(String key) {
-        String normalizedKey = normalizeKey(key);
-        String baseUrl = preferredPublicBaseUrl();
-        return joinPath(baseUrl, normalizedKey);
+        return joinPath(preferredPublicBaseUrl(), normalizeKey(key));
     }
 
     private String generateKey(String filename) {
@@ -140,22 +126,34 @@ public class FileServiceImpl implements FileService {
     }
 
     private void putObject(String key, InputStream input, long size, String contentType) throws IOException {
-        s3Client.putObject(
-                PutObjectRequest.builder()
-                        .bucket(s3Config.getBucket())
-                        .key(key)
-                        .contentType(contentType == null || contentType.isBlank() ? DEFAULT_CONTENT_TYPE : contentType)
-                        .build(),
-                RequestBody.fromInputStream(input, size)
-        );
+        s3Client.putObject(buildPutRequest(key, contentType), RequestBody.fromInputStream(input, size));
+    }
+
+    private PutObjectRequest buildPutRequest(String key, String contentType) {
+        return PutObjectRequest.builder()
+                .bucket(s3Config.getBucket())
+                .key(key)
+                .contentType(contentType)
+                .build();
+    }
+
+    private GetObjectRequest buildGetRequest(String key) {
+        return GetObjectRequest.builder()
+                .bucket(s3Config.getBucket())
+                .key(key)
+                .build();
+    }
+
+    private String resolveContentType(String contentType, String fallback) {
+        return contentType == null || contentType.isBlank() ? fallback : contentType;
     }
 
     private String extractKeyFromUrl(String url) {
         if (url == null || url.isEmpty()) {
             return null;
         }
-        if (url.startsWith("/api/file/")) {
-            return normalizeKey(url.substring("/api/file/".length()));
+        if (url.startsWith(FILE_PROXY_PREFIX)) {
+            return normalizeKey(url.substring(FILE_PROXY_PREFIX.length()));
         }
         String bucketPath = "/" + s3Config.getBucket() + "/";
         int index = url.indexOf(bucketPath);
@@ -169,7 +167,7 @@ public class FileServiceImpl implements FileService {
         if (publicBaseUrl != null && !publicBaseUrl.isBlank()) {
             return trimTrailingSlash(publicBaseUrl);
         }
-        return "/api/file";
+        return FILE_PROXY_PREFIX.substring(0, FILE_PROXY_PREFIX.length() - 1);
     }
 
     private String normalizeKey(String key) {

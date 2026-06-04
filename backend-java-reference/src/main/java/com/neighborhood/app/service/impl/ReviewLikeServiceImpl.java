@@ -1,8 +1,3 @@
-/**
- * @license
- * SPDX-License-Identifier: Apache-2.0
- */
-
 package com.neighborhood.app.service.impl;
 
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
@@ -15,6 +10,7 @@ import com.neighborhood.app.mapper.service.ServiceReviewMapper;
 import com.neighborhood.app.service.CacheService;
 import com.neighborhood.app.service.ReviewLikeService;
 import com.neighborhood.app.utils.CounterSqlUtil;
+import com.neighborhood.app.utils.ServiceExecutionUtil;
 import com.neighborhood.app.utils.SqlCollectionUtil;
 import lombok.RequiredArgsConstructor;
 import org.springframework.jdbc.core.JdbcTemplate;
@@ -37,27 +33,24 @@ public class ReviewLikeServiceImpl extends ServiceImpl<ReviewLikeMapper, ReviewL
     @Override
     @Transactional
     public boolean like(Long reviewId, String userId) {
-        try {
-            boolean saved = save(buildReviewLike(reviewId, userId));
-            if (!saved) {
+        return ServiceExecutionUtil.getOrDefault(() -> {
+            if (!save(buildReviewLike(reviewId, userId))) {
                 return false;
             }
             syncReviewLikeState(reviewId, userId, true);
             return true;
-        } catch (Exception e) {
-            return false;
-        }
+        }, false);
     }
 
     @Override
     @Transactional
     public boolean unlike(Long reviewId, String userId) {
         int deleted = baseMapper.delete(reviewLikeQuery(reviewId, userId));
-        if (deleted > 0) {
-            syncReviewLikeState(reviewId, userId, false);
-            return true;
+        if (deleted <= 0) {
+            return false;
         }
-        return false;
+        syncReviewLikeState(reviewId, userId, false);
+        return true;
     }
 
     @Override
@@ -72,11 +65,11 @@ public class ReviewLikeServiceImpl extends ServiceImpl<ReviewLikeMapper, ReviewL
         if (cacheService.isReviewLiked(reviewId, userId)) {
             return true;
         }
-        boolean liked = count(reviewLikeQuery(reviewId, userId)) > 0;
-        if (liked) {
-            cacheService.addReviewLike(reviewId, userId);
-        }
-        return liked;
+        return ServiceExecutionUtil.getOrDefault(() -> {
+            boolean liked = count(reviewLikeQuery(reviewId, userId)) > 0;
+            syncReviewCache(reviewId, userId, liked);
+            return liked;
+        }, false);
     }
 
     @Override
@@ -85,18 +78,16 @@ public class ReviewLikeServiceImpl extends ServiceImpl<ReviewLikeMapper, ReviewL
         if (ids.isEmpty() || userId == null || userId.isBlank()) {
             return Set.of();
         }
-        String sql = "SELECT review_id FROM t_review_like WHERE user_id = ? AND review_id IN (" +
-                SqlCollectionUtil.placeholders(ids.size()) +
-                ")";
-        try {
+        String sql = "SELECT review_id FROM t_review_like WHERE user_id = ? AND review_id IN ("
+                + SqlCollectionUtil.placeholders(ids.size())
+                + ")";
+        return ServiceExecutionUtil.getOrDefault(() -> {
             Set<Long> likedIds = jdbcTemplate.queryForList(sql, Long.class, SqlCollectionUtil.prependArg(userId, ids)).stream()
                     .filter(id -> id != null && id > 0)
                     .collect(Collectors.toSet());
             likedIds.forEach(id -> cacheService.addReviewLike(id, userId));
             return likedIds;
-        } catch (Exception e) {
-            return Set.of();
-        }
+        }, Set.of());
     }
 
     private void updateReviewLikes(Long reviewId, int delta) {
@@ -107,11 +98,7 @@ public class ReviewLikeServiceImpl extends ServiceImpl<ReviewLikeMapper, ReviewL
 
     private void syncReviewLikeState(Long reviewId, String userId, boolean liked) {
         updateReviewLikes(reviewId, liked ? 1 : -1);
-        if (liked) {
-            cacheService.addReviewLike(reviewId, userId);
-        } else {
-            cacheService.removeReviewLike(reviewId, userId);
-        }
+        syncReviewCache(reviewId, userId, liked);
     }
 
     private LambdaQueryWrapper<ReviewLike> reviewLikeQuery(Long reviewId, String userId) {
@@ -125,5 +112,13 @@ public class ReviewLikeServiceImpl extends ServiceImpl<ReviewLikeMapper, ReviewL
         like.setReviewId(reviewId);
         like.setUserId(userId);
         return like;
+    }
+
+    private void syncReviewCache(Long reviewId, String userId, boolean liked) {
+        if (liked) {
+            cacheService.addReviewLike(reviewId, userId);
+        } else {
+            cacheService.removeReviewLike(reviewId, userId);
+        }
     }
 }

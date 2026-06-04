@@ -14,6 +14,10 @@ import { HeaderNotifications } from './HeaderNotifications';
 import { HeaderSearch } from './HeaderSearch';
 import { HeaderUserMenu } from './HeaderUserMenu';
 
+const PUBLISH_PRELOAD_DELAY = 1200;
+const PUBLISH_IDLE_TIMEOUT = 2500;
+const PUBLISH_UNMOUNT_DELAY = 260;
+
 const NAV_ITEMS = [
   { name: '首页', path: '/' },
   { name: '生活服务', path: '/service' },
@@ -23,6 +27,10 @@ const NAV_ITEMS = [
 
 const loadPublishOverlay = () => import('../publish/PublishOverlay').then((mod) => ({ default: mod.PublishOverlay }));
 const PublishOverlay = lazy(loadPublishOverlay);
+const windowWithIdleCallback = window as Window & {
+  requestIdleCallback?: (callback: IdleRequestCallback, options?: IdleRequestOptions) => number;
+  cancelIdleCallback?: (handle: number) => void;
+};
 
 export default function Header() {
   const location = useLocation();
@@ -50,15 +58,10 @@ export default function Header() {
     let idleId: number | undefined;
     let timeoutId: number | undefined;
 
-    const windowWithIdleCallback = window as Window & {
-      requestIdleCallback?: (callback: IdleRequestCallback, options?: IdleRequestOptions) => number;
-      cancelIdleCallback?: (handle: number) => void;
-    };
-
     if (windowWithIdleCallback.requestIdleCallback) {
-      idleId = windowWithIdleCallback.requestIdleCallback(preload, { timeout: 2500 });
+      idleId = windowWithIdleCallback.requestIdleCallback(preload, { timeout: PUBLISH_IDLE_TIMEOUT });
     } else {
-      timeoutId = window.setTimeout(preload, 1200);
+      timeoutId = window.setTimeout(preload, PUBLISH_PRELOAD_DELAY);
     }
 
     return () => {
@@ -76,7 +79,7 @@ export default function Header() {
       setShouldRenderPublish(true);
       return;
     }
-    const timer = window.setTimeout(() => setShouldRenderPublish(false), 260);
+    const timer = window.setTimeout(() => setShouldRenderPublish(false), PUBLISH_UNMOUNT_DELAY);
     return () => window.clearTimeout(timer);
   }, [isPublishOpen]);
 
@@ -84,18 +87,18 @@ export default function Header() {
     <>
       <header className="sticky top-0 z-50 w-full border-b border-hairline bg-white/90 shadow-sm backdrop-blur-md">
         <div className="mx-auto flex h-16 max-w-[1440px] items-center justify-between gap-4 px-4 md:h-20 md:gap-8 md:px-12">
-          <div className="flex shrink-0 items-center gap-8">
-            <Link to="/" className="flex items-center gap-2 font-bold text-primary">
+          <div className="flex min-w-0 shrink items-center gap-4 md:gap-8">
+            <Link to="/" className="flex min-w-0 shrink items-center gap-2 font-bold text-primary">
               <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-primary/10 md:h-10 md:w-10 md:rounded-2xl">
                 <Store className="h-5 w-5 text-primary md:h-6 md:w-6" />
               </div>
-              <span className="hidden text-lg font-extrabold tracking-tight text-ink xs:block">同城生活</span>
+              <span className="hidden truncate text-lg font-extrabold tracking-tight text-ink xs:block">同城生活</span>
             </Link>
 
-            <nav className="hidden items-center gap-1 transition-all duration-300 lg:flex">
-              {NAV_ITEMS.map((item) => {
-                return <DesktopNavLink key={item.path} item={item} active={location.pathname === item.path} />;
-              })}
+            <nav className="hidden min-w-0 items-center gap-1 transition-all duration-300 lg:flex">
+              {NAV_ITEMS.map((item) => (
+                <DesktopNavLink key={item.path} item={item} active={location.pathname === item.path} />
+              ))}
             </nav>
           </div>
 
@@ -117,7 +120,7 @@ export default function Header() {
             <div className="hidden h-6 w-px bg-hairline sm:block" />
 
             <div className="flex shrink-0 items-center gap-1.5 md:gap-2">
-              <button onClick={() => openChat()} className="relative hidden rounded-2xl p-2.5 text-secondary transition-all hover:bg-surface-soft hover:text-primary sm:flex">
+              <button onClick={handleOpenChat} className="relative hidden rounded-2xl p-2.5 text-secondary transition-all hover:bg-surface-soft hover:text-primary sm:flex">
                 <MessageSquare className="h-5 w-5" />
                 {unreadCount > 0 ? (
                   <span className="absolute right-2 top-2 flex h-4 w-4 items-center justify-center rounded-full border-2 border-white bg-accent-green text-[10px] font-bold text-white">
@@ -171,13 +174,11 @@ export default function Header() {
                 className="absolute left-0 right-0 top-full z-50 border-t border-hairline bg-white shadow-2xl lg:hidden"
               >
                 <nav className="space-y-1 p-4 md:p-6">
-                  {NAV_ITEMS.map((item, index) => {
-                    return (
-                      <motion.div key={item.path} initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: index * 0.05 }}>
-                        <MobileNavLink item={item} active={location.pathname === item.path} onClick={closeMobileMenu} />
-                      </motion.div>
-                    );
-                  })}
+                  {NAV_ITEMS.map((item, index) => (
+                    <motion.div key={item.path} initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: index * 0.05 }}>
+                      <MobileNavLink item={item} active={location.pathname === item.path} onClick={closeMobileMenu} />
+                    </motion.div>
+                  ))}
 
                   <div className="mt-4 grid grid-cols-2 gap-3 border-t border-hairline/50 pt-4">
                     <motion.button

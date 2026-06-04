@@ -54,7 +54,10 @@ public class MessageController {
 
     /** 标记单条消息为已读。 */
     @PostMapping("/read/{id}")
-    public Result<Boolean> markRead(@PathVariable Long id) {
+    public Result<Boolean> markRead(@PathVariable Long id, @RequestAttribute String userId) {
+        if (!canMarkRead(id, userId)) {
+            return ResultUtils.fail("无权操作该消息");
+        }
         return ResultUtils.bool(messageService.markRead(id));
     }
 
@@ -64,5 +67,13 @@ public class MessageController {
             @RequestAttribute String userId,
             @PathVariable String partnerId) {
         return ResultUtils.bool(messageService.markConversationRead(userId, partnerId));
+    }
+
+    private boolean canMarkRead(Long messageId, String userId) {
+        if (messageId == null || userId == null || userId.isBlank()) {
+            return false;
+        }
+        Message message = messageService.getById(messageId);
+        return message != null && userId.equals(message.getReceiverId());
     }
 }

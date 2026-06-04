@@ -3,9 +3,8 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import React from 'react';
-import { Link } from 'react-router-dom';
 import { MapPin, Phone, Store } from 'lucide-react';
+import { Link } from 'react-router-dom';
 
 const FOOTER_GROUPS = [
   {
@@ -29,7 +28,12 @@ const FOOTER_GROUPS = [
       { name: '注册', path: '/register' },
     ],
   },
-];
+] as const;
+
+const CONTACT_ITEMS = [
+  { icon: Phone, text: '400-888-9999' },
+  { icon: MapPin, text: '杭州市滨江区' },
+] as const;
 
 export default function Footer() {
   return (
@@ -52,14 +56,12 @@ export default function Footer() {
             </p>
 
             <div className="flex flex-col gap-2 text-sm text-white/70 sm:flex-row sm:flex-wrap sm:items-center sm:gap-5">
-              <span className="inline-flex items-center gap-2">
-                <Phone className="h-4 w-4 text-primary" />
-                400-888-9999
-              </span>
-              <span className="inline-flex items-center gap-2">
-                <MapPin className="h-4 w-4 text-primary" />
-                杭州市滨江区
-              </span>
+              {CONTACT_ITEMS.map(({ icon: Icon, text }) => (
+                <span key={text} className="inline-flex items-center gap-2">
+                  <Icon className="h-4 w-4 text-primary" />
+                  {text}
+                </span>
+              ))}
             </div>
           </div>
 

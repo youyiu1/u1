@@ -202,7 +202,7 @@ public class AuthInterceptor implements HandlerInterceptor {
         if (path.equals("/api/admin/blacklist")) return safe ? null : "blacklist:edit";
         if (path.matches("/api/admin/blacklist/[^/]+")) return "blacklist:edit";
         if (path.equals("/api/admin/images")) return safe ? null : "images:audit";
-        if (path.matches("/api/admin/images/[^/]+(/status)?")) return "images:audit";
+        if (path.equals("/api/admin/images/status")) return "images:audit";
         if (path.equals("/api/admin/messages")) return safe ? null : "messages:manage";
         if (path.matches("/api/admin/messages/[^/]+(/read)?")) return "messages:manage";
         if (path.equals("/api/admin/login-logs")) return null;
@@ -231,25 +231,25 @@ public class AuthInterceptor implements HandlerInterceptor {
                 || path.equals("/api/admin/login")
                 || path.equals("/api/user/send-code")
                 || path.startsWith("/api/user/name")
-                || path.matches("/api/user/\\d+")
+                || path.matches("/api/user/[^/]+")
+                || path.matches("/api/user/[^/]+/following")
                 || path.startsWith("/api/user/isfollowing")
                 || path.equals("/api/user/suggested")
                 || path.startsWith("/api/home")
                 || path.equals("/api/search")
                 || path.startsWith("/api/category")
                 || path.equals("/api/news/list")
+                || path.matches("/api/news/user/[^/]+")
                 || path.matches("/api/news/\\d+")
                 || path.matches("/api/news/\\d+/comments")
-                || path.matches("/api/news/\\d+/like")
-                || path.matches("/api/news/comment/\\d+/like")
-                || path.matches("/api/news/comment/\\d+/unlike")
                 || path.equals("/api/news/trending")
                 || path.equals("/api/market/list")
+                || path.matches("/api/market/user/[^/]+")
                 || path.matches("/api/market/\\d+")
                 || path.equals("/api/service/list")
+                || path.matches("/api/service/user/[^/]+")
                 || path.matches("/api/service/\\d+")
                 || path.matches("/api/service/\\d+/reviews")
-                || path.equals("/api/notification/list")
                 || path.startsWith("/api/file/");
     }
 }

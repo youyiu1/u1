@@ -33,6 +33,9 @@ import java.util.stream.Collectors;
 @RequiredArgsConstructor
 public class NewsServiceImpl extends ServiceImpl<NewsMapper, News> implements NewsService {
 
+    private static final String NORMAL_STATUS = "normal";
+    private static final String FAVORITE_TARGET_NEWS = "news";
+
     private final CommentMapper commentMapper;
     private final CacheService cacheService;
     private final UserMapper userMapper;
@@ -49,7 +52,7 @@ public class NewsServiceImpl extends ServiceImpl<NewsMapper, News> implements Ne
             return;
         }
         vo.setIsLiked(cacheService.isNewsLiked(vo.getId(), userId));
-        vo.setIsFavorited(cacheService.isFavorited(userId, "news", vo.getId()));
+        vo.setIsFavorited(cacheService.isFavorited(userId, FAVORITE_TARGET_NEWS, vo.getId()));
         vo.setIsFollowing(followedAuthorIds == null
                 ? isFollowing(userId, vo.getAuthorId())
                 : followedAuthorIds.contains(vo.getAuthorId()));
@@ -62,24 +65,21 @@ public class NewsServiceImpl extends ServiceImpl<NewsMapper, News> implements Ne
     @Override
     public List<News> listDesc() {
         return lambdaQuery()
-                .eq(News::getStatus, "normal")
+                .eq(News::getStatus, NORMAL_STATUS)
                 .orderByDesc(News::getCreateTime)
                 .list();
     }
 
     @Override
     public News getById(Long id) {
-        News cached = cacheService.getCachedNews(id);
-        if (cached != null) {
-            appMetricsService.recordContentAccess("news", "detail", true);
-            return cached;
-        }
-        News result = super.getById(id);
-        if (result != null) {
-            cacheService.cacheNews(id, result);
-        }
-        appMetricsService.recordContentAccess("news", "detail", false);
-        return result;
+        return CacheLookupUtil.getOrLoadWithMetrics(
+                () -> cacheService.getCachedNews(id),
+                () -> super.getById(id),
+                result -> cacheService.cacheNews(id, result),
+                appMetricsService,
+                "news",
+                "detail"
+        );
     }
 
     @Override
@@ -90,11 +90,11 @@ public class NewsServiceImpl extends ServiceImpl<NewsMapper, News> implements Ne
     @Override
     public NewsVO getNewsVOById(Long id, String userId) {
         News news = getById(id);
-        if (news == null || !"normal".equals(StringValueUtil.emptyTo(news.getStatus(), "normal"))) {
+        if (news == null || !NORMAL_STATUS.equals(StringValueUtil.emptyTo(news.getStatus(), NORMAL_STATUS))) {
             return null;
         }
         User author = UserLookupUtil.getById(cacheService, userMapper, news.getAuthorId());
-        NewsVO vo = NewsVO.fromNews(news, author);
+        NewsVO vo = toNewsVO(news, author);
         setUserInteractionStatus(vo, userId);
         return vo;
     }
@@ -114,7 +114,7 @@ public class NewsServiceImpl extends ServiceImpl<NewsMapper, News> implements Ne
         Set<String> followedAuthorIds = followedAuthorIds(userId, newsList);
         return newsList.stream()
                 .map(news -> {
-                    NewsVO vo = NewsVO.fromNews(news, userMap.get(news.getAuthorId()));
+                    NewsVO vo = toNewsVO(news, userMap.get(news.getAuthorId()));
                     setUserInteractionStatus(vo, userId, followedAuthorIds);
                     return vo;
                 })
@@ -146,7 +146,7 @@ public class NewsServiceImpl extends ServiceImpl<NewsMapper, News> implements Ne
         comment.setNewsId(newsId);
         comment.setCreateTime(java.time.LocalDateTime.now());
         comment.setLikes(comment.getLikes() == null ? 0 : comment.getLikes());
-        comment.setStatus("normal");
+        comment.setStatus(NORMAL_STATUS);
         Long parentId = comment.getParentId();
         if (parentId == null || parentId <= 0) {
             comment.setParentId(0L);
@@ -188,7 +188,7 @@ public class NewsServiceImpl extends ServiceImpl<NewsMapper, News> implements Ne
         List<Comment> comments = commentMapper.selectList(
                 new QueryWrapper<Comment>()
                         .eq("news_id", newsId)
-                        .eq("status", "normal")
+                        .eq("status", NORMAL_STATUS)
                         .orderByAsc("create_time")
                         .last("LIMIT " + safeLimit + " OFFSET " + safeOffset)
         );
@@ -221,14 +221,14 @@ public class NewsServiceImpl extends ServiceImpl<NewsMapper, News> implements Ne
         }
         User author = UserLookupUtil.getById(cacheService, userMapper, userId);
         return newsList.stream()
-                .map(news -> NewsVO.fromNews(news, author))
+                .map(news -> toNewsVO(news, author))
                 .collect(Collectors.toList());
     }
 
     @Override
     public List<NewsVO> listTrending(int limit) {
         List<News> newsList = lambdaQuery()
-                .eq(News::getStatus, "normal")
+                .eq(News::getStatus, NORMAL_STATUS)
                 .orderByDesc(News::getCommentsCount)
                 .last("LIMIT " + limit)
                 .list();
@@ -237,8 +237,12 @@ public class NewsServiceImpl extends ServiceImpl<NewsMapper, News> implements Ne
         }
         Map<String, User> userMap = authorMap(newsList);
         return newsList.stream()
-                .map(news -> NewsVO.fromNews(news, userMap.get(news.getAuthorId())))
+                .map(news -> toNewsVO(news, userMap.get(news.getAuthorId())))
                 .collect(Collectors.toList());
+    }
+
+    private NewsVO toNewsVO(News news, User author) {
+        return NewsVO.fromNews(news, author);
     }
 
     private Map<String, User> authorMap(List<News> newsList) {
@@ -246,15 +250,14 @@ public class NewsServiceImpl extends ServiceImpl<NewsMapper, News> implements Ne
     }
 
     private List<News> listDescWithMetrics() {
-        List<News> cached = cacheService.getCachedNewsList();
-        if (cached != null) {
-            appMetricsService.recordContentAccess("news", "list", true);
-            return cached;
-        }
-        List<News> result = listDesc();
-        cacheService.cacheNewsList(result);
-        appMetricsService.recordContentAccess("news", "list", false);
-        return result;
+        return CacheLookupUtil.getOrLoadWithMetrics(
+                cacheService::getCachedNewsList,
+                this::listDesc,
+                cacheService::cacheNewsList,
+                appMetricsService,
+                "news",
+                "list"
+        );
     }
 
     private Set<String> followedAuthorIds(String userId, List<News> newsList) {

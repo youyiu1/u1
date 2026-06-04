@@ -480,7 +480,7 @@ public class AdminSupport {
         cacheService.evictHomeIndex();
     }
 
-    private void evictMarketRelated(Long itemId) {
+    public void evictMarketRelated(Long itemId) {
         if (itemId != null && itemId > 0) {
             cacheService.evictMarketItem(itemId);
         }

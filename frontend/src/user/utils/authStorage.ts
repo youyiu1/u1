@@ -1,20 +1,16 @@
 import { User } from '../types';
+import { readStorageJson, removeStorageValue, writeStorageJson } from './jsonStorage';
 
 export const AUTH_USER_KEY = 'neighborhood_user';
 
 export function getStoredUser(): User | null {
-  try {
-    const raw = localStorage.getItem(AUTH_USER_KEY);
-    return raw ? (JSON.parse(raw) as User) : null;
-  } catch {
-    return null;
-  }
+  return readStorageJson<User | null>(localStorage, AUTH_USER_KEY, null);
 }
 
 export function setStoredUser(user: User): void {
-  localStorage.setItem(AUTH_USER_KEY, JSON.stringify(user));
+  writeStorageJson(localStorage, AUTH_USER_KEY, user);
 }
 
 export function removeStoredUser(): void {
-  localStorage.removeItem(AUTH_USER_KEY);
+  removeStorageValue(localStorage, AUTH_USER_KEY);
 }
