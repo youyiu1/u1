@@ -5,6 +5,7 @@ import com.neighborhood.app.entity.market.MarketItem;
 import com.neighborhood.app.entity.user.User;
 import com.neighborhood.app.mapper.market.MarketMapper;
 import com.neighborhood.app.mapper.user.UserMapper;
+import com.neighborhood.app.service.AppMetricsService;
 import com.neighborhood.app.service.CacheService;
 import com.neighborhood.app.service.MarketService;
 import com.neighborhood.app.utils.CacheLookupUtil;
@@ -25,26 +26,37 @@ public class MarketServiceImpl extends ServiceImpl<MarketMapper, MarketItem> imp
 
     private final CacheService cacheService;
     private final UserMapper userMapper;
+    private final AppMetricsService appMetricsService;
 
     @Override
     public List<MarketItem> list() {
-        return CacheLookupUtil.getOrLoad(
-                cacheService::getCachedMarketList,
-                () -> lambdaQuery()
-                        .eq(MarketItem::getStatus, "active")
-                        .orderByDesc(MarketItem::getId)
-                        .list(),
-                cacheService::cacheMarketList
-        );
+        List<MarketItem> cached = cacheService.getCachedMarketList();
+        if (cached != null) {
+            appMetricsService.recordContentAccess("market", "list", true);
+            return cached;
+        }
+        List<MarketItem> result = lambdaQuery()
+                .eq(MarketItem::getStatus, "active")
+                .orderByDesc(MarketItem::getId)
+                .list();
+        cacheService.cacheMarketList(result);
+        appMetricsService.recordContentAccess("market", "list", false);
+        return result;
     }
 
     @Override
     public MarketItem getById(Long id) {
-        return CacheLookupUtil.getOrLoad(
-                () -> cacheService.getCachedMarketItem(id),
-                () -> super.getById(id),
-                item -> cacheService.cacheMarketItem(id, item)
-        );
+        MarketItem cached = cacheService.getCachedMarketItem(id);
+        if (cached != null) {
+            appMetricsService.recordContentAccess("market", "detail", true);
+            return cached;
+        }
+        MarketItem result = super.getById(id);
+        if (result != null) {
+            cacheService.cacheMarketItem(id, result);
+        }
+        appMetricsService.recordContentAccess("market", "detail", false);
+        return result;
     }
 
     @Override

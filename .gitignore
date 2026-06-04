@@ -1,4 +1,4 @@
-node_modules/
+﻿node_modules/
 build/
 dist/
 coverage/
@@ -7,9 +7,10 @@ coverage/
 .env*
 !.env.example
 
-# 鍚庣
-backend-java-reference/target/
+# 閸氬海顏?backend-java-reference/target/
 backend-java-reference/uploads/
 
 runtime-logs/
 frontend/dist/
+uploads/
+

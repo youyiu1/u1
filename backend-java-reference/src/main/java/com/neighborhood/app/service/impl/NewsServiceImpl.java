@@ -9,6 +9,7 @@ import com.neighborhood.app.mapper.content.CommentMapper;
 import com.neighborhood.app.mapper.content.NewsMapper;
 import com.neighborhood.app.mapper.user.FollowMapper;
 import com.neighborhood.app.mapper.user.UserMapper;
+import com.neighborhood.app.service.AppMetricsService;
 import com.neighborhood.app.service.CacheService;
 import com.neighborhood.app.service.CommentLikeService;
 import com.neighborhood.app.service.NewsService;
@@ -37,6 +38,7 @@ public class NewsServiceImpl extends ServiceImpl<NewsMapper, News> implements Ne
     private final UserMapper userMapper;
     private final FollowMapper followMapper;
     private final CommentLikeService commentLikeService;
+    private final AppMetricsService appMetricsService;
 
     private void setUserInteractionStatus(NewsVO vo, String userId) {
         setUserInteractionStatus(vo, userId, null);
@@ -67,11 +69,17 @@ public class NewsServiceImpl extends ServiceImpl<NewsMapper, News> implements Ne
 
     @Override
     public News getById(Long id) {
-        return CacheLookupUtil.getOrLoad(
-                () -> cacheService.getCachedNews(id),
-                () -> super.getById(id),
-                news -> cacheService.cacheNews(id, news)
-        );
+        News cached = cacheService.getCachedNews(id);
+        if (cached != null) {
+            appMetricsService.recordContentAccess("news", "detail", true);
+            return cached;
+        }
+        News result = super.getById(id);
+        if (result != null) {
+            cacheService.cacheNews(id, result);
+        }
+        appMetricsService.recordContentAccess("news", "detail", false);
+        return result;
     }
 
     @Override
@@ -98,7 +106,7 @@ public class NewsServiceImpl extends ServiceImpl<NewsMapper, News> implements Ne
 
     @Override
     public List<NewsVO> listDescVO(String userId) {
-        List<News> newsList = listDesc();
+        List<News> newsList = listDescWithMetrics();
         if (newsList.isEmpty()) {
             return List.of();
         }
@@ -235,6 +243,18 @@ public class NewsServiceImpl extends ServiceImpl<NewsMapper, News> implements Ne
 
     private Map<String, User> authorMap(List<News> newsList) {
         return UserLookupUtil.mapByExtractor(cacheService, userMapper, newsList, News::getAuthorId);
+    }
+
+    private List<News> listDescWithMetrics() {
+        List<News> cached = cacheService.getCachedNewsList();
+        if (cached != null) {
+            appMetricsService.recordContentAccess("news", "list", true);
+            return cached;
+        }
+        List<News> result = listDesc();
+        cacheService.cacheNewsList(result);
+        appMetricsService.recordContentAccess("news", "list", false);
+        return result;
     }
 
     private Set<String> followedAuthorIds(String userId, List<News> newsList) {

@@ -1,8 +1,7 @@
 package com.neighborhood.app.service.impl;
 
 import com.neighborhood.app.service.AsyncMessageDispatcher;
-
-import io.micrometer.core.instrument.MeterRegistry;
+import com.neighborhood.app.service.AppMetricsService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.amqp.AmqpException;
@@ -16,26 +15,24 @@ import org.springframework.stereotype.Service;
 public class AsyncMessageDispatcherImpl implements AsyncMessageDispatcher {
 
     private final RabbitTemplate rabbitTemplate;
-    private final MeterRegistry meterRegistry;
+    private final AppMetricsService appMetricsService;
 
     @Value("${app.messaging.rabbit.enabled:false}")
     private boolean rabbitEnabled;
 
+    @Override
     public <T> void dispatch(String channel, String exchange, String routingKey, T payload, Runnable fallback) {
         if (rabbitEnabled) {
             try {
                 rabbitTemplate.convertAndSend(exchange, routingKey, payload);
-                recordDispatch(channel, "rabbit");
+                appMetricsService.recordMessageDispatch(channel, "rabbit", true);
                 return;
             } catch (AmqpException ex) {
                 log.warn("RabbitMQ dispatch failed, fallback to direct write. channel={}", channel, ex);
+                appMetricsService.recordMessageDispatch(channel, "rabbit", false);
             }
         }
         fallback.run();
-        recordDispatch(channel, "direct");
-    }
-
-    private void recordDispatch(String channel, String mode) {
-        meterRegistry.counter("app.messaging.dispatch.count", "channel", channel, "mode", mode).increment();
+        appMetricsService.recordMessageDispatch(channel, "direct", true);
     }
 }

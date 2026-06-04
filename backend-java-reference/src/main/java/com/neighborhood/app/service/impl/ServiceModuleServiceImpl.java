@@ -6,6 +6,7 @@ import com.neighborhood.app.entity.service.ServiceEntity;
 import com.neighborhood.app.entity.user.User;
 import com.neighborhood.app.mapper.service.BookingMapper;
 import com.neighborhood.app.mapper.service.ServiceMapper;
+import com.neighborhood.app.service.AppMetricsService;
 import com.neighborhood.app.service.CacheService;
 import com.neighborhood.app.service.ServiceModuleService;
 import com.neighborhood.app.service.UserService;
@@ -31,26 +32,37 @@ public class ServiceModuleServiceImpl extends ServiceImpl<ServiceMapper, Service
     private final CacheService cacheService;
     private final BookingMapper bookingMapper;
     private final UserService userService;
+    private final AppMetricsService appMetricsService;
 
     @Override
     public List<ServiceEntity> list() {
-        return CacheLookupUtil.getOrLoad(
-                cacheService::getCachedServiceList,
-                () -> lambdaQuery()
-                        .eq(ServiceEntity::getStatus, "active")
-                        .orderByDesc(ServiceEntity::getId)
-                        .list(),
-                cacheService::cacheServiceList
-        );
+        List<ServiceEntity> cached = cacheService.getCachedServiceList();
+        if (cached != null) {
+            appMetricsService.recordContentAccess("service", "list", true);
+            return cached;
+        }
+        List<ServiceEntity> result = lambdaQuery()
+                .eq(ServiceEntity::getStatus, "active")
+                .orderByDesc(ServiceEntity::getId)
+                .list();
+        cacheService.cacheServiceList(result);
+        appMetricsService.recordContentAccess("service", "list", false);
+        return result;
     }
 
     @Override
     public ServiceEntity getById(Long id) {
-        return CacheLookupUtil.getOrLoad(
-                () -> cacheService.getCachedService(id),
-                () -> super.getById(id),
-                service -> cacheService.cacheService(id, service)
-        );
+        ServiceEntity cached = cacheService.getCachedService(id);
+        if (cached != null) {
+            appMetricsService.recordContentAccess("service", "detail", true);
+            return cached;
+        }
+        ServiceEntity result = super.getById(id);
+        if (result != null) {
+            cacheService.cacheService(id, result);
+        }
+        appMetricsService.recordContentAccess("service", "detail", false);
+        return result;
     }
 
     /** 获取服务详情，包含服务商信息。 */
