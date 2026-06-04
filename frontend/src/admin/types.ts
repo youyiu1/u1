@@ -53,7 +53,7 @@ export interface Goods {
   title: string;
   price: number;
   category: 'tech' | 'home' | 'fashion' | 'clothing' | 'sports' | 'others';
-  condition: string; // e.g., '涔濇垚鏂?, '鍏垚鏂?
+  condition: string; // e.g., '九成新', '八成新'
   sellerName: string;
   sellerId: string;
   sellerAvatar: string;
@@ -71,14 +71,14 @@ export interface Goods {
 export interface Service {
   id: string;
   title: string;
-  category: string; // e.g. "缁翠慨瀹夎 / 瀹剁數娓呮礂"
+  category: string; // e.g. "维修安装 / 家电清洗"
   providerId?: string;
   providerName: string;
   providerAvatar: string;
   providerTag?: string;
   isVerifiedProvider?: boolean;
   price: number;
-  unit: string; // e.g., "/娆?, "/灏忔椂"
+  unit: string; // e.g., "/次", "/小时"
   rating: number | string; // e.g., 4.9 or '-'
   reviewCount: number;
   time: string;

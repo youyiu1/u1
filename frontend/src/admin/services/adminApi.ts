@@ -47,6 +47,9 @@ const USERNAME_KEY = 'admin_username';
 const ROLE_KEY = 'admin_role';
 const READONLY_KEY = 'admin_readonly';
 const PERMISSIONS_KEY = 'admin_permissions';
+const SESSION_STORAGE_KEYS = [TOKEN_KEY, USERNAME_KEY, ROLE_KEY, READONLY_KEY, PERMISSIONS_KEY] as const;
+
+type AdminHttpMethod = 'GET' | 'POST' | 'DELETE';
 
 function headers(): HeadersInit {
   const token = localStorage.getItem(TOKEN_KEY);
@@ -72,6 +75,25 @@ async function request<T>(path: string, init?: RequestInit): Promise<Result<T>> 
   } as Result<T>;
 }
 
+function adminRequest<T>(path: string, method: AdminHttpMethod = 'GET', body?: unknown): Promise<Result<T>> {
+  return request<T>(path, {
+    method,
+    body: body === undefined ? undefined : JSON.stringify(body),
+  });
+}
+
+function get<T>(path: string) {
+  return adminRequest<T>(path);
+}
+
+function post<T>(path: string, body?: unknown) {
+  return adminRequest<T>(path, 'POST', body);
+}
+
+function remove<T>(path: string) {
+  return adminRequest<T>(path, 'DELETE');
+}
+
 function setAuth(token: string, username: string) {
   localStorage.setItem(TOKEN_KEY, token);
   localStorage.setItem(USERNAME_KEY, username);
@@ -84,19 +106,12 @@ function setSessionMeta(data: Partial<AdminSessionResponse>) {
 }
 
 function clearAuth() {
-  localStorage.removeItem(TOKEN_KEY);
-  localStorage.removeItem(USERNAME_KEY);
-  localStorage.removeItem(ROLE_KEY);
-  localStorage.removeItem(READONLY_KEY);
-  localStorage.removeItem(PERMISSIONS_KEY);
+  SESSION_STORAGE_KEYS.forEach((key) => localStorage.removeItem(key));
 }
 
 export const adminApi = {
   async login(username: string, password: string): Promise<Result<AdminSessionResponse>> {
-    const res = await request<AdminSessionResponse>('/login', {
-      method: 'POST',
-      body: JSON.stringify({ username, password }),
-    });
+    const res = await post<AdminSessionResponse>('/login', { username, password });
     if (res.success && res.data?.token) {
       setAuth(res.data.token, res.data.username || username);
       setSessionMeta(res.data);
@@ -110,7 +125,7 @@ export const adminApi = {
   },
 
   async getAdminInfo(): Promise<Result<Omit<AdminSessionResponse, 'token'>>> {
-    const res = await request<Omit<AdminSessionResponse, 'token'>>('/me');
+    const res = await get<Omit<AdminSessionResponse, 'token'>>('/me');
     if (res.success && res.data) {
       setSessionMeta(res.data);
     }
@@ -134,223 +149,170 @@ export const adminApi = {
   },
 
   async getDashboardStats(): Promise<Result<DashboardStats>> {
-    return request<DashboardStats>('/dashboard/stats');
+    return get<DashboardStats>('/dashboard/stats');
   },
 
   async getUsers(): Promise<Result<User[]>> {
-    return request<User[]>('/users');
+    return get<User[]>('/users');
   },
 
   async updateUserStatus(id: string, status: 'normal' | 'disabled'): Promise<Result<void>> {
-    return request<void>(`/users/${id}/status`, {
-      method: 'POST',
-      body: JSON.stringify({ status }),
-    });
+    return post<void>(`/users/${id}/status`, { status });
   },
 
   async updateUserVerified(id: string, verified: 'verified' | 'unverified'): Promise<Result<void>> {
-    return request<void>(`/users/${id}/verified`, {
-      method: 'POST',
-      body: JSON.stringify({ verified }),
-    });
+    return post<void>(`/users/${id}/verified`, { verified });
   },
 
   async updateUserAdminRole(id: string, adminRole: 'USER' | 'READONLY_ADMIN' | 'ADMIN' | 'SUPER_ADMIN'): Promise<Result<void>> {
-    return request<void>(`/users/${id}/admin-role`, {
-      method: 'POST',
-      body: JSON.stringify({ adminRole }),
-    });
+    return post<void>(`/users/${id}/admin-role`, { adminRole });
   },
 
   async getDynamics(): Promise<Result<Dynamic[]>> {
-    return request<Dynamic[]>('/dynamics');
+    return get<Dynamic[]>('/dynamics');
   },
 
   async updateDynamicStatus(id: string, status: 'pending' | 'normal' | 'removed', rejectReason?: string): Promise<Result<void>> {
-    return request<void>(`/dynamics/${id}/status`, {
-      method: 'POST',
-      body: JSON.stringify({ status, rejectReason }),
-    });
+    return post<void>(`/dynamics/${id}/status`, { status, rejectReason });
   },
 
   async addComment(dynId: string, commenter: string, text: string): Promise<Result<void>> {
-    return request<void>(`/dynamics/${dynId}/comments`, {
-      method: 'POST',
-      body: JSON.stringify({ commenter, text }),
-    });
+    return post<void>(`/dynamics/${dynId}/comments`, { commenter, text });
   },
 
   async deleteComment(dynId: string, commentId: string): Promise<Result<void>> {
-    return request<void>(`/dynamics/${dynId}/comments/${commentId}`, {
-      method: 'DELETE',
-    });
+    return remove<void>(`/dynamics/${dynId}/comments/${commentId}`);
   },
 
   async getGoods(): Promise<Result<Goods[]>> {
-    return request<Goods[]>('/goods');
+    return get<Goods[]>('/goods');
   },
 
   async updateGoodsStatus(id: string, status: 'active' | 'sold' | 'removed' | 'pending', rejectReason?: string): Promise<Result<void>> {
-    return request<void>(`/goods/${id}/status`, {
-      method: 'POST',
-      body: JSON.stringify({ status, rejectReason }),
-    });
+    return post<void>(`/goods/${id}/status`, { status, rejectReason });
   },
 
   async getServices(): Promise<Result<Service[]>> {
-    return request<Service[]>('/services');
+    return get<Service[]>('/services');
   },
 
   async updateServiceStatus(id: string, status: 'pending' | 'active' | 'rejected', rejectReason?: string): Promise<Result<void>> {
-    return request<void>(`/services/${id}/status`, {
-      method: 'POST',
-      body: JSON.stringify({ status, rejectReason }),
-    });
+    return post<void>(`/services/${id}/status`, { status, rejectReason });
   },
 
   async addNewService(srv: Partial<Service>): Promise<Result<void>> {
-    return request<void>('/services', {
-      method: 'POST',
-      body: JSON.stringify(srv),
-    });
+    return post<void>('/services', srv);
   },
 
   async getOrders(): Promise<Result<Order[]>> {
-    return request<Order[]>('/orders');
+    return get<Order[]>('/orders');
   },
 
   async forceCancelOrder(id: string, reason: string): Promise<Result<void>> {
-    return request<void>(`/orders/${id}/cancel`, {
-      method: 'POST',
-      body: JSON.stringify({ reason }),
-    });
+    return post<void>(`/orders/${id}/cancel`, { reason });
   },
 
   async getCategories(): Promise<Result<CategoryItem[]>> {
-    return request<CategoryItem[]>('/categories');
+    return get<CategoryItem[]>('/categories');
   },
 
   async toggleCategoryStatus(id: string): Promise<Result<void>> {
-    return request<void>(`/categories/${id}/toggle`, { method: 'POST' });
+    return post<void>(`/categories/${id}/toggle`);
   },
 
   async addCategory(name: string, type: 'dynamic' | 'goods' | 'service'): Promise<Result<void>> {
-    return request<void>('/categories', {
-      method: 'POST',
-      body: JSON.stringify({ name, type }),
-    });
+    return post<void>('/categories', { name, type });
   },
 
   async getNotifications(): Promise<Result<NotificationItem[]>> {
-    return request<NotificationItem[]>('/notifications');
+    return get<NotificationItem[]>('/notifications');
   },
 
   async toggleNotificationRead(id: string): Promise<Result<void>> {
-    return request<void>(`/notifications/${id}/toggle`, { method: 'POST' });
+    return post<void>(`/notifications/${id}/toggle`);
   },
 
   async addNotification(title: string, content: string, target: 'all' | 'specific', isScheduled: boolean): Promise<Result<void>> {
-    return request<void>('/notifications', {
-      method: 'POST',
-      body: JSON.stringify({ title, content, target, isScheduled }),
-    });
+    return post<void>('/notifications', { title, content, target, isScheduled });
   },
 
   async getManagedComments(): Promise<Result<ManagedComment[]>> {
-    return request<ManagedComment[]>('/comments');
+    return get<ManagedComment[]>('/comments');
   },
 
   async updateCommentStatus(id: string, status: 'pending' | 'normal' | 'flagged' | 'hidden'): Promise<Result<void>> {
-    return request<void>(`/comments/${id}/status`, {
-      method: 'POST',
-      body: JSON.stringify({ status }),
-    });
+    return post<void>(`/comments/${id}/status`, { status });
   },
 
   async deleteManagedComment(id: string): Promise<Result<void>> {
-    return request<void>(`/comments/${id}`, { method: 'DELETE' });
+    return remove<void>(`/comments/${id}`);
   },
 
   async getBlacklist(): Promise<Result<BlacklistItem[]>> {
-    return request<BlacklistItem[]>('/blacklist');
+    return get<BlacklistItem[]>('/blacklist');
   },
 
   async addBlacklist(targetType: 'user' | 'keyword' | 'ip', targetValue: string, reason: string, creator: string): Promise<Result<void>> {
-    return request<void>('/blacklist', {
-      method: 'POST',
-      body: JSON.stringify({ targetType, targetValue, reason, creator }),
-    });
+    return post<void>('/blacklist', { targetType, targetValue, reason, creator });
   },
 
   async deleteBlacklist(id: string): Promise<Result<void>> {
-    return request<void>(`/blacklist/${id}`, { method: 'DELETE' });
+    return remove<void>(`/blacklist/${id}`);
   },
 
   async getImages(): Promise<Result<ManagedImage[]>> {
-    return request<ManagedImage[]>('/images');
+    return get<ManagedImage[]>('/images');
   },
 
   async getMessages(): Promise<Result<ManagedMessage[]>> {
-    return request<ManagedMessage[]>('/messages');
+    return get<ManagedMessage[]>('/messages');
   },
 
   async markMessageRead(id: string): Promise<Result<void>> {
-    return request<void>(`/messages/${id}/read`, { method: 'POST' });
+    return post<void>(`/messages/${id}/read`);
   },
 
   async deleteMessage(id: string): Promise<Result<void>> {
-    return request<void>(`/messages/${id}`, { method: 'DELETE' });
+    return remove<void>(`/messages/${id}`);
   },
 
   async updateImageStatus(id: string, status: 'approved' | 'pending' | 'flagged'): Promise<Result<void>> {
-    return request<void>(`/images/${id}/status`, {
-      method: 'POST',
-      body: JSON.stringify({ status }),
-    });
+    return post<void>(`/images/${id}/status`, { status });
   },
 
   async deleteImage(id: string): Promise<Result<void>> {
-    return request<void>(`/images/${id}`, { method: 'DELETE' });
+    return remove<void>(`/images/${id}`);
   },
 
   async getLoginLogs(): Promise<Result<LoginLogItem[]>> {
-    return request<LoginLogItem[]>('/login-logs');
+    return get<LoginLogItem[]>('/login-logs');
   },
 
   async getOperationLogs(): Promise<Result<OperationLogItem[]>> {
-    return request<OperationLogItem[]>('/operation-logs');
+    return get<OperationLogItem[]>('/operation-logs');
   },
 
   async addOperationLog(operator: string, role: string, action: string, target: string, ip: string, status: 'success' | 'failed', details?: string): Promise<Result<void>> {
-    return request<void>('/operation-logs', {
-      method: 'POST',
-      body: JSON.stringify({ operator, role, action, target, ip, status, details }),
-    });
+    return post<void>('/operation-logs', { operator, role, action, target, ip, status, details });
   },
 
   async updateOperationLogRetention(policy: string): Promise<Result<{ cleanedCount: number; logs: OperationLogItem[] }>> {
-    return request<{ cleanedCount: number; logs: OperationLogItem[] }>('/operation-logs/retention', {
-      method: 'POST',
-      body: JSON.stringify({ policy }),
-    });
+    return post<{ cleanedCount: number; logs: OperationLogItem[] }>('/operation-logs/retention', { policy });
   },
 
   async getMenus(): Promise<Result<SystemMenu[]>> {
-    return request<SystemMenu[]>('/menus');
+    return get<SystemMenu[]>('/menus');
   },
 
   async getRoles(): Promise<Result<SystemRole[]>> {
-    return request<SystemRole[]>('/roles');
+    return get<SystemRole[]>('/roles');
   },
 
   async updateRole(id: string, payload: Partial<SystemRole>): Promise<Result<void>> {
-    return request<void>(`/roles/${id}`, {
-      method: 'POST',
-      body: JSON.stringify(payload),
-    });
+    return post<void>(`/roles/${id}`, payload);
   },
 
   async getPermissions(): Promise<Result<SystemPermission[]>> {
-    return request<SystemPermission[]>('/permissions');
+    return get<SystemPermission[]>('/permissions');
   },
 };

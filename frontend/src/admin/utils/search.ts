@@ -1,1 +1,1 @@
-export { includesKeyword, matchesAnyKeyword, normalizeSearchTerm } from '../../utils/search';
+export { includesKeyword, matchesAnyKeyword, normalizeSearchTerm } from '../../user/utils/search';

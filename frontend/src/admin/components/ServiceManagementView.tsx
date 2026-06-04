@@ -19,7 +19,7 @@ import {
   X,
 } from 'lucide-react';
 import { Service } from '../types';
-import { getPrimaryImage } from '../../utils/images';
+import { getPrimaryImage } from '../utils/images';
 import { groupItemsByOwner, type EntityOwnerGroup } from '../utils/entityGrouping';
 import { matchesAnyKeyword, normalizeSearchTerm } from '../utils/search';
 import AdminToast from './common/AdminToast';
@@ -37,6 +37,16 @@ type ServiceDraft = Pick<Service, 'title' | 'category' | 'providerName' | 'price
 type ServiceStatusFilter = 'all' | 'pending' | 'active' | 'rejected';
 
 type ProviderGroup = EntityOwnerGroup<Service>;
+
+const SERVICE_FILTER_OPTIONS: { value: ServiceStatusFilter; label: string }[] = [
+  { value: 'all', label: '全部' },
+  { value: 'pending', label: '待审核' },
+  { value: 'active', label: '已上架' },
+  { value: 'rejected', label: '已下架' },
+];
+
+const ROW_ACTION_CLASSNAME = 'text-[10px] px-2 py-0.5 rounded-md';
+const PANEL_ACTION_CLASSNAME = 'px-4 py-2.5 text-xs font-bold rounded-xl transition-all';
 
 interface ServiceManagementViewProps {
   services: Service[];
@@ -113,6 +123,7 @@ export default function ServiceManagementView({ services, onUpdateServiceStatus,
   }, [services, selectedService]);
 
   const providerServices = activeProviderGroup?.items || [];
+  const selectService = (service: Service) => setSelectedService(service);
 
   const handleApprove = (id: string) => {
     onUpdateServiceStatus(id, 'active');
@@ -151,6 +162,55 @@ export default function ServiceManagementView({ services, onUpdateServiceStatus,
     showToastMsg('服务已录入，等待审核', 'success');
   };
 
+  const renderRowActionButton = ({
+    onClick,
+    disabled = false,
+    label,
+    activeClassName,
+    disabledClassName,
+  }: {
+    onClick: () => void;
+    disabled?: boolean;
+    label: string;
+    activeClassName: string;
+    disabledClassName: string;
+  }) => (
+    <button
+      onClick={onClick}
+      disabled={disabled}
+      className={`${ROW_ACTION_CLASSNAME} ${disabled ? disabledClassName : activeClassName}`}
+    >
+      {label}
+    </button>
+  );
+
+  const renderPanelActionButton = ({
+    onClick,
+    disabled = false,
+    icon,
+    label,
+    activeClassName,
+    disabledClassName,
+  }: {
+    onClick: () => void;
+    disabled?: boolean;
+    icon?: React.ReactNode;
+    label: string;
+    activeClassName: string;
+    disabledClassName: string;
+  }) => (
+    <button
+      onClick={onClick}
+      disabled={disabled}
+      className={`${PANEL_ACTION_CLASSNAME} ${disabled ? disabledClassName : activeClassName}`}
+    >
+      <span className="flex items-center gap-1">
+        {icon}
+        {label}
+      </span>
+    </button>
+  );
+
   return (
     <div className="relative space-y-6">
       <AdminToast toast={toast} />
@@ -158,12 +218,7 @@ export default function ServiceManagementView({ services, onUpdateServiceStatus,
       <div className="bg-white dark:bg-gray-900 p-4 rounded-2xl border border-gray-100 dark:border-gray-800/60 shadow-sm flex flex-col gap-3">
         <div className="flex flex-wrap items-center gap-2">
           <AdminFilterPills
-            options={[
-              { value: 'all', label: '全部' },
-              { value: 'pending', label: '待审核' },
-              { value: 'active', label: '已上架' },
-              { value: 'rejected', label: '已下架' },
-            ]}
+            options={SERVICE_FILTER_OPTIONS}
             activeValue={statusFilter}
             onChange={setStatusFilter}
           />
@@ -229,7 +284,7 @@ export default function ServiceManagementView({ services, onUpdateServiceStatus,
                     <tr
                       key={srv.id}
                       className={`hover:bg-slate-50 dark:hover:bg-slate-800/30 transition-colors cursor-pointer ${selectedService?.id === srv.id ? 'bg-slate-50 dark:bg-slate-800/30' : ''}`}
-                      onClick={() => setSelectedService(srv)}
+                      onClick={() => selectService(srv)}
                     >
                       <td className="p-4">
                         <div className="flex items-center gap-2">
@@ -257,23 +312,26 @@ export default function ServiceManagementView({ services, onUpdateServiceStatus,
                       <td className="p-4"><AdminStatusBadge status={srv.status} statusMap={serviceStatusMap} /></td>
                       <td className="p-4 text-right" onClick={(e) => e.stopPropagation()}>
                         <div className="flex flex-wrap justify-end gap-1.5">
-                          <button onClick={() => setSelectedService(srv)} className="text-[10px] px-2 py-0.5 rounded-md bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-200">
-                            详情
-                          </button>
-                          <button
-                            onClick={() => handleApprove(srv.id)}
-                            disabled={srv.status === 'active'}
-                            className={`text-[10px] px-2 py-0.5 rounded-md ${srv.status === 'active' ? 'bg-emerald-100/60 text-emerald-400 cursor-not-allowed' : 'bg-emerald-600 text-white'}`}
-                          >
-                            上架
-                          </button>
-                          <button
-                            onClick={() => setShowRejectModal(srv.id)}
-                            disabled={srv.status === 'rejected'}
-                            className={`text-[10px] px-2 py-0.5 rounded-md ${srv.status === 'rejected' ? 'bg-rose-100/60 text-rose-300 cursor-not-allowed' : 'bg-rose-600 text-white'}`}
-                          >
-                            下架
-                          </button>
+                          {renderRowActionButton({
+                            onClick: () => selectService(srv),
+                            label: '详情',
+                            activeClassName: 'bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-200',
+                            disabledClassName: '',
+                          })}
+                          {renderRowActionButton({
+                            onClick: () => handleApprove(srv.id),
+                            disabled: srv.status === 'active',
+                            label: '上架',
+                            activeClassName: 'bg-emerald-600 text-white',
+                            disabledClassName: 'bg-emerald-100/60 text-emerald-400 cursor-not-allowed',
+                          })}
+                          {renderRowActionButton({
+                            onClick: () => setShowRejectModal(srv.id),
+                            disabled: srv.status === 'rejected',
+                            label: '下架',
+                            activeClassName: 'bg-rose-600 text-white',
+                            disabledClassName: 'bg-rose-100/60 text-rose-300 cursor-not-allowed',
+                          })}
                         </div>
                       </td>
                     </tr>
@@ -399,38 +457,30 @@ export default function ServiceManagementView({ services, onUpdateServiceStatus,
               </div>
 
               <div className="p-5 border-t border-gray-100 dark:border-gray-800 bg-white dark:bg-gray-900 gap-2 flex justify-end sticky bottom-0 z-10">
-                <button
-                  onClick={() => handleApprove(selectedService.id)}
-                  disabled={selectedService.status === 'active'}
-                  className={`px-4 py-2.5 text-xs font-bold rounded-xl transition-all border-none flex items-center gap-1 ${
-                    selectedService.status === 'active'
-                      ? 'bg-emerald-100/60 text-emerald-400 cursor-not-allowed'
-                      : 'bg-emerald-600 hover:bg-emerald-700 text-white'
-                  }`}
-                >
-                  <Check className="w-3.5 h-3.5" />
-                  上架
-                </button>
-                <button
-                  onClick={() => setShowRejectModal(selectedService.id)}
-                  disabled={selectedService.status === 'rejected'}
-                  className={`px-4 py-2.5 text-xs font-bold rounded-xl transition-all border-none flex items-center gap-1 ${
-                    selectedService.status === 'rejected'
-                      ? 'bg-rose-100/60 text-rose-300 cursor-not-allowed'
-                      : 'bg-rose-600 hover:bg-rose-700 text-white'
-                  }`}
-                >
-                  <Gavel className="w-3.5 h-3.5" />
-                  下架
-                </button>
+                {renderPanelActionButton({
+                  onClick: () => handleApprove(selectedService.id),
+                  disabled: selectedService.status === 'active',
+                  icon: <Check className="w-3.5 h-3.5" />,
+                  label: '上架',
+                  activeClassName: 'border-none bg-emerald-600 hover:bg-emerald-700 text-white',
+                  disabledClassName: 'border-none bg-emerald-100/60 text-emerald-400 cursor-not-allowed',
+                })}
+                {renderPanelActionButton({
+                  onClick: () => setShowRejectModal(selectedService.id),
+                  disabled: selectedService.status === 'rejected',
+                  icon: <Gavel className="w-3.5 h-3.5" />,
+                  label: '下架',
+                  activeClassName: 'border-none bg-rose-600 hover:bg-rose-700 text-white',
+                  disabledClassName: 'border-none bg-rose-100/60 text-rose-300 cursor-not-allowed',
+                })}
                 {selectedService.status === 'rejected' ? (
-                  <button
-                    onClick={() => handleApprove(selectedService.id)}
-                    className="px-4 py-2.5 bg-primary hover:bg-primary/90 text-white text-xs font-bold rounded-xl border-none flex items-center gap-1"
-                  >
-                    <RotateCcw className="w-3.5 h-3.5" />
-                    重新上架
-                  </button>
+                  renderPanelActionButton({
+                    onClick: () => handleApprove(selectedService.id),
+                    icon: <RotateCcw className="w-3.5 h-3.5" />,
+                    label: '重新上架',
+                    activeClassName: 'border-none bg-primary hover:bg-primary/90 text-white',
+                    disabledClassName: '',
+                  })
                 ) : null}
               </div>
             </motion.div>

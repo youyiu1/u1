@@ -7,12 +7,13 @@ import React, { useEffect, useMemo, useState } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { Check, Trash2, AlertTriangle, X, ZoomIn, Minimize2 } from 'lucide-react';
 import { ManagedImage } from '../types';
-import { getPrimaryImage } from '../../utils/images';
+import { getPrimaryImage } from '../utils/images';
 import { groupItemsByOwner, type EntityOwnerGroup } from '../utils/entityGrouping';
 import { matchesAnyKeyword, normalizeSearchTerm } from '../utils/search';
 import AdminGroupHeader from './common/AdminGroupHeader';
 import AdminSearchInput from './common/AdminSearchInput';
 import AdminStatCard from './common/AdminStatCard';
+import AdminStatusBadge, { imageStatusMap } from './common/AdminStatusBadge';
 import EmptyState from './common/EmptyState';
 import UserSquareCard from './common/UserSquareCard';
 
@@ -29,6 +30,21 @@ const categoryLabel: Record<ManagedImage['category'], string> = {
   avatar: '用户头像',
   banner: '轮播横幅',
 };
+
+const CATEGORY_OPTIONS = [
+  { value: 'all', label: '全部分类' },
+  { value: 'dynamic', label: '动态图片' },
+  { value: 'goods', label: '闲置商品' },
+  { value: 'avatar', label: '用户头像' },
+  { value: 'banner', label: '轮播横幅' },
+] as const;
+
+const STATUS_OPTIONS = [
+  { value: 'all', label: '全部状态' },
+  { value: 'approved', label: '已放行' },
+  { value: 'pending', label: '待审核' },
+  { value: 'flagged', label: '已封禁' },
+] as const;
 
 export default function ImageManagementView({ images, onUpdateImageStatus, onDeleteImage, onAddOperationLog }: ImageManagementViewProps) {
   const [searchQuery, setSearchQuery] = useState('');
@@ -79,6 +95,39 @@ export default function ImageManagementView({ images, onUpdateImageStatus, onDel
 
   const tableImages = activeUploaderGroup?.items || [];
   const getImageUrl = (img: ManagedImage) => getPrimaryImage(img.url);
+  const openPreview = (img: ManagedImage) => {
+    const url = getImageUrl(img);
+    if (url) setZoomImgUrl(url);
+  };
+  const updateStatus = (img: ManagedImage, status: 'approved' | 'pending' | 'flagged', action: string) => {
+    onUpdateImageStatus(img.id, status);
+    onAddOperationLog?.(action, img.id, img.name);
+  };
+  const deleteImage = (img: ManagedImage) => {
+    if (!window.confirm(`确认删除图片【${img.name}】吗？`)) return;
+    onDeleteImage(img.id);
+    onAddOperationLog?.('图片删除', img.id, img.name);
+  };
+
+  const renderActionButton = ({
+    onClick,
+    icon,
+    title,
+    className,
+  }: {
+    onClick: () => void;
+    icon: React.ReactNode;
+    title: string;
+    className: string;
+  }) => (
+    <button
+      onClick={onClick}
+      className={`${className} p-1.5 rounded border-none bg-transparent cursor-pointer transition-all`}
+      title={title}
+    >
+      {icon}
+    </button>
+  );
 
   return (
     <div className="space-y-6" id="images-view-root">
@@ -104,17 +153,14 @@ export default function ImageManagementView({ images, onUpdateImageStatus, onDel
             inputClassName="w-full pl-9 pr-4 py-2 border border-slate-200 dark:border-slate-800 rounded-lg text-sm bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-emerald-500"
           />
           <select value={categoryFilter} onChange={(e) => setCategoryFilter(e.target.value as typeof categoryFilter)} className="w-full py-2 px-3 border border-slate-200 dark:border-slate-800 rounded-lg text-sm bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-emerald-500">
-            <option value="all">全部分类</option>
-            <option value="dynamic">动态图片</option>
-            <option value="goods">闲置商品</option>
-            <option value="avatar">用户头像</option>
-            <option value="banner">轮播横幅</option>
+            {CATEGORY_OPTIONS.map((option) => (
+              <option key={option.value} value={option.value}>{option.label}</option>
+            ))}
           </select>
           <select value={statusFilter} onChange={(e) => setStatusFilter(e.target.value as typeof statusFilter)} className="w-full py-2 px-3 border border-slate-200 dark:border-slate-800 rounded-lg text-sm bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-emerald-500">
-            <option value="all">全部状态</option>
-            <option value="approved">已放行</option>
-            <option value="pending">待审核</option>
-            <option value="flagged">已封禁</option>
+            {STATUS_OPTIONS.map((option) => (
+              <option key={option.value} value={option.value}>{option.label}</option>
+            ))}
           </select>
         </div>
       </div>
@@ -159,22 +205,54 @@ export default function ImageManagementView({ images, onUpdateImageStatus, onDel
                 <tbody className="divide-y divide-slate-100 dark:divide-slate-800/80">
                   {tableImages.map((img) => (
                     <tr key={img.id}>
-                      <td className="p-4"><button type="button" onClick={() => { const url = getImageUrl(img); if (url) setZoomImgUrl(url); }} className="border-none bg-transparent p-0 cursor-pointer">{getImageUrl(img) ? <img src={getImageUrl(img)} alt={img.name} referrerPolicy="no-referrer" className="w-12 h-12 rounded-lg object-cover" /> : <div className="w-12 h-12 rounded-lg bg-slate-100 dark:bg-slate-800 flex items-center justify-center text-[10px] text-slate-400">无图</div>}</button></td>
-                      <td className="p-4"><div className="font-bold text-slate-900 dark:text-white truncate max-w-[180px]" title={img.name}>{img.name}</div><div className="text-[10px] font-mono text-slate-400">ID: {img.id}</div></td>
+                      <td className="p-4">
+                        <button type="button" onClick={() => openPreview(img)} className="border-none bg-transparent p-0 cursor-pointer">
+                          {getImageUrl(img) ? (
+                            <img src={getImageUrl(img)} alt={img.name} referrerPolicy="no-referrer" className="w-12 h-12 rounded-lg object-cover" />
+                          ) : (
+                            <div className="w-12 h-12 rounded-lg bg-slate-100 dark:bg-slate-800 flex items-center justify-center text-[10px] text-slate-400">无图</div>
+                          )}
+                        </button>
+                      </td>
+                      <td className="p-4">
+                        <div className="font-bold text-slate-900 dark:text-white truncate max-w-[180px]" title={img.name}>{img.name}</div>
+                        <div className="text-[10px] font-mono text-slate-400">ID: {img.id}</div>
+                      </td>
                       <td className="p-4 text-xs font-bold text-slate-500">{img.uploader}</td>
-                      <td className="p-4"><div className="text-xs font-bold text-slate-500">{categoryLabel[img.category]}</div><div className="text-xs text-slate-700 dark:text-slate-300">{img.size}</div></td>
+                      <td className="p-4">
+                        <div className="text-xs font-bold text-slate-500">{categoryLabel[img.category]}</div>
+                        <div className="text-xs text-slate-700 dark:text-slate-300">{img.size}</div>
+                      </td>
                       <td className="p-4 whitespace-nowrap text-xs text-slate-400 font-semibold dark:text-slate-500">{img.uploadedAt}</td>
                       <td className="p-4 text-center whitespace-nowrap">
-                        {img.status === 'approved' && <span className="inline-flex items-center gap-1 text-xs px-2.5 py-1 rounded-full font-bold bg-emerald-50 dark:bg-emerald-950/30 text-emerald-700 dark:text-emerald-400">已放行</span>}
-                        {img.status === 'pending' && <span className="inline-flex items-center gap-1 text-xs px-2.5 py-1 rounded-full font-bold bg-amber-50 dark:bg-amber-950/30 text-amber-600 dark:text-amber-400">待审核</span>}
-                        {img.status === 'flagged' && <span className="inline-flex items-center gap-1 text-xs px-2.5 py-1 rounded-full font-bold bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400">已封禁</span>}
+                        <AdminStatusBadge status={img.status} statusMap={imageStatusMap} />
                       </td>
                       <td className="p-4 text-right">
                         <div className="flex items-center justify-end gap-1">
-                          <button onClick={() => { const url = getImageUrl(img); if (url) setZoomImgUrl(url); }} className="text-sky-600 hover:bg-sky-50 dark:hover:bg-sky-950/20 p-1.5 rounded border-none bg-transparent cursor-pointer transition-all" title="查看"><ZoomIn className="h-4 w-4" /></button>
-                          {img.status !== 'approved' && <button onClick={() => { onUpdateImageStatus(img.id, 'approved'); onAddOperationLog?.('图片放行', img.id, img.name); }} className="text-emerald-600 hover:bg-emerald-50 dark:hover:bg-emerald-950/20 p-1.5 rounded border-none bg-transparent cursor-pointer transition-all" title="放行"><Check className="h-4 w-4" /></button>}
-                          {img.status !== 'flagged' && <button onClick={() => { onUpdateImageStatus(img.id, 'flagged'); onAddOperationLog?.('图片封禁', img.id, img.name); }} className="text-amber-500 hover:bg-amber-50 dark:hover:bg-amber-950/20 p-1.5 rounded border-none bg-transparent cursor-pointer transition-all" title="封禁"><AlertTriangle className="h-4 w-4" /></button>}
-                          <button onClick={() => { if (window.confirm(`确认删除图片【${img.name}】吗？`)) { onDeleteImage(img.id); onAddOperationLog?.('图片删除', img.id, img.name); } }} className="text-rose-500 hover:bg-rose-50 dark:hover:bg-rose-950/20 p-1.5 rounded border-none bg-transparent cursor-pointer transition-all" title="删除"><Trash2 className="h-4 w-4" /></button>
+                          {renderActionButton({
+                            onClick: () => openPreview(img),
+                            icon: <ZoomIn className="h-4 w-4" />,
+                            title: '查看',
+                            className: 'text-sky-600 hover:bg-sky-50 dark:hover:bg-sky-950/20',
+                          })}
+                          {img.status !== 'approved' && renderActionButton({
+                            onClick: () => updateStatus(img, 'approved', '图片放行'),
+                            icon: <Check className="h-4 w-4" />,
+                            title: '放行',
+                            className: 'text-emerald-600 hover:bg-emerald-50 dark:hover:bg-emerald-950/20',
+                          })}
+                          {img.status !== 'flagged' && renderActionButton({
+                            onClick: () => updateStatus(img, 'flagged', '图片封禁'),
+                            icon: <AlertTriangle className="h-4 w-4" />,
+                            title: '封禁',
+                            className: 'text-amber-500 hover:bg-amber-50 dark:hover:bg-amber-950/20',
+                          })}
+                          {renderActionButton({
+                            onClick: () => deleteImage(img),
+                            icon: <Trash2 className="h-4 w-4" />,
+                            title: '删除',
+                            className: 'text-rose-500 hover:bg-rose-50 dark:hover:bg-rose-950/20',
+                          })}
                         </div>
                       </td>
                     </tr>

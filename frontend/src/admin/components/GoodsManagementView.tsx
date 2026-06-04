@@ -17,7 +17,7 @@ import {
   X,
 } from 'lucide-react';
 import { Goods } from '../types';
-import { getPrimaryImage } from '../../utils/images';
+import { getPrimaryImage } from '../utils/images';
 import { useToast } from '../hooks/useToast';
 import { groupItemsByOwner, type EntityOwnerGroup } from '../utils/entityGrouping';
 import { matchesAnyKeyword, normalizeSearchTerm } from '../utils/search';
@@ -39,6 +39,25 @@ interface GoodsManagementViewProps {
 type GoodsStatusFilter = 'all' | 'active' | 'sold' | 'removed' | 'pending';
 
 type SellerGroup = EntityOwnerGroup<Goods>;
+
+const GOODS_FILTER_OPTIONS: { value: GoodsStatusFilter; label: string }[] = [
+  { value: 'all', label: '全部' },
+  { value: 'active', label: '在售' },
+  { value: 'sold', label: '已售' },
+  { value: 'removed', label: '下架' },
+  { value: 'pending', label: '待审' },
+];
+
+const ROW_ACTION_CLASSNAME = 'text-[10px] px-2 py-0.5 rounded-md';
+const PANEL_ACTION_CLASSNAME = 'px-4 py-2.5 text-xs font-bold rounded-xl transition-all';
+
+function getRowActionClassName(disabled: boolean, activeClassName: string, disabledClassName: string) {
+  return `${ROW_ACTION_CLASSNAME} ${disabled ? disabledClassName : activeClassName}`;
+}
+
+function getPanelActionClassName(disabled: boolean, activeClassName: string, disabledClassName: string) {
+  return `${PANEL_ACTION_CLASSNAME} ${disabled ? disabledClassName : activeClassName}`;
+}
 
 export default function GoodsManagementView({ goods, onUpdateGoodsStatus }: GoodsManagementViewProps) {
   const [searchTerm, setSearchTerm] = useState('');
@@ -97,6 +116,7 @@ export default function GoodsManagementView({ goods, onUpdateGoodsStatus }: Good
   const sellerGoods = activeSellerGroup?.items || [];
   const getGoodsImage = (item: Goods) => getPrimaryImage(item.images);
   const getSellerAvatar = (value?: string) => getPrimaryImage(value);
+  const selectItem = (item: Goods) => setSelectedItem(item);
 
   const handleApprove = (id: string) => {
     onUpdateGoodsStatus(id, 'active');
@@ -121,6 +141,77 @@ export default function GoodsManagementView({ goods, onUpdateGoodsStatus }: Good
     showToastMsg('商品已下架', 'info');
   };
 
+  const renderRowActions = (item: Goods) => (
+    <div className="flex flex-wrap justify-end gap-1.5">
+      <button
+        onClick={() => selectItem(item)}
+        className={`${ROW_ACTION_CLASSNAME} bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-200`}
+      >
+        详情
+      </button>
+      <button
+        onClick={() => handleApprove(item.id)}
+        disabled={item.status === 'active'}
+        className={getRowActionClassName(
+          item.status === 'active',
+          'bg-emerald-600 text-white',
+          'bg-emerald-100/60 text-emerald-400 cursor-not-allowed'
+        )}
+      >
+        上架
+      </button>
+      <button
+        onClick={() => handleMarkSold(item.id)}
+        disabled={item.status === 'sold'}
+        className={getRowActionClassName(
+          item.status === 'sold',
+          'bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-200',
+          'bg-gray-100 text-gray-400 cursor-not-allowed'
+        )}
+      >
+        标记已售
+      </button>
+      <button
+        onClick={() => setShowRejectModal(item.id)}
+        disabled={item.status === 'removed'}
+        className={getRowActionClassName(
+          item.status === 'removed',
+          'bg-rose-600 text-white',
+          'bg-rose-100/60 text-rose-300 cursor-not-allowed'
+        )}
+      >
+        下架
+      </button>
+    </div>
+  );
+
+  const renderPanelActionButton = ({
+    onClick,
+    disabled = false,
+    icon,
+    label,
+    activeClassName,
+    disabledClassName,
+  }: {
+    onClick: () => void;
+    disabled?: boolean;
+    icon?: React.ReactNode;
+    label: string;
+    activeClassName: string;
+    disabledClassName: string;
+  }) => (
+    <button
+      onClick={onClick}
+      disabled={disabled}
+      className={getPanelActionClassName(disabled, activeClassName, disabledClassName)}
+    >
+      <span className="flex items-center gap-1">
+        {icon}
+        {label}
+      </span>
+    </button>
+  );
+
   return (
     <div className="relative space-y-6">
       <AdminToast toast={toast} />
@@ -128,13 +219,7 @@ export default function GoodsManagementView({ goods, onUpdateGoodsStatus }: Good
       <div className="bg-white dark:bg-gray-900 p-4 rounded-2xl border border-gray-100 dark:border-gray-800/60 shadow-sm flex flex-col gap-3">
         <div className="flex flex-wrap items-center gap-2">
           <AdminFilterPills
-            options={[
-              { value: 'all', label: '全部' },
-              { value: 'active', label: '在售' },
-              { value: 'sold', label: '已售' },
-              { value: 'removed', label: '下架' },
-              { value: 'pending', label: '待审' },
-            ]}
+            options={GOODS_FILTER_OPTIONS}
             activeValue={statusFilter}
             onChange={setStatusFilter}
           />
@@ -188,7 +273,7 @@ export default function GoodsManagementView({ goods, onUpdateGoodsStatus }: Good
                       <tr
                         key={item.id}
                         className={`hover:bg-slate-50 dark:hover:bg-slate-800/30 transition-colors cursor-pointer ${selectedItem?.id === item.id ? 'bg-slate-50 dark:bg-slate-800/30' : ''}`}
-                        onClick={() => setSelectedItem(item)}
+                        onClick={() => selectItem(item)}
                       >
                         <td className="p-4">
                           <div className="flex items-center gap-3">
@@ -209,12 +294,7 @@ export default function GoodsManagementView({ goods, onUpdateGoodsStatus }: Good
                         <td className="p-4 text-xs font-bold text-rose-500">¥{item.price.toFixed(2)}</td>
                         <td className="p-4"><AdminStatusBadge status={item.status} statusMap={goodsStatusMap} /></td>
                         <td className="p-4 text-right" onClick={(e) => e.stopPropagation()}>
-                          <div className="flex flex-wrap justify-end gap-1.5">
-                            <button onClick={() => setSelectedItem(item)} className="text-[10px] px-2 py-0.5 rounded-md bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-200">详情</button>
-                            <button onClick={() => handleApprove(item.id)} disabled={item.status === 'active'} className={`text-[10px] px-2 py-0.5 rounded-md ${item.status === 'active' ? 'bg-emerald-100/60 text-emerald-400 cursor-not-allowed' : 'bg-emerald-600 text-white'}`}>上架</button>
-                            <button onClick={() => handleMarkSold(item.id)} disabled={item.status === 'sold'} className={`text-[10px] px-2 py-0.5 rounded-md ${item.status === 'sold' ? 'bg-gray-100 text-gray-400 cursor-not-allowed' : 'bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-200'}`}>标记已售</button>
-                            <button onClick={() => setShowRejectModal(item.id)} disabled={item.status === 'removed'} className={`text-[10px] px-2 py-0.5 rounded-md ${item.status === 'removed' ? 'bg-rose-100/60 text-rose-300 cursor-not-allowed' : 'bg-rose-600 text-white'}`}>下架</button>
-                          </div>
+                          {renderRowActions(item)}
                         </td>
                       </tr>
                     );
@@ -333,49 +413,37 @@ export default function GoodsManagementView({ goods, onUpdateGoodsStatus }: Good
               </div>
 
               <div className="p-5 border-t border-gray-100 dark:border-gray-800 bg-white dark:bg-gray-900 gap-2 flex justify-end sticky bottom-0 z-10">
-                <button
-                  onClick={() => handleApprove(selectedItem.id)}
-                  disabled={selectedItem.status === 'active'}
-                  className={`px-4 py-2.5 text-xs font-bold rounded-xl transition-all border-none flex items-center gap-1 ${
-                    selectedItem.status === 'active'
-                      ? 'bg-emerald-100/60 text-emerald-400 cursor-not-allowed'
-                      : 'bg-emerald-600 hover:bg-emerald-700 text-white'
-                  }`}
-                >
-                  <Check className="w-3.5 h-3.5" />
-                  上架
-                </button>
-                <button
-                  onClick={() => handleMarkSold(selectedItem.id)}
-                  disabled={selectedItem.status === 'sold'}
-                  className={`px-4 py-2.5 text-xs font-bold rounded-xl transition-all border ${
-                    selectedItem.status === 'sold'
-                      ? 'border-gray-100 dark:border-gray-800 text-gray-400 dark:text-gray-500 bg-gray-50 dark:bg-gray-850 cursor-not-allowed'
-                      : 'border-gray-200 dark:border-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800'
-                  }`}
-                >
-                  标记已售
-                </button>
-                <button
-                  onClick={() => setShowRejectModal(selectedItem.id)}
-                  disabled={selectedItem.status === 'removed'}
-                  className={`px-4 py-2.5 text-xs font-bold rounded-xl transition-all border-none flex items-center gap-1 ${
-                    selectedItem.status === 'removed'
-                      ? 'bg-rose-100/60 text-rose-300 cursor-not-allowed'
-                      : 'bg-rose-600 hover:bg-rose-700 text-white'
-                  }`}
-                >
-                  <Gavel className="w-3.5 h-3.5" />
-                  下架
-                </button>
+                {renderPanelActionButton({
+                  onClick: () => handleApprove(selectedItem.id),
+                  disabled: selectedItem.status === 'active',
+                  icon: <Check className="w-3.5 h-3.5" />,
+                  label: '上架',
+                  activeClassName: 'border-none bg-emerald-600 hover:bg-emerald-700 text-white',
+                  disabledClassName: 'border-none bg-emerald-100/60 text-emerald-400 cursor-not-allowed',
+                })}
+                {renderPanelActionButton({
+                  onClick: () => handleMarkSold(selectedItem.id),
+                  disabled: selectedItem.status === 'sold',
+                  label: '标记已售',
+                  activeClassName: 'border border-gray-200 dark:border-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800',
+                  disabledClassName: 'border border-gray-100 dark:border-gray-800 text-gray-400 dark:text-gray-500 bg-gray-50 dark:bg-gray-850 cursor-not-allowed',
+                })}
+                {renderPanelActionButton({
+                  onClick: () => setShowRejectModal(selectedItem.id),
+                  disabled: selectedItem.status === 'removed',
+                  icon: <Gavel className="w-3.5 h-3.5" />,
+                  label: '下架',
+                  activeClassName: 'border-none bg-rose-600 hover:bg-rose-700 text-white',
+                  disabledClassName: 'border-none bg-rose-100/60 text-rose-300 cursor-not-allowed',
+                })}
                 {selectedItem.status === 'removed' ? (
-                  <button
-                    onClick={() => handleApprove(selectedItem.id)}
-                    className="px-4 py-2.5 bg-primary hover:bg-primary/90 text-white text-xs font-bold rounded-xl border-none flex items-center gap-1"
-                  >
-                    <RotateCcw className="w-3.5 h-3.5" />
-                    重新上架
-                  </button>
+                  renderPanelActionButton({
+                    onClick: () => handleApprove(selectedItem.id),
+                    icon: <RotateCcw className="w-3.5 h-3.5" />,
+                    label: '重新上架',
+                    activeClassName: 'border-none bg-primary hover:bg-primary/90 text-white',
+                    disabledClassName: '',
+                  })
                 ) : null}
               </div>
             </motion.div>

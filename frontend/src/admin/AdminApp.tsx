@@ -1,4 +1,4 @@
-/**
+﻿/**
  * @license
  * SPDX-License-Identifier: Apache-2.0
  */
@@ -23,7 +23,7 @@ import type {
   User,
 } from './types';
 import { adminApi, type Result } from './services/adminApi';
-import { getPrimaryImage } from '../utils/images';
+import { getPrimaryImage } from './utils/images';
 import './admin.css';
 
 import Login from './components/Login';
@@ -136,6 +136,8 @@ function resolveUserProfile(lookup: UserProfileLookup, id?: string, name?: strin
   return (id ? lookup.byId.get(id) : undefined) || (name ? lookup.byName.get(name) : undefined);
 }
 
+type EnrichPayload = Parameters<typeof enrichWithUserProfiles>[0];
+
 function enrichWithUserProfiles(payload: {
   dynamics?: Dynamic[];
   goods?: Goods[];
@@ -247,6 +249,38 @@ export default function AdminApp() {
     setCurrentPath('/admin/login');
   };
 
+  const syncUsersFromResult = (res: Result<User[]>) => {
+    const userList = ok(res) ? res.data : users;
+    if (ok(res)) setUsers(userList);
+    return userList;
+  };
+
+  const applyEnrichedData = <K extends keyof EnrichPayload>(
+    key: K,
+    data: NonNullable<EnrichPayload[K]>,
+    userList: User[],
+    setter: (value: NonNullable<EnrichPayload[K]>) => void
+  ) => {
+    const enriched = enrichWithUserProfiles({ [key]: data } as EnrichPayload, userList)[key] || data;
+    setter(enriched as NonNullable<EnrichPayload[K]>);
+  };
+
+  const loadDataWithUsers = async <T, K extends keyof EnrichPayload>(
+    request: Promise<Result<T>>,
+    key: K,
+    setter: (value: NonNullable<EnrichPayload[K]>) => void
+  ) => {
+    const [res, userRes] = await Promise.all([request, adminApi.getUsers()]);
+    if ([res, userRes].some(isUnauthorized)) {
+      handleUnauthorized();
+      return;
+    }
+    const userList = syncUsersFromResult(userRes);
+    if (ok(res)) {
+      applyEnrichedData(key, res.data as NonNullable<EnrichPayload[K]>, userList, setter);
+    }
+  };
+
   const loadAdminShellData = async () => {
     const [sessionRes, menuRes] = await Promise.all([adminApi.getAdminInfo(), adminApi.getMenus()]);
     if (isUnauthorized(sessionRes) || isUnauthorized(menuRes)) {
@@ -325,12 +359,11 @@ export default function AdminApp() {
             adminApi.getUsers(),
           ]);
           if ([resStats, resDyn, resOrders, resServices, userRes].some(isUnauthorized)) return handleUnauthorized();
-          const userList = ok(userRes) ? userRes.data : users;
-          if (ok(userRes)) setUsers(userList);
+          const userList = syncUsersFromResult(userRes);
           if (ok(resStats)) setDashboardStats(resStats.data);
-          if (ok(resDyn)) setDynamics(enrichWithUserProfiles({ dynamics: resDyn.data }, userList).dynamics || resDyn.data);
-          if (ok(resOrders)) setOrders(enrichWithUserProfiles({ orders: resOrders.data }, userList).orders || resOrders.data);
-          if (ok(resServices)) setServices(enrichWithUserProfiles({ services: resServices.data }, userList).services || resServices.data);
+          if (ok(resDyn)) applyEnrichedData('dynamics', resDyn.data, userList, setDynamics);
+          if (ok(resOrders)) applyEnrichedData('orders', resOrders.data, userList, setOrders);
+          if (ok(resServices)) applyEnrichedData('services', resServices.data, userList, setServices);
           break;
         }
         case '/admin/users': {
@@ -340,35 +373,19 @@ export default function AdminApp() {
           break;
         }
         case '/admin/posts': {
-          const [res, userRes] = await Promise.all([adminApi.getDynamics(), adminApi.getUsers()]);
-          if ([res, userRes].some(isUnauthorized)) return handleUnauthorized();
-          const userList = ok(userRes) ? userRes.data : users;
-          if (ok(userRes)) setUsers(userList);
-          if (ok(res)) setDynamics(enrichWithUserProfiles({ dynamics: res.data }, userList).dynamics || res.data);
+          await loadDataWithUsers(adminApi.getDynamics(), 'dynamics', setDynamics);
           break;
         }
         case '/admin/market': {
-          const [res, userRes] = await Promise.all([adminApi.getGoods(), adminApi.getUsers()]);
-          if ([res, userRes].some(isUnauthorized)) return handleUnauthorized();
-          const userList = ok(userRes) ? userRes.data : users;
-          if (ok(userRes)) setUsers(userList);
-          if (ok(res)) setGoods(enrichWithUserProfiles({ goods: res.data }, userList).goods || res.data);
+          await loadDataWithUsers(adminApi.getGoods(), 'goods', setGoods);
           break;
         }
         case '/admin/services': {
-          const [res, userRes] = await Promise.all([adminApi.getServices(), adminApi.getUsers()]);
-          if ([res, userRes].some(isUnauthorized)) return handleUnauthorized();
-          const userList = ok(userRes) ? userRes.data : users;
-          if (ok(userRes)) setUsers(userList);
-          if (ok(res)) setServices(enrichWithUserProfiles({ services: res.data }, userList).services || res.data);
+          await loadDataWithUsers(adminApi.getServices(), 'services', setServices);
           break;
         }
         case '/admin/orders': {
-          const [res, userRes] = await Promise.all([adminApi.getOrders(), adminApi.getUsers()]);
-          if ([res, userRes].some(isUnauthorized)) return handleUnauthorized();
-          const userList = ok(userRes) ? userRes.data : users;
-          if (ok(userRes)) setUsers(userList);
-          if (ok(res)) setOrders(enrichWithUserProfiles({ orders: res.data }, userList).orders || res.data);
+          await loadDataWithUsers(adminApi.getOrders(), 'orders', setOrders);
           break;
         }
         case '/admin/notifications': {
@@ -384,11 +401,7 @@ export default function AdminApp() {
           break;
         }
         case '/admin/comments': {
-          const [res, userRes] = await Promise.all([adminApi.getManagedComments(), adminApi.getUsers()]);
-          if ([res, userRes].some(isUnauthorized)) return handleUnauthorized();
-          const userList = ok(userRes) ? userRes.data : users;
-          if (ok(userRes)) setUsers(userList);
-          if (ok(res)) setManagedComments(enrichWithUserProfiles({ comments: res.data }, userList).comments || res.data);
+          await loadDataWithUsers(adminApi.getManagedComments(), 'comments', setManagedComments);
           break;
         }
         case '/admin/blacklist': {
@@ -398,19 +411,11 @@ export default function AdminApp() {
           break;
         }
         case '/admin/images': {
-          const [res, userRes] = await Promise.all([adminApi.getImages(), adminApi.getUsers()]);
-          if ([res, userRes].some(isUnauthorized)) return handleUnauthorized();
-          const userList = ok(userRes) ? userRes.data : users;
-          if (ok(userRes)) setUsers(userList);
-          if (ok(res)) setImages(enrichWithUserProfiles({ images: res.data }, userList).images || res.data);
+          await loadDataWithUsers(adminApi.getImages(), 'images', setImages);
           break;
         }
         case '/admin/messages': {
-          const [res, userRes] = await Promise.all([adminApi.getMessages(), adminApi.getUsers()]);
-          if ([res, userRes].some(isUnauthorized)) return handleUnauthorized();
-          const userList = ok(userRes) ? userRes.data : users;
-          if (ok(userRes)) setUsers(userList);
-          if (ok(res)) setMessages(enrichWithUserProfiles({ messages: res.data }, userList).messages || res.data);
+          await loadDataWithUsers(adminApi.getMessages(), 'messages', setMessages);
           break;
         }
         case '/admin/login-logs': {
@@ -481,7 +486,7 @@ export default function AdminApp() {
 
   const runAction = async (action: Promise<Result<void>>) => {
     if (isReadonlyAdmin) {
-      alert('瑜版挸澧犵拹锕€褰挎稉鍝勫涧鐠囪崵顓搁悶鍡楁喅閿涘奔绗夐懗鑺ュ⒔鐞涘苯鍟撻幙宥勭稊');
+      alert('只读账号无权执行该操作');
       return;
     }
     const res = await action;
@@ -634,7 +639,7 @@ export default function AdminApp() {
                   ))}
                 </div>
                 <div className="h-[300px] bg-slate-200/40 border border-outline-variant/20 rounded-xl animate-pulse flex items-center justify-center p-6 text-outline select-none font-semibold">
-                  濡炪倗鏁诲浼村礆閸ャ劌搴婂☉鎿冨弿缁辨繂顫㈤敐鍛含闁告梻濮惧ù鍥嫉閳ь剟寮悧鍫熸闁?..
+                  图表加载中...
                 </div>
               </motion.div>
             ) : null}
@@ -647,3 +652,4 @@ export default function AdminApp() {
     </div>
   );
 }
+

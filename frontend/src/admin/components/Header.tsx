@@ -7,7 +7,7 @@ import React, { useMemo, useState } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { Menu } from 'lucide-react';
 import { NotificationItem, User, Dynamic, Goods, Service, Order } from '../types';
-import { getPrimaryImage } from '../../utils/images';
+import { getPrimaryImage } from '../utils/images';
 import { matchesAnyKeyword, normalizeSearchTerm } from '../utils/search';
 
 interface HeaderProps {
@@ -28,6 +28,22 @@ interface HeaderProps {
   onRefresh?: () => void;
   onToggleSidebar?: () => void;
   isDesktopLayout?: boolean;
+}
+
+interface SearchSectionItem {
+  id: string;
+  primary: string;
+  secondary?: string;
+  secondaryRight?: string;
+}
+
+interface SearchSectionConfig {
+  key: string;
+  title: string;
+  icon: string;
+  items: SearchSectionItem[];
+  onClick: (item: SearchSectionItem) => void;
+  variant?: 'stacked' | 'split';
 }
 
 const QUICK_LINKS = [
@@ -109,6 +125,89 @@ export default function Header({
     setTimeout(() => setIsRotating(false), 800);
   };
 
+  const closeSearchDropdown = (clearQuery = false) => {
+    setShowSearchDropdown(false);
+    if (clearQuery) setSearchQuery('');
+  };
+
+  const searchSections = useMemo<SearchSectionConfig[]>(
+    () => [
+      {
+        key: 'users',
+        title: `匹配用户 (${matchedUsers.length})`,
+        icon: 'group',
+        items: matchedUsers.slice(0, 3).map((user) => ({
+          id: user.id,
+          primary: user.name,
+          secondary: user.email,
+        })),
+        onClick: () => {
+          onNavigate?.('/admin/users');
+          closeSearchDropdown(true);
+        },
+      },
+      {
+        key: 'dynamics',
+        title: `匹配动态 (${matchedDynamics.length})`,
+        icon: 'chat',
+        variant: 'stacked',
+        items: matchedDynamics.slice(0, 3).map((dynamic) => ({
+          id: dynamic.id,
+          primary: dynamic.title,
+          secondary: `作者: ${dynamic.author}`,
+        })),
+        onClick: () => {
+          onNavigate?.('/admin/posts');
+          closeSearchDropdown(true);
+        },
+      },
+      {
+        key: 'goods',
+        title: `匹配商品 (${matchedGoods.length})`,
+        icon: 'shopping_bag',
+        items: matchedGoods.slice(0, 3).map((goodsItem) => ({
+          id: goodsItem.id,
+          primary: goodsItem.title,
+          secondaryRight: `¥${goodsItem.price}`,
+        })),
+        onClick: () => {
+          onNavigate?.('/admin/market');
+          closeSearchDropdown(true);
+        },
+      },
+      {
+        key: 'services',
+        title: `匹配服务 (${matchedServices.length})`,
+        icon: 'handyman',
+        variant: 'stacked',
+        items: matchedServices.slice(0, 3).map((service) => ({
+          id: service.id,
+          primary: service.title,
+          secondary: `服务者: ${service.providerName}`,
+        })),
+        onClick: () => {
+          onNavigate?.('/admin/services');
+          closeSearchDropdown(true);
+        },
+      },
+      {
+        key: 'orders',
+        title: `匹配订单 (${matchedOrders.length})`,
+        icon: 'receipt_long',
+        items: matchedOrders.slice(0, 3).map((order) => ({
+          id: order.id,
+          primary: order.id,
+          secondaryRight: `${order.buyerName} | ¥${order.price}`,
+        })),
+        onClick: (item) => {
+          onNavigate?.('/admin/orders', item.id);
+          closeSearchDropdown(true);
+        },
+      },
+    ].filter((section) => section.items.length > 0),
+    [matchedDynamics, matchedGoods, matchedOrders, matchedServices, matchedUsers, onNavigate]
+  );
+
   return (
     <header className="bg-surface-container-lowest min-h-16 border-b border-outline-variant/30 flex items-center justify-between gap-3 px-3 sm:px-4 lg:px-6 py-2 sticky top-0 z-30 select-none">
       <div className="flex items-center gap-2 sm:gap-3 min-w-0">
@@ -170,7 +269,7 @@ export default function Header({
                             key={link.path}
                             onClick={() => {
                               onNavigate?.(link.path);
-                              setShowSearchDropdown(false);
+                              closeSearchDropdown();
                             }}
                             className="flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs hover:bg-primary/5 text-secondary hover:text-primary transition-all text-left w-full border-none bg-transparent cursor-pointer"
                           >
@@ -183,131 +282,11 @@ export default function Header({
                   ) : (
                     <div className="space-y-3.5">
                       {!hasResults && <p className="text-center text-xs text-outline py-4 select-none">没有匹配的搜索结果</p>}
-
-                      {matchedUsers.length > 0 && (
-                        <div>
-                          <p className="text-[10px] text-primary font-bold uppercase tracking-wider px-2 mb-1.5 flex items-center gap-1 select-none">
-                            <span className="material-symbols-outlined text-[12px]">group</span>
-                            匹配用户 ({matchedUsers.length})
-                          </p>
-                          <div className="space-y-0.5">
-                            {matchedUsers.slice(0, 3).map((u) => (
-                              <button
-                                key={u.id}
-                                onClick={() => {
-                                  onNavigate?.('/admin/users');
-                                  setShowSearchDropdown(false);
-                                  setSearchQuery('');
-                                }}
-                                className="w-full text-left px-2 py-1 rounded-lg text-xs hover:bg-surface-container-low flex justify-between items-center transition-all cursor-pointer border-none bg-transparent"
-                              >
-                                <span className="font-semibold text-on-surface truncate">{u.name}</span>
-                                <span className="text-[10px] text-outline font-data-mono truncate max-w-[150px]">{u.email}</span>
-                              </button>
-                            ))}
-                          </div>
-                        </div>
-                      )}
-
-                      {matchedDynamics.length > 0 && (
-                        <div>
-                          <p className="text-[10px] text-primary font-bold uppercase tracking-wider px-2 mb-1.5 flex items-center gap-1 select-none">
-                            <span className="material-symbols-outlined text-[12px]">chat</span>
-                            匹配动态 ({matchedDynamics.length})
-                          </p>
-                          <div className="space-y-0.5">
-                            {matchedDynamics.slice(0, 3).map((d) => (
-                              <button
-                                key={d.id}
-                                onClick={() => {
-                                  onNavigate?.('/admin/posts');
-                                  setShowSearchDropdown(false);
-                                  setSearchQuery('');
-                                }}
-                                className="w-full px-2 py-1 rounded-lg text-xs hover:bg-surface-container-low flex flex-col transition-all cursor-pointer border-none bg-transparent text-left"
-                              >
-                                <span className="text-on-surface truncate w-full">{d.title}</span>
-                                <span className="text-[9px] text-outline mt-0.5">作者: {d.author}</span>
-                              </button>
-                            ))}
-                          </div>
-                        </div>
-                      )}
-
-                      {matchedGoods.length > 0 && (
-                        <div>
-                          <p className="text-[10px] text-primary font-bold uppercase tracking-wider px-2 mb-1.5 flex items-center gap-1 select-none">
-                            <span className="material-symbols-outlined text-[12px]">shopping_bag</span>
-                            匹配商品 ({matchedGoods.length})
-                          </p>
-                          <div className="space-y-0.5">
-                            {matchedGoods.slice(0, 3).map((g) => (
-                              <button
-                                key={g.id}
-                                onClick={() => {
-                                  onNavigate?.('/admin/market');
-                                  setShowSearchDropdown(false);
-                                  setSearchQuery('');
-                                }}
-                                className="w-full text-left px-2 py-1 rounded-lg text-xs hover:bg-surface-container-low flex justify-between items-center transition-all cursor-pointer border-none bg-transparent"
-                              >
-                                <span className="text-on-surface truncate mr-2 flex-1">{g.title}</span>
-                                <span className="text-[10px] text-status-normal font-bold font-data-mono">¥{g.price}</span>
-                              </button>
-                            ))}
-                          </div>
-                        </div>
-                      )}
-
-                      {matchedServices.length > 0 && (
-                        <div>
-                          <p className="text-[10px] text-primary font-bold uppercase tracking-wider px-2 mb-1.5 flex items-center gap-1 select-none">
-                            <span className="material-symbols-outlined text-[12px]">handyman</span>
-                            匹配服务 ({matchedServices.length})
-                          </p>
-                          <div className="space-y-0.5">
-                            {matchedServices.slice(0, 3).map((s) => (
-                              <button
-                                key={s.id}
-                                onClick={() => {
-                                  onNavigate?.('/admin/services');
-                                  setShowSearchDropdown(false);
-                                  setSearchQuery('');
-                                }}
-                                className="w-full px-2 py-1 rounded-lg text-xs hover:bg-surface-container-low flex flex-col transition-all cursor-pointer border-none bg-transparent text-left"
-                              >
-                                <span className="text-on-surface truncate w-full">{s.title}</span>
-                                <span className="text-[9px] text-outline mt-0.5">服务者: {s.providerName}</span>
-                              </button>
-                            ))}
-                          </div>
-                        </div>
-                      )}
-
-                      {matchedOrders.length > 0 && (
-                        <div>
-                          <p className="text-[10px] text-primary font-bold uppercase tracking-wider px-2 mb-1.5 flex items-center gap-1 select-none">
-                            <span className="material-symbols-outlined text-[12px]">receipt_long</span>
-                            匹配订单 ({matchedOrders.length})
-                          </p>
-                          <div className="space-y-0.5">
-                            {matchedOrders.slice(0, 3).map((o) => (
-                              <button
-                                key={o.id}
-                                onClick={() => {
-                                  onNavigate?.('/admin/orders', o.id);
-                                  setShowSearchDropdown(false);
-                                  setSearchQuery('');
-                                }}
-                                className="w-full text-left px-2 py-1 rounded-lg text-xs hover:bg-surface-container-low flex justify-between items-center transition-all cursor-pointer border-none bg-transparent"
-                              >
-                                <span className="text-on-surface font-data-mono truncate mr-2">{o.id}</span>
-                                <span className="text-[10px] text-outline truncate">{o.buyerName} | ¥{o.price}</span>
-                              </button>
-                            ))}
-                          </div>
-                        </div>
-                      )}
+                      {searchSections.map((section) => (
+                        <React.Fragment key={section.key}>
+                          <SearchResultSection section={section} />
+                        </React.Fragment>
+                      ))}
                     </div>
                   )}
                 </motion.div>
@@ -471,5 +450,38 @@ export default function Header({
         </div>
       </div>
     </header>
+  );
+}
+
+function SearchResultSection({ section }: { section: SearchSectionConfig }) {
+  return (
+    <div>
+      <p className="text-[10px] text-primary font-bold uppercase tracking-wider px-2 mb-1.5 flex items-center gap-1 select-none">
+        <span className="material-symbols-outlined text-[12px]">{section.icon}</span>
+        {section.title}
+      </p>
+      <div className="space-y-0.5">
+        {section.items.map((item) => (
+          <button
+            key={item.id}
+            onClick={() => section.onClick(item)}
+            className={`w-full px-2 py-1 rounded-lg text-xs hover:bg-surface-container-low transition-all cursor-pointer border-none bg-transparent text-left ${
+              section.variant === 'stacked' ? 'flex flex-col' : 'flex justify-between items-center'
+            }`}
+          >
+            <span className={`truncate ${section.variant === 'stacked' ? 'w-full text-on-surface' : 'font-semibold text-on-surface'}`}>
+              {item.primary}
+            </span>
+            {section.variant === 'stacked' ? (
+              item.secondary ? <span className="text-[9px] text-outline mt-0.5">{item.secondary}</span> : null
+            ) : (
+              <span className="text-[10px] text-outline font-data-mono truncate max-w-[150px]">
+                {item.secondaryRight || item.secondary}
+              </span>
+            )}
+          </button>
+        ))}
+      </div>
+    </div>
   );
 }

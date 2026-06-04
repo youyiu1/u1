@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import { ReactNode, useEffect, useLayoutEffect, useRef, useState } from 'react';
+import React, { ReactNode, useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { motion } from 'motion/react';
 import { DashboardStats, Dynamic, Order, Service } from '../types';
 import {
@@ -32,6 +32,24 @@ interface DashboardViewProps {
 }
 
 type ChartSize = { width: number; height: number };
+type SummaryItem = {
+  title: string;
+  value: string;
+  trend: string;
+  icon: string;
+  color: string;
+  bg: string;
+  onClick: () => void;
+};
+type DashboardTask = {
+  title: string;
+  count: number;
+  desc: string;
+  path: string;
+  filter: string;
+  icon: string;
+  color: string;
+};
 
 function ChartShell({ height, children }: { height: number; children: (size: ChartSize) => ReactNode }) {
   const ref = useRef<HTMLDivElement | null>(null);
@@ -78,7 +96,7 @@ function ChartShell({ height, children }: { height: number; children: (size: Cha
 export default function DashboardView({ stats, dynamics, orders, services, onNavigate }: DashboardViewProps) {
   const formatNum = (num: number) => num.toLocaleString();
 
-  const summaryItems = [
+  const summaryItems: SummaryItem[] = [
     {
       title: '总用户数',
       value: formatNum(stats.totalUsers),
@@ -157,7 +175,7 @@ export default function DashboardView({ stats, dynamics, orders, services, onNav
   const pendingDynamicCount = dynamics.filter((dynamic) => dynamic.status === 'pending').length;
   const abnormalOrderCount = orders.filter((order) => order.status === 'abnormal').length;
 
-  const orderTasks = [
+  const orderTasks: DashboardTask[] = [
     { title: '审核服务', count: pendingServiceCount, desc: '真实待处理：服务待审核', path: '/admin/services', filter: 'pending', icon: 'home_repair_service', color: 'border-l-status-pending' },
     { title: '违规内容', count: pendingDynamicCount, desc: '真实待处理：动态待审核', path: '/admin/posts', filter: 'pending', icon: 'gavel', color: 'border-l-status-error' },
     { title: '异常订单', count: abnormalOrderCount, desc: '真实待处理：异常订单', path: '/admin/orders', filter: 'abnormal', icon: 'warning', color: 'border-l-status-unlisted' },
@@ -167,25 +185,9 @@ export default function DashboardView({ stats, dynamics, orders, services, onNav
     <motion.div initial={{ opacity: 0, y: 15 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -15 }} transition={{ duration: 0.25 }} className="space-y-6">
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
         {summaryItems.map((item) => (
-          <motion.div
-            key={item.title}
-            whileHover={{ y: -4, scale: 1.01 }}
-            whileTap={{ scale: 0.99 }}
-            onClick={item.onClick}
-            className="bg-surface-container-lowest rounded-xl p-5 border border-outline-variant/30 shadow-[0_4px_12px_rgba(0,0,0,0.02)] transition-all cursor-pointer group"
-          >
-            <div className="flex justify-between items-start mb-4">
-              <span className="font-label-md text-label-md text-secondary select-none">{item.title}</span>
-              <div className={`w-8 h-8 rounded-lg ${item.bg} flex items-center justify-center ${item.color} group-hover:scale-110 transition-transform`}>
-                <span className="material-symbols-outlined text-[18px]">{item.icon}</span>
-              </div>
-            </div>
-            <div className="font-data-mono text-headline-xl font-bold text-on-surface mb-2">{item.value}</div>
-            <div className="flex items-center gap-1 font-body-sm text-body-sm select-none">
-              <span className={`material-symbols-outlined text-[16px] ${item.color} font-bold`}>trending_up</span>
-              <span className="text-status-normal font-semibold">{item.trend}</span>
-            </div>
-          </motion.div>
+          <React.Fragment key={item.title}>
+            <DashboardSummaryCard item={item} />
+          </React.Fragment>
         ))}
       </div>
 
@@ -199,14 +201,7 @@ export default function DashboardView({ stats, dynamics, orders, services, onNav
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          <div className="bg-surface-container-low/20 rounded-xl border border-outline-variant/20 p-4 flex flex-col justify-between h-[360px] min-w-0">
-            <div className="mb-2 select-none">
-              <div className="font-semibold text-on-surface flex items-center gap-1.5 text-sm">
-                <span className="w-1.5 h-1.5 rounded-full bg-primary" />
-                业务增长趋势
-              </div>
-              <p className="text-[11px] text-outline mt-0.5">展示过去一周核心业务板块变化</p>
-            </div>
+          <ChartPanel title="业务增长趋势" description="展示过去一周核心业务板块变化" dotClassName="bg-primary">
             <ChartShell height={250}>
               {({ width, height }) => (
                 <LineChart width={width} height={height} data={weeklyTrendData} margin={{ top: 10, right: 10, left: -10, bottom: 0 }}>
@@ -222,17 +217,9 @@ export default function DashboardView({ stats, dynamics, orders, services, onNav
                 </LineChart>
               )}
             </ChartShell>
-          </div>
+          </ChartPanel>
 
-          <div className="bg-surface-container-low/20 rounded-xl border border-outline-variant/20 p-4 flex flex-col justify-between h-[360px] min-w-0">
-            <div className="select-none mb-2">
-              <div className="font-semibold text-on-surface flex items-center gap-1.5 text-sm">
-                <span className="w-1.5 h-1.5 rounded-full bg-secondary" />
-                当前业务占比
-              </div>
-              <p className="text-[11px] text-outline mt-0.5">展示后台四大板块的分布情况</p>
-            </div>
-
+          <ChartPanel title="当前业务占比" description="展示后台四大板块的分布情况" dotClassName="bg-secondary">
             <div className="relative flex-1 min-w-0">
               <ChartShell height={150}>
                 {({ width, height }) => (
@@ -270,16 +257,9 @@ export default function DashboardView({ stats, dynamics, orders, services, onNav
                 })}
               </div>
             </div>
-          </div>
+          </ChartPanel>
 
-          <div className="bg-surface-container-low/20 rounded-xl border border-outline-variant/20 p-4 flex flex-col justify-between h-[360px] min-w-0">
-            <div className="mb-2 select-none">
-              <div className="font-semibold text-on-surface flex items-center gap-1.5 text-sm">
-                <span className="w-1.5 h-1.5 rounded-full bg-status-normal" />
-                周度业务对比
-              </div>
-              <p className="text-[11px] text-outline mt-0.5">每天多版块活跃度条形对比</p>
-            </div>
+          <ChartPanel title="周度业务对比" description="每天多版块活跃度条形对比" dotClassName="bg-status-normal">
             <ChartShell height={250}>
               {({ width, height }) => (
                 <BarChart width={width} height={height} data={weeklyTrendData} margin={{ top: 10, right: 10, left: -10, bottom: 0 }}>
@@ -295,16 +275,9 @@ export default function DashboardView({ stats, dynamics, orders, services, onNav
                 </BarChart>
               )}
             </ChartShell>
-          </div>
+          </ChartPanel>
 
-          <div className="bg-surface-container-low/20 rounded-xl border border-outline-variant/20 p-4 flex flex-col justify-between h-[360px] min-w-0">
-            <div className="mb-2 select-none">
-              <div className="font-semibold text-on-surface flex items-center gap-1.5 text-sm">
-                <span className="w-1.5 h-1.5 rounded-full bg-status-normal" />
-                平台流量趋势
-              </div>
-              <p className="text-[11px] text-outline mt-0.5">展示页面浏览量 PV 与独立访客 UV</p>
-            </div>
+          <ChartPanel title="平台流量趋势" description="展示页面浏览量 PV 与独立访客 UV" dotClassName="bg-status-normal">
             <ChartShell height={250}>
               {({ width, height }) => (
                 <AreaChart width={width} height={height} data={pvData} margin={{ top: 10, right: 10, left: -10, bottom: 0 }}>
@@ -328,7 +301,7 @@ export default function DashboardView({ stats, dynamics, orders, services, onNav
                 </AreaChart>
               )}
             </ChartShell>
-          </div>
+          </ChartPanel>
         </div>
       </div>
 
@@ -336,58 +309,147 @@ export default function DashboardView({ stats, dynamics, orders, services, onNav
         <h3 className="font-headline-md text-headline-md text-on-surface mb-4">待处理事项</h3>
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
           {orderTasks.map((task) => (
-            <div key={task.title} className={`bg-surface-container-lowest rounded-xl p-5 border-l-4 ${task.color} shadow-sm flex flex-col justify-between h-[140px]`}>
-              <div className="flex justify-between items-start">
-                <div className="flex items-center gap-2">
-                  <span className="material-symbols-outlined text-status-pending font-bold">{task.icon}</span>
-                  <span className="font-headline-md text-headline-md text-on-surface select-none">{task.title}</span>
-                </div>
-                <span className="font-data-mono text-headline-xl font-bold text-status-pending">{task.count}</span>
-              </div>
-              <div className="flex justify-between items-end mt-4 gap-3">
-                <span className="font-body-sm text-body-sm text-secondary select-none">{task.desc}</span>
-                <button onClick={() => onNavigate(task.path, task.filter)} className="px-4 py-1.5 bg-surface-container border border-outline-variant/50 text-on-surface text-label-md font-label-md rounded-lg hover:bg-surface-container-highest cursor-pointer transition-colors focus:outline-none">
-                  去处理
-                </button>
-              </div>
-            </div>
+            <React.Fragment key={task.title}>
+              <TaskCard task={task} onNavigate={onNavigate} />
+            </React.Fragment>
           ))}
         </div>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <div className="bg-surface-container-lowest rounded-xl border border-outline-variant/20 p-5">
-          <h3 className="font-semibold text-on-surface mb-4">最新动态</h3>
-          <div className="space-y-3 max-h-[280px] overflow-auto pr-1">
-            {dynamics.slice(0, 5).map((item) => (
-              <div key={item.id} className="flex items-center justify-between gap-3 border-b border-outline-variant/10 pb-3 last:border-b-0 last:pb-0">
-                <div className="min-w-0">
-                  <div className="text-sm font-medium text-on-surface truncate">{item.title}</div>
-                  <div className="text-xs text-outline">{item.author} · {item.time}</div>
-                </div>
-                <button className="text-xs font-semibold text-primary" onClick={() => onNavigate('/admin/posts')}>查看</button>
-              </div>
-            ))}
-            {dynamics.length === 0 && <div className="text-sm text-outline">暂无动态数据</div>}
-          </div>
-        </div>
+        <OverviewList
+          title="最新动态"
+          emptyText="暂无动态数据"
+          items={dynamics.slice(0, 5).map((item) => ({
+            id: item.id,
+            title: item.title,
+            subtitle: `${item.author} · ${item.time}`,
+            path: '/admin/posts',
+          }))}
+          onNavigate={onNavigate}
+        />
 
-        <div className="bg-surface-container-lowest rounded-xl border border-outline-variant/20 p-5">
-          <h3 className="font-semibold text-on-surface mb-4">最近订单</h3>
-          <div className="space-y-3 max-h-[280px] overflow-auto pr-1">
-            {orders.slice(0, 5).map((item) => (
-              <div key={item.id} className="flex items-center justify-between gap-3 border-b border-outline-variant/10 pb-3 last:border-b-0 last:pb-0">
-                <div className="min-w-0">
-                  <div className="text-sm font-medium text-on-surface truncate">{item.serviceName}</div>
-                  <div className="text-xs text-outline">{item.buyerName} · {item.status}</div>
-                </div>
-                <button className="text-xs font-semibold text-primary" onClick={() => onNavigate('/admin/orders')}>查看</button>
-              </div>
-            ))}
-            {orders.length === 0 && <div className="text-sm text-outline">暂无订单数据</div>}
-          </div>
-        </div>
+        <OverviewList
+          title="最近订单"
+          emptyText="暂无订单数据"
+          items={orders.slice(0, 5).map((item) => ({
+            id: item.id,
+            title: item.serviceName,
+            subtitle: `${item.buyerName} · ${item.status}`,
+            path: '/admin/orders',
+          }))}
+          onNavigate={onNavigate}
+        />
       </div>
     </motion.div>
+  );
+}
+
+function DashboardSummaryCard({ item }: { item: SummaryItem }) {
+  return (
+    <motion.div
+      whileHover={{ y: -4, scale: 1.01 }}
+      whileTap={{ scale: 0.99 }}
+      onClick={item.onClick}
+      className="group cursor-pointer rounded-xl border border-outline-variant/30 bg-surface-container-lowest p-5 shadow-[0_4px_12px_rgba(0,0,0,0.02)] transition-all"
+    >
+      <div className="mb-4 flex items-start justify-between">
+        <span className="font-label-md text-label-md text-secondary">{item.title}</span>
+        <div className={`flex h-8 w-8 items-center justify-center rounded-lg ${item.bg} ${item.color} transition-transform group-hover:scale-110`}>
+          <span className="material-symbols-outlined text-[18px]">{item.icon}</span>
+        </div>
+      </div>
+      <div className="mb-2 font-data-mono text-headline-xl font-bold text-on-surface">{item.value}</div>
+      <div className="flex items-center gap-1 font-body-sm text-body-sm">
+        <span className={`material-symbols-outlined text-[16px] font-bold ${item.color}`}>trending_up</span>
+        <span className="font-semibold text-status-normal">{item.trend}</span>
+      </div>
+    </motion.div>
+  );
+}
+
+function ChartPanel({
+  title,
+  description,
+  dotClassName,
+  children,
+}: {
+  title: string;
+  description: string;
+  dotClassName: string;
+  children: ReactNode;
+}) {
+  return (
+    <div className="flex h-[360px] min-w-0 flex-col justify-between rounded-xl border border-outline-variant/20 bg-surface-container-low/20 p-4">
+      <div className="mb-2">
+        <div className="flex items-center gap-1.5 text-sm font-semibold text-on-surface">
+          <span className={`h-1.5 w-1.5 rounded-full ${dotClassName}`} />
+          {title}
+        </div>
+        <p className="mt-0.5 text-[11px] text-outline">{description}</p>
+      </div>
+      {children}
+    </div>
+  );
+}
+
+function TaskCard({
+  task,
+  onNavigate,
+}: {
+  task: DashboardTask;
+  onNavigate: (tab: string, filter?: string) => void;
+}) {
+  return (
+    <div className={`flex h-[140px] flex-col justify-between rounded-xl border-l-4 bg-surface-container-lowest p-5 shadow-sm ${task.color}`}>
+      <div className="flex items-start justify-between">
+        <div className="flex items-center gap-2">
+          <span className="material-symbols-outlined font-bold text-status-pending">{task.icon}</span>
+          <span className="font-headline-md text-headline-md text-on-surface">{task.title}</span>
+        </div>
+        <span className="font-data-mono text-headline-xl font-bold text-status-pending">{task.count}</span>
+      </div>
+      <div className="mt-4 flex items-end justify-between gap-3">
+        <span className="font-body-sm text-body-sm text-secondary">{task.desc}</span>
+        <button
+          onClick={() => onNavigate(task.path, task.filter)}
+          className="rounded-lg border border-outline-variant/50 bg-surface-container px-4 py-1.5 text-label-md font-label-md text-on-surface transition-colors hover:bg-surface-container-highest focus:outline-none"
+        >
+          去处理
+        </button>
+      </div>
+    </div>
+  );
+}
+
+function OverviewList({
+  title,
+  emptyText,
+  items,
+  onNavigate,
+}: {
+  title: string;
+  emptyText: string;
+  items: Array<{ id: string; title: string; subtitle: string; path: string }>;
+  onNavigate: (tab: string, filter?: string) => void;
+}) {
+  return (
+    <div className="rounded-xl border border-outline-variant/20 bg-surface-container-lowest p-5">
+      <h3 className="mb-4 font-semibold text-on-surface">{title}</h3>
+      <div className="max-h-[280px] space-y-3 overflow-auto pr-1">
+        {items.map((item) => (
+          <div key={item.id} className="flex items-center justify-between gap-3 border-b border-outline-variant/10 pb-3 last:border-b-0 last:pb-0">
+            <div className="min-w-0">
+              <div className="truncate text-sm font-medium text-on-surface">{item.title}</div>
+              <div className="text-xs text-outline">{item.subtitle}</div>
+            </div>
+            <button className="text-xs font-semibold text-primary" onClick={() => onNavigate(item.path)}>
+              查看
+            </button>
+          </div>
+        ))}
+        {items.length === 0 ? <div className="text-sm text-outline">{emptyText}</div> : null}
+      </div>
+    </div>
   );
 }

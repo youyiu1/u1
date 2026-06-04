@@ -1,5 +1,5 @@
 import React from 'react';
-import { getPrimaryImage } from '../../../utils/images';
+import { getPrimaryImage } from '../../utils/images';
 
 interface UserSquareCardProps {
   key?: React.Key;

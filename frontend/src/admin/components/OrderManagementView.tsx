@@ -16,7 +16,7 @@ import {
   X,
 } from 'lucide-react';
 import { Order } from '../types';
-import { getPrimaryImage } from '../../utils/images';
+import { getPrimaryImage } from '../utils/images';
 import { useToast } from '../hooks/useToast';
 import { groupItemsByOwner, type EntityOwnerGroup } from '../utils/entityGrouping';
 import { matchesAnyKeyword, normalizeSearchTerm } from '../utils/search';
@@ -25,6 +25,7 @@ import AdminFilterPills from './common/AdminFilterPills';
 import AdminGroupHeader from './common/AdminGroupHeader';
 import AdminInfoCard from './common/AdminInfoCard';
 import AdminSearchInput from './common/AdminSearchInput';
+import AdminStatusBadge, { orderStatusMap } from './common/AdminStatusBadge';
 import AdminToast from './common/AdminToast';
 import EmptyState from './common/EmptyState';
 import UserSquareCard from './common/UserSquareCard';
@@ -39,6 +40,15 @@ interface OrderManagementViewProps {
 type OrderStatus = 'all' | 'pending_payment' | 'pending_execution' | 'completed' | 'canceled' | 'abnormal';
 
 type BuyerGroup = EntityOwnerGroup<Order>;
+
+const ORDER_FILTER_OPTIONS: { value: OrderStatus; label: string }[] = [
+  { value: 'all', label: '全部' },
+  { value: 'pending_payment', label: '待付款' },
+  { value: 'pending_execution', label: '待服务' },
+  { value: 'completed', label: '已完成' },
+  { value: 'canceled', label: '已取消' },
+  { value: 'abnormal', label: '异常单' },
+];
 
 export default function OrderManagementView({ orders, onForceCancelOrder, initialSelectedOrderId, initialTabFilter }: OrderManagementViewProps) {
   const [searchTerm, setSearchTerm] = useState('');
@@ -107,40 +117,7 @@ export default function OrderManagementView({ orders, onForceCancelOrder, initia
   }, [orders, selectedOrder]);
 
   const tableOrders = activeBuyerGroup?.items || [];
-
-  const getStatusLabelText = (st: string) => {
-    switch (st) {
-      case 'completed':
-        return '已完成';
-      case 'pending_payment':
-        return '待付款';
-      case 'pending_execution':
-        return '待服务';
-      case 'canceled':
-        return '已取消';
-      case 'abnormal':
-        return '异常单';
-      default:
-        return '其他';
-    }
-  };
-
-  const getStatusBadgeStyle = (st: string) => {
-    switch (st) {
-      case 'completed':
-        return 'bg-emerald-500/10 text-emerald-600 border border-emerald-500/20';
-      case 'pending_payment':
-        return 'bg-amber-500/10 text-amber-600 border border-amber-500/20';
-      case 'pending_execution':
-        return 'bg-indigo-500/10 text-indigo-600 border border-indigo-500/20';
-      case 'canceled':
-        return 'bg-gray-100 text-gray-500 border border-gray-200';
-      case 'abnormal':
-        return 'bg-rose-500/10 text-rose-600 border border-rose-500/20';
-      default:
-        return 'bg-gray-50 text-gray-600';
-    }
-  };
+  const selectOrder = (order: Order) => setSelectedOrder(order);
 
   const handleCancelSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -162,14 +139,7 @@ export default function OrderManagementView({ orders, onForceCancelOrder, initia
       <div className="bg-white dark:bg-gray-900 p-4 rounded-2xl border border-gray-100 dark:border-gray-800/60 shadow-sm flex flex-col gap-3">
         <div className="flex flex-wrap items-center gap-2">
           <AdminFilterPills
-            options={[
-              { value: 'all', label: '全部' },
-              { value: 'pending_payment', label: '待付款' },
-              { value: 'pending_execution', label: '待服务' },
-              { value: 'completed', label: '已完成' },
-              { value: 'canceled', label: '已取消' },
-              { value: 'abnormal', label: '异常单' },
-            ]}
+            options={ORDER_FILTER_OPTIONS}
             activeValue={statusFilter}
             onChange={setStatusFilter}
           />
@@ -230,7 +200,7 @@ export default function OrderManagementView({ orders, onForceCancelOrder, initia
                     <tr
                       key={ord.id}
                       className={`hover:bg-slate-50 dark:hover:bg-slate-800/30 transition-colors cursor-pointer ${selectedOrder?.id === ord.id ? 'bg-slate-50 dark:bg-slate-800/30' : ''}`}
-                      onClick={() => setSelectedOrder(ord)}
+                      onClick={() => selectOrder(ord)}
                     >
                       <td className="p-4">
                         <div className="flex items-center gap-2">
@@ -246,12 +216,10 @@ export default function OrderManagementView({ orders, onForceCancelOrder, initia
                         <p>卖：{ord.sellerName}</p>
                       </td>
                       <td className="p-4 text-xs font-bold text-rose-500">¥{ord.paymentPrice.toFixed(2)}</td>
-                      <td className="p-4">
-                        <span className={`inline-flex items-center px-2.5 py-1 rounded-full text-xs font-bold ${getStatusBadgeStyle(ord.status)}`}>{getStatusLabelText(ord.status)}</span>
-                      </td>
+                      <td className="p-4"><AdminStatusBadge status={ord.status} statusMap={orderStatusMap} /></td>
                       <td className="p-4 text-right" onClick={(e) => e.stopPropagation()}>
                         <div className="flex items-center justify-end gap-1">
-                          <button onClick={() => setSelectedOrder(ord)} className="text-[10px] px-2 py-0.5 rounded-md bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-200">
+                          <button onClick={() => selectOrder(ord)} className="text-[10px] px-2 py-0.5 rounded-md bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-200">
                             详情
                           </button>
                           {canForceCancel(ord) && (
@@ -304,7 +272,7 @@ export default function OrderManagementView({ orders, onForceCancelOrder, initia
               <div className="p-6 space-y-6 flex-grow">
                 <div className="rounded-2xl border border-gray-100 dark:border-gray-800 bg-gray-50 dark:bg-gray-950 p-6 flex items-center justify-between gap-4">
                   <div className="min-w-0">
-                    <span className={`inline-flex items-center px-2.5 py-1 rounded-full text-xs font-bold ${getStatusBadgeStyle(selectedOrder.status)}`}>{getStatusLabelText(selectedOrder.status)}</span>
+                    <AdminStatusBadge status={selectedOrder.status} statusMap={orderStatusMap} />
                     <h4 className="text-lg font-black text-gray-900 dark:text-white mt-3 leading-normal">{selectedOrder.serviceName}</h4>
                     <p className="mt-2 text-[11px] text-gray-400 font-mono">订单号：{selectedOrder.id}</p>
                   </div>

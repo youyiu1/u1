@@ -4,31 +4,31 @@
  */
 
 import { lazy, Suspense } from 'react';
-import { BrowserRouter, Routes, Route } from 'react-router-dom';
-import { AuthProvider } from './context/AuthContext';
-import { ChatProvider } from './context/ChatContext';
-import { ToastProvider } from './context/ToastContext';
-import { NotificationProvider } from './context/NotificationContext';
-import { PublishProvider } from './context/PublishContext';
-import Layout from './components/layout/Layout';
+import { BrowserRouter, Route, Routes } from 'react-router-dom';
+import { AuthProvider } from './user/context/AuthContext';
+import { ChatProvider } from './user/context/ChatContext';
+import { NotificationProvider } from './user/context/NotificationContext';
+import { PublishProvider } from './user/context/PublishContext';
+import { ToastProvider } from './user/context/ToastContext';
+import Layout from './user/components/layout/Layout';
 
-const Home = lazy(() => import('./pages/Home'));
-const ServiceList = lazy(() => import('./pages/ServiceList'));
-const MarketList = lazy(() => import('./pages/MarketList'));
-const News = lazy(() => import('./pages/News'));
-const NewsDetail = lazy(() => import('./pages/NewsDetail'));
-const Profile = lazy(() => import('./pages/Profile'));
-const ServiceDetail = lazy(() => import('./pages/ServiceDetail'));
-const ItemDetail = lazy(() => import('./pages/ItemDetail'));
-const Search = lazy(() => import('./pages/Search'));
-const Login = lazy(() => import('./pages/Login'));
-const Register = lazy(() => import('./pages/Register'));
+const Home = lazy(() => import('./user/pages/home/HomePage'));
+const ServiceList = lazy(() => import('./user/pages/service/ServiceListPage'));
+const MarketList = lazy(() => import('./user/pages/market/MarketListPage'));
+const News = lazy(() => import('./user/pages/news/NewsListPage'));
+const NewsDetail = lazy(() => import('./user/pages/news/NewsDetailPage'));
+const Profile = lazy(() => import('./user/pages/profile/ProfilePage'));
+const ServiceDetail = lazy(() => import('./user/pages/service/ServiceDetailPage'));
+const ItemDetail = lazy(() => import('./user/pages/market/ItemDetailPage'));
+const Search = lazy(() => import('./user/pages/search/SearchPage'));
+const Login = lazy(() => import('./user/pages/auth/LoginPage'));
+const Register = lazy(() => import('./user/pages/auth/RegisterPage'));
 const AdminApp = lazy(() => import('./admin/AdminApp'));
 
 function PageFallback() {
   return (
-    <div className="min-h-[60vh] flex items-center justify-center">
-      <div className="w-8 h-8 border-4 border-primary border-t-transparent rounded-full animate-spin" />
+    <div className="flex min-h-[60vh] items-center justify-center">
+      <div className="h-8 w-8 animate-spin rounded-full border-4 border-primary border-t-transparent" />
     </div>
   );
 }
@@ -39,31 +39,31 @@ export default function App() {
       <ToastProvider>
         <NotificationProvider>
           <ChatProvider>
-          <PublishProvider>
-          <BrowserRouter>
-            <Suspense fallback={<PageFallback />}>
-              <Routes>
-                <Route path="/admin/*" element={<AdminApp />} />
-                <Route path="/" element={<Layout />}>
-                  <Route index element={<Home />} />
-                  <Route path="service" element={<ServiceList />} />
-                  <Route path="service/:id" element={<ServiceDetail />} />
-                  <Route path="market" element={<MarketList />} />
-                  <Route path="item/:id" element={<ItemDetail />} />
-                  <Route path="news" element={<News />} />
-                  <Route path="news/:id" element={<NewsDetail />} />
-                  <Route path="profile" element={<Profile />} />
-                  <Route path="profile/:username" element={<Profile />} />
-                  <Route path="search" element={<Search />} />
-                  <Route path="login" element={<Login />} />
-                  <Route path="register" element={<Register />} />
-                  <Route path="*" element={<Home />} />
-                </Route>
-              </Routes>
-            </Suspense>
-          </BrowserRouter>
-          </PublishProvider>
-        </ChatProvider>
+            <PublishProvider>
+              <BrowserRouter>
+                <Suspense fallback={<PageFallback />}>
+                  <Routes>
+                    <Route path="/admin/*" element={<AdminApp />} />
+                    <Route path="/" element={<Layout />}>
+                      <Route index element={<Home />} />
+                      <Route path="service" element={<ServiceList />} />
+                      <Route path="service/:id" element={<ServiceDetail />} />
+                      <Route path="market" element={<MarketList />} />
+                      <Route path="item/:id" element={<ItemDetail />} />
+                      <Route path="news" element={<News />} />
+                      <Route path="news/:id" element={<NewsDetail />} />
+                      <Route path="profile" element={<Profile />} />
+                      <Route path="profile/:username" element={<Profile />} />
+                      <Route path="search" element={<Search />} />
+                      <Route path="login" element={<Login />} />
+                      <Route path="register" element={<Register />} />
+                      <Route path="*" element={<Home />} />
+                    </Route>
+                  </Routes>
+                </Suspense>
+              </BrowserRouter>
+            </PublishProvider>
+          </ChatProvider>
         </NotificationProvider>
       </ToastProvider>
     </AuthProvider>
