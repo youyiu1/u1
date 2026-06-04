@@ -4,7 +4,7 @@
  */
 
 import React, { useEffect, useMemo, useState } from 'react';
-import { Link, useLocation, useNavigate, useParams } from 'react-router-dom';
+import { useLocation, useNavigate, useParams } from 'react-router-dom';
 import {
   ArrowRightLeft,
   CheckCircle2,
@@ -22,10 +22,13 @@ import { AnimatePresence, motion } from 'motion/react';
 import { favoriteApi, getToken, marketApi, userApi } from '../../services/api';
 import { FollowButton } from '../../components/common/FollowButton';
 import { useAuth } from '../../context/AuthContext';
+import { useAuthCheck } from '../../context/useAuthCheck';
 import { useChat } from '../../context/ChatContext';
 import { useToast } from '../../context/ToastContext';
 import { Item } from '../../types';
 import { getStoredUser } from '../../utils/authStorage';
+import { formatCurrency, fallbackText } from '../../utils/display';
+import { getErrorMessage } from '../../utils/error';
 import { getFollowState, setFollowState } from '../../utils/followStorage';
 import { parseImages } from '../../utils/images';
 
@@ -49,6 +52,7 @@ export default function ItemDetailPage() {
   const location = useLocation();
   const { openChat } = useChat();
   const { user: currentUser } = useAuth();
+  const { requireAuth } = useAuthCheck();
   const { showToast } = useToast();
 
   const fromProfile = location.state?.from;
@@ -62,10 +66,10 @@ export default function ItemDetailPage() {
   const sellerId = item?.seller?.id || item?.sellerId || '';
   const isOwnItem = Boolean(currentUser?.id && currentUser.id === sellerId);
 
-  const sellerName = item?.seller?.name || item?.sellerName || '';
+  const sellerName = fallbackText(item?.seller?.name || item?.sellerName, '本地卖家');
   const sellerAvatar = item?.seller?.avatar || item?.sellerAvatar || '';
   const sellerVerified = item?.seller?.verified ?? item?.sellerVerified ?? false;
-  const itemCondition = item?.itemCondition || item?.condition || '';
+  const itemCondition = fallbackText(item?.itemCondition || item?.condition, '成色未知');
   const sellerOnSaleCount = item?.seller?.onSaleCount ?? item?.sellerOnSaleCount ?? 0;
   const sellerSoldCount = item?.seller?.soldCount ?? item?.sellerSoldCount ?? 0;
   const sellerFollowersCount = item?.seller?.followersCount ?? item?.sellerFollowersCount ?? 0;
@@ -84,7 +88,7 @@ export default function ItemDetailPage() {
 
   const handleToggleFavorite = async () => {
     if (!item || !currentUser?.id) {
-      showToast('请先登录后再收藏', 'warning');
+      requireAuth();
       return;
     }
 
@@ -136,8 +140,8 @@ export default function ItemDetailPage() {
             // ignore
           }
         }
-      } catch (fetchError: any) {
-        setError(fetchError.message || '商品详情加载失败');
+      } catch (fetchError: unknown) {
+        setError(getErrorMessage(fetchError, '商品详情加载失败'));
       } finally {
         setLoading(false);
       }
@@ -168,6 +172,7 @@ export default function ItemDetailPage() {
   }
 
   const categoryName = categoryMap[item.category] || item.category;
+  const locationLabel = fallbackText(item.location, '附近');
   const sellerStats = [
     { label: '粉丝', value: sellerFollowersCount },
     { label: '在售', value: sellerOnSaleCount },
@@ -284,7 +289,7 @@ export default function ItemDetailPage() {
               <div className="mb-8 flex items-center justify-between">
                 <h2 className="text-2xl font-black text-ink">商品位置</h2>
                 <span className="flex items-center gap-1 text-sm font-bold text-muted">
-                  <MapPin className="h-4 w-4" /> {item.location}
+                  <MapPin className="h-4 w-4" /> {locationLabel}
                 </span>
               </div>
               <div className="h-80 w-full overflow-hidden rounded-3xl border border-hairline opacity-90 grayscale contrast-[0.9]">
@@ -292,7 +297,7 @@ export default function ItemDetailPage() {
                   <div className="text-center">
                     <MapPin className="mx-auto mb-2 h-8 w-8 text-primary" />
                     <p className="text-xs font-black uppercase tracking-widest text-ink">附近位置示意</p>
-                    <p className="mt-1 text-[11px] font-bold text-muted">{item.location}</p>
+                    <p className="mt-1 text-[11px] font-bold text-muted">{locationLabel}</p>
                   </div>
                 </div>
               </div>
@@ -309,8 +314,10 @@ export default function ItemDetailPage() {
                   </span>
                 </div>
                 <div className="flex items-end gap-3">
-                  <span className="text-5xl font-black tracking-tighter text-ink">￥{item.price}</span>
-                  {item.originalPrice ? <span className="mb-1.5 text-lg font-bold text-muted opacity-50 line-through">￥{item.originalPrice}</span> : null}
+                  <span className="text-5xl font-black tracking-tighter text-ink">{formatCurrency(item.price)}</span>
+                  {item.originalPrice ? (
+                    <span className="mb-1.5 text-lg font-bold text-muted opacity-50 line-through">{formatCurrency(item.originalPrice)}</span>
+                  ) : null}
                 </div>
               </div>
 
@@ -360,12 +367,14 @@ export default function ItemDetailPage() {
                     whileHover={{ scale: 1.02 }}
                     whileTap={{ scale: 0.98 }}
                     onClick={() =>
-                      openChat({
-                        id: sellerId,
-                        name: sellerName,
-                        avatar: sellerAvatar,
-                        isOnline: true,
-                      })
+                      requireAuth(() =>
+                        openChat({
+                          id: sellerId,
+                          name: sellerName,
+                          avatar: sellerAvatar,
+                          isOnline: true,
+                        })
+                      )
                     }
                     className="group flex h-16 w-full items-center justify-center gap-3 rounded-2xl bg-ink font-black text-white shadow-xl shadow-ink/20"
                   >

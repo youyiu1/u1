@@ -1,11 +1,7 @@
-/**
- * @license
- * SPDX-License-Identifier: Apache-2.0
- */
-
 package com.neighborhood.app.controller.client;
 
 import com.neighborhood.app.common.Result;
+import com.neighborhood.app.service.AppMetricsService;
 import com.neighborhood.app.service.FileService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.CacheControl;
@@ -28,58 +24,68 @@ import java.time.Duration;
 public class FileController {
 
     private final FileService fileService;
+    private final AppMetricsService appMetricsService;
 
-    /**
-     * 上传文件到RustFS私有桶
-     */
+    /** 上传文件到对象存储。 */
     @PostMapping("/upload")
     public Result<String> upload(@RequestParam("file") MultipartFile file) {
         try {
-            return Result.ok(fileService.uploadFile(file));
+            String path = fileService.uploadFile(file);
+            appMetricsService.recordFileAccess("upload", "success");
+            return Result.ok(path);
         } catch (Exception e) {
+            appMetricsService.recordFileAccess("upload", "fail");
             return Result.fail("上传失败: " + e.getMessage());
         }
     }
 
-    /**
-     * 获取文件的签名URL（用于访问RustFS私有桶中的文件）
-     */
+    /** 获取文件签名地址。 */
     @GetMapping("/url/{*filename}")
     public ResponseEntity<?> getFileUrl(@PathVariable String filename,
-                                       @RequestParam(defaultValue = "60") int expiresMinutes) {
+                                        @RequestParam(defaultValue = "60") int expiresMinutes) {
         try {
+            appMetricsService.recordFileAccess("presign", "success");
             return ResponseEntity.ok(Result.ok(fileService.generatePresignedUrl(cleanKey(filename), expiresMinutes)));
         } catch (Exception e) {
-            return ResponseEntity.badRequest().body(Result.fail("获取签名URL失败: " + e.getMessage()));
+            appMetricsService.recordFileAccess("presign", "fail");
+            return ResponseEntity.badRequest().body(Result.fail("获取签名地址失败: " + e.getMessage()));
         }
     }
 
-    /**
-     * 后端代理访问RustFS私有桶中的文件
-     */
+    /** 获取文件公共地址，配置 CDN 时优先返回 CDN 地址。 */
+    @GetMapping("/public/{*filename}")
+    public Result<String> getPublicUrl(@PathVariable String filename) {
+        return Result.ok(fileService.buildPublicUrl(cleanKey(filename)));
+    }
+
+    /** 通过后端代理访问对象存储文件。 */
     @GetMapping("/{*filename}")
     public ResponseEntity<?> getFile(@PathVariable String filename) {
         try {
             String key = cleanKey(filename);
             byte[] data = fileService.getFile(key);
+            appMetricsService.recordFileAccess("proxy_read", "success");
             return ResponseEntity.ok()
                     .contentType(getMediaType(key))
-                    .cacheControl(CacheControl.maxAge(Duration.ofDays(30)).cachePublic())
+                    .cacheControl(CacheControl.maxAge(Duration.ofDays(30)).cachePublic().mustRevalidate())
                     .header(HttpHeaders.VARY, "Accept-Encoding")
                     .body(data);
         } catch (Exception e) {
+            appMetricsService.recordFileAccess("proxy_read", "fail");
             return ResponseEntity.notFound().build();
         }
     }
 
-    /** 去掉前导斜杠 */
     private String cleanKey(String filename) {
         return filename.startsWith("/") ? filename.substring(1) : filename;
     }
 
-    /** 根据文件扩展名获取MediaType */
     private MediaType getMediaType(String key) {
-        return switch (key.substring(key.lastIndexOf('.')).toLowerCase()) {
+        int dotIndex = key.lastIndexOf('.');
+        if (dotIndex < 0) {
+            return MediaType.APPLICATION_OCTET_STREAM;
+        }
+        return switch (key.substring(dotIndex).toLowerCase()) {
             case ".png" -> MediaType.IMAGE_PNG;
             case ".jpg", ".jpeg" -> MediaType.IMAGE_JPEG;
             case ".gif" -> MediaType.IMAGE_GIF;

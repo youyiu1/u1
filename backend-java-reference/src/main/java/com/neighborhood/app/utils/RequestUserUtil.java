@@ -1,8 +1,3 @@
-/**
- * @license
- * SPDX-License-Identifier: Apache-2.0
- */
-
 package com.neighborhood.app.utils;
 
 import jakarta.servlet.http.HttpServletRequest;
@@ -13,7 +8,7 @@ public final class RequestUserUtil {
     }
 
     /**
-     * 优先使用 AuthInterceptor 写入的登录用户 ID，未登录时回退到请求参数。
+     * 优先使用登录用户 ID，未登录时回退到请求参数中的用户 ID。
      */
     public static String getEffectiveUserId(HttpServletRequest request, String fallbackUserId) {
         Object loginUserId = request.getAttribute("userId");
@@ -21,5 +16,9 @@ public final class RequestUserUtil {
             return userId;
         }
         return fallbackUserId;
+    }
+
+    public static String currentUserId(HttpServletRequest request) {
+        return getEffectiveUserId(request, null);
     }
 }

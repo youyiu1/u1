@@ -33,6 +33,7 @@ import { useAuthCheck } from '../../context/useAuthCheck';
 import { usePublish } from '../../context/PublishContext';
 import { Item, Order, Post, Service, User } from '../../types';
 import { getFallbackAvatar } from '../../utils/avatar';
+import { getErrorMessage } from '../../utils/error';
 import { getFollowState, setFollowState } from '../../utils/followStorage';
 
 type FavoriteRecord = {
@@ -209,7 +210,7 @@ export default function ProfilePage() {
               });
           }
         }
-      } catch (fetchError: any) {
+      } catch (fetchError: unknown) {
         if (cancelled) {
           return;
         }
@@ -217,7 +218,7 @@ export default function ProfilePage() {
           navigate('/login');
           return;
         }
-        setError(fetchError.message || '个人主页加载失败');
+        setError(getErrorMessage(fetchError, '个人主页加载失败'));
       } finally {
         if (!cancelled) {
           setLoading(false);
@@ -225,7 +226,7 @@ export default function ProfilePage() {
       }
     };
 
-    fetchProfileData();
+    void fetchProfileData();
     return () => {
       cancelled = true;
     };
@@ -273,7 +274,7 @@ export default function ProfilePage() {
               const mapKey = `${favorite.targetType}-${favorite.targetId}`;
               const api = favorite.targetType === 'news' ? newsApi : favorite.targetType === 'market' ? marketApi : serviceApi;
               return api.get(favorite.targetId).then((item) => ({ mapKey, item })).catch(() => null);
-            })
+            }),
           );
           const itemMap: Record<string, Post | Item | Service> = {};
           results.forEach((result) => {
@@ -288,14 +289,14 @@ export default function ProfilePage() {
         setTabLoading(false);
       }
     },
-    [isOwnProfile]
+    [isOwnProfile],
   );
 
   useEffect(() => {
     if (!profileUser?.id || activeTab === 'settings') {
       return;
     }
-    loadTabData(activeTab, profileUser.id);
+    void loadTabData(activeTab, profileUser.id);
   }, [activeTab, loadTabData, profileUser?.id]);
 
   const handleTabChange = (tabId: TabId) => {
@@ -325,7 +326,7 @@ export default function ProfilePage() {
           removedType = favorite.targetType;
         }
         return !matched;
-      })
+      }),
     );
     setFavoriteItems((current) => {
       const next = { ...current };

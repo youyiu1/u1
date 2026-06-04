@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+﻿import React, { useEffect, useState } from 'react';
 import { homeApi } from '../../services/api';
 import { GlobalCard } from '../../components/common/Card';
 import { HeroSection } from '../../components/home/HeroSection';
@@ -6,6 +6,7 @@ import { SectionHeader } from '../../components/common/SectionHeader';
 import { HomePostCard } from '../../components/home/HomePostCard';
 import { BackToTop } from '../../components/common/BackToTop';
 import { Item, Post, Service } from '../../types';
+import { getErrorMessage } from '../../utils/error';
 
 const SECTIONS = [
   { title: '精选服务', tag: 'Service Selection', link: '/service', linkText: '查看更多服务', dataKey: 'hotServices' as const },
@@ -80,8 +81,8 @@ export default function HomePage() {
           hotMarket: response.hotMarket || [],
           hotNews: response.hotNews || [],
         });
-      } catch (fetchError: any) {
-        setError(fetchError.message || '首页数据加载失败');
+      } catch (fetchError: unknown) {
+        setError(getErrorMessage(fetchError, '首页数据加载失败'));
       } finally {
         setLoading(false);
       }

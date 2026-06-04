@@ -94,11 +94,7 @@ export default function Header() {
 
             <nav className="hidden items-center gap-1 transition-all duration-300 lg:flex">
               {NAV_ITEMS.map((item) => {
-                return (
-                  <React.Fragment key={item.path}>
-                    <DesktopNavLink item={item} active={location.pathname === item.path} />
-                  </React.Fragment>
-                );
+                return <DesktopNavLink key={item.path} item={item} active={location.pathname === item.path} />;
               })}
             </nav>
           </div>
@@ -221,7 +217,7 @@ export default function Header() {
   );
 }
 
-function DesktopNavLink({ item, active }: { item: { name: string; path: string }; active: boolean }) {
+function DesktopNavLink({ item, active }: { key?: React.Key; item: { name: string; path: string }; active: boolean }) {
   return (
     <Link
       to={item.path}

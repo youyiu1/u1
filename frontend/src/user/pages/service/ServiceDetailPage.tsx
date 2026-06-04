@@ -1,4 +1,3 @@
-
 /**
  * @license
  * SPDX-License-Identifier: Apache-2.0
@@ -37,10 +36,12 @@ import { chatApi, favoriteApi, getToken, reviewApi, serviceApi, userApi } from '
 import { Review, ServiceDetail as ServiceDetailType } from '../../types';
 import { getStoredUser } from '../../utils/authStorage';
 import { formatDateTime } from '../../utils/dateTime';
+import { formatCurrency, fallbackText } from '../../utils/display';
+import { getErrorMessage } from '../../utils/error';
 import { getFollowState, setFollowState } from '../../utils/followStorage';
 import { readCachedLocation } from '../../utils/location';
 
-const categoryNames: Record<string, string> = {
+const CATEGORY_NAMES: Record<string, string> = {
   domestic: '家政服务',
   repair: '维修安装',
   sports: '运动陪练',
@@ -50,11 +51,17 @@ const categoryNames: Record<string, string> = {
   medical: '医疗健康',
 };
 
+const DURATION_OPTIONS = [
+  { value: 4, label: '短时服务 / 4 刻钟' },
+  { value: 8, label: '半天服务 / 8 刻钟' },
+  { value: 12, label: '全天服务 / 12 刻钟' },
+];
+
 const SERVICE_FEATURES = [
   {
     icon: <ShieldCheck className="h-5 w-5 text-green-500" />,
     title: '平台保障',
-    desc: '服务信息经过审核，预约流程留痕，沟通记录可追踪。',
+    desc: '服务信息经过审核，预约流程留痕，沟通记录可追溯。',
   },
   {
     icon: <Zap className="h-5 w-5 text-blue-500" />,
@@ -101,6 +108,22 @@ function getServiceImages(service: ServiceDetailType): string[] {
   return service.image ? [service.image] : [];
 }
 
+function getEndTime(startTime: string, duration: number): string {
+  const [hours, minutes] = startTime.split(':').map(Number);
+  if (Number.isNaN(hours) || Number.isNaN(minutes)) {
+    return startTime;
+  }
+  const endMinutes = hours * 60 + minutes + duration * 15;
+  const normalized = ((endMinutes % 1440) + 1440) % 1440;
+  const endHour = Math.floor(normalized / 60);
+  const endMinute = normalized % 60;
+  return `${String(endHour).padStart(2, '0')}:${String(endMinute).padStart(2, '0')}`;
+}
+
+function getServiceFee(price: number, duration: number): number {
+  return price * (duration / 4);
+}
+
 function ReviewSection({ serviceId, rating }: { serviceId: string; rating: number }) {
   const [reviews, setReviews] = useState<Review[]>([]);
   const [likedReviews, setLikedReviews] = useState<Set<string>>(new Set());
@@ -118,19 +141,23 @@ function ReviewSection({ serviceId, rating }: { serviceId: string; rating: numbe
         }
         setReviews(data);
         setLikedReviews(new Set(data.filter((review) => review.isLiked).map((review) => review.id)));
-      } catch (error) {
-        console.error('加载服务评价失败', error);
+      } catch (error: unknown) {
+        console.error(getErrorMessage(error, '加载服务评价失败'));
       }
     };
 
-    fetchReviews();
+    void fetchReviews();
     return () => {
       mounted = false;
     };
   }, [serviceId]);
 
   const handleLike = async (reviewId: string) => {
-    if (!requireAuth() || likeLoading === reviewId) {
+    if (likeLoading === reviewId) {
+      return;
+    }
+
+    if (!requireAuth()) {
       return;
     }
 
@@ -172,7 +199,7 @@ function ReviewSection({ serviceId, rating }: { serviceId: string; rating: numbe
 
   return (
     <div className="space-y-12">
-      <header className="flex items-center justify-between">
+      <header className="flex items-center justify-between gap-4">
         <h2 className="text-3xl font-black tracking-tight text-ink">用户评价</h2>
         <div className="flex items-center gap-2 font-black text-primary">
           <Star className="h-5 w-5 fill-current" />
@@ -187,7 +214,7 @@ function ReviewSection({ serviceId, rating }: { serviceId: string; rating: numbe
         ) : (
           reviews.map((review) => (
             <div key={review.id} className="space-y-6 rounded-[32px] border border-hairline bg-white p-8 shadow-sm">
-              <div className="flex items-start justify-between">
+              <div className="flex items-start justify-between gap-4">
                 <div className="flex items-center gap-4">
                   <div className="flex h-14 w-14 items-center justify-center overflow-hidden rounded-2xl border-2 border-white bg-surface-soft shadow-sm">
                     {review.userAvatar ? (
@@ -203,14 +230,12 @@ function ReviewSection({ serviceId, rating }: { serviceId: string; rating: numbe
                         {[1, 2, 3, 4, 5].map((star) => (
                           <Star
                             key={star}
-                            className={`h-3.5 w-3.5 ${
-                              star <= review.rating ? 'fill-current text-yellow-400' : 'text-muted/20'
-                            }`}
+                            className={`h-3.5 w-3.5 ${star <= review.rating ? 'fill-current text-yellow-400' : 'text-muted/20'}`}
                           />
                         ))}
                       </div>
                       <span className="text-[10px] font-bold uppercase tracking-widest text-muted">
-                        {formatDateTime(review.createTime, 'date')}
+                        {formatDateTime(review.createTime)}
                       </span>
                     </div>
                   </div>
@@ -218,7 +243,7 @@ function ReviewSection({ serviceId, rating }: { serviceId: string; rating: numbe
 
                 <button
                   type="button"
-                  onClick={() => handleLike(review.id)}
+                  onClick={() => void handleLike(review.id)}
                   disabled={likeLoading === review.id}
                   className={`group flex items-center gap-2 text-xs font-black transition-colors ${
                     likedReviews.has(review.id) ? 'text-primary' : 'text-muted hover:text-primary'
@@ -242,12 +267,13 @@ function ReviewSection({ serviceId, rating }: { serviceId: string; rating: numbe
   );
 }
 
-export default function ServiceDetail() {
+export default function ServiceDetailPage() {
   const { id } = useParams();
   const navigate = useNavigate();
   const routeLocation = useLocation();
   const { openChat } = useChat();
   const { user } = useAuth();
+  const { requireAuth } = useAuthCheck();
   const { increaseUnread } = useNotification();
   const { showToast } = useToast();
 
@@ -265,7 +291,7 @@ export default function ServiceDetail() {
   const [duration, setDuration] = useState(4);
 
   const fromProfile = routeLocation.state?.from;
-  const sellerId = service?.seller?.id || service?.sellerId;
+  const sellerId = service?.seller?.id || service?.sellerId || '';
   const isOwnService = Boolean(user?.id && sellerId && user.id === sellerId);
 
   useEffect(() => {
@@ -292,8 +318,8 @@ export default function ServiceDetail() {
         setService(data);
 
         const currentUser = getStoredUser();
-        const currentSellerId = data.seller?.id || data.sellerId;
-        if (currentUser?.id && currentSellerId) {
+        const currentSellerId = data.seller?.id || data.sellerId || '';
+        if (currentUser?.id && currentSellerId && currentUser.id !== currentSellerId) {
           const cachedFollowState = getFollowState(currentSellerId);
           setIsFollowing(cachedFollowState);
 
@@ -332,9 +358,9 @@ export default function ServiceDetail() {
             // ignore
           }
         }
-      } catch (fetchError: any) {
+      } catch (fetchError: unknown) {
         if (mounted) {
-          setError(fetchError.message || '加载服务详情失败');
+          setError(getErrorMessage(fetchError, '加载服务详情失败'));
         }
       } finally {
         if (mounted) {
@@ -343,38 +369,31 @@ export default function ServiceDetail() {
       }
     };
 
-    fetchService();
+    void fetchService();
     return () => {
       mounted = false;
     };
   }, [id]);
 
   const serviceImages = useMemo(() => (service ? getServiceImages(service) : []), [service]);
-  const categoryName = service ? categoryNames[service.category] || service.category || '生活服务' : '生活服务';
+  const categoryName = service ? CATEGORY_NAMES[service.category] || service.category || '生活服务' : '生活服务';
   const selectedDateLabel = bookingDate;
-  const totalPrice = service ? service.price * (duration / 4) + 20 : 0;
-  const endTime = useMemo(() => {
-    const [hours, minutes] = bookingTime.split(':').map(Number);
-    if (Number.isNaN(hours) || Number.isNaN(minutes)) {
-      return bookingTime;
-    }
-    const endMinutes = hours * 60 + minutes + duration * 15;
-    const normalized = ((endMinutes % 1440) + 1440) % 1440;
-    const endHour = Math.floor(normalized / 60);
-    const endMinute = normalized % 60;
-    return `${String(endHour).padStart(2, '0')}:${String(endMinute).padStart(2, '0')}`;
-  }, [bookingTime, duration]);
+  const endTime = useMemo(() => getEndTime(bookingTime, duration), [bookingTime, duration]);
+  const serviceFee = service ? getServiceFee(service.price, duration) : 0;
+  const totalPrice = serviceFee + 20;
+
   const sellerStats = [
     { label: '服务完成', value: `${service?.seller?.soldCount || 0}+` },
     { label: '粉丝数', value: `${service?.seller?.followersCount || 0}` },
     { label: '平均响应', value: '15min' },
   ];
+
   const bookingSummary = [
     { label: '预约时间', value: `${selectedDateLabel} ${bookingTime}`, accentClassName: 'text-ink' },
     { label: '结束时间', value: endTime, accentClassName: 'text-ink' },
-    { label: '服务费用', value: `￥${service ? service.price * (duration / 4) : 0}`, accentClassName: 'text-ink' },
+    { label: '服务费用', value: formatCurrency(serviceFee), accentClassName: 'text-ink' },
     { label: '平台保障', value: '已包含', accentClassName: 'text-green-600' },
-    { label: '预计服务费', value: '￥20', accentClassName: 'text-ink' },
+    { label: '预计服务费', value: formatCurrency(20), accentClassName: 'text-ink' },
   ];
 
   const handleBack = () => {
@@ -387,7 +406,7 @@ export default function ServiceDetail() {
 
   const handleToggleFavorite = async () => {
     if (!service || !user?.id) {
-      showToast('请先登录后再收藏', 'warning');
+      requireAuth();
       return;
     }
 
@@ -412,21 +431,26 @@ export default function ServiceDetail() {
     if (!service?.seller) {
       return;
     }
-    openChat({
-      id: service.seller.id || '',
-      name: service.seller.name || '',
-      avatar: service.seller.avatar || '',
-      isOnline: true,
+
+    requireAuth(() => {
+      openChat({
+        id: service.seller.id || '',
+        name: service.seller.name || '',
+        avatar: service.seller.avatar || '',
+        isOnline: true,
+      });
     });
   };
 
-  const handleBooking = async () => {
-    if (!service || !id || !sellerId) {
+  const handleStartBooking = () => {
+    if (isOwnService) {
       return;
     }
+    requireAuth(() => setShowConfirm(true));
+  };
 
-    if (!user) {
-      navigate('/login');
+  const handleBooking = async () => {
+    if (!service || !id || !sellerId || !user) {
       return;
     }
 
@@ -468,8 +492,8 @@ export default function ServiceDetail() {
       } catch {
         // ignore
       }
-    } catch (bookingError: any) {
-      showToast(bookingError.message || '预约失败，请稍后重试', 'error');
+    } catch (bookingError: unknown) {
+      showToast(getErrorMessage(bookingError, '预约失败，请稍后重试'), 'error');
     } finally {
       setIsBooking(false);
     }
@@ -499,7 +523,7 @@ export default function ServiceDetail() {
   return (
     <div className="min-h-screen bg-[#fcfdff] pb-20">
       <AnimatePresence>
-        {bookingSuccess && (
+        {bookingSuccess ? (
           <div className="fixed inset-0 z-[100] flex items-center justify-center px-6">
             <motion.div
               initial={{ opacity: 0 }}
@@ -519,7 +543,7 @@ export default function ServiceDetail() {
               </div>
               <h3 className="mb-4 text-3xl font-black text-ink">预约成功</h3>
               <p className="mb-10 leading-relaxed text-secondary">
-                你的预约信息已经提交给 <span className="font-black text-primary">{service.seller?.name}</span>，
+                你的预约信息已经提交给 <span className="font-black text-primary">{fallbackText(service.seller?.name, '服务者')}</span>，
                 对方确认后会尽快与你联系，请留意消息通知。
               </p>
               <button
@@ -531,7 +555,7 @@ export default function ServiceDetail() {
               </button>
             </motion.div>
           </div>
-        )}
+        ) : null}
       </AnimatePresence>
 
       <div className="sticky top-0 z-30 flex items-center justify-between border-b border-hairline bg-white/80 px-6 py-4 backdrop-blur-md md:hidden">
@@ -542,7 +566,7 @@ export default function ServiceDetail() {
           <button type="button" className="rounded-xl bg-surface-soft p-2">
             <Share2 className="h-5 w-5 text-ink" />
           </button>
-          <button type="button" onClick={handleToggleFavorite} className="rounded-xl bg-surface-soft p-2">
+          <button type="button" onClick={() => void handleToggleFavorite()} className="rounded-xl bg-surface-soft p-2">
             <Heart className={`h-5 w-5 ${isLiked ? 'fill-primary text-primary' : 'text-ink'}`} />
           </button>
         </div>
@@ -568,7 +592,7 @@ export default function ServiceDetail() {
             </button>
             <button
               type="button"
-              onClick={handleToggleFavorite}
+              onClick={() => void handleToggleFavorite()}
               className={`flex items-center gap-2 rounded-xl px-4 py-2 text-xs font-black transition-all ${
                 isLiked ? 'bg-primary/5 text-primary' : 'hover:bg-surface-soft'
               }`}
@@ -597,11 +621,11 @@ export default function ServiceDetail() {
                 <div className="flex items-center gap-1.5 rounded-full border border-hairline bg-white px-3 py-1 shadow-sm">
                   <Star className="h-4 w-4 fill-current text-yellow-400" />
                   <span className="text-ink">{service.rating}</span>
-                  <span className="opacity-50">({service.reviews}条评价)</span>
+                  <span className="opacity-50">({service.reviews} 条评价)</span>
                 </div>
                 <div className="flex items-center gap-1.5">
                   <MapPin className="h-4 w-4 text-primary" />
-                  <span>{service.distance}</span>
+                  <span>{fallbackText(service.distance, '距离未知')}</span>
                 </div>
               </div>
             </div>
@@ -616,7 +640,7 @@ export default function ServiceDetail() {
                     <img src={serviceImages[1] || serviceImages[0]} className="h-full w-full object-cover" alt={`${service.title} 图片 2`} />
                   ) : null}
                 </div>
-                <div className="relative aspect-[9/10] cursor-pointer overflow-hidden rounded-[32px] border border-hairline bg-surface-soft">
+                <div className="relative aspect-[9/10] overflow-hidden rounded-[32px] border border-hairline bg-surface-soft">
                   {serviceImages[2] || serviceImages[0] ? (
                     <img src={serviceImages[2] || serviceImages[0]} className="h-full w-full object-cover" alt={`${service.title} 图片 3`} />
                   ) : null}
@@ -646,7 +670,7 @@ export default function ServiceDetail() {
               </div>
               <div className="flex-1 text-center md:text-left">
                 <div className="mb-3 flex flex-col gap-3 md:flex-row md:items-center">
-                  <h3 className="text-2xl font-black text-ink">{service.seller?.name || '服务者'}</h3>
+                  <h3 className="text-2xl font-black text-ink">{fallbackText(service.seller?.name, '服务者')}</h3>
                   <span className="rounded-lg bg-green-50 px-3 py-1 text-[10px] font-black uppercase tracking-widest text-green-600">
                     资质已认证
                   </span>
@@ -707,7 +731,7 @@ export default function ServiceDetail() {
                 <div>
                   <span className="mb-2 block text-xs font-black uppercase tracking-widest text-muted">预约价格</span>
                   <div className="flex items-baseline gap-1">
-                    <span className="text-5xl font-black tracking-tighter text-ink">￥{service.price}</span>
+                    <span className="text-5xl font-black tracking-tighter text-ink">{formatCurrency(service.price)}</span>
                     <span className="text-sm font-bold text-muted">/{service.unit}</span>
                   </div>
                 </div>
@@ -753,9 +777,11 @@ export default function ServiceDetail() {
                       onChange={(event) => setDuration(Number(event.target.value))}
                       className="w-full cursor-pointer appearance-none rounded-xl border border-white bg-white px-4 py-3 text-xs font-black outline-none transition-all focus:border-primary/20 focus:ring-4 focus:ring-primary/5"
                     >
-                      <option value={4}>短时服务 / 4 刻钟</option>
-                      <option value={8}>半天服务 / 8 刻钟</option>
-                      <option value={12}>全天服务 / 12 刻钟</option>
+                      {DURATION_OPTIONS.map((option) => (
+                        <option key={option.value} value={option.value}>
+                          {option.label}
+                        </option>
+                      ))}
                     </select>
                     <ChevronDown className="pointer-events-none absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted" />
                   </div>
@@ -767,7 +793,7 @@ export default function ServiceDetail() {
                   type="button"
                   whileHover={{ scale: 1.02 }}
                   whileTap={{ scale: 0.98 }}
-                  onClick={() => setShowConfirm(true)}
+                  onClick={handleStartBooking}
                   disabled={isBooking || isBooked || isOwnService}
                   className="group flex h-16 w-full items-center justify-center gap-3 rounded-[24px] bg-ink font-black text-white shadow-xl shadow-ink/20 transition-all disabled:cursor-not-allowed disabled:opacity-60"
                 >
@@ -796,16 +822,12 @@ export default function ServiceDetail() {
               <div className="mt-6 space-y-4 border-t border-hairline pt-6">
                 {bookingSummary.map((row) => (
                   <React.Fragment key={row.label}>
-                    <SummaryRow
-                      label={row.label}
-                      value={row.value}
-                      accentClassName={row.accentClassName}
-                    />
+                    <SummaryRow label={row.label} value={row.value} accentClassName={row.accentClassName} />
                   </React.Fragment>
                 ))}
                 <div className="flex items-center justify-between pt-6">
                   <span className="text-lg font-black text-ink">合计金额</span>
-                  <span className="text-3xl font-black text-primary">￥{totalPrice}</span>
+                  <span className="text-3xl font-black text-primary">{formatCurrency(totalPrice)}</span>
                 </div>
               </div>
             </div>
@@ -826,10 +848,10 @@ export default function ServiceDetail() {
       <ConfirmDialog
         isOpen={showConfirm}
         title="确认预约"
-        message={`确认预约“${service.title}”，时间为 ${selectedDateLabel} ${bookingTime}？`}
+        message={`确认预约“${service.title}”，时间为 ${selectedDateLabel} ${bookingTime}，结束时间约为 ${endTime}。`}
         confirmText="确认预约"
         cancelText="再想想"
-        onConfirm={handleBooking}
+        onConfirm={() => void handleBooking()}
         onCancel={() => setShowConfirm(false)}
       />
     </div>
@@ -857,15 +879,7 @@ function MetricValue({ label, value }: { label: string; value: string }) {
   );
 }
 
-function SummaryRow({
-  label,
-  value,
-  accentClassName,
-}: {
-  label: string;
-  value: string;
-  accentClassName: string;
-}) {
+function SummaryRow({ label, value, accentClassName }: { label: string; value: string; accentClassName: string }) {
   return (
     <div className="flex items-center justify-between text-sm font-medium">
       <span className="text-muted">{label}</span>

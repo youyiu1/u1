@@ -1,4 +1,4 @@
-/**
+﻿/**
  * @license
  * SPDX-License-Identifier: Apache-2.0
  */
@@ -6,14 +6,15 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { Brush, CheckCircle2, Dumbbell, MapPin, Plus, Scissors, Search, Sparkles, Star, Wrench } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
-import { FavoriteButton } from '../../components/common/FavoriteButton';
 import { BackToTop } from '../../components/common/BackToTop';
+import { FavoriteButton } from '../../components/common/FavoriteButton';
 import { useAuthCheck } from '../../context/useAuthCheck';
 import { usePublish } from '../../context/PublishContext';
 import { serviceApi } from '../../services/api';
 import { Service } from '../../types';
-import { getCurrentLocation, getGeolocationPermissionState, readCachedLocation } from '../../utils/location';
+import { getErrorMessage } from '../../utils/error';
 import { getServicePrimaryImage } from '../../utils/images';
+import { getCurrentLocation, getGeolocationPermissionState, readCachedLocation } from '../../utils/location';
 import { matchesAnyKeyword, normalizeSearchTerm } from '../../utils/search';
 
 type ServiceCategory = {
@@ -29,6 +30,14 @@ const CATEGORIES: ServiceCategory[] = [
   { id: 'pet', name: '宠物生活', icon: <Scissors className="h-4 w-4" /> },
   { id: 'sports', name: '运动私教', icon: <Dumbbell className="h-4 w-4" /> },
 ];
+
+function getDistanceLabel(distance?: string) {
+  return distance?.trim() ? distance : '距离未知';
+}
+
+function getCategoryLabel(categoryId: string) {
+  return CATEGORIES.find((category) => category.id === categoryId)?.name || categoryId;
+}
 
 export default function ServiceListPage() {
   const navigate = useNavigate();
@@ -56,8 +65,8 @@ export default function ServiceListPage() {
           const localizedData = await serviceApi.list(cachedLocation.latitude, cachedLocation.longitude);
           setServices(localizedData);
         }
-      } catch (fetchError: any) {
-        setError(fetchError.message || '加载失败');
+      } catch (fetchError: unknown) {
+        setError(getErrorMessage(fetchError, '加载失败'));
       } finally {
         setLoading(false);
       }
@@ -101,24 +110,17 @@ export default function ServiceListPage() {
   const filteredServices = useMemo(() => {
     const keyword = normalizeSearchTerm(searchQuery);
     return services.filter(
-      (service) => (activeCategory === 'all' || service.category === activeCategory) && matchesAnyKeyword(keyword, [service.title])
+      (service) =>
+        (activeCategory === 'all' || service.category === activeCategory) &&
+        matchesAnyKeyword(keyword, [service.title])
     );
   }, [activeCategory, searchQuery, services]);
-
-  const displayDistance = (distance?: string) => {
-    if (!distance || !distance.trim()) {
-      return '距离未知';
-    }
-    return distance;
-  };
-
-  const getCategoryLabel = (categoryId: string) => CATEGORIES.find((category) => category.id === categoryId)?.name || categoryId;
 
   return (
     <div className="min-h-screen bg-white pb-20">
       <div className="bg-primary/5 pb-8 pt-10 sm:pt-12">
         <div className="mx-auto max-w-[1280px] px-4 sm:px-6 lg:px-20">
-          <div className="flex flex-col items-stretch justify-between gap-4 md:flex-row md:items-end sm:gap-6">
+          <div className="flex flex-col items-stretch justify-between gap-4 sm:gap-6 md:flex-row md:items-end">
             <div className="max-w-2xl flex-1">
               <h1 className="mb-4 text-2xl font-bold text-ink sm:mb-6 sm:text-3xl">发现身边的专业服务</h1>
               <div className="group relative">
@@ -144,11 +146,12 @@ export default function ServiceListPage() {
               onClick={() => requireAuth(() => openPublish())}
               className="flex w-full items-center justify-center gap-2 rounded-2xl bg-primary px-6 py-3.5 font-bold text-white shadow-lg shadow-primary/10 transition-all hover:bg-primary-hover md:w-auto sm:px-8 sm:py-4"
             >
-              <Plus className="h-5 w-5" /> 发布服务
+              <Plus className="h-5 w-5" />
+              发布服务
             </button>
           </div>
 
-          <div className="mt-6 flex items-center gap-3 overflow-x-auto pb-2 no-scrollbar sm:mt-8 sm:gap-4">
+          <div className="no-scrollbar mt-6 flex items-center gap-3 overflow-x-auto pb-2 sm:mt-8 sm:gap-4">
             {CATEGORIES.map((category) => (
               <button
                 key={category.id}
@@ -168,7 +171,7 @@ export default function ServiceListPage() {
       </div>
 
       <main className="mx-auto max-w-[1280px] px-4 py-10 sm:px-6 sm:py-12 lg:px-20">
-        <div className="mb-6 flex flex-col justify-between gap-4 md:flex-row md:items-center sm:mb-8">
+        <div className="mb-6 flex flex-col justify-between gap-4 sm:mb-8 md:flex-row md:items-center">
           <div>
             <h2 className="text-lg font-bold text-ink sm:text-xl">精选服务商</h2>
             <p className="mt-1 text-xs text-muted">
@@ -189,11 +192,11 @@ export default function ServiceListPage() {
               <MapPin className="h-4 w-4" />
               {locating ? '定位中...' : nearbyEnabled ? '附近排序已开启' : '开启附近排序'}
             </button>
-            {locationTip && <span className="text-[10px] font-bold text-muted">{locationTip}</span>}
+            {locationTip ? <span className="text-[10px] font-bold text-muted">{locationTip}</span> : null}
           </div>
         </div>
 
-        {error && <div className="py-8 text-center text-red-500">{error}</div>}
+        {error ? <div className="py-8 text-center text-red-500">{error}</div> : null}
 
         <div className="grid grid-cols-1 gap-6 sm:gap-8 md:grid-cols-2 lg:grid-cols-3">
           {loading ? (
@@ -206,7 +209,7 @@ export default function ServiceListPage() {
                 key={service.id}
                 service={service}
                 categoryLabel={getCategoryLabel(service.category)}
-                distanceLabel={displayDistance(service.distance)}
+                distanceLabel={getDistanceLabel(service.distance)}
                 onClick={() => navigate(`/service/${service.id}`)}
               />
             ))
@@ -273,7 +276,7 @@ function ServiceCard({
         <div className="flex items-center justify-between border-t border-hairline pt-4">
           <div className="flex items-baseline gap-1">
             <span className="text-[10px] font-medium text-muted">起步价</span>
-            <span className="text-xl font-bold text-primary">¥{service.price}</span>
+            <span className="text-xl font-bold text-primary">￥{service.price}</span>
             <span className="text-[10px] text-muted">/{service.unit}</span>
           </div>
           <div className="flex items-center gap-1.5 text-secondary">

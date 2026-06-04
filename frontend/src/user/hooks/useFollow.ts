@@ -1,10 +1,11 @@
-﻿/**
+/**
  * @license
  * SPDX-License-Identifier: Apache-2.0
  */
 
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { userApi } from '../services/api';
+import { useAuthCheck } from '../context/useAuthCheck';
 import { useToast } from '../context/ToastContext';
 import { getStoredUser } from '../utils/authStorage';
 import { getFollowState, setFollowState } from '../utils/followStorage';
@@ -18,6 +19,7 @@ interface UseFollowOptions {
 export function useFollow({ targetId, initialState, onFollowChange }: UseFollowOptions) {
   const [isFollowing, setIsFollowing] = useState(() => getFollowState(targetId) ?? initialState ?? false);
   const [isLoading, setIsLoading] = useState(false);
+  const { requireAuth } = useAuthCheck();
   const { showToast } = useToast();
   const isMountedRef = useRef(true);
   const prevTargetIdRef = useRef<string | null>(null);
@@ -47,9 +49,12 @@ export function useFollow({ targetId, initialState, onFollowChange }: UseFollowO
       return;
     }
 
+    if (!requireAuth()) {
+      return;
+    }
+
     const currentUser = getStoredUser();
     if (!currentUser?.id) {
-      showToast('请先登录后继续操作', 'warning');
       return;
     }
 
@@ -83,7 +88,7 @@ export function useFollow({ targetId, initialState, onFollowChange }: UseFollowO
         setIsLoading(false);
       }
     }
-  }, [isFollowing, isLoading, onFollowChange, showToast, targetId]);
+  }, [isFollowing, isLoading, onFollowChange, requireAuth, showToast, targetId]);
 
   return {
     isFollowing,

@@ -11,6 +11,7 @@ import { useAuth } from '../../context/AuthContext';
 import { useToast } from '../../context/ToastContext';
 import { Post, User } from '../../types';
 import { formatDateTime } from '../../utils/dateTime';
+import { getErrorMessage } from '../../utils/error';
 import { parseImages } from '../../utils/images';
 
 interface TrendingItem {
@@ -105,8 +106,8 @@ export default function NewsListPage() {
             isFollowing: false,
           }))
         );
-      } catch (fetchError: any) {
-        setError(fetchError.message || '动态加载失败');
+      } catch (fetchError: unknown) {
+        setError(getErrorMessage(fetchError, '动态加载失败'));
       } finally {
         setLoading(false);
       }
@@ -149,8 +150,8 @@ export default function NewsListPage() {
       setPostLocation('');
       await refreshPosts();
       showToast('发布成功', 'success');
-    } catch (createError: any) {
-      showToast(createError.message || '发布失败，请稍后重试', 'error');
+    } catch (createError: unknown) {
+      showToast(getErrorMessage(createError, '发布失败，请稍后重试'), 'error');
     }
   };
 
@@ -165,8 +166,8 @@ export default function NewsListPage() {
       const url = await fileApi.upload(file);
       setPostImages((current) => [...current, url]);
       showToast('图片上传成功', 'success');
-    } catch (uploadError: any) {
-      showToast(uploadError.message || '图片上传失败', 'error');
+    } catch (uploadError: unknown) {
+      showToast(getErrorMessage(uploadError, '图片上传失败'), 'error');
     } finally {
       setIsUploading(false);
       if (imageInputRef.current) {

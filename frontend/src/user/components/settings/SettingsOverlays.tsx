@@ -4,6 +4,7 @@ import { Bell, CheckCircle2, Eye, Loader2, Lock, ShieldCheck, X } from 'lucide-r
 import { userApi } from '../../services/api';
 import { useAuth } from '../../context/AuthContext';
 import { User } from '../../types';
+import { getErrorMessage } from '../../utils/error';
 
 interface ChangePasswordOverlayProps {
   isOpen: boolean;
@@ -58,8 +59,8 @@ export const ChangePasswordOverlay: React.FC<ChangePasswordOverlayProps> = ({ is
         onClose();
         onSuccess?.();
       }, 900);
-    } catch (err: any) {
-      setError(err.message || '修改失败');
+    } catch (err: unknown) {
+      setError(getErrorMessage(err, '修改失败'));
     } finally {
       setIsSubmitting(false);
     }
@@ -189,8 +190,8 @@ export const NotificationSettingsOverlay: React.FC<NotificationSettingsOverlayPr
         updateUser({ ...user, ...settings } as User);
       }
       onClose();
-    } catch (err: any) {
-      setError(err.message || '保存通知设置失败');
+    } catch (err: unknown) {
+      setError(getErrorMessage(err, '保存通知设置失败'));
     } finally {
       setIsSubmitting(false);
     }
@@ -206,16 +207,15 @@ export const NotificationSettingsOverlay: React.FC<NotificationSettingsOverlayPr
     >
       <div className="space-y-4">
         {NOTIFICATION_OPTIONS.map((option) => (
-          <React.Fragment key={option.key}>
-            <ToggleRow
-              settingsKey={option.key}
-              label={option.label}
-              desc={option.desc}
-              settings={settings}
-              onToggle={handleToggle}
-              disabled={option.key !== 'pushEnabled' && !settings.pushEnabled}
-            />
-          </React.Fragment>
+          <ToggleRow
+            key={option.key}
+            settingsKey={option.key}
+            label={option.label}
+            desc={option.desc}
+            settings={settings}
+            onToggle={handleToggle}
+            disabled={option.key !== 'pushEnabled' && !settings.pushEnabled}
+          />
         ))}
       </div>
       {error && <p className="mt-4 text-red-500 text-xs font-medium">{error}</p>}
@@ -263,8 +263,8 @@ export const PrivacySettingsOverlay: React.FC<PrivacySettingsOverlayProps> = ({ 
         updateUser({ ...user, ...settings } as User);
       }
       onClose();
-    } catch (err: any) {
-      setError(err.message || '保存隐私设置失败');
+    } catch (err: unknown) {
+      setError(getErrorMessage(err, '保存隐私设置失败'));
     } finally {
       setIsSubmitting(false);
     }
@@ -431,6 +431,7 @@ function ToggleRow({
   onToggle,
   disabled = false,
 }: {
+  key?: React.Key;
   settingsKey: keyof NotificationSettings;
   label: string;
   desc: string;

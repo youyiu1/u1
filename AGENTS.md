@@ -7,6 +7,8 @@ This file provides guidance to Codex when working with code in this repository.
 同城生活社区平台：
 - 前端：React 19 + Vite + TypeScript + Tailwind CSS v4 + React Router v7
 - 后端：Spring Boot 3.2 + MyBatis-Plus + MySQL + Redis
+- 性能与运维：Spring Cache + Caffeine、Actuator、Micrometer、Prometheus、Grafana
+- 消息与部署：RabbitMQ、Nginx、CDN
 
 ## 开发命令
 
@@ -33,24 +35,18 @@ mysql -u root -proot neighborhood_db < backend-java-reference/sql/init.sql
 ## 架构说明
 
 ### 前端
-- `src/App.tsx`：主路由配置
-- `src/pages/`：页面组件
-- `src/components/`：按模块组织，包括 `chat`、`common`、`home`、`layout`、`profile`、`publish`
-- `src/context/`：认证、聊天、通知、发布、Toast 等上下文
-- `src/services/api.ts`：统一 API 入口
-- `src/types.ts`：类型定义
-- `src/utils/images.ts`：图片字段解析公共方法，处理数组、JSON 字符串和单图字符串
-- `src/utils/followStorage.ts`：关注状态本地缓存
-- `src/utils/location.ts`：定位相关公共方法
+- `frontend/src/admin/`：管理端，按 `components`、`hooks`、`services`、`utils` 组织
+- `frontend/src/user/`：用户端，按 `components`、`context`、`hooks`、`pages`、`services`、`utils` 组织
+- 优先复用用户端 `services`、`utils`、公共组件和上下文，避免重复实现
 
 ### 后端
 `backend-java-reference/src/main/java/com/neighborhood/app/` 下的分层架构：
 - `controller/`：REST 控制器
-- `service/`：业务逻辑接口
-- `service/impl/`：业务逻辑实现
+- `service/`：业务逻辑接口与实现
 - `mapper/`：MyBatis-Plus 数据访问
 - `entity/`：数据库模型
 - `dto/`：请求或设置类 DTO
+- `vo/`：返回视图模型
 - `common/Result.java`：统一响应封装
 - `config/`：Redis、Web、Jackson、S3 等配置
 - `interceptor/AuthInterceptor.java`：JWT + Redis 认证
@@ -97,7 +93,9 @@ mysql -u root -proot neighborhood_db < backend-java-reference/sql/init.sql
 - 每次完成任务后，用中文提交到 git（如用户要求提交）
 - 每次新增接口，接口上方添加中文注释
 - 技术栈必须符合当前项目，优先复用已有依赖和组件
-- 写代码前先看现有实现，优先提取可复用方法或组件，减少重复逻辑
+- 涉及缓存、监控、消息队列、静态资源分发时，优先按现有技术栈使用 Spring Cache + Caffeine、Actuator + Micrometer、Prometheus + Grafana、RabbitMQ、Nginx、CDN
+- 每次新增、修改或重构代码前，先看当前目录结构、同类实现和重复逻辑，再动手
+- 发现相同或相近逻辑时，优先复用或提取公共方法，避免重复造轮子
 - 前端改动后至少运行 `npm run lint`
 - 后端改动后至少运行 `mvn -q -DskipTests compile`
 - 不要提交 `backend-java-reference/target/`、前端构建产物或本地日志

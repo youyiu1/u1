@@ -1,12 +1,12 @@
-import type React from 'react';
 /**
  * @license
  * SPDX-License-Identifier: Apache-2.0
  */
 
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import type React from 'react';
 import { favoriteApi, newsApi } from '../services/api';
+import { useAuthCheck } from '../context/useAuthCheck';
 import { useToast } from '../context/ToastContext';
 import { getStoredUser } from '../utils/authStorage';
 
@@ -30,8 +30,8 @@ export function useLikeAndFavorite(
   const [state, setState] = useState(initialState);
   const [isLiking, setIsLiking] = useState(false);
   const [isFavoriting, setIsFavoriting] = useState(false);
+  const { requireAuth } = useAuthCheck();
   const { showToast } = useToast();
-  const navigate = useNavigate();
   const isMountedRef = useRef(true);
   const prevPostIdRef = useRef<string | null>(null);
   const prevInitialRef = useRef<LikeAndFavoriteState | null>(null);
@@ -80,14 +80,12 @@ export function useLikeAndFavorite(
         event.preventDefault();
       }
 
-      if (isLiking) {
+      if (isLiking || !requireAuth()) {
         return;
       }
 
       const currentUser = getStoredUser();
       if (!currentUser?.id) {
-        showToast('请先登录后继续操作', 'warning');
-        navigate('/login');
         return;
       }
 
@@ -117,7 +115,7 @@ export function useLikeAndFavorite(
         }
       }
     },
-    [isLiking, navigate, options, postId, showToast, state.isLiked, state.likes]
+    [isLiking, options, postId, requireAuth, showToast, state.isLiked, state.likes]
   );
 
   const toggleFavorite = useCallback(
@@ -127,14 +125,12 @@ export function useLikeAndFavorite(
         event.preventDefault();
       }
 
-      if (isFavoriting) {
+      if (isFavoriting || !requireAuth()) {
         return;
       }
 
       const currentUser = getStoredUser();
       if (!currentUser?.id) {
-        showToast('请先登录后继续操作', 'warning');
-        navigate('/login');
         return;
       }
 
@@ -170,7 +166,7 @@ export function useLikeAndFavorite(
         }
       }
     },
-    [isFavoriting, navigate, options, postId, showToast, state.collections, state.isFavorited]
+    [isFavoriting, options, postId, requireAuth, showToast, state.collections, state.isFavorited]
   );
 
   return {

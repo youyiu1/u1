@@ -1,23 +1,20 @@
-/**
- * @license
- * SPDX-License-Identifier: Apache-2.0
- */
-
 package com.neighborhood.app.service.impl;
 
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.neighborhood.app.entity.market.MarketItem;
-import com.neighborhood.app.vo.market.MarketItemVO;
 import com.neighborhood.app.entity.user.User;
 import com.neighborhood.app.mapper.market.MarketMapper;
 import com.neighborhood.app.mapper.user.UserMapper;
 import com.neighborhood.app.service.CacheService;
 import com.neighborhood.app.service.MarketService;
 import com.neighborhood.app.utils.CacheLookupUtil;
+import com.neighborhood.app.utils.EntityDefaultsUtil;
 import com.neighborhood.app.utils.StringValueUtil;
 import com.neighborhood.app.utils.UserLookupUtil;
+import com.neighborhood.app.vo.market.MarketItemVO;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
+
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
@@ -66,7 +63,6 @@ public class MarketServiceImpl extends ServiceImpl<MarketMapper, MarketItem> imp
         if (items.isEmpty()) {
             return List.of();
         }
-        // 批量获取卖家信息
         Map<String, User> userMap = UserLookupUtil.mapByExtractor(cacheService, userMapper, items, MarketItem::getSellerId);
         return items.stream()
                 .map(item -> MarketItemVO.fromMarketItem(item, userMap.get(item.getSellerId())))
@@ -75,10 +71,7 @@ public class MarketServiceImpl extends ServiceImpl<MarketMapper, MarketItem> imp
 
     @Override
     public boolean save(MarketItem item) {
-        item.setStatus("pending");
-        item.setRejectReason("");
-        item.setVerified(item.getVerified() != null && item.getVerified());
-        item.setFreeShipping(item.getFreeShipping() != null && item.getFreeShipping());
+        EntityDefaultsUtil.initPendingMarketItem(item);
         boolean result = super.save(item);
         if (result) {
             evictMarketCaches(null, true);

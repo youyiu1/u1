@@ -24,6 +24,7 @@ D:\下载文件\同城生活\backend-java-reference\src\main\java\com\neighborhood\app\u
 D:\下载文件\同城生活\backend-java-reference\src\main\java\com\neighborhood\app\util\JwtUtil.java
 D:\下载文件\同城生活\backend-java-reference\src\main\java\com\neighborhood\app\vo\market\MarketItemVO.java
 D:\下载文件\同城生活\backend-java-reference\src\main\java\com\neighborhood\app\mapper\content\CommentMapper.java
+D:\下载文件\同城生活\backend-java-reference\src\main\java\com\neighborhood\app\service\impl\AppMetricsServiceImpl.java
 D:\下载文件\同城生活\backend-java-reference\src\main\java\com\neighborhood\app\config\RabbitMqConfig.java
 D:\下载文件\同城生活\backend-java-reference\src\main\java\com\neighborhood\app\mapper\message\MessageMapper.java
 D:\下载文件\同城生活\backend-java-reference\src\main\java\com\neighborhood\app\controller\admin\AdminContentController.java
@@ -115,6 +116,7 @@ D:\下载文件\同城生活\backend-java-reference\src\main\java\com\neighborhood\app\c
 D:\下载文件\同城生活\backend-java-reference\src\main\java\com\neighborhood\app\dto\user\PrivacySettings.java
 D:\下载文件\同城生活\backend-java-reference\src\main\java\com\neighborhood\app\entity\user\User.java
 D:\下载文件\同城生活\backend-java-reference\src\main\java\com\neighborhood\app\service\AsyncMessageDispatcher.java
+D:\下载文件\同城生活\backend-java-reference\src\main\java\com\neighborhood\app\utils\EntityDefaultsUtil.java
 D:\下载文件\同城生活\backend-java-reference\src\main\java\com\neighborhood\app\service\AdminImageStatusService.java
 D:\下载文件\同城生活\backend-java-reference\src\main\java\com\neighborhood\app\service\impl\AdminLogDispatchServiceImpl.java
 D:\下载文件\同城生活\backend-java-reference\src\main\java\com\neighborhood\app\service\MessageService.java
@@ -173,3 +175,4 @@ D:\下载文件\同城生活\backend-java-reference\src\main\java\com\neighborhood\app\s
 D:\下载文件\同城生活\backend-java-reference\src\main\java\com\neighborhood\app\dto\user\AuthResponse.java
 D:\下载文件\同城生活\backend-java-reference\src\main\java\com\neighborhood\app\controller\admin\AdminCommerceController.java
 D:\下载文件\同城生活\backend-java-reference\src\main\java\com\neighborhood\app\messaging\AdminLogMessage.java
+D:\下载文件\同城生活\backend-java-reference\src\main\java\com\neighborhood\app\service\AppMetricsService.java

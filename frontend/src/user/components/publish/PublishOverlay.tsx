@@ -21,6 +21,8 @@ import {
 import { fileApi, marketApi, newsApi, serviceApi } from '../../services/api';
 import { useAuth } from '../../context/AuthContext';
 import { MARKET_CATEGORIES, SERVICE_CATEGORIES } from '../../constants';
+import { Item, Service } from '../../types';
+import { getErrorMessage } from '../../utils/error';
 
 const LazyLocationPicker = lazy(() =>
   import('../common/LocationPicker').then((mod) => ({ default: mod.LocationPicker }))
@@ -193,7 +195,7 @@ export const PublishOverlay: React.FC<PublishOverlayProps> = ({ isOpen, onClose,
           location: publishLocation,
         });
       } else if (selectedId === 'market') {
-        await marketApi.create({
+        const marketPayload: Partial<Item> = {
           title,
           price: Number(price),
           itemCondition: condition,
@@ -201,9 +203,10 @@ export const PublishOverlay: React.FC<PublishOverlayProps> = ({ isOpen, onClose,
           category: marketCategory,
           images: uploadedUrls,
           location: publishLocation,
-        } as any);
+        };
+        await marketApi.create(marketPayload);
       } else if (selectedId === 'service') {
-        await serviceApi.create({
+        const servicePayload: Partial<Service> = {
           title,
           price: Number(price),
           description: content,
@@ -212,7 +215,8 @@ export const PublishOverlay: React.FC<PublishOverlayProps> = ({ isOpen, onClose,
           images: uploadedUrls,
           highlights: serviceHighlights,
           distance: publishLocation,
-        } as any);
+        };
+        await serviceApi.create(servicePayload);
       } else if (selectedId === 'snap') {
         await newsApi.create({
           title: title || content.substring(0, 30),
@@ -228,8 +232,8 @@ export const PublishOverlay: React.FC<PublishOverlayProps> = ({ isOpen, onClose,
         handleReset();
         onClose();
       }, 2000);
-    } catch (err) {
-      console.error('发布失败', err);
+    } catch (err: unknown) {
+      console.error(getErrorMessage(err, '发布失败'));
       setIsSubmitting(false);
     }
   };

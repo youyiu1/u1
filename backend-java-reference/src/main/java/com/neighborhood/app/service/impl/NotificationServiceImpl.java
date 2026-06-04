@@ -1,8 +1,3 @@
-/**
- * @license
- * SPDX-License-Identifier: Apache-2.0
- */
-
 package com.neighborhood.app.service.impl;
 
 import com.baomidou.mybatisplus.core.conditions.update.LambdaUpdateWrapper;
@@ -13,6 +8,8 @@ import com.neighborhood.app.entity.service.Order;
 import com.neighborhood.app.entity.service.ServiceEntity;
 import com.neighborhood.app.mapper.service.BookingMapper;
 import com.neighborhood.app.mapper.service.NotificationMapper;
+import com.neighborhood.app.service.AppMetricsService;
+import com.neighborhood.app.service.CacheService;
 import com.neighborhood.app.service.NotificationDispatchService;
 import com.neighborhood.app.service.NotificationService;
 import com.neighborhood.app.service.NotificationWriteService;
@@ -42,29 +39,57 @@ public class NotificationServiceImpl extends ServiceImpl<NotificationMapper, Not
     private final NotificationWriteService notificationWriteService;
     private final OrderService orderService;
     private final ServiceModuleService serviceModuleService;
+    private final CacheService cacheService;
+    private final AppMetricsService appMetricsService;
 
     @Override
     public List<Notification> listByUserId(String userId) {
-        return lambdaQuery()
+        if (userId == null || userId.isBlank()) {
+            return List.of();
+        }
+        List<Notification> cached = cacheService.getCachedNotificationList(userId);
+        if (cached != null) {
+            appMetricsService.recordNotificationList(true);
+            return cached;
+        }
+        List<Notification> list = lambdaQuery()
                 .eq(Notification::getUserId, userId)
                 .orderByDesc(Notification::getTime)
                 .list();
+        cacheService.cacheNotificationList(userId, list);
+        appMetricsService.recordNotificationList(false);
+        return list;
     }
 
     @Override
     public boolean markRead(Long id) {
-        return lambdaUpdate()
+        Notification notification = getById(id);
+        if (notification == null) {
+            return false;
+        }
+        boolean updated = lambdaUpdate()
                 .eq(Notification::getId, id)
                 .set(Notification::getIsRead, true)
                 .update();
+        if (updated) {
+            evictNotificationList(notification.getUserId());
+        }
+        return updated;
     }
 
     @Override
     public boolean markAllRead(String userId) {
-        return lambdaUpdate()
+        if (userId == null || userId.isBlank()) {
+            return false;
+        }
+        boolean updated = lambdaUpdate()
                 .eq(Notification::getUserId, userId)
                 .set(Notification::getIsRead, true)
                 .update();
+        if (updated) {
+            evictNotificationList(userId);
+        }
+        return updated;
     }
 
     @Override
@@ -80,7 +105,7 @@ public class NotificationServiceImpl extends ServiceImpl<NotificationMapper, Not
     @Override
     public boolean processNotification(Long notificationId, boolean accept, String buyerId, String sellerId, Long serviceId, String serviceTitle, String price, String bookingDate, String bookingTime, Integer duration) {
         Notification notification = getById(notificationId);
-        if (notification == null || notification.getIsProcessed()) {
+        if (notification == null || Boolean.TRUE.equals(notification.getIsProcessed())) {
             return false;
         }
 
@@ -109,12 +134,12 @@ public class NotificationServiceImpl extends ServiceImpl<NotificationMapper, Not
             );
             updateBookingStatus(notification.getRelatedBookingId(), "cancelled");
         }
+
+        evictNotificationList(notification.getUserId());
         return true;
     }
 
-    /**
-     * 每天凌晨 2 点清理 7 天前的通知
-     */
+    /** 每天凌晨清理过期通知 */
     @Scheduled(cron = "0 0 2 * * ?")
     public void cleanExpiredNotifications() {
         LocalDateTime threshold = LocalDateTime.now().minusDays(RETENTION_DAYS);
@@ -217,6 +242,10 @@ public class NotificationServiceImpl extends ServiceImpl<NotificationMapper, Not
 
     private int normalizeDuration(Integer duration) {
         return duration == null || duration == 0 ? DEFAULT_DURATION : duration;
+    }
+
+    private void evictNotificationList(String userId) {
+        cacheService.evictNotificationList(userId);
     }
 
     private record ProcessContext(

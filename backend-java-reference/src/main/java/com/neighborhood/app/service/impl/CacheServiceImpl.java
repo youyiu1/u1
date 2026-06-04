@@ -1,8 +1,3 @@
-/**
- * @license
- * SPDX-License-Identifier: Apache-2.0
- */
-
 package com.neighborhood.app.service.impl;
 
 import com.neighborhood.app.service.CacheService;
@@ -10,9 +5,9 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.cache.Cache;
 import org.springframework.cache.CacheManager;
-import org.springframework.data.redis.serializer.SerializationException;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.data.redis.core.StringRedisTemplate;
+import org.springframework.data.redis.serializer.SerializationException;
 import org.springframework.stereotype.Service;
 
 import java.util.Arrays;
@@ -34,6 +29,8 @@ public class CacheServiceImpl implements CacheService {
     private static final long MARKET_LIST_TTL_MINUTES = 10;
     private static final long MARKET_DETAIL_TTL_MINUTES = 15;
     private static final long HOME_INDEX_TTL_MINUTES = 5;
+    private static final long NOTIFICATION_LIST_TTL_MINUTES = 10;
+    private static final long SEARCH_RESULT_TTL_MINUTES = 5;
 
     private static final long FAVORITE_CACHE_TTL_DAYS = 30;
     private static final long REVIEW_LIKE_CACHE_TTL_DAYS = 30;
@@ -170,9 +167,50 @@ public class CacheServiceImpl implements CacheService {
     }
 
     @Override
+    public void cacheNotificationList(String userId, Object list) {
+        if (isBlank(userId)) {
+            return;
+        }
+        putValue(notificationListKey(userId), list, NOTIFICATION_LIST_TTL_MINUTES, TimeUnit.MINUTES, "缓存通知列表失败", userId);
+    }
+
+    @Override
+    public <T> T getCachedNotificationList(String userId) {
+        if (isBlank(userId)) {
+            return null;
+        }
+        return getValue(notificationListKey(userId), HOT_DATA_CACHE, "获取通知列表缓存失败", userId);
+    }
+
+    @Override
+    public void evictNotificationList(String userId) {
+        if (isBlank(userId)) {
+            return;
+        }
+        deleteKey(notificationListKey(userId), HOT_DATA_CACHE, "删除通知列表缓存失败", userId);
+    }
+
+    @Override
+    public void cacheSearchResult(String keyword, Object result) {
+        putValue(searchResultKey(keyword), result, SEARCH_RESULT_TTL_MINUTES, TimeUnit.MINUTES, "缓存搜索结果失败", keyword);
+    }
+
+    @Override
+    public <T> T getCachedSearchResult(String keyword) {
+        return getValue(searchResultKey(keyword), HOT_DATA_CACHE, "获取搜索结果缓存失败", keyword);
+    }
+
+    @Override
+    public void evictSearchResult(String keyword) {
+        deleteKey(searchResultKey(keyword), HOT_DATA_CACHE, "删除搜索结果缓存失败", keyword);
+    }
+
+    @Override
     public void evictAll() {
         try {
-            redisTemplate.getConnectionFactory().getConnection().flushDb();
+            if (redisTemplate.getConnectionFactory() != null) {
+                redisTemplate.getConnectionFactory().getConnection().flushDb();
+            }
             clearLocalCache(HOT_DATA_CACHE);
             clearLocalCache(STATE_DATA_CACHE);
         } catch (Exception e) {
@@ -426,7 +464,7 @@ public class CacheServiceImpl implements CacheService {
     }
 
     private void deleteCorruptedValue(String key, String cacheName, String message, Object context, SerializationException e) {
-        log.warn("{}，已删除损坏缓存键: {}", message, key, e);
+        log.warn("{}，已删除损坏缓存键 {}", message, key, e);
         try {
             redisTemplate.delete(key);
         } catch (Exception deleteException) {
@@ -460,6 +498,15 @@ public class CacheServiceImpl implements CacheService {
 
     private boolean isBlank(String value) {
         return value == null || value.isBlank();
+    }
+
+    private String notificationListKey(String userId) {
+        return "notification:list:" + userId;
+    }
+
+    private String searchResultKey(String keyword) {
+        String normalized = keyword == null ? "" : keyword.trim().toLowerCase();
+        return "search:result:" + (normalized.isEmpty() ? "_all" : normalized);
     }
 
     private record ValueCacheSpec(String detailPrefix, String listKey, long detailTtlMinutes, long listTtlMinutes) {

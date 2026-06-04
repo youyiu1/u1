@@ -1,8 +1,3 @@
-/**
- * @license
- * SPDX-License-Identifier: Apache-2.0
- */
-
 package com.neighborhood.app.service.impl;
 
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
@@ -16,6 +11,7 @@ import com.neighborhood.app.service.ServiceModuleService;
 import com.neighborhood.app.service.UserService;
 import com.neighborhood.app.utils.BookingDateTimeUtil;
 import com.neighborhood.app.utils.CacheLookupUtil;
+import com.neighborhood.app.utils.EntityDefaultsUtil;
 import com.neighborhood.app.utils.StringValueUtil;
 import com.neighborhood.app.vo.service.ServiceDetailVO;
 import lombok.RequiredArgsConstructor;
@@ -57,9 +53,7 @@ public class ServiceModuleServiceImpl extends ServiceImpl<ServiceMapper, Service
         );
     }
 
-    /**
-     * 获取服务详情，包含服务商信息。
-     */
+    /** 获取服务详情，包含服务商信息。 */
     public ServiceDetailVO getServiceDetail(Long id, Double buyerLat, Double buyerLng) {
         ServiceEntity service = getById(id);
         if (service == null || !"active".equals(StringValueUtil.emptyTo(service.getStatus(), "active"))) {
@@ -71,10 +65,7 @@ public class ServiceModuleServiceImpl extends ServiceImpl<ServiceMapper, Service
 
     @Override
     public boolean save(ServiceEntity service) {
-        service.setStatus("pending");
-        service.setRejectReason("");
-        service.setRating(service.getRating() == null ? 0D : service.getRating());
-        service.setReviews(service.getReviews() == null ? 0 : service.getReviews());
+        EntityDefaultsUtil.initPendingService(service);
         boolean result = super.save(service);
         if (result) {
             evictServiceCaches(service.getId(), true);

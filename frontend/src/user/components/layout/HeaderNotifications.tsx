@@ -6,6 +6,7 @@ import { Notification } from '../../types';
 import { AuthContext } from '../../context/AuthContext';
 import { useNotification } from '../../context/NotificationContext';
 import { ConfirmDialog } from '../common/ConfirmDialog';
+import { getErrorMessage } from '../../utils/error';
 
 const formatTime = (time: string) => {
   const date = new Date(time);
@@ -46,7 +47,7 @@ export const HeaderNotifications: React.FC = () => {
       const data = await notificationApi.list(userId);
       setNotifications(data);
     } catch (error) {
-      console.error('Failed to fetch notifications:', error);
+      console.error(getErrorMessage(error, '通知加载失败'));
     } finally {
       if (withLoading) setLoading(false);
     }
@@ -81,7 +82,7 @@ export const HeaderNotifications: React.FC = () => {
     try {
       await notificationApi.markAllRead(user.id);
     } catch (error) {
-      console.error('Failed to mark all read:', error);
+      console.error(getErrorMessage(error, '全部已读操作失败'));
     }
     setNotifications((current) => current.map((notification) => ({ ...notification, isRead: true })));
     clearUnread();
@@ -102,7 +103,7 @@ export const HeaderNotifications: React.FC = () => {
       });
       await refreshNotifications(user.id);
     } catch (error) {
-      console.error(`Failed to ${accept ? 'accept' : 'reject'} booking:`, error);
+      console.error(getErrorMessage(error, accept ? '同意预约失败' : '拒绝预约失败'));
     } finally {
       setProcessingId(null);
     }
@@ -118,7 +119,7 @@ export const HeaderNotifications: React.FC = () => {
         current.map((item) => (item.id === notification.id ? { ...item, isRead: true } : item))
       );
     } catch (error) {
-      console.error('Failed to mark read:', error);
+      console.error(getErrorMessage(error, '通知已读更新失败'));
     }
   };
 

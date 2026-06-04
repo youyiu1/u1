@@ -14,6 +14,7 @@ import { useChat } from '../../context/ChatContext';
 import { AuthContext } from '../../context/AuthContext';
 import { fileApi } from '../../services/api';
 import { useToast } from '../../context/ToastContext';
+import { getErrorMessage } from '../../utils/error';
 
 const EMOJIS = ['😀', '😁', '😂', '🥹', '😍', '😘', '😎', '😡', '👍', '🙏', '🎉', '❤️', '🌟', '🔥'];
 const CONTACT_EMPTY_STATE = {
@@ -107,8 +108,8 @@ export const ChatOverlay: React.FC = () => {
       setPendingImagePreview(preview);
       setPendingImageUrl(url);
       setShowEmojiPicker(false);
-    } catch (err: any) {
-      showToast(err?.message || '图片上传失败', 'error');
+    } catch (err: unknown) {
+      showToast(getErrorMessage(err, '图片上传失败'), 'error');
     } finally {
       setUploadingImage(false);
     }

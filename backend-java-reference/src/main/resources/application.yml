@@ -102,6 +102,9 @@ app:
       initial-capacity: 256
       maximum-size: 5000
       expire-after-write-seconds: 45
+  file:
+    public-base-url: http://localhost/api/file
+    cdn-base-url:
   messaging:
     rabbit:
       enabled: false

@@ -10,6 +10,8 @@ import { useToast } from '../../context/ToastContext';
 import { useLikeAndFavorite } from '../../hooks/useLikeAndFavorite';
 import { Comment, Post } from '../../types';
 import { formatDateTime } from '../../utils/dateTime';
+import { fallbackText } from '../../utils/display';
+import { getErrorMessage } from '../../utils/error';
 import { parseImages } from '../../utils/images';
 
 const COMMENT_FETCH_LIMIT = 200;
@@ -24,7 +26,7 @@ function buildCommentMap(comments: Comment[]) {
   });
 
   comments.forEach((comment) => {
-    const rawParentId = comment.parentId ?? (comment as any).parent_id;
+    const rawParentId = comment.parentId ?? comment.parent_id;
     const parentId = rawParentId ? String(rawParentId) : '0';
     if (parentId === '0' || !commentById.has(parentId)) {
       return;
@@ -76,17 +78,18 @@ export default function NewsDetailPage() {
   );
 
   const authorId = post?.author?.id || post?.authorId || '';
-  const authorName = post?.author?.name || post?.authorName || '匿名用户';
+  const authorName = fallbackText(post?.author?.name || post?.authorName, '匿名用户');
   const authorAvatar = post?.author?.avatar || post?.authorAvatar || '';
   const authorVerified = post?.author?.verified ?? post?.authorVerified ?? false;
   const postTime = formatDateTime(post?.time || post?.createTime, '刚刚');
   const isOwnPost = Boolean(user?.id && user.id === authorId);
   const postImages = useMemo(() => parseImages(post?.images), [post?.images]);
+  const locationLabel = fallbackText(post?.location, '同城社区');
 
   const rootComments = useMemo(() => {
     const { commentById } = buildCommentMap(comments);
     return comments.filter((comment) => {
-      const rawParentId = comment.parentId ?? (comment as any).parent_id;
+      const rawParentId = comment.parentId ?? comment.parent_id;
       const parentId = rawParentId ? String(rawParentId) : '0';
       return parentId === '0' || !commentById.has(parentId);
     });
@@ -109,8 +112,8 @@ export default function NewsDetailPage() {
     try {
       const commentData = await newsApi.getComments(id, COMMENT_FETCH_LIMIT, 0, user?.id);
       setComments(commentData);
-    } catch (fetchError: any) {
-      showToast(fetchError.message || '评论加载失败，请稍后重试', 'error');
+    } catch (fetchError: unknown) {
+      showToast(getErrorMessage(fetchError, '评论加载失败，请稍后重试'), 'error');
     }
   };
 
@@ -126,8 +129,8 @@ export default function NewsDetailPage() {
         if (data.isFollowing !== undefined && data.isFollowing !== null) {
           setIsFollowed(data.isFollowing);
         }
-      } catch (fetchError: any) {
-        setError(fetchError.message || '动态详情加载失败');
+      } catch (fetchError: unknown) {
+        setError(getErrorMessage(fetchError, '动态详情加载失败'));
       } finally {
         setLoading(false);
       }
@@ -174,8 +177,8 @@ export default function NewsDetailPage() {
       }
       await fetchComments();
       showToast('评论成功', 'success');
-    } catch (submitError: any) {
-      showToast(submitError.message || '评论失败，请稍后重试', 'error');
+    } catch (submitError: unknown) {
+      showToast(getErrorMessage(submitError, '评论失败，请稍后重试'), 'error');
     }
   };
 
@@ -269,7 +272,7 @@ export default function NewsDetailPage() {
               authorAvatar={authorAvatar}
               authorVerified={authorVerified}
               postTime={postTime}
-              location={post.location}
+              location={locationLabel}
               isOwnPost={isOwnPost}
               isFollowed={isFollowed}
               onFollowChange={setIsFollowed}
@@ -399,7 +402,7 @@ function PostAuthorHeader({
             <span className="text-base font-black text-ink transition-colors group-hover:text-primary">{authorName}</span>
             {authorVerified ? <span className="text-xs text-primary">已认证</span> : null}
           </div>
-          <span className="text-xs text-muted">{postTime} · {location || '同城社区'}</span>
+          <span className="text-xs text-muted">{postTime} · {fallbackText(location, '同城社区')}</span>
         </div>
       </div>
       {!isOwnPost ? (

@@ -37,6 +37,7 @@ com\neighborhood\app\service\impl\MarketServiceImpl.class
 com\neighborhood\app\service\AdminLogQueryService.class
 com\neighborhood\app\vo\service\ServiceDetailVO$SellerInfo.class
 com\neighborhood\app\service\NotificationService.class
+com\neighborhood\app\service\impl\AppMetricsServiceImpl.class
 com\neighborhood\app\service\AdminLogDispatchService.class
 com\neighborhood\app\common\Result.class
 com\neighborhood\app\entity\content\Comment.class
@@ -169,12 +170,14 @@ com\neighborhood\app\dto\admin\AdminSystemRequests$RoleUpdateRequest.class
 com\neighborhood\app\controller\admin\module\AdminSystemModule.class
 com\neighborhood\app\utils\UserLookupUtil.class
 com\neighborhood\app\common\SpringContext.class
+com\neighborhood\app\service\AppMetricsService.class
 com\neighborhood\app\dto\admin\AdminUserRequests$UserAdminRoleRequest.class
 com\neighborhood\app\messaging\NotificationMessage.class
 com\neighborhood\app\entity\service\ServiceReview.class
 com\neighborhood\app\service\impl\AdminBlacklistServiceImpl.class
 com\neighborhood\app\utils\DistanceUtil.class
 com\neighborhood\app\mapper\admin\AdminRoleMapper.class
+com\neighborhood\app\utils\EntityDefaultsUtil.class
 com\neighborhood\app\interceptor\AuthInterceptor$AuthState.class
 com\neighborhood\app\mapper\content\CommentMapper.class
 com\neighborhood\app\service\MessageService.class

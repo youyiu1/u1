@@ -6,6 +6,7 @@
 import React, { useEffect, useState } from 'react';
 import { AnimatePresence, motion } from 'motion/react';
 import { Star, X } from 'lucide-react';
+import { getErrorMessage } from '../../utils/error';
 
 interface ReviewDialogProps {
   isOpen: boolean;
@@ -37,8 +38,8 @@ export const ReviewDialog: React.FC<ReviewDialogProps> = ({
     try {
       await onSubmit(rating, content.trim());
       onClose();
-    } catch (error) {
-      console.error('Failed to submit review:', error);
+    } catch (error: unknown) {
+      console.error(getErrorMessage(error, '提交评价失败'));
     } finally {
       setLoading(false);
     }

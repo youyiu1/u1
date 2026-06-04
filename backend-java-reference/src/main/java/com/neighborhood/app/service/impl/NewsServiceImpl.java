@@ -1,25 +1,20 @@
-/**
- * @license
- * SPDX-License-Identifier: Apache-2.0
- */
-
 package com.neighborhood.app.service.impl;
 
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.neighborhood.app.entity.content.Comment;
-import com.neighborhood.app.entity.user.Follow;
 import com.neighborhood.app.entity.content.News;
 import com.neighborhood.app.entity.user.User;
 import com.neighborhood.app.mapper.content.CommentMapper;
-import com.neighborhood.app.mapper.user.FollowMapper;
 import com.neighborhood.app.mapper.content.NewsMapper;
+import com.neighborhood.app.mapper.user.FollowMapper;
 import com.neighborhood.app.mapper.user.UserMapper;
 import com.neighborhood.app.service.CacheService;
 import com.neighborhood.app.service.CommentLikeService;
 import com.neighborhood.app.service.NewsService;
 import com.neighborhood.app.utils.CacheLookupUtil;
 import com.neighborhood.app.utils.CounterSqlUtil;
+import com.neighborhood.app.utils.EntityDefaultsUtil;
 import com.neighborhood.app.utils.FollowLookupUtil;
 import com.neighborhood.app.utils.StringValueUtil;
 import com.neighborhood.app.utils.UserLookupUtil;
@@ -120,14 +115,7 @@ public class NewsServiceImpl extends ServiceImpl<NewsMapper, News> implements Ne
 
     @Override
     public boolean save(News news) {
-        news.setStatus("pending");
-        news.setRejectReason("");
-        news.setLikes(news.getLikes() == null ? 0 : news.getLikes());
-        news.setCommentsCount(news.getCommentsCount() == null ? 0 : news.getCommentsCount());
-        news.setShares(news.getShares() == null ? 0 : news.getShares());
-        news.setCollections(news.getCollections() == null ? 0 : news.getCollections());
-        news.setCreateTime(news.getCreateTime() == null ? java.time.LocalDateTime.now() : news.getCreateTime());
-        news.setUpdateTime(java.time.LocalDateTime.now());
+        EntityDefaultsUtil.initPendingNews(news);
         boolean result = super.save(news);
         if (result) {
             evictNewsFeeds();

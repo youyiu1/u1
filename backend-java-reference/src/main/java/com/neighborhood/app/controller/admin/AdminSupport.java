@@ -226,8 +226,6 @@ public class AdminSupport {
         ensureDefaultAdminRoles();
     }
 
-    // 缁狅紕鎮婄粩顖涘复閸?
-
     public Result<Map<String, Object>> login(LoginRequest body, HttpServletRequest request) {
         String account = safeTrim(body == null ? null : body.username());
         String password = body == null ? "" : empty(body.password());
@@ -278,8 +276,6 @@ public class AdminSupport {
                 "menuIds", roleConfig.menuIds()
         ));
     }
-
-    // 缁狅紕鎮婄粩顖涘复閸?
 
     public Result<Map<String, Object>> stats() {
         Map<String, Object> row = jdbcTemplate.queryForMap("""

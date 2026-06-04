@@ -1,11 +1,8 @@
-/**
- * @license
- * SPDX-License-Identifier: Apache-2.0
- */
-
 package com.neighborhood.app.service.impl;
 
 import com.neighborhood.app.entity.system.SearchResult;
+import com.neighborhood.app.service.AppMetricsService;
+import com.neighborhood.app.service.CacheService;
 import com.neighborhood.app.service.MarketService;
 import com.neighborhood.app.service.NewsService;
 import com.neighborhood.app.service.SearchService;
@@ -20,13 +17,24 @@ public class SearchServiceImpl implements SearchService {
     private final NewsService newsService;
     private final MarketService marketService;
     private final ServiceModuleService serviceModuleService;
+    private final CacheService cacheService;
+    private final AppMetricsService appMetricsService;
 
     @Override
     public SearchResult search(String keyword) {
+        SearchResult cached = cacheService.getCachedSearchResult(keyword);
+        if (cached != null) {
+            appMetricsService.recordSearch(true);
+            return cached;
+        }
+
         SearchResult result = new SearchResult();
         result.setPosts(newsService.list());
         result.setItems(marketService.list());
         result.setServices(serviceModuleService.list());
+
+        cacheService.cacheSearchResult(keyword, result);
+        appMetricsService.recordSearch(false);
         return result;
     }
 }

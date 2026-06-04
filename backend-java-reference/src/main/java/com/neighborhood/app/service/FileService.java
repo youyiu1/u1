@@ -11,4 +11,5 @@ public interface FileService {
     void deleteFile(String url);
     boolean fileExists(String key);
     String generatePresignedUrl(String key, int expirationMinutes);
+    String buildPublicUrl(String key);
 }

@@ -29,6 +29,12 @@ public interface CacheService {
     void cacheHomeIndex(Object data);
     <T> T getCachedHomeIndex();
     void evictHomeIndex();
+    void cacheNotificationList(String userId, Object list);
+    <T> T getCachedNotificationList(String userId);
+    void evictNotificationList(String userId);
+    void cacheSearchResult(String keyword, Object result);
+    <T> T getCachedSearchResult(String keyword);
+    void evictSearchResult(String keyword);
     void evictAll();
 
     // ========== 点赞相关 ==========

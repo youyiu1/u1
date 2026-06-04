@@ -1,8 +1,9 @@
-import React, { useMemo, useState } from 'react';
+﻿import React, { useMemo, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { motion } from 'motion/react';
 import { userApi } from '../../services/api';
 import { useAuth } from '../../context/AuthContext';
+import { getErrorMessage } from '../../utils/error';
 
 interface RegisterFormState {
   username: string;
@@ -114,8 +115,8 @@ export default function RegisterPage() {
     try {
       await register(formData.username, formData.email, formData.password, formData.code);
       navigate('/');
-    } catch (submitError: any) {
-      setError(submitError.message || '注册失败，请稍后重试');
+    } catch (submitError: unknown) {
+      setError(getErrorMessage(submitError, '注册失败，请稍后重试'));
     } finally {
       setIsLoading(false);
     }
@@ -137,15 +138,14 @@ export default function RegisterPage() {
 
         <form onSubmit={handleSubmit} className="space-y-6">
           {primaryFields.map((field) => (
-            <React.Fragment key={field.key}>
-              <FormField
-                label={field.label}
-                type={field.type}
-                value={formData[field.key]}
-                placeholder={field.placeholder}
-                onChange={handleChange(field.key)}
-              />
-            </React.Fragment>
+            <FormField
+              key={field.key}
+              label={field.label}
+              type={field.type}
+              value={formData[field.key]}
+              placeholder={field.placeholder}
+              onChange={handleChange(field.key)}
+            />
           ))}
 
           <div className="space-y-1.5">
@@ -171,17 +171,16 @@ export default function RegisterPage() {
           </div>
 
           {passwordFields.map((field) => (
-            <React.Fragment key={field.key}>
-              <FormField
-                label={field.label}
-                type={field.type}
-                value={formData[field.key]}
-                placeholder={field.placeholder}
-                onChange={handleChange(field.key)}
-              >
-                {field.key === 'password' ? <PasswordStrengthBar strength={strength} /> : null}
-              </FormField>
-            </React.Fragment>
+            <FormField
+              key={field.key}
+              label={field.label}
+              type={field.type}
+              value={formData[field.key]}
+              placeholder={field.placeholder}
+              onChange={handleChange(field.key)}
+            >
+              {field.key === 'password' ? <PasswordStrengthBar strength={strength} /> : null}
+            </FormField>
           ))}
 
           <div className="flex items-start gap-3">
@@ -226,6 +225,7 @@ function FormField({
   onChange,
   children,
 }: {
+  key?: React.Key;
   label: string;
   type: RegisterField['type'];
   value: string;

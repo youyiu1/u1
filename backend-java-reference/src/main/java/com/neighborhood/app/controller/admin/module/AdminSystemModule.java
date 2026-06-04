@@ -28,6 +28,8 @@ import java.util.Map;
 @RequiredArgsConstructor
 public class AdminSystemModule {
 
+    private static final String PLATFORM_NOTICE = "平台公告";
+
     private final AdminSupport support;
     private final UserMapper userMapper;
     private final CategoryMapper categoryMapper;
@@ -79,21 +81,9 @@ public class AdminSystemModule {
     }
 
     public Result<Void> addNotification(NotificationCreateRequest body) {
-        String target = body == null ? "" : support.empty(body.target());
-        List<String> userIds = "all".equals(target)
-                ? userMapper.selectObjs(new LambdaQueryWrapper<User>().select(User::getId)).stream().map(support::str).toList()
-                : userMapper.selectObjs(new LambdaQueryWrapper<User>().select(User::getId).orderByDesc(User::getCreatedAt).last("LIMIT 1")).stream().map(support::str).toList();
-        for (String userId : userIds) {
-            Notification notification = new Notification();
-            notification.setUserId(userId);
-            notification.setTitle(body == null ? "" : support.empty(body.title()));
-            notification.setContent(body == null ? "" : support.empty(body.content()));
-            notification.setServiceName("平台公告");
-            notification.setTime(LocalDateTime.now());
-            notification.setIsRead(false);
-            notification.setIsProcessed(false);
-            notificationService.save(notification);
-        }
+        String title = body == null ? "" : support.empty(body.title());
+        String content = body == null ? "" : support.empty(body.content());
+        resolveTargetUserIds(body).forEach(userId -> notificationService.saveNotification(userId, title, content, PLATFORM_NOTICE));
         return Result.ok();
     }
 
@@ -170,5 +160,14 @@ public class AdminSystemModule {
                 .set(AdminRole::getPermissionCodes, support.stringifyArray(body == null ? List.of() : body.permissionCodes()))
                 .set(AdminRole::getUpdateTime, LocalDateTime.now()));
         return Result.ok();
+    }
+
+    private List<String> resolveTargetUserIds(NotificationCreateRequest body) {
+        String target = body == null ? "" : support.empty(body.target());
+        LambdaQueryWrapper<User> wrapper = new LambdaQueryWrapper<User>().select(User::getId);
+        if (!"all".equals(target)) {
+            wrapper.orderByDesc(User::getCreatedAt).last("LIMIT 1");
+        }
+        return userMapper.selectObjs(wrapper).stream().map(support::str).toList();
     }
 }

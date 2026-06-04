@@ -5,6 +5,7 @@ import { useLocation, useNavigate } from 'react-router-dom';
 import { fileApi, userApi } from '../../services/api';
 import { useAuth } from '../../context/AuthContext';
 import { User } from '../../types';
+import { getErrorMessage } from '../../utils/error';
 
 interface EditProfileOverlayProps {
   isOpen: boolean;
@@ -111,8 +112,8 @@ export const EditProfileOverlay: React.FC<EditProfileOverlayProps> = ({ isOpen, 
         onClose();
         onSuccess?.();
       }, 850);
-    } catch (err: any) {
-      setError(err.message || '更新失败');
+    } catch (err: unknown) {
+      setError(getErrorMessage(err, '更新失败'));
     } finally {
       setIsSubmitting(false);
     }

@@ -74,6 +74,7 @@ export interface Item {
   title: string;
   category: string;
   itemCondition: string;
+  condition?: string;
   price: number;
   originalPrice: number;
   location: string;
@@ -177,6 +178,7 @@ export interface ReviewFormData {
 export interface Comment {
   id: string;
   parentId?: string;
+  parent_id?: string;
   user?: string;
   userName?: string;
   userAvatar?: string;

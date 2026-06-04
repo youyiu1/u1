@@ -1,8 +1,10 @@
-import React, { useEffect, useMemo, useState } from 'react';
+﻿import React, { useEffect, useMemo, useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { MapPin, MessageCircle, Search as SearchIcon, Star, ThumbsUp } from 'lucide-react';
 import { searchApi } from '../../services/api';
 import { Item, Post, Service } from '../../types';
+import { formatCurrency, fallbackText } from '../../utils/display';
+import { getErrorMessage } from '../../utils/error';
 import { getItemPrimaryImage, getServicePrimaryImage } from '../../utils/images';
 
 interface SearchResults {
@@ -46,11 +48,11 @@ function ServiceResultCard({ service, onClick }: { service: Service; onClick: ()
       </div>
       <div className="p-5">
         <h4 className="mb-2 font-bold text-ink">{service.title}</h4>
-        <div className="flex items-center justify-between">
-          <span className="text-lg font-bold text-primary">￥{service.price}</span>
+        <div className="flex items-center justify-between gap-3">
+          <span className="text-lg font-bold text-primary">{formatCurrency(service.price)}</span>
           <span className="flex items-center gap-1 text-xs text-muted">
             <MapPin className="h-3 w-3" />
-            {service.distance}
+            {fallbackText(service.distance, '距离未知')}
           </span>
         </div>
       </div>
@@ -66,9 +68,9 @@ function ItemResultCard({ item, onClick }: { item: Item; onClick: () => void | P
       </div>
       <div className="p-4">
         <h4 className="mb-2 line-clamp-2 text-sm font-bold text-ink">{item.title}</h4>
-        <div className="flex items-center justify-between">
-          <span className="text-lg font-bold text-primary">￥{item.price}</span>
-          <span className="text-xs text-muted">{item.itemCondition}</span>
+        <div className="flex items-center justify-between gap-3">
+          <span className="text-lg font-bold text-primary">{formatCurrency(item.price)}</span>
+          <span className="text-xs text-muted">{fallbackText(item.itemCondition || item.condition, '成色未知')}</span>
         </div>
       </div>
     </article>
@@ -76,19 +78,19 @@ function ItemResultCard({ item, onClick }: { item: Item; onClick: () => void | P
 }
 
 function PostResultCard({ post, onClick }: { post: Post; onClick: () => void | Promise<void> }) {
-  const authorName = post.author?.name || post.authorName || '匿名用户';
-  const authorAvatar = post.author?.avatar;
+  const authorName = fallbackText(post.author?.name || post.authorName, '匿名用户');
+  const authorAvatar = post.author?.avatar || post.authorAvatar;
 
   return (
     <article onClick={onClick} className="cursor-pointer rounded-3xl border border-hairline bg-white p-6 transition-all hover:shadow-lg">
       <div className="flex items-start gap-4">
         <div className="flex h-12 w-12 items-center justify-center overflow-hidden rounded-2xl bg-surface-soft">
-          <ResultCardImage src={authorAvatar} alt={authorName || '用户头像'} />
+          <ResultCardImage src={authorAvatar} alt={authorName} />
         </div>
         <div className="min-w-0 flex-1">
           <div className="mb-1 flex items-center gap-2">
             <span className="font-bold text-ink">{authorName}</span>
-            <span className="rounded bg-surface-soft px-2 py-0.5 text-xs text-muted">{post.category}</span>
+            {post.category ? <span className="rounded bg-surface-soft px-2 py-0.5 text-xs text-muted">{post.category}</span> : null}
           </div>
           <p className="mb-3 line-clamp-2 text-sm text-secondary">{post.content}</p>
           <div className="flex items-center gap-6 text-xs text-muted">
@@ -98,7 +100,7 @@ function PostResultCard({ post, onClick }: { post: Post; onClick: () => void | P
             </span>
             <span className="flex items-center gap-1">
               <MessageCircle className="h-3 w-3" />
-              {post.commentsCount ?? post.comments}
+              {post.commentsCount ?? post.comments?.length ?? 0}
             </span>
           </div>
         </div>
@@ -107,13 +109,7 @@ function PostResultCard({ post, onClick }: { post: Post; onClick: () => void | P
   );
 }
 
-function EmptySearchState({
-  title,
-  description,
-}: {
-  title: string;
-  description?: string;
-}) {
+function EmptySearchState({ title, description }: { title: string; description?: string }) {
   return (
     <div className="py-20 text-center text-muted">
       <SearchIcon className="mx-auto mb-4 h-12 w-12 opacity-30" />
@@ -150,8 +146,8 @@ export default function SearchPage() {
           items: data.items || [],
           posts: data.posts || [],
         });
-      } catch (error) {
-        console.error('Search failed:', error);
+      } catch (error: unknown) {
+        console.error(getErrorMessage(error, '搜索失败'));
         setResults(EMPTY_RESULTS);
       } finally {
         setLoading(false);
@@ -161,15 +157,8 @@ export default function SearchPage() {
     void fetchResults();
   }, [keyword]);
 
-  const totalResults = useMemo(
-    () => results.services.length + results.items.length + results.posts.length,
-    [results]
-  );
-
-  const sections = useMemo(
-    () => RESULT_SECTIONS.filter((section) => results[section.key].length > 0),
-    [results]
-  );
+  const totalResults = useMemo(() => results.services.length + results.items.length + results.posts.length, [results]);
+  const sections = useMemo(() => RESULT_SECTIONS.filter((section) => results[section.key].length > 0), [results]);
 
   const handleSearch = (event: React.FormEvent) => {
     event.preventDefault();
@@ -217,7 +206,7 @@ export default function SearchPage() {
           <EmptySearchState title="没有找到相关内容" description="换个关键词再试试" />
         ) : (
           <div className="space-y-12">
-            <div className="flex items-center justify-between">
+            <div className="flex items-center justify-between gap-4">
               <h2 className="text-lg font-bold text-ink">共找到 {totalResults} 条相关内容</h2>
               <span className="text-sm text-muted">关键词：{keyword}</span>
             </div>
