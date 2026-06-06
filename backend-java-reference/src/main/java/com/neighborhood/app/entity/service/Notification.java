@@ -10,24 +10,33 @@ import com.baomidou.mybatisplus.annotation.TableId;
 import com.baomidou.mybatisplus.annotation.TableName;
 import com.fasterxml.jackson.databind.annotation.JsonSerialize;
 import com.fasterxml.jackson.databind.ser.std.ToStringSerializer;
-import lombok.Data;
 import java.time.LocalDateTime;
+import lombok.Data;
 
+/** 通知实体。 */
 @Data
 @TableName("t_notification")
 public class Notification {
     @TableId(type = IdType.ASSIGN_ID)
     @JsonSerialize(using = ToStringSerializer.class)
     private Long id;
+
     private String userId;
     private String title;
     private String content;
     private String serviceName;
     private LocalDateTime time;
     private Boolean isRead;
-    private Boolean isProcessed; // 是否已处理（同意/拒绝）
+    private Boolean isProcessed;
+
     @JsonSerialize(using = ToStringSerializer.class)
-    private Long orderId; // 关联的订单ID
+    private Long orderId;
+
     @JsonSerialize(using = ToStringSerializer.class)
-    private Long relatedBookingId; // 关联的预约ID
+    private Long relatedBookingId;
+
+    private String relatedUserId;
+
+    @JsonSerialize(using = ToStringSerializer.class)
+    private Long relatedMarketItemId;
 }

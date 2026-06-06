@@ -9,11 +9,12 @@ import com.fasterxml.jackson.databind.annotation.JsonSerialize;
 import com.fasterxml.jackson.databind.ser.std.ToStringSerializer;
 import com.neighborhood.app.entity.market.MarketItem;
 import com.neighborhood.app.entity.user.User;
-import lombok.Data;
-import lombok.experimental.Accessors;
 import java.math.BigDecimal;
 import java.util.List;
+import lombok.Data;
+import lombok.experimental.Accessors;
 
+/** 文件作用：闲置商品Item视图模型。 */
 @Data
 @Accessors(chain = true)
 public class MarketItemVO {

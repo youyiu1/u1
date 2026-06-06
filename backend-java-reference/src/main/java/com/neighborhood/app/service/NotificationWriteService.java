@@ -1,12 +1,19 @@
 package com.neighborhood.app.service;
 
+/** 通知写入服务接口。 */
 public interface NotificationWriteService {
-    /** 保存普通通知。 */
     void saveNotification(String userId, String title, String content, String serviceName);
 
-    /** 保存并关联预约通知。 */
     void saveNotificationWithBooking(String userId, String title, String content, String serviceName, Long bookingId);
 
-    /** 保存已处理结果通知。 */
+    void saveNotificationWithMarketItem(
+            String userId,
+            String title,
+            String content,
+            String serviceName,
+            String relatedUserId,
+            Long marketItemId
+    );
+
     void saveProcessedNotification(String userId, String title, String content, String serviceName);
 }

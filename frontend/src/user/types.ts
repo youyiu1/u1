@@ -24,6 +24,7 @@ export interface User {
   postsVisible?: string;
   showLocation?: boolean;
   isVerified: boolean;
+  isOnline?: boolean;
   followersCount?: number;
   followingCount?: number;
 }
@@ -33,7 +34,6 @@ export interface ChatPartner {
   name: string;
   avatar: string;
   lastMessage?: string;
-  lastSeen?: string;
   isOnline?: boolean;
 }
 
@@ -142,6 +142,8 @@ export interface Notification {
   isProcessed?: boolean;
   orderId?: string;
   relatedBookingId?: string;
+  relatedUserId?: string;
+  relatedMarketItemId?: string;
 }
 
 export interface Category {

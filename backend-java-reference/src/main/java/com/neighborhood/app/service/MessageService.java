@@ -4,6 +4,7 @@ import com.baomidou.mybatisplus.extension.service.IService;
 import com.neighborhood.app.entity.message.Message;
 import java.util.List;
 
+/** 文件作用：消息服务接口。 */
 public interface MessageService extends IService<Message> {
     /**
      * 获取与指定用户的对话列表

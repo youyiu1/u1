@@ -12,15 +12,15 @@ import com.neighborhood.app.service.CacheService;
 import com.neighborhood.app.service.ReviewLikeService;
 import com.neighborhood.app.service.ServiceReviewService;
 import com.neighborhood.app.utils.ServiceReviewResponseUtil;
-import lombok.RequiredArgsConstructor;
-import org.springframework.jdbc.core.JdbcTemplate;
-import org.springframework.stereotype.Service;
-
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import lombok.RequiredArgsConstructor;
+import org.springframework.jdbc.core.JdbcTemplate;
+import org.springframework.stereotype.Service;
 
+/** 文件作用：服务评价服务实现。 */
 @Service
 @RequiredArgsConstructor
 public class ServiceReviewServiceImpl extends ServiceImpl<ServiceReviewMapper, ServiceReview> implements ServiceReviewService {

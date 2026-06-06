@@ -8,6 +8,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
+/** 通知分发服务实现。 */
 @Service
 @RequiredArgsConstructor
 public class NotificationDispatchServiceImpl implements NotificationDispatchService {
@@ -31,6 +32,8 @@ public class NotificationDispatchServiceImpl implements NotificationDispatchServ
                 content,
                 serviceName,
                 null,
+                null,
+                null,
                 () -> notificationWriteService.saveNotification(userId, title, content, serviceName)
         );
     }
@@ -43,12 +46,59 @@ public class NotificationDispatchServiceImpl implements NotificationDispatchServ
                 content,
                 serviceName,
                 bookingId,
+                null,
+                null,
                 () -> notificationWriteService.saveNotificationWithBooking(userId, title, content, serviceName, bookingId)
         );
     }
 
-    private void dispatch(String userId, String title, String content, String serviceName, Long bookingId, Runnable fallback) {
-        NotificationMessage message = new NotificationMessage(userId, title, content, serviceName, bookingId);
+    @Override
+    public void dispatchNotificationWithMarketItem(
+            String userId,
+            String title,
+            String content,
+            String serviceName,
+            String relatedUserId,
+            Long marketItemId
+    ) {
+        dispatch(
+                userId,
+                title,
+                content,
+                serviceName,
+                null,
+                relatedUserId,
+                marketItemId,
+                () -> notificationWriteService.saveNotificationWithMarketItem(
+                        userId,
+                        title,
+                        content,
+                        serviceName,
+                        relatedUserId,
+                        marketItemId
+                )
+        );
+    }
+
+    private void dispatch(
+            String userId,
+            String title,
+            String content,
+            String serviceName,
+            Long bookingId,
+            String relatedUserId,
+            Long marketItemId,
+            Runnable fallback
+    ) {
+        NotificationMessage message = new NotificationMessage(
+                userId,
+                title,
+                content,
+                serviceName,
+                bookingId,
+                relatedUserId,
+                marketItemId
+        );
         asyncMessageDispatcher.dispatch(CHANNEL, notificationExchange, notificationRoutingKey, message, fallback);
     }
 }

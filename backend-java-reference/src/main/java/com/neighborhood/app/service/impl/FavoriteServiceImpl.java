@@ -10,11 +10,11 @@ import com.neighborhood.app.mapper.market.FavoriteMapper;
 import com.neighborhood.app.service.CacheService;
 import com.neighborhood.app.service.FavoriteService;
 import com.neighborhood.app.utils.CounterSqlUtil;
+import java.util.List;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
-import java.util.List;
-
+/** 文件作用：收藏服务实现。 */
 @Service
 @RequiredArgsConstructor
 public class FavoriteServiceImpl extends ServiceImpl<FavoriteMapper, Favorite> implements FavoriteService {

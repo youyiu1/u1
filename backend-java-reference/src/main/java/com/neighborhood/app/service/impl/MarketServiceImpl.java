@@ -13,18 +13,21 @@ import com.neighborhood.app.utils.EntityDefaultsUtil;
 import com.neighborhood.app.utils.StringValueUtil;
 import com.neighborhood.app.utils.UserLookupUtil;
 import com.neighborhood.app.vo.market.MarketItemVO;
-import lombok.RequiredArgsConstructor;
-import org.springframework.stereotype.Service;
-
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
+import lombok.RequiredArgsConstructor;
+import org.springframework.stereotype.Service;
 
+/** 文件作用：闲置商品服务实现。 */
 @Service
 @RequiredArgsConstructor
 public class MarketServiceImpl extends ServiceImpl<MarketMapper, MarketItem> implements MarketService {
 
     private static final String ACTIVE_STATUS = "active";
+    private static final String PENDING_STATUS = "pending";
+    private static final String REJECTED_STATUS = "rejected";
+    private static final String SOLD_STATUS = "sold";
 
     private final CacheService cacheService;
     private final UserMapper userMapper;
@@ -59,8 +62,14 @@ public class MarketServiceImpl extends ServiceImpl<MarketMapper, MarketItem> imp
 
     @Override
     public MarketItemVO getMarketItemVOById(Long id) {
+        return getMarketItemVOById(id, null);
+    }
+
+    @Override
+    public MarketItemVO getMarketItemVOById(Long id, String viewerUserId) {
         MarketItem item = getById(id);
-        if (item == null || !ACTIVE_STATUS.equals(StringValueUtil.emptyTo(item.getStatus(), ACTIVE_STATUS))) {
+        String status = item == null ? null : StringValueUtil.emptyTo(item.getStatus(), ACTIVE_STATUS);
+        if (item == null || !canViewDetail(item, status, viewerUserId)) {
             return null;
         }
         User seller = UserLookupUtil.getById(cacheService, userMapper, item.getSellerId());
@@ -93,7 +102,7 @@ public class MarketServiceImpl extends ServiceImpl<MarketMapper, MarketItem> imp
     public boolean updateById(MarketItem item) {
         boolean result = super.updateById(item);
         if (result) {
-            evictMarketCaches(item.getId(), false);
+            evictMarketCaches(item.getId(), true);
         }
         return result;
     }
@@ -117,10 +126,26 @@ public class MarketServiceImpl extends ServiceImpl<MarketMapper, MarketItem> imp
         return MarketItemVO.fromMarketItem(item, seller);
     }
 
+    private boolean canViewDetail(MarketItem item, String status, String viewerUserId) {
+        if (ACTIVE_STATUS.equals(status) || SOLD_STATUS.equals(status)) {
+            return true;
+        }
+        return isOwnerViewingSelfItem(item, status, viewerUserId);
+    }
+
+    private boolean isOwnerViewingSelfItem(MarketItem item, String status, String viewerUserId) {
+        if (viewerUserId == null || viewerUserId.isBlank() || item.getSellerId() == null) {
+            return false;
+        }
+        if (!viewerUserId.equals(item.getSellerId())) {
+            return false;
+        }
+        return PENDING_STATUS.equals(status) || REJECTED_STATUS.equals(status);
+    }
+
     private void evictMarketCaches(Long itemId, boolean includeHome) {
-        if (itemId == null) {
-            cacheService.evictMarketList();
-        } else {
+        cacheService.evictMarketList();
+        if (itemId != null) {
             cacheService.evictMarketItem(itemId);
         }
         if (includeHome) {

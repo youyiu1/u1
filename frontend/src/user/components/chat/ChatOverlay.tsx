@@ -1,4 +1,5 @@
-﻿import React, { useState, useEffect, useRef, useContext, useMemo } from 'react';
+import React, { useState, useEffect, useRef, useContext, useMemo } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'motion/react';
 import {
   X,
@@ -15,11 +16,16 @@ import { AuthContext } from '../../context/AuthContext';
 import { fileApi } from '../../services/api';
 import { useToast } from '../../context/ToastContext';
 import { getErrorMessage } from '../../utils/error';
+import { buildProfilePath, buildProfileRouteState } from '../../utils/profileRoute';
 
 const EMOJIS = ['😀', '😁', '😂', '🥹', '😍', '😘', '😎', '😡', '👍', '🙏', '🎉', '❤️', '🌟', '🔥'];
 const CONTACT_EMPTY_STATE = {
   title: '暂无消息',
   description: '点击沟通按钮即可开始对话',
+};
+const SEARCH_EMPTY_STATE = {
+  title: '未找到匹配联系人',
+  description: '试试搜索昵称或最近一条消息内容',
 };
 const MESSAGE_EMPTY_STATE = {
   switching: '加载对话中...',
@@ -27,10 +33,12 @@ const MESSAGE_EMPTY_STATE = {
 };
 
 export const ChatOverlay: React.FC = () => {
+  const navigate = useNavigate();
   const { isChatOpen, closeChat, activePartner, partners, messages, sendMessage, openChat, unreadMessages, chatOpenTick } = useChat();
   const { user } = useContext(AuthContext);
   const { showToast } = useToast();
   const [inputText, setInputText] = useState('');
+  const [searchText, setSearchText] = useState('');
   const [showContacts, setShowContacts] = useState(true);
   const [showEmojiPicker, setShowEmojiPicker] = useState(false);
   const [uploadingImage, setUploadingImage] = useState(false);
@@ -56,6 +64,18 @@ export const ChatOverlay: React.FC = () => {
     () => (activePartner ? (messages[activePartner.id] || []) : []),
     [activePartner, messages]
   );
+
+  const filteredPartners = useMemo(() => {
+    const keyword = searchText.trim().toLowerCase();
+    if (!keyword) {
+      return partners;
+    }
+    return partners.filter((partner) => {
+      const name = (partner.name || '').toLowerCase();
+      const lastMessage = (partner.lastMessage || '').toLowerCase();
+      return name.includes(keyword) || lastMessage.includes(keyword);
+    });
+  }, [partners, searchText]);
 
   useEffect(() => {
     if (isChatOpen) {
@@ -87,6 +107,18 @@ export const ChatOverlay: React.FC = () => {
   const handleBack = () => {
     setShowContacts(true);
     setShowEmojiPicker(false);
+  };
+
+  const handleOpenPartnerProfile = () => {
+    if (!activePartner?.id) return;
+    closeChat();
+    navigate(buildProfilePath(activePartner.id, activePartner.name), {
+      state: buildProfileRouteState({
+        id: activePartner.id,
+        name: activePartner.name,
+        avatar: activePartner.avatar,
+      }),
+    });
   };
 
   const handleEmojiPick = (emoji: string) => {
@@ -140,6 +172,8 @@ export const ChatOverlay: React.FC = () => {
     },
   ];
 
+  const emptyState = partners.length === 0 ? CONTACT_EMPTY_STATE : SEARCH_EMPTY_STATE;
+
   return (
     <AnimatePresence>
       {isChatOpen && (
@@ -171,7 +205,17 @@ export const ChatOverlay: React.FC = () => {
                   </button>
                 )}
                 {activePartner && !showContacts && (
-                  <img src={activePartner.avatar || undefined} className="w-8 h-8 rounded-xl object-cover border border-hairline" alt="" />
+                  <button
+                    type="button"
+                    onClick={handleOpenPartnerProfile}
+                    className="rounded-xl transition-transform hover:scale-105"
+                  >
+                    <img
+                      src={activePartner.avatar || undefined}
+                      className="w-8 h-8 rounded-xl object-cover border border-hairline"
+                      alt={activePartner.name}
+                    />
+                  </button>
                 )}
                 <div>
                   <h3 className="text-xl font-black text-ink">
@@ -199,6 +243,8 @@ export const ChatOverlay: React.FC = () => {
                     <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted" />
                     <input
                       type="text"
+                      value={searchText}
+                      onChange={(e) => setSearchText(e.target.value)}
                       placeholder="搜索联系人..."
                       className="w-full bg-stone-50 border-none rounded-2xl py-2.5 pl-10 pr-4 text-xs font-medium focus:ring-1 focus:ring-primary/20"
                     />
@@ -206,14 +252,14 @@ export const ChatOverlay: React.FC = () => {
                 </div>
 
                 <div className="flex-1 overflow-y-auto no-scrollbar p-2 space-y-1 overscroll-contain">
-                  {partners.length === 0 ? (
+                  {filteredPartners.length === 0 ? (
                     <OverlayEmptyState
                       icon={<MessageSquare className="w-8 h-8 text-muted" />}
-                      title={CONTACT_EMPTY_STATE.title}
-                      description={CONTACT_EMPTY_STATE.description}
+                      title={emptyState.title}
+                      description={emptyState.description}
                     />
                   ) : (
-                    partners.slice(0, 60).map((partner) => (
+                    filteredPartners.slice(0, 60).map((partner) => (
                       <ContactRow
                         key={partner.id}
                         partner={partner}

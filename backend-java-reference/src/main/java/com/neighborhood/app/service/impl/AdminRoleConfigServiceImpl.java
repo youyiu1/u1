@@ -1,7 +1,5 @@
 package com.neighborhood.app.service.impl;
 
-import com.neighborhood.app.service.AdminRoleConfigService;
-
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.core.conditions.update.LambdaUpdateWrapper;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
@@ -9,9 +7,11 @@ import com.neighborhood.app.entity.admin.AdminRole;
 import com.neighborhood.app.entity.user.User;
 import com.neighborhood.app.mapper.admin.AdminRoleMapper;
 import com.neighborhood.app.mapper.user.UserMapper;
+import com.neighborhood.app.service.AdminRoleConfigService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
+/** 文件作用：管理端角色Config服务实现。 */
 @Service
 @RequiredArgsConstructor
 public class AdminRoleConfigServiceImpl extends ServiceImpl<AdminRoleMapper, AdminRole> implements AdminRoleConfigService {

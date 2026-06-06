@@ -9,7 +9,7 @@ interface UseAuthCheckReturn {
 }
 
 export const useAuthCheck = (): UseAuthCheckReturn => {
-  const { isAuthenticated, logout } = useAuth();
+  const { isAuthenticated, logout, authReady } = useAuth();
   const { showToast } = useToast();
   const navigate = useNavigate();
   const location = useLocation();
@@ -20,8 +20,12 @@ export const useAuthCheck = (): UseAuthCheckReturn => {
         action?.();
         return true;
       }
+      if (!authReady && getToken()) {
+        showToast('正在恢复登录状态，请稍后再试', 'warning');
+        return false;
+      }
 
-      logout();
+      void logout();
       showToast('请先登录后继续操作', 'warning');
       navigate('/login', {
         state: {
@@ -30,7 +34,7 @@ export const useAuthCheck = (): UseAuthCheckReturn => {
       });
       return false;
     },
-    [isAuthenticated, logout, showToast, navigate, location.pathname, location.search]
+    [authReady, isAuthenticated, logout, showToast, navigate, location.pathname, location.search]
   );
 
   return { requireAuth };

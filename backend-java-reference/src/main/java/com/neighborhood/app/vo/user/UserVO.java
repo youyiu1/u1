@@ -3,6 +3,7 @@ package com.neighborhood.app.vo.user;
 import com.neighborhood.app.entity.user.User;
 import lombok.Data;
 
+/** 文件作用：用户视图模型。 */
 @Data
 public class UserVO {
     private String id;
@@ -26,6 +27,7 @@ public class UserVO {
     private String profileVisible = "public";
     private String postsVisible = "public";
     private Boolean showLocation = true;
+    private Boolean isOnline = false;
     private String createdAt;
 
     public static UserVO fromUser(User user) {

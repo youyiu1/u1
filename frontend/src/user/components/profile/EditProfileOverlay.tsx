@@ -1,4 +1,4 @@
-﻿import React, { useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { AnimatePresence, motion } from 'motion/react';
 import { Camera, CheckCircle2, Loader2, X } from 'lucide-react';
 import { useLocation, useNavigate } from 'react-router-dom';
@@ -6,6 +6,7 @@ import { fileApi, userApi } from '../../services/api';
 import { useAuth } from '../../context/AuthContext';
 import { User } from '../../types';
 import { getErrorMessage } from '../../utils/error';
+import { matchPathByRegex, PROFILE_DETAIL_PATH_REGEX } from '../../utils/pathMatch';
 
 interface EditProfileOverlayProps {
   isOpen: boolean;
@@ -106,7 +107,7 @@ export const EditProfileOverlay: React.FC<EditProfileOverlayProps> = ({ isOpen, 
 
       setTimeout(() => {
         setIsSuccess(false);
-        if (location.pathname.startsWith('/profile/')) {
+        if (matchPathByRegex(location.pathname, PROFILE_DETAIL_PATH_REGEX)) {
           navigate('/profile', { replace: true });
         }
         onClose();

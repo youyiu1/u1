@@ -6,10 +6,10 @@
 package com.neighborhood.app.utils;
 
 import com.neighborhood.app.entity.service.Order;
-
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
 
+/** 文件作用：订单构建工具。 */
 public final class OrderBuildUtil {
 
     private OrderBuildUtil() {

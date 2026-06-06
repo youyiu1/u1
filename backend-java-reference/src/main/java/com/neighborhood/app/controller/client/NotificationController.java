@@ -8,6 +8,7 @@ import com.neighborhood.app.entity.service.Notification;
 import com.neighborhood.app.service.NotificationService;
 import com.neighborhood.app.utils.RequestUserUtil;
 import jakarta.servlet.http.HttpServletRequest;
+import java.util.List;
 import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -17,8 +18,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
-import java.util.List;
-
+/** 文件作用：用户端通知接口。 */
 @RestController
 @RequestMapping("/api/notification")
 @RequiredArgsConstructor

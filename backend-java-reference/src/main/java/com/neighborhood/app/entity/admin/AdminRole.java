@@ -3,10 +3,10 @@ package com.neighborhood.app.entity.admin;
 import com.baomidou.mybatisplus.annotation.TableField;
 import com.baomidou.mybatisplus.annotation.TableId;
 import com.baomidou.mybatisplus.annotation.TableName;
+import java.time.LocalDateTime;
 import lombok.Data;
 
-import java.time.LocalDateTime;
-
+/** 文件作用：管理端角色实体。 */
 @Data
 @TableName("t_admin_role")
 public class AdminRole {

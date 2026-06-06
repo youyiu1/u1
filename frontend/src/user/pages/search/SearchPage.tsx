@@ -1,4 +1,4 @@
-﻿import React, { useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { MapPin, MessageCircle, Search as SearchIcon, Star, ThumbsUp } from 'lucide-react';
 import { searchApi } from '../../services/api';

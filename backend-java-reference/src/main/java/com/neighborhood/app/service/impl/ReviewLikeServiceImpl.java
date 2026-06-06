@@ -12,16 +12,16 @@ import com.neighborhood.app.service.ReviewLikeService;
 import com.neighborhood.app.utils.CounterSqlUtil;
 import com.neighborhood.app.utils.ServiceExecutionUtil;
 import com.neighborhood.app.utils.SqlCollectionUtil;
+import java.util.Collection;
+import java.util.List;
+import java.util.Set;
+import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.util.Collection;
-import java.util.List;
-import java.util.Set;
-import java.util.stream.Collectors;
-
+/** 文件作用：评价点赞服务实现。 */
 @Service
 @RequiredArgsConstructor
 public class ReviewLikeServiceImpl extends ServiceImpl<ReviewLikeMapper, ReviewLike> implements ReviewLikeService {

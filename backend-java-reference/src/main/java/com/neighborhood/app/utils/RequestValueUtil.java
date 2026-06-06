@@ -3,12 +3,12 @@ package com.neighborhood.app.utils;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
-
 import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 
+/** 文件作用：请求值工具。 */
 public final class RequestValueUtil {
 
     private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper();

@@ -9,11 +9,11 @@ import com.fasterxml.jackson.databind.annotation.JsonSerialize;
 import com.fasterxml.jackson.databind.ser.std.ToStringSerializer;
 import com.neighborhood.app.entity.service.ServiceEntity;
 import com.neighborhood.app.entity.user.User;
-import lombok.Data;
-
 import java.math.BigDecimal;
 import java.util.List;
+import lombok.Data;
 
+/** 文件作用：服务DetailVO服务接口。 */
 @Data
 public class ServiceDetailVO {
     @JsonSerialize(using = ToStringSerializer.class)

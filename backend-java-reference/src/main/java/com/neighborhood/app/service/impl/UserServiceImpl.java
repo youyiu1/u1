@@ -5,6 +5,7 @@ import com.baomidou.mybatisplus.core.conditions.update.UpdateWrapper;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.neighborhood.app.dto.user.NotificationSettings;
 import com.neighborhood.app.dto.user.PrivacySettings;
+import com.neighborhood.app.dto.user.UserProfileUpdateRequest;
 import com.neighborhood.app.entity.user.Follow;
 import com.neighborhood.app.entity.user.User;
 import com.neighborhood.app.mapper.user.FollowMapper;
@@ -13,18 +14,19 @@ import com.neighborhood.app.service.CacheService;
 import com.neighborhood.app.service.UserService;
 import com.neighborhood.app.utils.CounterSqlUtil;
 import com.neighborhood.app.utils.FollowLookupUtil;
+import com.neighborhood.app.utils.PasswordCodec;
 import com.neighborhood.app.utils.UserLookupUtil;
-import lombok.RequiredArgsConstructor;
-import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
-
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.function.Consumer;
 import java.util.stream.Collectors;
+import lombok.RequiredArgsConstructor;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
+/** 文件作用：用户服务实现。 */
 @Service
 @RequiredArgsConstructor
 public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements UserService {
@@ -34,6 +36,7 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements Us
     private final FollowMapper followMapper;
     private final CacheService cacheService;
     private final UserMapper userMapper;
+    private final PasswordCodec passwordCodec;
 
     @Override
     public User register(String name, String email, String password) {
@@ -45,10 +48,14 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements Us
 
     @Override
     public User login(String email, String password) {
-        return lambdaQuery()
+        User user = lambdaQuery()
                 .eq(User::getEmail, email)
-                .eq(User::getPassword, password)
                 .one();
+        if (!passwordMatched(user, password)) {
+            return null;
+        }
+        upgradePasswordIfNeeded(user, password);
+        return user;
     }
 
     @Override
@@ -95,6 +102,21 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements Us
     }
 
     @Override
+    public boolean updateProfile(String userId, UserProfileUpdateRequest request) {
+        User user = getById(userId);
+        if (user == null || request == null) {
+            return false;
+        }
+        user.setName(trimToEmpty(request.getName()));
+        user.setAvatar(trimToEmpty(request.getAvatar()));
+        user.setTag(trimToEmpty(request.getTag()));
+        user.setBio(trimToEmpty(request.getBio()));
+        user.setPhone(trimToEmpty(request.getPhone()));
+        user.setRegion(trimToEmpty(request.getRegion()));
+        return updateAndEvict(user, userId);
+    }
+
+    @Override
     public boolean updatePrivacy(String userId, PrivacySettings settings) {
         User user = getById(userId);
         if (user == null) {
@@ -124,10 +146,10 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements Us
     @Override
     public boolean changePassword(String userId, String oldPassword, String newPassword) {
         User user = getById(userId);
-        if (user == null || !user.getPassword().equals(oldPassword)) {
+        if (!passwordMatched(user, oldPassword)) {
             return false;
         }
-        user.setPassword(newPassword);
+        user.setPassword(passwordCodec.encode(newPassword));
         return updateAndEvict(user, userId);
     }
 
@@ -150,7 +172,7 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements Us
         if (currentUserId != null && !currentUserId.isBlank()) {
             excludeIds.add(currentUserId);
         }
-        int safeLimit = Math.max(1, limit);
+        int safeLimit = Math.min(Math.max(1, limit), 20);
         return lambdaQuery()
                 .notIn(!excludeIds.isEmpty(), User::getId, excludeIds)
                 .orderByDesc(User::getFollowersCount)
@@ -202,9 +224,9 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements Us
         User user = new User();
         user.setName(name);
         user.setEmail(email);
-        user.setPassword(password);
+        user.setPassword(passwordCodec.encode(password));
         user.setAvatar(DEFAULT_AVATAR);
-        user.setTag("鏂版檵閭诲眳");
+        user.setTag("社区新人");
         user.setIsVerified(false);
         user.setFollowersCount(0);
         user.setFollowingCount(0);
@@ -218,6 +240,22 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements Us
         user.setPostsVisible("public");
         user.setShowLocation(true);
         return user;
+    }
+
+    private boolean passwordMatched(User user, String rawPassword) {
+        return user != null && passwordCodec.matches(rawPassword, user.getPassword());
+    }
+
+    private void upgradePasswordIfNeeded(User user, String rawPassword) {
+        if (user == null || !passwordCodec.needsUpgrade(user.getPassword())) {
+            return;
+        }
+        user.setPassword(passwordCodec.encode(rawPassword));
+        updateAndEvict(user, user.getId());
+    }
+
+    private String trimToEmpty(String value) {
+        return value == null ? "" : value.trim();
     }
 
     private void syncFollowState(String followerId, String followingId, boolean following) {

@@ -1,4 +1,4 @@
-﻿import React from 'react';
+import React from 'react';
 import { useNavigate } from 'react-router-dom';
 import { AlertCircle, Clock3, Heart, MessageCircle } from 'lucide-react';
 import { Post } from '../../types';

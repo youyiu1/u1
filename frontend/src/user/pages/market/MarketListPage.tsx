@@ -1,4 +1,4 @@
-﻿/**
+/**
  * @license
  * SPDX-License-Identifier: Apache-2.0
  */
@@ -8,11 +8,12 @@ import { Bike, MapPin, MoreHorizontal, Plus, Search, Smartphone, Sofa, Sparkles,
 import { useNavigate } from 'react-router-dom';
 import { BackToTop } from '../../components/common/BackToTop';
 import { FavoriteButton } from '../../components/common/FavoriteButton';
+import { MarketStatusBadge } from '../../components/common/MarketStatusBadge';
 import { PublishOverlay } from '../../components/publish/PublishOverlay';
 import { useAuthCheck } from '../../context/useAuthCheck';
 import { marketApi } from '../../services/api';
 import { Item } from '../../types';
-import { formatCurrency, fallbackText } from '../../utils/display';
+import { fallbackText, formatCurrency } from '../../utils/display';
 import { getErrorMessage } from '../../utils/error';
 import { getItemPrimaryImage } from '../../utils/images';
 import { matchesAnyKeyword, normalizeSearchTerm } from '../../utils/search';
@@ -86,7 +87,7 @@ export default function MarketListPage() {
 
   return (
     <div className="min-h-screen bg-white pb-20">
-      <div className="bg-surface-soft pb-8 pt-10 sm:pt-12">
+      <div className="bg-primary/5 pb-8 pt-10 sm:pt-12">
         <div className="mx-auto max-w-[1280px] px-4 sm:px-6 lg:px-20">
           <div className="flex flex-col items-stretch justify-between gap-4 sm:gap-6 md:flex-row md:items-end">
             <div className="max-w-2xl flex-1">
@@ -109,7 +110,8 @@ export default function MarketListPage() {
               onClick={() => requireAuth(() => setIsPublishOpen(true))}
               className="flex w-full items-center justify-center gap-2 rounded-2xl bg-primary px-6 py-3.5 font-bold text-white shadow-lg shadow-primary/10 transition-all hover:bg-primary-hover md:w-auto sm:px-8 sm:py-4"
             >
-              <Plus className="h-5 w-5" /> 发布闲置
+              <Plus className="h-5 w-5" />
+              发布闲置
             </button>
           </div>
 
@@ -186,6 +188,9 @@ function MarketItemCard({ item, onClick }: { item: Item; onClick: () => void }) 
         <div className="absolute left-3 top-3 rounded bg-red-400/90 px-2 py-1 text-[10px] font-bold text-white backdrop-blur-md">
           {getConditionLabel(item)}
         </div>
+        <div className="absolute right-3 top-14 z-[1]">
+          <MarketStatusBadge status={item.status} rejectReason={item.rejectReason} />
+        </div>
         <FavoriteButton targetId={item.id} targetType="market" />
       </div>
 
@@ -199,9 +204,7 @@ function MarketItemCard({ item, onClick }: { item: Item; onClick: () => void }) 
       <div className="flex items-center justify-between">
         <div>
           <span className="text-lg font-bold text-ink">{formatCurrency(item.price)}</span>
-          {item.originalPrice ? (
-            <span className="ml-1 text-[10px] text-muted line-through">{formatCurrency(item.originalPrice)}</span>
-          ) : null}
+          {item.originalPrice ? <span className="ml-1 text-[10px] text-muted line-through">{formatCurrency(item.originalPrice)}</span> : null}
         </div>
         <div className="flex items-center gap-1 opacity-0 transition-opacity group-hover:opacity-100">
           {sellerAvatar ? (

@@ -6,6 +6,7 @@ import com.baomidou.mybatisplus.annotation.TableId;
 import com.baomidou.mybatisplus.annotation.TableName;
 import lombok.Data;
 
+/** 文件作用：管理端图片状态实体。 */
 @Data
 @TableName("t_admin_image_status")
 public class AdminImageStatus {

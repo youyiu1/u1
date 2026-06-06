@@ -4,12 +4,12 @@ import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.neighborhood.app.entity.user.Follow;
 import com.neighborhood.app.mapper.user.FollowMapper;
 import com.neighborhood.app.service.CacheService;
-
 import java.util.Collection;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Set;
 
+/** 文件作用：关注查询工具。 */
 public final class FollowLookupUtil {
 
     private FollowLookupUtil() {

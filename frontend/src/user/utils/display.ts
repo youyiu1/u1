@@ -1,4 +1,4 @@
-﻿export const DEFAULT_CURRENCY_PREFIX = '￥';
+export const DEFAULT_CURRENCY_PREFIX = '￥';
 
 export function formatCurrency(value?: number | string | null, prefix = DEFAULT_CURRENCY_PREFIX): string {
   if (value === null || value === undefined || value === '') {

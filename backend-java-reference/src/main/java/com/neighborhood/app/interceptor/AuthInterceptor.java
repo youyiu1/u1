@@ -3,37 +3,42 @@ package com.neighborhood.app.interceptor;
 import com.neighborhood.app.entity.user.User;
 import com.neighborhood.app.mapper.user.UserMapper;
 import com.neighborhood.app.service.CacheService;
+import com.neighborhood.app.util.JwtUtil;
+import com.neighborhood.app.utils.AuthTokenStore;
 import com.neighborhood.app.utils.CollectionStringUtil;
 import com.neighborhood.app.utils.UserLookupUtil;
-import com.neighborhood.app.util.JwtUtil;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
+import java.util.List;
+import java.util.Map;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Component;
 import org.springframework.web.servlet.HandlerInterceptor;
 
-import java.util.List;
-import java.util.Map;
-import java.util.concurrent.TimeUnit;
-
+/** 文件作用：认证拦截器。 */
 @Slf4j
 @Component
 @RequiredArgsConstructor
 public class AuthInterceptor implements HandlerInterceptor {
 
-    private static final String TOKEN_PREFIX = "token:";
     private static final String HEADER_AUTH = "Authorization";
     private static final String BEARER_PREFIX = "Bearer ";
     private static final String ROLE_USER = "USER";
     private static final String ROLE_ADMIN = "ADMIN";
     private static final String ROLE_READONLY_ADMIN = "READONLY_ADMIN";
     private static final String ROLE_SUPER_ADMIN = "SUPER_ADMIN";
+    private static final String MESSAGE_LOGIN_REQUIRED = "{\"success\":false,\"message\":\"未登录\"}";
+    private static final String MESSAGE_TOKEN_INVALID = "{\"success\":false,\"message\":\"Token无效\"}";
+    private static final String MESSAGE_TOKEN_EXPIRED = "{\"success\":false,\"message\":\"Token已过期\"}";
+    private static final String MESSAGE_ADMIN_ACCESS_DENIED = "{\"success\":false,\"message\":\"普通用户不能访问管理端\"}";
+    private static final String MESSAGE_ROLE_DISABLED = "{\"success\":false,\"message\":\"当前管理员角色已被停用\"}";
+    private static final String MESSAGE_READONLY_DENIED = "{\"success\":false,\"message\":\"只读管理员不能执行写操作\"}";
+    private static final String MESSAGE_PERMISSION_DENIED = "{\"success\":false,\"message\":\"当前账号缺少对应权限\"}";
 
     private final JwtUtil jwtUtil;
-    private final RedisTemplate<String, Object> redisTemplate;
+    private final AuthTokenStore authTokenStore;
     private final UserMapper userMapper;
     private final JdbcTemplate jdbcTemplate;
     private final CacheService cacheService;
@@ -46,7 +51,8 @@ public class AuthInterceptor implements HandlerInterceptor {
 
     @Override
     public boolean preHandle(HttpServletRequest request, HttpServletResponse response, Object handler) throws Exception {
-        if ("OPTIONS".equalsIgnoreCase(request.getMethod())) {
+        String method = request.getMethod();
+        if ("OPTIONS".equalsIgnoreCase(method)) {
             return true;
         }
 
@@ -56,60 +62,24 @@ public class AuthInterceptor implements HandlerInterceptor {
             request.setAttribute("userId", authState.userId());
         }
 
-        if (isPublicPath(path)) {
+        if (isPublicPath(path, method)) {
             return true;
         }
 
         if (authState.token() == null) {
-            writeJson(response, HttpServletResponse.SC_UNAUTHORIZED, "{\"success\":false,\"message\":\"请先登录\"}");
+            writeJson(response, HttpServletResponse.SC_UNAUTHORIZED, MESSAGE_LOGIN_REQUIRED);
             return false;
         }
         if (!authState.valid()) {
-            if (!authState.tokenValid()) {
-                writeJson(response, HttpServletResponse.SC_UNAUTHORIZED, "{\"success\":false,\"message\":\"Token 无效\"}");
-            } else {
-                writeJson(response, HttpServletResponse.SC_UNAUTHORIZED, "{\"success\":false,\"message\":\"Token 已过期，请重新登录\"}");
-            }
+            writeInvalidTokenResponse(response, authState);
             return false;
         }
 
-        if (path.startsWith("/api/admin/")) {
-            User user = cachedUser(authState.userId());
-            String role = normalizeRole(user == null ? null : user.getAdminRole());
-
-            if (ROLE_USER.equals(role)) {
-                writeJson(response, HttpServletResponse.SC_FORBIDDEN, "{\"success\":false,\"message\":\"普通用户不能访问管理端\"}");
-                return false;
-            }
-
-            RoleMeta roleMeta = loadRoleMeta(role);
-            if (!isRoleEnabled(role, roleMeta)) {
-                writeJson(response, HttpServletResponse.SC_FORBIDDEN, "{\"success\":false,\"message\":\"当前管理员角色已被停用\"}");
-                return false;
-            }
-
-            if (isSafeAdminMethod(request.getMethod())) {
-                return true;
-            }
-
-            if (ROLE_READONLY_ADMIN.equals(role)) {
-                writeJson(response, HttpServletResponse.SC_FORBIDDEN, "{\"success\":false,\"message\":\"只读管理员不能执行写操作\"}");
-                return false;
-            }
-
-            String requiredPermission = resolveRequiredPermission(path, request.getMethod());
-            if (requiredPermission != null && !hasPermission(role, requiredPermission, roleMeta)) {
-                writeJson(response, HttpServletResponse.SC_FORBIDDEN, "{\"success\":false,\"message\":\"当前账号缺少对应权限\"}");
-                return false;
-            }
-
-            if (requiredPermission == null && !ROLE_SUPER_ADMIN.equals(role)) {
-                writeJson(response, HttpServletResponse.SC_FORBIDDEN, "{\"success\":false,\"message\":\"当前账号缺少对应权限\"}");
-                return false;
-            }
+        if (!path.startsWith("/api/admin/")) {
+            return true;
         }
 
-        return true;
+        return validateAdminAccess(path, method, authState.userId(), response);
     }
 
     private AuthState authenticateRequest(HttpServletRequest request) {
@@ -122,12 +92,49 @@ public class AuthInterceptor implements HandlerInterceptor {
             return new AuthState(token, null, false, false);
         }
         String userId = jwtUtil.getUserIdFromToken(token);
-        Object redisToken = redisTemplate.opsForValue().get(TOKEN_PREFIX + userId);
-        if (redisToken == null || !token.equals(redisToken.toString())) {
+        if (!authTokenStore.isTokenActive(userId, token, jwtUtil.getExpiration())) {
             return new AuthState(token, userId, true, false);
         }
-        redisTemplate.expire(TOKEN_PREFIX + userId, jwtUtil.getExpiration(), TimeUnit.MILLISECONDS);
         return new AuthState(token, userId, true, true);
+    }
+
+    private boolean validateAdminAccess(String path, String method, String userId, HttpServletResponse response) throws Exception {
+        User user = cachedUser(userId);
+        String role = normalizeRole(user == null ? null : user.getAdminRole());
+        if (ROLE_USER.equals(role)) {
+            writeJson(response, HttpServletResponse.SC_FORBIDDEN, MESSAGE_ADMIN_ACCESS_DENIED);
+            return false;
+        }
+
+        RoleMeta roleMeta = loadRoleMeta(role);
+        if (!isRoleEnabled(role, roleMeta)) {
+            writeJson(response, HttpServletResponse.SC_FORBIDDEN, MESSAGE_ROLE_DISABLED);
+            return false;
+        }
+
+        if (ROLE_READONLY_ADMIN.equals(role) && !isSafeAdminMethod(method)) {
+            writeJson(response, HttpServletResponse.SC_FORBIDDEN, MESSAGE_READONLY_DENIED);
+            return false;
+        }
+
+        String requiredPermission = resolveRequiredPermission(path, method);
+        if (requiredPermission != null && !hasPermission(role, requiredPermission, roleMeta)) {
+            writeJson(response, HttpServletResponse.SC_FORBIDDEN, MESSAGE_PERMISSION_DENIED);
+            return false;
+        }
+        if (requiredPermission == null && !allowWithoutExplicitPermission(path) && !ROLE_SUPER_ADMIN.equals(role)) {
+            writeJson(response, HttpServletResponse.SC_FORBIDDEN, MESSAGE_PERMISSION_DENIED);
+            return false;
+        }
+        return true;
+    }
+
+    private void writeInvalidTokenResponse(HttpServletResponse response, AuthState authState) throws Exception {
+        if (!authState.tokenValid()) {
+            writeJson(response, HttpServletResponse.SC_UNAUTHORIZED, MESSAGE_TOKEN_INVALID);
+            return;
+        }
+        writeJson(response, HttpServletResponse.SC_UNAUTHORIZED, MESSAGE_TOKEN_EXPIRED);
     }
 
     private User cachedUser(String userId) {
@@ -178,41 +185,44 @@ public class AuthInterceptor implements HandlerInterceptor {
     }
 
     private String resolveRequiredPermission(String path, String method) {
-        boolean safe = isSafeAdminMethod(method);
         if (path.equals("/api/admin/me") || path.equals("/api/admin/dashboard/stats")) return null;
-        if (path.equals("/api/admin/users")) return safe ? null : "user:view";
+        if (path.equals("/api/admin/users")) return "user:view";
         if (path.matches("/api/admin/users/[^/]+/status")) return "user:ban";
         if (path.matches("/api/admin/users/[^/]+/verified")) return "user:verify";
         if (path.matches("/api/admin/users/[^/]+/admin-role")) return "user:role";
-        if (path.equals("/api/admin/dynamics")) return safe ? null : "posts:view";
+        if (path.equals("/api/admin/dynamics")) return "posts:view";
         if (path.matches("/api/admin/dynamics/[^/]+/status")) return "posts:audit";
         if (path.matches("/api/admin/dynamics/[^/]+/comments(/[^/]+)?")) return "comments:manage";
-        if (path.equals("/api/admin/goods")) return safe ? null : "goods:audit";
+        if (path.equals("/api/admin/goods")) return "goods:view";
         if (path.matches("/api/admin/goods/[^/]+/status")) return "goods:audit";
-        if (path.equals("/api/admin/services")) return safe ? null : "services:manage";
+        if (path.equals("/api/admin/services")) return "services:view";
         if (path.matches("/api/admin/services/[^/]+/status")) return "services:manage";
-        if (path.equals("/api/admin/orders")) return safe ? null : "orders:cancel";
+        if (path.equals("/api/admin/orders")) return "orders:view";
         if (path.matches("/api/admin/orders/[^/]+/cancel")) return "orders:cancel";
-        if (path.equals("/api/admin/notifications")) return safe ? null : "notifications:create";
+        if (path.equals("/api/admin/notifications")) return "notifications:view";
         if (path.matches("/api/admin/notifications/[^/]+/toggle")) return "notifications:create";
-        if (path.equals("/api/admin/categories")) return safe ? null : "categories:edit";
+        if (path.equals("/api/admin/categories")) return "categories:view";
         if (path.matches("/api/admin/categories/[^/]+/toggle")) return "categories:edit";
-        if (path.equals("/api/admin/comments")) return safe ? null : "comments:manage";
+        if (path.equals("/api/admin/comments")) return "comments:view";
         if (path.matches("/api/admin/comments/[^/]+(/status)?")) return "comments:manage";
-        if (path.equals("/api/admin/blacklist")) return safe ? null : "blacklist:edit";
+        if (path.equals("/api/admin/blacklist")) return "blacklist:view";
         if (path.matches("/api/admin/blacklist/[^/]+")) return "blacklist:edit";
-        if (path.equals("/api/admin/images")) return safe ? null : "images:audit";
+        if (path.equals("/api/admin/images")) return "images:view";
         if (path.equals("/api/admin/images/status")) return "images:audit";
-        if (path.equals("/api/admin/messages")) return safe ? null : "messages:manage";
+        if (path.equals("/api/admin/messages")) return "messages:view";
         if (path.matches("/api/admin/messages/[^/]+(/read)?")) return "messages:manage";
-        if (path.equals("/api/admin/login-logs")) return null;
-        if (path.equals("/api/admin/operation-logs")) return safe ? null : "logs:operation";
+        if (path.equals("/api/admin/login-logs")) return "logs:login";
+        if (path.equals("/api/admin/operation-logs")) return "logs:operation";
         if (path.equals("/api/admin/operation-logs/retention")) return "logs:retention";
-        if (path.equals("/api/admin/menus")) return null;
-        if (path.equals("/api/admin/roles")) return null;
+        if (path.equals("/api/admin/menus")) return "menus:view";
+        if (path.equals("/api/admin/roles")) return "roles:view";
         if (path.matches("/api/admin/roles/[^/]+")) return "roles:manage";
-        if (path.equals("/api/admin/permissions")) return null;
+        if (path.equals("/api/admin/permissions")) return "permissions:view";
         return null;
+    }
+
+    private boolean allowWithoutExplicitPermission(String path) {
+        return path.equals("/api/admin/me") || path.equals("/api/admin/dashboard/stats");
     }
 
     private boolean isSafeAdminMethod(String method) {
@@ -225,7 +235,7 @@ public class AuthInterceptor implements HandlerInterceptor {
         response.getWriter().write(body);
     }
 
-    private boolean isPublicPath(String path) {
+    private boolean isPublicPath(String path, String method) {
         return path.equals("/api/user/register")
                 || path.equals("/api/user/login")
                 || path.equals("/api/admin/login")
@@ -250,6 +260,14 @@ public class AuthInterceptor implements HandlerInterceptor {
                 || path.matches("/api/service/user/[^/]+")
                 || path.matches("/api/service/\\d+")
                 || path.matches("/api/service/\\d+/reviews")
-                || path.startsWith("/api/file/");
+                || isPublicFileReadPath(path, method);
+    }
+
+    private boolean isPublicFileReadPath(String path, String method) {
+        if (!("GET".equalsIgnoreCase(method) || "HEAD".equalsIgnoreCase(method))) {
+            return false;
+        }
+        return path.matches("/api/file/public/.+")
+                || path.matches("/api/file/(?!upload$|url/).+");
     }
 }

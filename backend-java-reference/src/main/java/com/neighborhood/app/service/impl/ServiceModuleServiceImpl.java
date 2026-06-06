@@ -16,17 +16,17 @@ import com.neighborhood.app.utils.DistanceUtil;
 import com.neighborhood.app.utils.EntityDefaultsUtil;
 import com.neighborhood.app.utils.StringValueUtil;
 import com.neighborhood.app.vo.service.ServiceDetailVO;
-import lombok.RequiredArgsConstructor;
-import org.springframework.beans.BeanUtils;
-import org.springframework.stereotype.Service;
-
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import lombok.RequiredArgsConstructor;
+import org.springframework.beans.BeanUtils;
+import org.springframework.stereotype.Service;
 
+/** 文件作用：服务模块服务实现。 */
 @Service
 @RequiredArgsConstructor
 public class ServiceModuleServiceImpl extends ServiceImpl<ServiceMapper, ServiceEntity> implements ServiceModuleService {

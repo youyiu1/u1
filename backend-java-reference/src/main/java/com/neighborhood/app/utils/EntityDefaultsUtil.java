@@ -3,9 +3,9 @@ package com.neighborhood.app.utils;
 import com.neighborhood.app.entity.content.News;
 import com.neighborhood.app.entity.market.MarketItem;
 import com.neighborhood.app.entity.service.ServiceEntity;
-
 import java.time.LocalDateTime;
 
+/** 文件作用：实体默认值工具。 */
 public final class EntityDefaultsUtil {
 
     private EntityDefaultsUtil() {

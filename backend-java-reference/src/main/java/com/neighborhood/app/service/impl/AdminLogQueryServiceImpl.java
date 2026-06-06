@@ -1,21 +1,21 @@
 package com.neighborhood.app.service.impl;
 
-import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
+import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.neighborhood.app.entity.admin.AdminLoginLog;
 import com.neighborhood.app.entity.admin.AdminOperationLog;
 import com.neighborhood.app.mapper.admin.AdminLoginLogMapper;
 import com.neighborhood.app.mapper.admin.AdminOperationLogMapper;
 import com.neighborhood.app.service.AdminLogQueryService;
-import lombok.RequiredArgsConstructor;
-import org.springframework.stereotype.Service;
-
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import lombok.RequiredArgsConstructor;
+import org.springframework.stereotype.Service;
 
+/** 文件作用：管理端Log查询服务实现。 */
 @Service
 @RequiredArgsConstructor
 public class AdminLogQueryServiceImpl implements AdminLogQueryService {

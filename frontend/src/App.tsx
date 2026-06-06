@@ -23,6 +23,8 @@ const ItemDetail = lazy(() => import('./user/pages/market/ItemDetailPage'));
 const Search = lazy(() => import('./user/pages/search/SearchPage'));
 const Login = lazy(() => import('./user/pages/auth/LoginPage'));
 const Register = lazy(() => import('./user/pages/auth/RegisterPage'));
+const Terms = lazy(() => import('./user/pages/legal/TermsPage'));
+const Privacy = lazy(() => import('./user/pages/legal/PrivacyPage'));
 const AdminApp = lazy(() => import('./admin/AdminApp'));
 
 function PageFallback() {
@@ -57,6 +59,8 @@ export default function App() {
                       <Route path="search" element={<Search />} />
                       <Route path="login" element={<Login />} />
                       <Route path="register" element={<Register />} />
+                      <Route path="terms" element={<Terms />} />
+                      <Route path="privacy" element={<Privacy />} />
                       <Route path="*" element={<Home />} />
                     </Route>
                   </Routes>

@@ -1,4 +1,4 @@
-﻿type ReviewState = {
+type ReviewState = {
   status: string;
   label: string;
   reason: string;

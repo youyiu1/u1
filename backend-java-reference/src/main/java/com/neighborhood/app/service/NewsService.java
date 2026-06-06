@@ -9,9 +9,9 @@ import com.baomidou.mybatisplus.extension.service.IService;
 import com.neighborhood.app.entity.content.Comment;
 import com.neighborhood.app.entity.content.News;
 import com.neighborhood.app.vo.content.NewsVO;
-
 import java.util.List;
 
+/** 文件作用：资讯服务接口。 */
 public interface NewsService extends IService<News> {
     List<News> listDesc();
 
@@ -45,4 +45,3 @@ public interface NewsService extends IService<News> {
 
     boolean deleteById(Long id, String userId);
 }
-

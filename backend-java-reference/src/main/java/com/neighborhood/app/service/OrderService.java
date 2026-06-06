@@ -9,6 +9,7 @@ import com.baomidou.mybatisplus.extension.service.IService;
 import com.neighborhood.app.entity.service.Order;
 import java.util.List;
 
+/** 文件作用：订单服务接口。 */
 public interface OrderService extends IService<Order> {
     List<Order> listByUserId(String userId);
     List<Order> listCompletedByUserId(String userId);

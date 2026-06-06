@@ -7,6 +7,7 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 import org.springframework.web.servlet.HandlerInterceptor;
 
+/** 文件作用：性能拦截器。 */
 /**
  * 接口性能拦截器：记录慢请求耗时，便于本地定位性能瓶颈。
  */

@@ -13,6 +13,7 @@ import { Post, User } from '../../types';
 import { formatDateTime } from '../../utils/dateTime';
 import { getErrorMessage } from '../../utils/error';
 import { parseImages } from '../../utils/images';
+import { buildProfilePath, buildProfileRouteState } from '../../utils/profileRoute';
 
 interface TrendingItem {
   id: string;
@@ -302,7 +303,15 @@ export default function NewsListPage() {
                       post={post}
                       currentUserId={currentUser?.id}
                       onOpen={() => navigate(`/news/${post.id}`)}
-                      onOpenProfile={(profileName) => navigate(`/profile/${profileName}`)}
+                      onOpenProfile={(profileId, profileName, profileAvatar) =>
+                        navigate(buildProfilePath(profileId, profileName), {
+                          state: buildProfileRouteState({
+                            id: profileId,
+                            name: profileName,
+                            avatar: profileAvatar,
+                          }),
+                        })
+                      }
                       onFollowChange={(authorId, nextState) => {
                         setPosts((current) =>
                           current.map((currentPost) =>
@@ -354,7 +363,9 @@ export default function NewsListPage() {
                   <React.Fragment key={user.id}>
                     <SuggestedUserRow
                       user={user}
-                      onOpen={() => navigate(`/profile/${user.name}`)}
+                      onOpen={() => navigate(buildProfilePath(user.id, user.name), {
+                        state: buildProfileRouteState(user),
+                      })}
                       onFollowChange={(nextState) => {
                         setSuggestedUsers((current) =>
                           current.map((currentUser) => (currentUser.id === user.id ? { ...currentUser, isFollowing: nextState } : currentUser))
@@ -447,7 +458,7 @@ function NewsPostCard({
   post: Post;
   currentUserId?: string;
   onOpen: () => void;
-  onOpenProfile: (profileName: string) => void;
+  onOpenProfile: (profileId: string, profileName: string, profileAvatar?: string) => void;
   onFollowChange: (authorId: string, nextState: boolean) => void;
   onDelete: (postId: string) => Promise<void>;
   onReport: () => Promise<void>;
@@ -466,7 +477,7 @@ function NewsPostCard({
           className="group flex cursor-pointer items-center gap-3"
           onClick={(event) => {
             event.stopPropagation();
-            onOpenProfile(authorName);
+            onOpenProfile(authorId, authorName, authorAvatar);
           }}
         >
           {authorAvatar ? (

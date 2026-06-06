@@ -1,4 +1,4 @@
-﻿/**
+/**
  * @license
  * SPDX-License-Identifier: Apache-2.0
  */
@@ -19,32 +19,29 @@ import {
   Verified,
 } from 'lucide-react';
 import { AnimatePresence, motion } from 'motion/react';
-import { favoriteApi, getToken, marketApi, userApi } from '../../services/api';
+import { ConfirmDialog } from '../../components/common/ConfirmDialog';
 import { FollowButton } from '../../components/common/FollowButton';
+import { MarketStatusBadge } from '../../components/common/MarketStatusBadge';
 import { useAuth } from '../../context/AuthContext';
 import { useAuthCheck } from '../../context/useAuthCheck';
 import { useChat } from '../../context/ChatContext';
+import { useNotification } from '../../context/NotificationContext';
 import { useToast } from '../../context/ToastContext';
+import { favoriteApi, getToken, marketApi, userApi } from '../../services/api';
 import { Item } from '../../types';
 import { getStoredUser } from '../../utils/authStorage';
-import { formatCurrency, fallbackText } from '../../utils/display';
+import { fallbackText, formatCurrency } from '../../utils/display';
 import { getErrorMessage } from '../../utils/error';
 import { resolveFollowState } from '../../utils/followStorage';
 import { resolveFavoriteState } from '../../utils/interactionStorage';
 import { parseImages } from '../../utils/images';
-
-const categoryMap: Record<string, string> = {
-  domestic: '家政服务',
-  repair: '家庭维修',
-  sports: '运动健身',
-  pets: '宠物生活',
-  market: '闲置交易',
-};
+import { getMarketStatusMeta, isMarketItemPurchasable } from '../../utils/marketStatus';
+import { buildProfilePath, buildProfileRouteState } from '../../utils/profileRoute';
 
 const ITEM_BENEFITS = [
-  { icon: <CheckCircle2 className="h-5 w-5" />, title: '实物验真', desc: '平台核验，描述信息更透明' },
-  { icon: <ArrowRightLeft className="h-5 w-5" />, title: '快速发货', desc: '卖家承诺 24 小时内尽快处理' },
-  { icon: <ShieldCheck className="h-5 w-5" />, title: '交易保障', desc: '协商一致，平台保留交易记录' },
+  { icon: <CheckCircle2 className="h-5 w-5" />, title: '实物验真', desc: '平台审核后展示，信息更清晰。' },
+  { icon: <ArrowRightLeft className="h-5 w-5" />, title: '购买留痕', desc: '购买请求会保留通知记录，沟通更清楚。' },
+  { icon: <ShieldCheck className="h-5 w-5" />, title: '同城沟通', desc: '支持先聊天再成交，交易更安心。' },
 ];
 
 export default function ItemDetailPage() {
@@ -54,6 +51,7 @@ export default function ItemDetailPage() {
   const { openChat } = useChat();
   const { user: currentUser } = useAuth();
   const { requireAuth } = useAuthCheck();
+  const { increaseUnread } = useNotification();
   const { showToast } = useToast();
 
   const fromProfile = location.state?.from;
@@ -63,9 +61,15 @@ export default function ItemDetailPage() {
   const [isLiked, setIsLiked] = useState(false);
   const [activeImg, setActiveImg] = useState(0);
   const [isFollowing, setIsFollowing] = useState(false);
+  const [isPurchasing, setIsPurchasing] = useState(false);
+  const [showPurchaseConfirm, setShowPurchaseConfirm] = useState(false);
+  const [purchaseSuccess, setPurchaseSuccess] = useState(false);
 
   const sellerId = item?.seller?.id || item?.sellerId || '';
+  const itemStatus = item?.status ?? 'active';
+  const statusMeta = getMarketStatusMeta(itemStatus, item?.rejectReason);
   const isOwnItem = Boolean(currentUser?.id && currentUser.id === sellerId);
+  const canPurchase = Boolean(!isOwnItem && isMarketItemPurchasable(itemStatus) && !isPurchasing);
 
   const sellerName = fallbackText(item?.seller?.name || item?.sellerName, '本地卖家');
   const sellerAvatar = item?.seller?.avatar || item?.sellerAvatar || '';
@@ -75,9 +79,77 @@ export default function ItemDetailPage() {
   const sellerSoldCount = item?.seller?.soldCount ?? item?.sellerSoldCount ?? 0;
   const sellerFollowersCount = item?.seller?.followersCount ?? item?.sellerFollowersCount ?? 0;
 
-  const images = useMemo(() => (item ? parseImages(item.images) : []), [item]);
-  const activeImage = images[activeImg] || images[0] || item?.image || '';
-  const sellerProfilePath = `/profile/${sellerName}`;
+  const images = useMemo(() => {
+    if (!item) {
+      return [];
+    }
+    const parsed = parseImages(item.images);
+    if (parsed.length > 0) {
+      return parsed;
+    }
+    return item.image ? [item.image] : [];
+  }, [item]);
+
+  const activeImage = images[activeImg] || images[0] || '';
+  const sellerProfilePath = buildProfilePath(sellerId, sellerName);
+  const statusNotice = getStatusNotice(item, isOwnItem);
+
+  useEffect(() => {
+    setActiveImg(0);
+  }, [item?.id]);
+
+  useEffect(() => {
+    const fetchItem = async () => {
+      if (!id) {
+        return;
+      }
+
+      setLoading(true);
+      setError(null);
+      try {
+        const data = await marketApi.get(id);
+        setItem(data);
+
+        const storedUser = getStoredUser();
+        const dataSellerId = data.seller?.id || data.sellerId || '';
+        if (storedUser?.id && dataSellerId && storedUser.id !== dataSellerId) {
+          const following = await resolveFollowState(storedUser.id, dataSellerId, userApi.isFollowing);
+          setIsFollowing(following);
+        } else {
+          setIsFollowing(false);
+        }
+
+        if (storedUser?.id && getToken()) {
+          try {
+            const favorited = await resolveFavoriteState(storedUser.id, 'market', Number(id), favoriteApi.check);
+            setIsLiked(favorited);
+          } catch {
+            setIsLiked(false);
+          }
+        } else {
+          setIsLiked(false);
+        }
+      } catch (fetchError: unknown) {
+        setError(getErrorMessage(fetchError, '商品详情加载失败'));
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    void fetchItem();
+  }, [id]);
+
+  const handleOpenSellerProfile = () => {
+    navigate(sellerProfilePath, {
+      state: buildProfileRouteState({
+        id: sellerId,
+        name: sellerName,
+        avatar: sellerAvatar,
+        isVerified: sellerVerified,
+        followersCount: sellerFollowersCount,
+      }),
+    });
+  };
 
   const handleBack = () => {
     if (fromProfile) {
@@ -107,45 +179,42 @@ export default function ItemDetailPage() {
     }
   };
 
-  useEffect(() => {
-    const fetchItem = async () => {
-      if (!id) {
-        return;
-      }
+  const handleOpenChat = () => {
+    requireAuth(() =>
+      openChat({
+        id: sellerId,
+        name: sellerName,
+        avatar: sellerAvatar,
+        isOnline: true,
+      })
+    );
+  };
 
-      try {
-        const data = await marketApi.get(id);
-        setItem(data);
+  const handleStartPurchase = () => {
+    if (!canPurchase) {
+      return;
+    }
+    requireAuth(() => setShowPurchaseConfirm(true));
+  };
 
-        const storedUser = getStoredUser();
-        const dataSellerId = data.seller?.id || data.sellerId || '';
-        if (storedUser?.id && dataSellerId && storedUser.id !== dataSellerId) {
-          const following = await resolveFollowState(storedUser.id, dataSellerId, userApi.isFollowing);
-          setIsFollowing(following);
-        }
+  const handlePurchase = async () => {
+    if (!item || !id || !sellerId || !currentUser?.id) {
+      return;
+    }
 
-        if (storedUser?.id && getToken()) {
-          try {
-            const favorited = await resolveFavoriteState(
-              storedUser.id,
-              'market',
-              Number(id),
-              favoriteApi.check
-            );
-            setIsLiked(favorited);
-          } catch {
-            // ignore
-          }
-        }
-      } catch (fetchError: unknown) {
-        setError(getErrorMessage(fetchError, '商品详情加载失败'));
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    fetchItem();
-  }, [id]);
+    setShowPurchaseConfirm(false);
+    setIsPurchasing(true);
+    try {
+      await marketApi.purchase(id);
+      setPurchaseSuccess(true);
+      increaseUnread();
+      window.dispatchEvent(new Event('notification-created'));
+    } catch (purchaseError: unknown) {
+      showToast(getErrorMessage(purchaseError, '购买请求提交失败，请稍后重试'), 'error');
+    } finally {
+      setIsPurchasing(false);
+    }
+  };
 
   if (loading) {
     return (
@@ -159,7 +228,7 @@ export default function ItemDetailPage() {
     return (
       <div className="flex min-h-screen items-center justify-center">
         <div className="text-center">
-          <p className="mb-4 font-bold text-muted">{error || '商品不存在或已下架'}</p>
+          <p className="mb-4 font-bold text-muted">{error || '商品不存在或当前不可查看'}</p>
           <button onClick={handleBack} className="rounded-2xl bg-primary px-8 py-3 font-black text-white">
             返回闲置市场
           </button>
@@ -168,7 +237,6 @@ export default function ItemDetailPage() {
     );
   }
 
-  const categoryName = categoryMap[item.category] || item.category;
   const locationLabel = fallbackText(item.location, '附近');
   const sellerStats = [
     { label: '粉丝', value: sellerFollowersCount },
@@ -178,6 +246,45 @@ export default function ItemDetailPage() {
 
   return (
     <div className="min-h-screen bg-[#fcfdff] pb-20">
+      <AnimatePresence>
+        {purchaseSuccess ? (
+          <div className="fixed inset-0 z-[100] flex items-center justify-center px-6">
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              onClick={() => setPurchaseSuccess(false)}
+              className="absolute inset-0 bg-ink/60 backdrop-blur-md"
+            />
+            <motion.div
+              initial={{ opacity: 0, scale: 0.9, y: 30 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.9, y: 30 }}
+              className="relative w-full max-w-sm rounded-[48px] border border-white bg-white p-10 text-center shadow-2xl"
+            >
+              <div className="mx-auto mb-8 flex h-24 w-24 items-center justify-center rounded-full bg-green-50 text-green-500 shadow-inner">
+                <CheckCircle2 className="h-12 w-12" />
+              </div>
+              <h3 className="mb-4 text-3xl font-black text-ink">购买请求已提交</h3>
+              <p className="mb-10 leading-relaxed text-secondary">
+                你对商品
+                <span className="font-black text-primary">《{item.title}》</span>
+                的购买请求已经发送给
+                <span className="font-black text-primary">{sellerName}</span>
+                ，请留意通知结果。
+              </p>
+              <button
+                type="button"
+                onClick={() => setPurchaseSuccess(false)}
+                className="w-full rounded-[24px] bg-ink py-4 font-black text-white shadow-xl shadow-ink/20 transition-all hover:scale-[1.02] active:scale-[0.98]"
+              >
+                我知道了
+              </button>
+            </motion.div>
+          </div>
+        ) : null}
+      </AnimatePresence>
+
       <div className="sticky top-0 z-30 flex items-center justify-between border-b border-hairline bg-white/80 px-6 py-4 backdrop-blur-md md:hidden">
         <button onClick={handleBack} className="rounded-xl bg-surface-soft p-2">
           <ChevronLeft className="h-5 w-5 text-ink" />
@@ -208,13 +315,17 @@ export default function ItemDetailPage() {
           </div>
           <div className="flex items-center gap-3">
             <button className="flex items-center gap-2 rounded-xl px-4 py-2 text-xs font-black transition-all hover:bg-surface-soft">
-              <Share2 className="h-4 w-4" /> 分享商品
+              <Share2 className="h-4 w-4" />
+              分享商品
             </button>
             <button
               onClick={handleToggleFavorite}
-              className={`flex items-center gap-2 rounded-xl px-4 py-2 text-xs font-black transition-all ${isLiked ? 'bg-primary/5 text-primary' : 'hover:bg-surface-soft'}`}
+              className={`flex items-center gap-2 rounded-xl px-4 py-2 text-xs font-black transition-all ${
+                isLiked ? 'bg-primary/5 text-primary' : 'hover:bg-surface-soft'
+              }`}
             >
-              <Heart className={`h-4 w-4 ${isLiked ? 'fill-current' : ''}`} /> {isLiked ? '已收藏' : '收藏商品'}
+              <Heart className={`h-4 w-4 ${isLiked ? 'fill-current' : ''}`} />
+              {isLiked ? '已收藏' : '收藏商品'}
             </button>
           </div>
         </div>
@@ -225,37 +336,46 @@ export default function ItemDetailPage() {
           <div className="space-y-10 lg:col-span-8">
             <div className="grid grid-cols-1 gap-4 md:grid-cols-12">
               <div className="relative aspect-[16/10] overflow-hidden rounded-[40px] border border-hairline shadow-2xl shadow-ink/5 md:col-span-12">
-                <AnimatePresence mode="wait">
-                  <motion.img
-                    key={activeImg}
-                    initial={{ opacity: 0, scale: 1.05 }}
-                    animate={{ opacity: 1, scale: 1 }}
-                    exit={{ opacity: 0, scale: 0.95 }}
-                    transition={{ duration: 0.4 }}
-                    src={activeImage || undefined}
-                    className="h-full w-full object-cover"
-                    alt="Main"
-                  />
-                </AnimatePresence>
-                <div className="absolute left-6 top-6 flex flex-col gap-2">
+                {activeImage ? (
+                  <AnimatePresence mode="wait">
+                    <motion.img
+                      key={activeImg}
+                      initial={{ opacity: 0, scale: 1.05 }}
+                      animate={{ opacity: 1, scale: 1 }}
+                      exit={{ opacity: 0, scale: 0.95 }}
+                      transition={{ duration: 0.4 }}
+                      src={activeImage}
+                      className="h-full w-full object-cover"
+                      alt={item.title}
+                    />
+                  </AnimatePresence>
+                ) : (
+                  <div className="flex h-full w-full items-center justify-center bg-surface-soft text-sm font-bold text-muted">暂无图片</div>
+                )}
+                <div className="absolute left-6 top-6 flex flex-wrap items-center gap-2">
                   <span className="rounded-2xl bg-black/60 px-4 py-2 text-[10px] font-black uppercase tracking-widest text-white backdrop-blur-md">
                     {itemCondition}
                   </span>
+                  <MarketStatusBadge status={item.status} rejectReason={item.rejectReason} />
                 </div>
               </div>
-              <div className="mt-2 flex items-center gap-4 md:col-span-12">
-                {images.slice(0, 4).map((image, index) => (
-                  <button
-                    key={index}
-                    onClick={() => setActiveImg(index)}
-                    className={`relative h-24 w-24 overflow-hidden rounded-2xl border-2 transition-all ${
-                      activeImg === index ? 'scale-105 border-primary shadow-lg shadow-primary/20' : 'border-transparent opacity-60 hover:opacity-100'
-                    }`}
-                  >
-                    <img src={image || undefined} className="h-full w-full object-cover" alt={`Thumb ${index}`} />
-                  </button>
-                ))}
-              </div>
+              {images.length > 1 ? (
+                <div className="mt-2 flex items-center gap-4 md:col-span-12">
+                  {images.slice(0, 4).map((image, index) => (
+                    <button
+                      key={image + index}
+                      onClick={() => setActiveImg(index)}
+                      className={`relative h-24 w-24 overflow-hidden rounded-2xl border-2 transition-all ${
+                        activeImg === index
+                          ? 'scale-105 border-primary shadow-lg shadow-primary/20'
+                          : 'border-transparent opacity-60 hover:opacity-100'
+                      }`}
+                    >
+                      <img src={image} className="h-full w-full object-cover" alt={`${item.title}-${index + 1}`} />
+                    </button>
+                  ))}
+                </div>
+              ) : null}
             </div>
 
             <div className="grid grid-cols-2 gap-4 md:grid-cols-3">
@@ -270,15 +390,24 @@ export default function ItemDetailPage() {
               <div className="mb-8 flex items-center justify-between">
                 <h2 className="text-2xl font-black text-ink">商品详情</h2>
                 <div className="flex items-center gap-1.5 rounded-full bg-primary/5 px-3 py-1.5 text-xs font-black text-primary">
-                  <Sparkles className="h-3 w-3" /> 人气推荐
+                  <Sparkles className="h-3 w-3" />
+                  人气推荐
                 </div>
               </div>
+
+              {statusNotice ? (
+                <div className={`mb-8 rounded-3xl border px-5 py-4 ${statusNotice.className}`}>
+                  <p className="text-sm font-black">{statusNotice.title}</p>
+                  <p className="mt-1 text-sm font-medium opacity-90">{statusNotice.description}</p>
+                </div>
+              ) : null}
+
               <div className="space-y-4 whitespace-pre-line text-lg font-medium leading-relaxed text-secondary">{item.description}</div>
 
               <div className="mt-12 grid grid-cols-2 gap-6 border-t border-hairline pt-12 md:grid-cols-3">
                 <DetailInfoItem label="成色" value={itemCondition} />
                 <DetailInfoItem label="运费" value={item.freeShipping ? '包邮' : '与卖家协商'} />
-                <DetailInfoItem label="支持当面验货" value="支持" />
+                <DetailInfoItem label="当面验货" value="支持" />
               </div>
             </div>
 
@@ -286,7 +415,8 @@ export default function ItemDetailPage() {
               <div className="mb-8 flex items-center justify-between">
                 <h2 className="text-2xl font-black text-ink">商品位置</h2>
                 <span className="flex items-center gap-1 text-sm font-bold text-muted">
-                  <MapPin className="h-4 w-4" /> {locationLabel}
+                  <MapPin className="h-4 w-4" />
+                  {locationLabel}
                 </span>
               </div>
               <div className="h-80 w-full overflow-hidden rounded-3xl border border-hairline opacity-90 grayscale contrast-[0.9]">
@@ -304,11 +434,15 @@ export default function ItemDetailPage() {
           <div className="sticky top-28 lg:col-span-4">
             <div className="space-y-10 rounded-[40px] border border-hairline bg-white p-8 shadow-2xl shadow-ink/5">
               <div className="flex flex-col gap-1">
-                <div className="flex items-center justify-between">
+                <div className="flex items-center justify-between gap-3">
                   <span className="text-xs font-black uppercase tracking-widest text-muted">转让价格</span>
-                  <span className="flex items-center gap-1 rounded-md border border-green-100 bg-green-50 px-2 py-0.5 text-[10px] font-black text-green-600">
-                    <CheckCircle2 className="h-3 w-3" /> 可议价
-                  </span>
+                  <div className="flex items-center gap-2">
+                    <MarketStatusBadge status={item.status} rejectReason={item.rejectReason} />
+                    <span className="flex items-center gap-1 rounded-md border border-green-100 bg-green-50 px-2 py-0.5 text-[10px] font-black text-green-600">
+                      <CheckCircle2 className="h-3 w-3" />
+                      可议价
+                    </span>
+                  </div>
                 </div>
                 <div className="flex items-end gap-3">
                   <span className="text-5xl font-black tracking-tighter text-ink">{formatCurrency(item.price)}</span>
@@ -321,9 +455,13 @@ export default function ItemDetailPage() {
               <div className="space-y-6 rounded-3xl bg-surface-soft p-6">
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-4">
-                    <div className="group relative cursor-pointer" onClick={() => navigate(sellerProfilePath)}>
+                    <div className="group relative cursor-pointer" onClick={handleOpenSellerProfile}>
                       {sellerAvatar ? (
-                        <img src={sellerAvatar} className="h-14 w-14 rounded-2xl border-2 border-white object-cover shadow-md transition-transform group-hover:scale-105" alt="Seller" />
+                        <img
+                          src={sellerAvatar}
+                          className="h-14 w-14 rounded-2xl border-2 border-white object-cover shadow-md transition-transform group-hover:scale-105"
+                          alt={sellerName}
+                        />
                       ) : (
                         <div className="flex h-14 w-14 items-center justify-center rounded-2xl border-2 border-white bg-white text-sm font-black text-primary shadow-md">
                           {(sellerName || '?')[0]}
@@ -336,7 +474,7 @@ export default function ItemDetailPage() {
                       ) : null}
                     </div>
                     <div>
-                      <h3 className="group cursor-pointer font-black text-ink transition-colors hover:text-primary" onClick={() => navigate(sellerProfilePath)}>
+                      <h3 className="group cursor-pointer font-black text-ink transition-colors hover:text-primary" onClick={handleOpenSellerProfile}>
                         {sellerName}
                       </h3>
                       <div className="mt-0.5 flex items-center gap-1.5">
@@ -345,7 +483,13 @@ export default function ItemDetailPage() {
                     </div>
                   </div>
                   {!isOwnItem ? (
-                    <FollowButton targetId={sellerId} isFollowingInitial={isFollowing} onFollowChange={setIsFollowing} size="sm" variant="ghost" />
+                    <FollowButton
+                      targetId={sellerId}
+                      isFollowingInitial={isFollowing}
+                      onFollowChange={setIsFollowing}
+                      size="sm"
+                      variant="ghost"
+                    />
                   ) : null}
                 </div>
 
@@ -360,41 +504,98 @@ export default function ItemDetailPage() {
 
               {!isOwnItem ? (
                 <div className="space-y-4">
-                  <motion.button
-                    whileHover={{ scale: 1.02 }}
-                    whileTap={{ scale: 0.98 }}
-                    onClick={() =>
-                      requireAuth(() =>
-                        openChat({
-                          id: sellerId,
-                          name: sellerName,
-                          avatar: sellerAvatar,
-                          isOnline: true,
-                        })
-                      )
-                    }
-                    className="group flex h-16 w-full items-center justify-center gap-3 rounded-2xl bg-ink font-black text-white shadow-xl shadow-ink/20"
-                  >
-                    <div className="rounded-xl bg-white/10 p-2 transition-colors group-hover:bg-primary">
-                      <MessageCircle className="h-5 w-5" />
+                  {statusMeta?.description ? (
+                    <div className="rounded-2xl border border-hairline bg-surface-soft px-4 py-3 text-sm font-medium text-secondary">
+                      {statusMeta.description}
                     </div>
-                    立即沟通
-                  </motion.button>
+                  ) : null}
+                  <div className="grid grid-cols-2 gap-3">
+                    <motion.button
+                      whileHover={{ scale: canPurchase ? 1.02 : 1 }}
+                      whileTap={{ scale: canPurchase ? 0.98 : 1 }}
+                      onClick={handleStartPurchase}
+                      disabled={!canPurchase}
+                      className="group flex h-16 w-full items-center justify-center gap-3 rounded-2xl bg-primary font-black text-white shadow-xl shadow-primary/20 disabled:cursor-not-allowed disabled:opacity-60"
+                    >
+                      <div className="rounded-xl bg-white/10 p-2 transition-colors group-hover:bg-white/20">
+                        <ArrowRightLeft className="h-5 w-5" />
+                      </div>
+                      {isPurchasing ? '提交中...' : canPurchase ? '立即购买' : statusMeta?.label || '不可购买'}
+                    </motion.button>
+                    <motion.button
+                      whileHover={{ scale: 1.02 }}
+                      whileTap={{ scale: 0.98 }}
+                      onClick={handleOpenChat}
+                      className="group flex h-16 w-full items-center justify-center gap-3 rounded-2xl bg-ink font-black text-white shadow-xl shadow-ink/20"
+                    >
+                      <div className="rounded-xl bg-white/10 p-2 transition-colors group-hover:bg-primary">
+                        <MessageCircle className="h-5 w-5" />
+                      </div>
+                      立刻沟通
+                    </motion.button>
+                  </div>
+                </div>
+              ) : statusNotice ? (
+                <div className={`rounded-2xl border px-4 py-4 ${statusNotice.className}`}>
+                  <p className="text-sm font-black">{statusNotice.title}</p>
+                  <p className="mt-1 text-sm font-medium opacity-90">{statusNotice.description}</p>
                 </div>
               ) : null}
 
               <div className="flex items-center gap-3 rounded-2xl border border-primary/10 bg-primary/5 p-4">
                 <ShieldCheck className="h-6 w-6 shrink-0 text-primary" />
                 <p className="text-[10px] font-black uppercase tracking-wider text-primary">
-                  同城生活担保 · 本地实名认证交易记录 · 支持沟通留痕
+                  同城生活担保 · 本地实名交易记录 · 支持先沟通后成交
                 </p>
               </div>
             </div>
           </div>
         </div>
       </div>
+
+      <ConfirmDialog
+        isOpen={showPurchaseConfirm}
+        title="确认购买"
+        message={`确认提交商品《${item.title}》的购买请求吗？提交后会立即通知卖家 ${sellerName}，请保持联系方式畅通。`}
+        confirmText="确认购买"
+        cancelText="再想想"
+        onConfirm={() => void handlePurchase()}
+        onCancel={() => setShowPurchaseConfirm(false)}
+      />
     </div>
   );
+}
+
+function getStatusNotice(item: Item | null, isOwnItem: boolean) {
+  if (!item?.status) {
+    return null;
+  }
+
+  if (item.status === 'sold') {
+    return {
+      title: '该商品已售出',
+      description: isOwnItem ? '商品已经完成交易，详情仍会保留给你查看。' : '该商品已经完成交易，目前不能再次发起购买。',
+      className: 'border-stone-200 bg-stone-50 text-stone-700',
+    };
+  }
+
+  if (item.status === 'pending' && isOwnItem) {
+    return {
+      title: '商品审核中',
+      description: '你的商品正在等待审核，审核通过后才会展示给其他用户。',
+      className: 'border-amber-200 bg-amber-50 text-amber-700',
+    };
+  }
+
+  if (item.status === 'rejected' && isOwnItem) {
+    return {
+      title: '商品未通过审核',
+      description: item.rejectReason || '请根据审核原因调整内容后重新发布。',
+      className: 'border-rose-200 bg-rose-50 text-rose-700',
+    };
+  }
+
+  return null;
 }
 
 function InfoFeatureCard({ icon, title, desc }: { icon: React.ReactNode; title: string; desc: string }) {

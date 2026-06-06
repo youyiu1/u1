@@ -1,4 +1,4 @@
-﻿/**
+/**
  * @license
  * SPDX-License-Identifier: Apache-2.0
  */
@@ -46,6 +46,7 @@ export interface Dynamic {
   userId?: string;
   authorTag?: string;
   verifiedUser?: boolean;
+  authorStatus?: 'normal' | 'disabled';
 }
 
 export interface Goods {

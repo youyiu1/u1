@@ -1,11 +1,13 @@
 package com.neighborhood.app.controller.admin;
 
 import com.neighborhood.app.common.Result;
-import com.neighborhood.app.dto.admin.AdminContentRequests.CommentStatusRequest;
-import com.neighborhood.app.dto.admin.AdminContentRequests.ImageDeleteRequest;
-import com.neighborhood.app.dto.admin.AdminContentRequests.DynamicCommentRequest;
-import com.neighborhood.app.dto.admin.AdminContentRequests.ImageStatusRequest;
 import com.neighborhood.app.dto.admin.AdminCommonRequests.StatusRequest;
+import com.neighborhood.app.dto.admin.AdminContentRequests.CommentStatusRequest;
+import com.neighborhood.app.dto.admin.AdminContentRequests.DynamicCommentRequest;
+import com.neighborhood.app.dto.admin.AdminContentRequests.ImageDeleteRequest;
+import com.neighborhood.app.dto.admin.AdminContentRequests.ImageStatusRequest;
+import java.util.List;
+import java.util.Map;
 import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -16,9 +18,7 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
-import java.util.List;
-import java.util.Map;
-
+/** 文件作用：管理端内容接口。 */
 @RestController
 @RequestMapping("/api/admin")
 @RequiredArgsConstructor

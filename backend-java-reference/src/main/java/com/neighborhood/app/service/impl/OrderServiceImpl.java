@@ -11,13 +11,13 @@ import com.neighborhood.app.entity.service.Order;
 import com.neighborhood.app.mapper.service.OrderMapper;
 import com.neighborhood.app.service.OrderService;
 import com.neighborhood.app.utils.OrderBuildUtil;
-import lombok.RequiredArgsConstructor;
-import org.springframework.stereotype.Service;
-
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.List;
+import lombok.RequiredArgsConstructor;
+import org.springframework.stereotype.Service;
 
+/** 文件作用：订单服务实现。 */
 @Service
 @RequiredArgsConstructor
 public class OrderServiceImpl extends ServiceImpl<OrderMapper, Order> implements OrderService {

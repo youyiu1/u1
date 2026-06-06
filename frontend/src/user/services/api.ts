@@ -4,7 +4,7 @@
  */
 
 import { Category, Comment, Item, Message, Notification, Post, Review, Service, ServiceDetail, User } from '../types';
-import { removeStoredUser } from '../utils/authStorage';
+import { dispatchAuthStateChange, removeStoredUser } from '../utils/authStorage';
 import { readStorageValue, removeStorageValue, writeStorageValue } from '../utils/jsonStorage';
 
 const BASE_URL = '/api';
@@ -32,6 +32,13 @@ const AUTH_ERROR_MESSAGES: Record<string, string> = {
   Token已过期: '登录已过期，请重新登录',
 };
 
+const AUTH_FAILURE_TEXTS = new Set([
+  '请先登录',
+  '登录信息无效，请重新登录',
+  '登录已过期，请重新登录',
+  '认证失败',
+]);
+
 type QueryValue = string | number | boolean | null | undefined;
 type QueryParams = Record<string, QueryValue>;
 type JsonBodyMethod = 'POST' | 'PUT' | 'DELETE';
@@ -51,6 +58,10 @@ function isLocalDevRuntime(): boolean {
 
 function isAuthError(message: string): message is keyof typeof AUTH_ERROR_MESSAGES {
   return message in AUTH_ERROR_MESSAGES;
+}
+
+export function isAuthFailureMessage(message: string): boolean {
+  return AUTH_FAILURE_TEXTS.has(message);
 }
 
 function buildQuery(params: QueryParams): string {
@@ -73,6 +84,10 @@ function withAuthHeaders(headers?: HeadersInit): HeadersInit {
   };
 }
 
+function clearInflightGetRequests(): void {
+  inflightGetRequests.clear();
+}
+
 function logSlowRequest(method: string, url: string, startAt: number) {
   if (!isLocalDevRuntime()) {
     return;
@@ -84,20 +99,27 @@ function logSlowRequest(method: string, url: string, startAt: number) {
   }
 }
 
-async function parseResponse<T>(res: Response): Promise<T> {
+function invalidateAuthState(requestToken: string | null): void {
+  const currentToken = getToken();
+  if (requestToken && currentToken && requestToken !== currentToken) {
+    return;
+  }
+  authInvalidated = true;
+  removeToken();
+  removeStoredUser();
+}
+
+async function parseResponse<T>(res: Response, requestToken: string | null): Promise<T> {
   if (res.status === 401) {
     const json = await res.json();
     const message = json.message || '';
 
     if (isAuthError(message)) {
-      if (message !== '未登录') {
-        authInvalidated = true;
-        removeToken();
-        removeStoredUser();
-      }
+      invalidateAuthState(requestToken);
       throw new Error(AUTH_ERROR_MESSAGES[message]);
     }
 
+    invalidateAuthState(requestToken);
     throw new Error(message || '认证失败');
   }
 
@@ -111,7 +133,8 @@ async function parseResponse<T>(res: Response): Promise<T> {
 async function request<T>(url: string, options?: RequestInit): Promise<T> {
   const method = options?.method?.toUpperCase() || 'GET';
   const isGetWithoutBody = method === 'GET' && !options?.body;
-  const requestKey = isGetWithoutBody ? `${method}:${url}` : '';
+  const requestToken = getToken();
+  const requestKey = isGetWithoutBody ? `${method}:${url}:token=${requestToken ?? ''}` : '';
 
   if (authInvalidated && url.startsWith('/favorite/check')) {
     throw new Error('登录已失效');
@@ -125,9 +148,13 @@ async function request<T>(url: string, options?: RequestInit): Promise<T> {
     const startAt = typeof performance !== 'undefined' ? performance.now() : Date.now();
     const res = await fetch(BASE_URL + url, {
       ...options,
-      headers: withAuthHeaders(options?.headers),
+      headers: {
+        'Content-Type': 'application/json',
+        ...(requestToken ? { Authorization: `Bearer ${requestToken}` } : {}),
+        ...options?.headers,
+      },
     });
-    const data = await parseResponse<T>(res);
+    const data = await parseResponse<T>(res, requestToken);
     logSlowRequest(method, url, startAt);
     return data;
   };
@@ -192,16 +219,23 @@ export function getToken(): string | null {
 export function setToken(token: string): void {
   writeStorageValue(localStorage, TOKEN_KEY, token);
   authInvalidated = false;
+  clearInflightGetRequests();
 }
 
 export function removeToken(): void {
+  if (!getToken()) {
+    return;
+  }
   removeStorageValue(localStorage, TOKEN_KEY);
+  clearInflightGetRequests();
+  dispatchAuthStateChange();
 }
 
 export const userApi = {
   login: (email: string, password: string) => postJson<AuthResponse>('/user/login', { email, password }),
   register: (name: string, email: string, password: string, code: string) =>
     postJson<AuthResponse>('/user/register', { name, email, password, code }),
+  logout: () => postFlag('/user/logout'),
   sendCode: (email: string) => postWithQuery<boolean>('/user/send-code', { email }),
   getUser: (id: string) => request<User>(`/user/${id}`),
   getUserByName: (name: string) => request<User>(`/user/name/${encodeURIComponent(name)}`),
@@ -248,6 +282,7 @@ export const marketApi = {
   get: (id: string) => request<Item>(`/market/${id}`),
   getByUserId: (userId: string) => request<Item[]>(`/market/user/${userId}`),
   create: (item: Partial<Item>) => postFlag('/market/create', item),
+  purchase: (itemId: string) => postFlag('/market/purchase', { itemId }),
 };
 
 export const serviceApi = {

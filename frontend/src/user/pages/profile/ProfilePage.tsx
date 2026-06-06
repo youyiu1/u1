@@ -4,7 +4,7 @@
  */
 
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
+import { useLocation, useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import {
   Bell,
   Bookmark,
@@ -35,6 +35,7 @@ import { Item, Order, Post, Service, User } from '../../types';
 import { getFallbackAvatar } from '../../utils/avatar';
 import { getErrorMessage } from '../../utils/error';
 import { resolveFollowState } from '../../utils/followStorage';
+import { buildProfilePath, buildProfileRouteState, decodeProfilePathParam, type ProfileRouteState } from '../../utils/profileRoute';
 
 type FavoriteRecord = {
   id: string;
@@ -89,15 +90,23 @@ const SETTINGS_ACTIONS = [
   },
 ] as const;
 
+const TAB_IDS: TabId[] = ['posts', 'market', 'completed', 'bookmarks', 'following', 'settings', 'likes'];
+
+function resolveTabId(value: string | null): TabId {
+  return TAB_IDS.includes(value as TabId) ? (value as TabId) : 'posts';
+}
+
 export default function ProfilePage() {
   const { username: paramUsername } = useParams();
+  const location = useLocation();
   const navigate = useNavigate();
-  const [searchParams] = useSearchParams();
+  const [searchParams, setSearchParams] = useSearchParams();
   const { user: currentUser, logout } = useAuth();
   const { requireAuth } = useAuthCheck();
   const { openPublish } = usePublish();
 
-  const username = paramUsername || currentUser?.id || currentUser?.name;
+  const decodedParamUsername = decodeProfilePathParam(paramUsername);
+  const username = decodedParamUsername || currentUser?.id || currentUser?.name;
   const [profileUser, setProfileUser] = useState<User | null>(null);
   const [posts, setPosts] = useState<Post[]>([]);
   const [items, setItems] = useState<Item[]>([]);
@@ -110,7 +119,6 @@ export default function ProfilePage() {
   const [loading, setLoading] = useState(true);
   const [tabLoading, setTabLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [activeTab, setActiveTab] = useState<TabId>(() => (searchParams.get('tab') as TabId) || 'posts');
   const [activeFavoriteTab, setActiveFavoriteTab] = useState<FavoriteTab>('all');
   const [passwordOverlayOpen, setPasswordOverlayOpen] = useState(false);
   const [notificationOverlayOpen, setNotificationOverlayOpen] = useState(false);
@@ -121,17 +129,34 @@ export default function ProfilePage() {
 
   const loadedTabsRef = useRef<Set<string>>(new Set());
   const currentProfileKeyRef = useRef<string>('');
-  const routeMatchesCurrentUser = !paramUsername || paramUsername === currentUser?.id || paramUsername === currentUser?.name;
+  const routeMatchesCurrentUser = !decodedParamUsername || decodedParamUsername === currentUser?.id || decodedParamUsername === currentUser?.name;
   const isOwnProfile = routeMatchesCurrentUser || Boolean(profileUser?.id && profileUser.id === currentUser?.id);
-  const tabs = useMemo(() => (isOwnProfile ? ownTabs : publicTabs), [isOwnProfile]);
+  const routeState = location.state as ProfileRouteState | null;
+  const requestedTab = resolveTabId(searchParams.get('tab'));
+  const routeProfilePreview = useMemo(() => {
+    if (isOwnProfile) {
+      return null;
+    }
+    const preview = routeState?.profilePreview;
+    if (!preview) {
+      return null;
+    }
+    if (!decodedParamUsername) {
+      return null;
+    }
+    return decodedParamUsername === preview.id || decodedParamUsername === preview.name ? preview : null;
+  }, [decodedParamUsername, isOwnProfile, routeState]);
+  const tabs = useMemo(() => (isOwnProfile ? ownTabs : publicTabs.filter((tab) => tab.id !== 'likes')), [isOwnProfile]);
+  const activeTab = tabs.some((tab) => tab.id === requestedTab) ? requestedTab : tabs[0].id;
   const marketItems = useMemo(() => [...items, ...services], [items, services]);
+  const effectiveProfileId = profileUser?.id || routeProfilePreview?.id || '';
 
   const userData = useMemo(() => {
     if (isOwnProfile && currentUser) {
       return { ...(profileUser || {}), ...currentUser } as User;
     }
     return (
-      profileUser || {
+      profileUser || routeProfilePreview || {
         id: '',
         name: username || '匿名用户',
         avatar: getFallbackAvatar(username || '用户'),
@@ -141,7 +166,7 @@ export default function ProfilePage() {
         followingCount: 0,
       }
     );
-  }, [currentUser, isOwnProfile, profileUser, username]);
+  }, [currentUser, isOwnProfile, profileUser, routeProfilePreview, username]);
 
   const resetTabData = useCallback(() => {
     loadedTabsRef.current.clear();
@@ -160,6 +185,19 @@ export default function ProfilePage() {
       navigate('/login');
     }
   }, [isOwnProfile, navigate]);
+
+  useEffect(() => {
+    if (requestedTab === activeTab) {
+      return;
+    }
+
+    const nextParams = new URLSearchParams(searchParams);
+    if (searchParams.get('tab') === tabs[0].id) {
+      return;
+    }
+    nextParams.set('tab', tabs[0].id);
+    setSearchParams(nextParams, { replace: true });
+  }, [activeTab, requestedTab, searchParams, setSearchParams, tabs]);
 
   useEffect(() => {
     let cancelled = false;
@@ -279,20 +317,19 @@ export default function ProfilePage() {
   );
 
   useEffect(() => {
-    if (!profileUser?.id || activeTab === 'settings') {
+    if (!effectiveProfileId || activeTab === 'settings') {
       return;
     }
-    void loadTabData(activeTab, profileUser.id);
-  }, [activeTab, loadTabData, profileUser?.id]);
+    void loadTabData(activeTab, effectiveProfileId);
+  }, [activeTab, effectiveProfileId, loadTabData]);
 
   const handleTabChange = (tabId: TabId) => {
     if (tabId === activeTab) {
       return;
     }
-    setActiveTab(tabId);
-    const url = new URL(window.location.href);
-    url.searchParams.set('tab', tabId);
-    window.history.pushState({}, '', url.toString());
+    const nextParams = new URLSearchParams(searchParams);
+    nextParams.set('tab', tabId);
+    setSearchParams(nextParams);
   };
 
   const handleFollowChange = (isFollowing: boolean) => {
@@ -323,7 +360,7 @@ export default function ProfilePage() {
     });
   };
 
-  if (loading) {
+  if (loading && !routeProfilePreview) {
     return (
       <div className="flex min-h-screen items-center justify-center">
         <div className="h-8 w-8 animate-spin rounded-full border-4 border-primary border-t-transparent" />
@@ -642,7 +679,13 @@ function BookmarksTab({
   );
 }
 
-function FollowingTab({ following, navigate }: { following: User[]; navigate: (path: string) => void }) {
+function FollowingTab({
+  following,
+  navigate,
+}: {
+  following: User[];
+  navigate: (path: string, options?: { state?: unknown }) => void;
+}) {
   if (following.length === 0) {
     return (
       <div className="col-span-2 py-20 text-center">
@@ -659,7 +702,11 @@ function FollowingTab({ following, navigate }: { following: User[]; navigate: (p
           <div
             key={user.id}
             className="cursor-pointer rounded-2xl border border-hairline bg-white p-4 text-center transition-colors hover:border-primary/30"
-            onClick={() => navigate(`/profile/${user.id}`)}
+            onClick={() =>
+              navigate(buildProfilePath(user.id, user.name), {
+                state: buildProfileRouteState(user),
+              })
+            }
           >
             <img src={user.avatar || getFallbackAvatar(user.name)} className="mx-auto mb-3 h-16 w-16 rounded-xl border border-hairline object-cover" alt={user.name} />
             <p className="truncate text-sm font-bold text-ink">{user.name}</p>
@@ -680,7 +727,7 @@ function SettingsTab({
   openPassword: () => void;
   openNotification: () => void;
   openPrivacy: () => void;
-  logout: () => void;
+  logout: () => Promise<void>;
 }) {
   return (
     <div className="col-span-2 space-y-4">
@@ -701,7 +748,9 @@ function SettingsTab({
       <div className="rounded-[32px] border border-red-100 bg-red-50/30 p-8">
         <h4 className="mb-6 text-sm font-black uppercase tracking-widest text-red-600">退出登录</h4>
         <button
-          onClick={logout}
+          onClick={() => {
+            void logout();
+          }}
           className="flex w-full items-center justify-center gap-3 rounded-3xl bg-red-500 p-5 text-[10px] font-black uppercase tracking-[0.3em] text-white shadow-xl shadow-red-500/20 transition-all hover:bg-red-600 active:scale-95"
         >
           <LogOut className="h-4 w-4" />

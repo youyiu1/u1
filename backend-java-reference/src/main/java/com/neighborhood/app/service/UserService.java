@@ -3,10 +3,11 @@ package com.neighborhood.app.service;
 import com.baomidou.mybatisplus.extension.service.IService;
 import com.neighborhood.app.dto.user.NotificationSettings;
 import com.neighborhood.app.dto.user.PrivacySettings;
+import com.neighborhood.app.dto.user.UserProfileUpdateRequest;
 import com.neighborhood.app.entity.user.User;
-
 import java.util.List;
 
+/** 文件作用：用户服务接口。 */
 public interface UserService extends IService<User> {
     User register(String name, String email, String password);
     User login(String email, String password);
@@ -18,6 +19,7 @@ public interface UserService extends IService<User> {
     List<User> getFollowingList(String userId);
     List<User> getSuggestedUsers(String currentUserId, int limit);
     boolean updateById(User user);
+    boolean updateProfile(String userId, UserProfileUpdateRequest request);
     boolean changePassword(String userId, String oldPassword, String newPassword);
     boolean updatePrivacy(String userId, PrivacySettings settings);
     boolean updateNotificationSettings(String userId, NotificationSettings settings);

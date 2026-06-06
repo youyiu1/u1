@@ -1,0 +1,10 @@
+target
+logs
+uploads
+tmp-javac
+tmp-javac-news
+*.log
+LombokSmoke.java
+LombokSmoke.class
+effective-pom
+tmp-*.sql

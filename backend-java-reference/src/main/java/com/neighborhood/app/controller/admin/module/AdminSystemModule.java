@@ -8,8 +8,8 @@ import com.neighborhood.app.dto.admin.AdminSystemRequests.CategoryCreateRequest;
 import com.neighborhood.app.dto.admin.AdminSystemRequests.NotificationCreateRequest;
 import com.neighborhood.app.dto.admin.AdminSystemRequests.RoleUpdateRequest;
 import com.neighborhood.app.entity.admin.AdminRole;
-import com.neighborhood.app.entity.system.Category;
 import com.neighborhood.app.entity.service.Notification;
+import com.neighborhood.app.entity.system.Category;
 import com.neighborhood.app.entity.user.User;
 import com.neighborhood.app.mapper.admin.AdminRoleMapper;
 import com.neighborhood.app.mapper.system.CategoryMapper;
@@ -17,13 +17,13 @@ import com.neighborhood.app.mapper.user.UserMapper;
 import com.neighborhood.app.service.CategoryService;
 import com.neighborhood.app.service.MessageService;
 import com.neighborhood.app.service.NotificationService;
-import lombok.RequiredArgsConstructor;
-import org.springframework.stereotype.Component;
-
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Map;
+import lombok.RequiredArgsConstructor;
+import org.springframework.stereotype.Component;
 
+/** 文件作用：管理端系统模块封装。 */
 @Component
 @RequiredArgsConstructor
 public class AdminSystemModule {

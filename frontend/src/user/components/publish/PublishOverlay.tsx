@@ -119,6 +119,7 @@ export const PublishOverlay: React.FC<PublishOverlayProps> = ({ isOpen, onClose,
   const [locationPickerOpen, setLocationPickerOpen] = useState(false);
   const [content, setContent] = useState('');
   const [images, setImages] = useState<string[]>([]);
+  const [imageFiles, setImageFiles] = useState<File[]>([]);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isSuccess, setIsSuccess] = useState(false);
   const [serviceCategoryOpen, setServiceCategoryOpen] = useState(false);
@@ -154,6 +155,7 @@ export const PublishOverlay: React.FC<PublishOverlayProps> = ({ isOpen, onClose,
     setPublishLocation('');
     setContent('');
     setImages([]);
+    setImageFiles([]);
     setIsSubmitting(false);
     setIsSuccess(false);
     setServiceCategoryOpen(false);
@@ -169,15 +171,7 @@ export const PublishOverlay: React.FC<PublishOverlayProps> = ({ isOpen, onClose,
     return false;
   }, [selectedId, title, price, content, images.length]);
 
-  const uploadImages = async () => Promise.all(
-    images.map(async (img) => {
-      if (!img.startsWith('blob:')) return img;
-      const response = await fetch(img);
-      const blob = await response.blob();
-      const file = new File([blob], 'image.jpg', { type: blob.type });
-      return fileApi.upload(file);
-    })
-  );
+  const uploadImages = async () => Promise.all(imageFiles.map((file) => fileApi.upload(file)));
 
   const handlePublish = async () => {
     if (!selectedId || !canSubmit || !user) return;
@@ -253,20 +247,23 @@ export const PublishOverlay: React.FC<PublishOverlayProps> = ({ isOpen, onClose,
       }
       return prev.filter((_, currentIndex) => currentIndex !== index);
     });
+    setImageFiles((prev) => prev.filter((_, currentIndex) => currentIndex !== index));
   };
 
   const handleImageChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     const files = event.target.files;
     if (files) {
-      const newImages = Array.from<string, string>({ length: files.length }, (_, index) =>
-        URL.createObjectURL(files.item(index) as File)
+      const selectedFiles = Array.from({ length: files.length }, (_, index) => files.item(index)).filter(
+        (file): file is File => Boolean(file)
       );
+      const newImages = selectedFiles.map((file) => URL.createObjectURL(file));
       setImages((prev) => {
         const next = [...prev, ...newImages];
         const kept = next.slice(0, 9);
         next.slice(9).forEach((url) => URL.revokeObjectURL(url));
         return kept;
       });
+      setImageFiles((prev) => [...prev, ...selectedFiles].slice(0, 9));
     }
     event.target.value = '';
   };
@@ -280,7 +277,7 @@ export const PublishOverlay: React.FC<PublishOverlayProps> = ({ isOpen, onClose,
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
             onClick={onClose}
-            className="fixed inset-0 bg-ink/60 backdrop-blur-xl pointer-events-auto"
+            className="fixed inset-0 bg-ink/45 pointer-events-auto"
           />
 
           <motion.div

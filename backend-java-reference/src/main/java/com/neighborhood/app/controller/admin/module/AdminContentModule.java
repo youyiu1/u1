@@ -3,11 +3,11 @@ package com.neighborhood.app.controller.admin.module;
 import com.baomidou.mybatisplus.core.conditions.update.LambdaUpdateWrapper;
 import com.neighborhood.app.common.Result;
 import com.neighborhood.app.controller.admin.AdminSupport;
+import com.neighborhood.app.dto.admin.AdminCommonRequests.StatusRequest;
 import com.neighborhood.app.dto.admin.AdminContentRequests.CommentStatusRequest;
 import com.neighborhood.app.dto.admin.AdminContentRequests.DynamicCommentRequest;
 import com.neighborhood.app.dto.admin.AdminContentRequests.ImageDeleteRequest;
 import com.neighborhood.app.dto.admin.AdminContentRequests.ImageStatusRequest;
-import com.neighborhood.app.dto.admin.AdminCommonRequests.StatusRequest;
 import com.neighborhood.app.entity.content.Comment;
 import com.neighborhood.app.entity.content.News;
 import com.neighborhood.app.entity.service.ServiceReview;
@@ -17,16 +17,16 @@ import com.neighborhood.app.mapper.service.ServiceReviewMapper;
 import com.neighborhood.app.service.AdminImageStatusService;
 import com.neighborhood.app.service.NewsService;
 import com.neighborhood.app.service.UserService;
-import lombok.RequiredArgsConstructor;
-import org.springframework.jdbc.core.JdbcTemplate;
-import org.springframework.stereotype.Component;
-
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import lombok.RequiredArgsConstructor;
+import org.springframework.jdbc.core.JdbcTemplate;
+import org.springframework.stereotype.Component;
 
+/** 文件作用：管理端内容模块封装。 */
 @Component
 @RequiredArgsConstructor
 public class AdminContentModule {
@@ -41,7 +41,7 @@ public class AdminContentModule {
 
     public Result<List<Map<String, Object>>> dynamics() {
         String sql = """
-                SELECT n.*, u.name author_name, u.avatar author_avatar, u.tag author_tag, u.is_verified author_verified
+                SELECT n.*, u.name author_name, u.avatar author_avatar, u.tag author_tag, u.is_verified author_verified, u.status author_status
                 FROM t_news n LEFT JOIN t_user u ON n.author_id = u.id
                 ORDER BY n.create_time DESC
                 """;
@@ -67,6 +67,7 @@ public class AdminContentModule {
             item.put("rejectReason", support.str(row.get("reject_reason")));
             item.put("userId", support.str(row.get("author_id")));
             item.put("verifiedUser", support.bool(row.get("author_verified")));
+            item.put("authorStatus", support.emptyTo(support.str(row.get("author_status")), "normal"));
             return item;
         }).toList());
     }

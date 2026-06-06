@@ -7,12 +7,12 @@ import com.neighborhood.app.mapper.service.BookingMapper;
 import com.neighborhood.app.mapper.service.NotificationMapper;
 import com.neighborhood.app.service.CacheService;
 import com.neighborhood.app.service.NotificationWriteService;
+import java.time.LocalDateTime;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.time.LocalDateTime;
-
+/** 通知写入服务实现。 */
 @Service
 @RequiredArgsConstructor
 public class NotificationWriteServiceImpl implements NotificationWriteService {
@@ -24,19 +24,32 @@ public class NotificationWriteServiceImpl implements NotificationWriteService {
     @Override
     @Transactional
     public void saveNotification(String userId, String title, String content, String serviceName) {
-        persistNotification(userId, title, content, serviceName, false, null);
+        persistNotification(userId, title, content, serviceName, false, null, null, null);
     }
 
     @Override
     @Transactional
     public void saveNotificationWithBooking(String userId, String title, String content, String serviceName, Long bookingId) {
-        persistNotification(userId, title, content, serviceName, false, bookingId);
+        persistNotification(userId, title, content, serviceName, false, bookingId, null, null);
+    }
+
+    @Override
+    @Transactional
+    public void saveNotificationWithMarketItem(
+            String userId,
+            String title,
+            String content,
+            String serviceName,
+            String relatedUserId,
+            Long marketItemId
+    ) {
+        persistNotification(userId, title, content, serviceName, false, null, relatedUserId, marketItemId);
     }
 
     @Override
     @Transactional
     public void saveProcessedNotification(String userId, String title, String content, String serviceName) {
-        persistNotification(userId, title, content, serviceName, true, null);
+        persistNotification(userId, title, content, serviceName, true, null, null, null);
     }
 
     private void persistNotification(
@@ -45,9 +58,20 @@ public class NotificationWriteServiceImpl implements NotificationWriteService {
             String content,
             String serviceName,
             boolean processed,
-            Long bookingId
+            Long bookingId,
+            String relatedUserId,
+            Long marketItemId
     ) {
-        Notification notification = createNotification(userId, title, content, serviceName, processed, bookingId);
+        Notification notification = createNotification(
+                userId,
+                title,
+                content,
+                serviceName,
+                processed,
+                bookingId,
+                relatedUserId,
+                marketItemId
+        );
         notificationMapper.insert(notification);
         if (bookingId != null && !processed) {
             updateBookingNotificationId(bookingId, notification.getId());
@@ -61,7 +85,9 @@ public class NotificationWriteServiceImpl implements NotificationWriteService {
             String content,
             String serviceName,
             boolean processed,
-            Long bookingId
+            Long bookingId,
+            String relatedUserId,
+            Long marketItemId
     ) {
         Notification notification = new Notification();
         notification.setUserId(userId);
@@ -72,6 +98,8 @@ public class NotificationWriteServiceImpl implements NotificationWriteService {
         notification.setIsRead(false);
         notification.setIsProcessed(processed);
         notification.setRelatedBookingId(bookingId);
+        notification.setRelatedUserId(relatedUserId);
+        notification.setRelatedMarketItemId(marketItemId);
         return notification;
     }
 

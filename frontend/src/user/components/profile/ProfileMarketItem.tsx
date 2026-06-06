@@ -1,7 +1,9 @@
-﻿import React from 'react';
+import React from 'react';
 import { useNavigate } from 'react-router-dom';
 import { AlertCircle, Clock3, MapPin, Star } from 'lucide-react';
+import { MarketStatusBadge } from '../common/MarketStatusBadge';
 import { Item, Service } from '../../types';
+import { formatCurrency } from '../../utils/display';
 import { getItemPrimaryImage, getServicePrimaryImage } from '../../utils/images';
 import { getPendingReviewState, getRejectedReviewState } from '../../utils/reviewState';
 
@@ -9,7 +11,7 @@ interface ProfileMarketItemProps {
   item: Item | Service;
 }
 
-const isItem = (item: Item | Service): boolean => 'itemCondition' in item;
+const isItem = (item: Item | Service): item is Item => 'itemCondition' in item;
 
 export const ProfileMarketItem: React.FC<ProfileMarketItemProps> = ({ item }) => {
   const navigate = useNavigate();
@@ -34,9 +36,12 @@ export const ProfileMarketItem: React.FC<ProfileMarketItemProps> = ({ item }) =>
           <div className="flex h-full w-full items-center justify-center text-xs text-stone-400">暂无图片</div>
         )}
         {itemType ? (
-          <div className="absolute left-2 top-2 rounded bg-red-400/90 px-1.5 py-0.5 text-[9px] font-bold text-white backdrop-blur-md">
-            {'itemCondition' in item ? item.itemCondition : '全新'}
-          </div>
+          <>
+            <div className="absolute left-2 top-2 rounded bg-red-400/90 px-1.5 py-0.5 text-[9px] font-bold text-white backdrop-blur-md">
+              {item.itemCondition || item.condition || '全新'}
+            </div>
+            <MarketStatusBadge status={item.status} rejectReason={item.rejectReason} className="absolute right-2 top-2" />
+          </>
         ) : (
           <div className="absolute left-2 top-2 rounded bg-primary/90 px-1.5 py-0.5 text-[9px] font-bold text-white backdrop-blur-md">
             {'category' in item ? item.category : '服务'}
@@ -53,9 +58,9 @@ export const ProfileMarketItem: React.FC<ProfileMarketItemProps> = ({ item }) =>
           </div>
           <div className="flex items-center justify-between">
             <div>
-              <span className="text-sm font-bold text-ink">¥{item.price}</span>
-              {itemType && 'originalPrice' in item && item.originalPrice ? (
-                <span className="ml-1 text-[9px] text-muted line-through">¥{item.originalPrice}</span>
+              <span className="text-sm font-bold text-ink">{formatCurrency(item.price)}</span>
+              {itemType && item.originalPrice ? (
+                <span className="ml-1 text-[9px] text-muted line-through">{formatCurrency(item.originalPrice)}</span>
               ) : null}
             </div>
             {!itemType && 'rating' in item && (

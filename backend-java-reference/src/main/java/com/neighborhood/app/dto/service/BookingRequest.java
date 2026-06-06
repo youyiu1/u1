@@ -7,6 +7,7 @@ package com.neighborhood.app.dto.service;
 
 import lombok.Data;
 
+/** 文件作用：预约请求参数。 */
 @Data
 public class BookingRequest {
     private String serviceId;

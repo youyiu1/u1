@@ -8,11 +8,10 @@ package com.neighborhood.app.entity.service;
 import com.baomidou.mybatisplus.annotation.IdType;
 import com.baomidou.mybatisplus.annotation.TableId;
 import com.baomidou.mybatisplus.annotation.TableName;
-import com.fasterxml.jackson.databind.annotation.JsonSerialize;
-import com.fasterxml.jackson.databind.ser.std.ToStringSerializer;
-import lombok.Data;
 import java.time.LocalDateTime;
+import lombok.Data;
 
+/** 文件作用：服务评价实体。 */
 @Data
 @TableName("t_service_review")
 public class ServiceReview {

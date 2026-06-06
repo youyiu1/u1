@@ -7,12 +7,12 @@ import com.baomidou.mybatisplus.annotation.TableName;
 import com.fasterxml.jackson.databind.annotation.JsonSerialize;
 import com.fasterxml.jackson.databind.ser.std.ToStringSerializer;
 import com.neighborhood.app.handler.MySqlJsonTypeHandler;
+import java.math.BigDecimal;
+import java.util.List;
 import lombok.Data;
 import org.apache.ibatis.type.JdbcType;
 
-import java.math.BigDecimal;
-import java.util.List;
-
+/** 文件作用：服务实体。 */
 @Data
 @TableName("t_service")
 public class ServiceEntity {

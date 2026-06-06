@@ -1,8 +1,19 @@
 import type { Item, Service } from '../types';
 
+function normalizeImageUrl(value: string): string {
+  const normalized = value.trim();
+  if (!normalized) {
+    return '';
+  }
+  return normalized.replace(/\/+$/, '');
+}
+
 export function parseImages(value: unknown): string[] {
   if (Array.isArray(value)) {
-    return value.filter((item): item is string => typeof item === 'string' && item.length > 0);
+    return value
+      .filter((item): item is string => typeof item === 'string' && item.length > 0)
+      .map(normalizeImageUrl)
+      .filter(Boolean);
   }
   if (typeof value !== 'string' || value.length === 0) {
     return [];
@@ -11,13 +22,17 @@ export function parseImages(value: unknown): string[] {
     try {
       const parsed = JSON.parse(value);
       return Array.isArray(parsed)
-        ? parsed.filter((item): item is string => typeof item === 'string' && item.length > 0)
+        ? parsed
+            .filter((item): item is string => typeof item === 'string' && item.length > 0)
+            .map(normalizeImageUrl)
+            .filter(Boolean)
         : [];
     } catch {
       return [];
     }
   }
-  return [value];
+  const normalized = normalizeImageUrl(value);
+  return normalized ? [normalized] : [];
 }
 
 export function getPrimaryImage(...values: unknown[]): string {

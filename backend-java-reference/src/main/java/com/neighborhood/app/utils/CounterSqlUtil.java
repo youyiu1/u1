@@ -1,5 +1,6 @@
 package com.neighborhood.app.utils;
 
+/** 文件作用：计数SQL工具。 */
 public final class CounterSqlUtil {
 
     private CounterSqlUtil() {

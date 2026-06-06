@@ -7,6 +7,7 @@ package com.neighborhood.app.dto.service;
 
 import lombok.Data;
 
+/** 文件作用：新增评价请求参数。 */
 @Data
 public class AddReviewRequest {
     private String userId;

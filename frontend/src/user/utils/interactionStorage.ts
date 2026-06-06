@@ -1,12 +1,12 @@
-﻿/**
+/**
  * @license
  * SPDX-License-Identifier: Apache-2.0
  */
 
 import { readJson, writeJson } from './jsonStorage';
 
-// 浜掑姩鐘舵€佸瓨鍌紙鐐硅禐銆佹敹钘忥級
-// 瀛樺偍缁撴瀯锛歿 postId: { liked: bool, baseLikes: number, favorited: bool, baseCollections: number } }
+// 互动状态存储（点赞、收藏）
+// 结构：{ postId: { liked: boolean, baseLikes: number, favorited: boolean, baseCollections: number } }
 
 const INTERACTION_KEY = 'interaction_states_v1';
 
@@ -71,4 +71,3 @@ export async function resolveFavoriteState(
     return fallback;
   }
 }
-

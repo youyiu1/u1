@@ -10,12 +10,21 @@ import com.neighborhood.app.entity.market.MarketItem;
 import com.neighborhood.app.vo.market.MarketItemVO;
 import java.util.List;
 
+/** 文件作用：闲置商品服务接口。 */
 public interface MarketService extends IService<MarketItem> {
     List<MarketItem> list();
+
     MarketItem getById(Long id);
-    MarketItemVO getMarketItemVOById(Long id);  // 获取带卖家信息的闲置详情
-    List<MarketItemVO> listVO();                 // 获取带卖家信息的闲置列表
-    List<MarketItemVO> listByUserId(String userId);  // 获取用户商品
+
+    MarketItemVO getMarketItemVOById(Long id);
+
+    MarketItemVO getMarketItemVOById(Long id, String viewerUserId);
+
+    List<MarketItemVO> listVO();
+
+    List<MarketItemVO> listByUserId(String userId);
+
     boolean save(MarketItem item);
+
     boolean updateById(MarketItem item);
 }

@@ -3,7 +3,6 @@ package com.neighborhood.app.utils;
 import com.neighborhood.app.entity.user.User;
 import com.neighborhood.app.mapper.user.UserMapper;
 import com.neighborhood.app.service.CacheService;
-
 import java.util.Collection;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -11,6 +10,7 @@ import java.util.Map;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
+/** 文件作用：用户查询工具。 */
 public final class UserLookupUtil {
 
     private UserLookupUtil() {

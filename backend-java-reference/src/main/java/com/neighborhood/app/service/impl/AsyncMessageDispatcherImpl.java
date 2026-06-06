@@ -1,7 +1,7 @@
 package com.neighborhood.app.service.impl;
 
-import com.neighborhood.app.service.AsyncMessageDispatcher;
 import com.neighborhood.app.service.AppMetricsService;
+import com.neighborhood.app.service.AsyncMessageDispatcher;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.amqp.AmqpException;
@@ -9,6 +9,7 @@ import org.springframework.amqp.rabbit.core.RabbitTemplate;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
+/** 文件作用：异步消息DispatcherImpl服务实现。 */
 @Slf4j
 @Service
 @RequiredArgsConstructor

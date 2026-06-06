@@ -11,6 +11,7 @@ import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
+/** 文件作用：RabbitMQ配置。 */
 @Configuration
 public class RabbitMqConfig {
 

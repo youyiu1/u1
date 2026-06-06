@@ -1,19 +1,17 @@
 package com.neighborhood.app.service.impl;
 
-import com.neighborhood.app.service.AdminBlacklistService;
-
-import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.neighborhood.app.entity.admin.AdminBlacklist;
 import com.neighborhood.app.mapper.admin.AdminBlacklistMapper;
-import lombok.RequiredArgsConstructor;
-import org.springframework.stereotype.Service;
-
+import com.neighborhood.app.service.AdminBlacklistService;
 import java.time.format.DateTimeFormatter;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import lombok.RequiredArgsConstructor;
+import org.springframework.stereotype.Service;
 
+/** 文件作用：管理端黑名单服务实现。 */
 @Service
 @RequiredArgsConstructor
 public class AdminBlacklistServiceImpl extends ServiceImpl<AdminBlacklistMapper, AdminBlacklist> implements AdminBlacklistService {
@@ -36,6 +34,22 @@ public class AdminBlacklistServiceImpl extends ServiceImpl<AdminBlacklistMapper,
         item.setReason(reason);
         item.setCreator(creator);
         save(item);
+    }
+
+    @Override
+    public void addUserBanItemIfAbsent(String targetValue, String reason, String creator) {
+        if (targetValue == null || targetValue.isBlank()) {
+            return;
+        }
+        boolean exists = lambdaQuery()
+                .eq(AdminBlacklist::getTargetType, "user")
+                .eq(AdminBlacklist::getTargetValue, targetValue)
+                .last("LIMIT 1")
+                .count() > 0;
+        if (exists) {
+            return;
+        }
+        addItem("user", targetValue, reason, creator);
     }
 
     public void deleteItem(Long id) {

@@ -8,6 +8,7 @@ package com.neighborhood.app.dto.interaction;
 import com.fasterxml.jackson.annotation.JsonAlias;
 import lombok.Data;
 
+/** 文件作用：评论请求参数。 */
 @Data
 public class CommentRequest {
     private String content;

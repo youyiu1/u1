@@ -7,6 +7,7 @@ package com.neighborhood.app.util;
 
 import java.util.UUID;
 
+/** 文件作用：字符串工具。 */
 public class StringUtils {
 
     public static boolean isEmpty(String str) {

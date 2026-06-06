@@ -10,6 +10,7 @@ import com.neighborhood.app.entity.service.ServiceEntity;
 import com.neighborhood.app.vo.service.ServiceDetailVO;
 import java.util.List;
 
+/** 文件作用：服务模块服务接口。 */
 public interface ServiceModuleService extends IService<ServiceEntity> {
     List<ServiceEntity> list();
     ServiceEntity getById(Long id);
@@ -20,4 +21,3 @@ public interface ServiceModuleService extends IService<ServiceEntity> {
     boolean updateById(ServiceEntity service);
     Long book(Long serviceId, String buyerId, String sellerId, String bookingDate, String bookingTime, Integer duration);
 }
-

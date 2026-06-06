@@ -8,9 +8,10 @@ package com.neighborhood.app.entity.message;
 import com.baomidou.mybatisplus.annotation.IdType;
 import com.baomidou.mybatisplus.annotation.TableId;
 import com.baomidou.mybatisplus.annotation.TableName;
-import lombok.Data;
 import java.time.LocalDateTime;
+import lombok.Data;
 
+/** 文件作用：消息实体。 */
 @Data
 @TableName("t_message")
 public class Message {

@@ -149,7 +149,13 @@ export const adminApi = {
   },
 
   async logout(): Promise<Result<void>> {
-    clearAuth();
+    try {
+      if (readStorageValue(localStorage, TOKEN_KEY)) {
+        await post<void>('/logout');
+      }
+    } finally {
+      clearAuth();
+    }
     return successResult(undefined);
   },
 

@@ -1,5 +1,6 @@
 package com.neighborhood.app.config;
 
+import java.net.URI;
 import lombok.Data;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.context.annotation.Bean;
@@ -10,8 +11,7 @@ import software.amazon.awssdk.regions.Region;
 import software.amazon.awssdk.services.s3.S3Client;
 import software.amazon.awssdk.services.s3.presigner.S3Presigner;
 
-import java.net.URI;
-
+/** 文件作用：3配置。 */
 @Data
 @Configuration
 @ConfigurationProperties(prefix = "rustfs")

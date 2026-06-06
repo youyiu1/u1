@@ -198,9 +198,15 @@ export default function ServiceListPage() {
 
         {error ? <div className="py-8 text-center text-red-500">{error}</div> : null}
 
-        <div className="grid grid-cols-1 gap-6 sm:gap-8 md:grid-cols-2 lg:grid-cols-3">
+        <div className="grid grid-cols-1 gap-x-4 gap-y-8 xs:grid-cols-2 sm:gap-x-6 sm:gap-y-10 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5">
           {loading ? (
-            Array.from({ length: 6 }).map((_, index) => <div key={index} className="h-80 animate-pulse rounded-3xl bg-stone-100" />)
+            Array.from({ length: 10 }).map((_, index) => (
+              <div key={index} className="space-y-3">
+                <div className="aspect-square animate-pulse rounded-2xl bg-stone-200" />
+                <div className="h-4 animate-pulse rounded bg-stone-200" />
+                <div className="h-3 w-1/2 animate-pulse rounded bg-stone-200" />
+              </div>
+            ))
           ) : filteredServices.length === 0 ? (
             <div className="col-span-full py-16 text-center text-muted">暂无服务</div>
           ) : (
@@ -235,37 +241,36 @@ function ServiceCard({
   onClick: () => void;
 }) {
   const primaryImage = getServicePrimaryImage({ image: service.image, images: service.images ?? [] });
-  const highlights = Array.isArray(service.highlights) ? service.highlights.filter(Boolean) : [];
+  const highlights = Array.isArray(service.highlights) ? service.highlights.filter(Boolean).slice(0, 2) : [];
 
   return (
-    <div className="group cursor-pointer overflow-hidden rounded-3xl border border-hairline bg-white transition-all hover:shadow-xl" onClick={onClick}>
-      <div className="relative h-48 overflow-hidden">
+    <div className="group cursor-pointer" onClick={onClick}>
+      <div className="relative mb-3 aspect-square overflow-hidden rounded-2xl bg-surface-soft">
         {primaryImage ? (
-          <img src={primaryImage} className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105" alt={service.title} />
+          <img src={primaryImage} className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-105" alt={service.title} />
         ) : (
           <div className="flex h-full w-full items-center justify-center text-xs text-stone-400">暂无图片</div>
         )}
 
-        <div className="absolute left-4 top-4 flex items-center gap-1.5 rounded-lg bg-white/90 px-3 py-1 shadow-sm backdrop-blur-md">
+        <div className="absolute left-3 top-3 flex items-center gap-1 rounded bg-white/90 px-2 py-1 text-[10px] font-bold text-ink backdrop-blur-md">
           <Star className="h-3 w-3 fill-current text-yellow-400" />
-          <span className="text-xs font-bold text-ink">{service.rating}</span>
-          <span className="text-[10px] font-medium text-muted">({service.reviews} 评价)</span>
+          <span>{service.rating}</span>
         </div>
         <FavoriteButton targetId={service.id} targetType="service" />
       </div>
 
-      <div className="p-6">
-        <div className="mb-3 flex items-center gap-3">
+      <div>
+        <div className="mb-2 flex flex-wrap items-center gap-2">
           <span className="rounded bg-primary/5 px-2 py-0.5 text-[10px] font-bold text-primary">{categoryLabel}</span>
-          <div className="flex items-center gap-1">
+          <div className="flex items-center gap-1 text-[10px] font-bold text-green-600">
             <CheckCircle2 className="h-3 w-3 text-green-500" />
-            <span className="text-[10px] font-bold text-green-600">平台认证</span>
+            <span>认证</span>
           </div>
         </div>
 
-        <h3 className="mb-2 text-lg font-bold text-ink transition-colors group-hover:text-primary">{service.title}</h3>
+        <h3 className="mb-2 line-clamp-2 text-sm font-bold text-ink transition-colors group-hover:text-primary">{service.title}</h3>
 
-        <div className="mb-6 flex flex-wrap gap-2">
+        <div className="mb-3 flex flex-wrap gap-1.5">
           {highlights.map((highlight, index) => (
             <span key={index} className="rounded bg-surface-soft px-2 py-0.5 text-[10px] text-secondary">
               {highlight}
@@ -273,13 +278,15 @@ function ServiceCard({
           ))}
         </div>
 
-        <div className="flex items-center justify-between border-t border-hairline pt-4">
-          <div className="flex items-baseline gap-1">
-            <span className="text-[10px] font-medium text-muted">起步价</span>
-            <span className="text-xl font-bold text-primary">￥{service.price}</span>
-            <span className="text-[10px] text-muted">/{service.unit}</span>
+        <div className="flex items-end justify-between">
+          <div>
+            <div className="flex items-baseline gap-1">
+              <span className="text-lg font-bold text-primary">￥{service.price}</span>
+              <span className="text-[10px] text-muted">/{service.unit}</span>
+            </div>
+            <p className="mt-0.5 text-[10px] text-muted">{service.reviews} 条评价</p>
           </div>
-          <div className="flex items-center gap-1.5 text-secondary">
+          <div className="flex items-center gap-1 text-secondary">
             <MapPin className="h-3 w-3 text-muted" />
             <span className="text-[10px] font-medium">{distanceLabel}</span>
           </div>

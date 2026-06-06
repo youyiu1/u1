@@ -87,7 +87,7 @@ export const HeaderUserMenu: React.FC = () => {
 
               <button
                 onClick={() => {
-                  logout();
+                  void logout();
                   setShowUserMenu(false);
                 }}
                 className="group flex w-full items-center gap-3 rounded-2xl px-4 py-2.5 text-sm font-bold text-red-500 transition-colors hover:bg-red-50"

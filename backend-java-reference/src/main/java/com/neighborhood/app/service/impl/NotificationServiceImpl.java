@@ -2,6 +2,7 @@ package com.neighborhood.app.service.impl;
 
 import com.baomidou.mybatisplus.core.conditions.update.LambdaUpdateWrapper;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
+import com.neighborhood.app.entity.market.MarketItem;
 import com.neighborhood.app.entity.service.Booking;
 import com.neighborhood.app.entity.service.Notification;
 import com.neighborhood.app.entity.service.Order;
@@ -10,6 +11,7 @@ import com.neighborhood.app.mapper.service.BookingMapper;
 import com.neighborhood.app.mapper.service.NotificationMapper;
 import com.neighborhood.app.service.AppMetricsService;
 import com.neighborhood.app.service.CacheService;
+import com.neighborhood.app.service.MarketService;
 import com.neighborhood.app.service.NotificationDispatchService;
 import com.neighborhood.app.service.NotificationService;
 import com.neighborhood.app.service.NotificationWriteService;
@@ -19,31 +21,39 @@ import com.neighborhood.app.utils.BookingDateTimeUtil;
 import com.neighborhood.app.utils.CacheLookupUtil;
 import com.neighborhood.app.utils.OrderBuildUtil;
 import com.neighborhood.app.utils.StringValueUtil;
-import lombok.RequiredArgsConstructor;
-import org.springframework.scheduling.annotation.Scheduled;
-import org.springframework.stereotype.Service;
-
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.function.Consumer;
+import lombok.RequiredArgsConstructor;
+import org.springframework.scheduling.annotation.Scheduled;
+import org.springframework.stereotype.Service;
 
+/** 通知服务实现。 */
 @Service
 @RequiredArgsConstructor
 public class NotificationServiceImpl extends ServiceImpl<NotificationMapper, Notification> implements NotificationService {
 
     private static final int RETENTION_DAYS = 7;
     private static final int DEFAULT_DURATION = 1;
-    private static final String STATUS_CONFIRMED = "confirmed";
-    private static final String STATUS_CANCELLED = "cancelled";
-    private static final String TITLE_CONFIRMED = "预约已确认";
-    private static final String TITLE_REJECTED = "预约被拒绝";
+
+    private static final String BOOKING_STATUS_CONFIRMED = "confirmed";
+    private static final String BOOKING_STATUS_CANCELLED = "cancelled";
+    private static final String BOOKING_TITLE_CONFIRMED = "预约已确认";
+    private static final String BOOKING_TITLE_REJECTED = "预约已拒绝";
+
+    private static final String MARKET_STATUS_ACTIVE = "active";
+    private static final String MARKET_STATUS_SOLD = "sold";
+    private static final String MARKET_REQUEST_TITLE = "新的购买请求";
+    private static final String MARKET_TITLE_CONFIRMED = "购买请求已同意";
+    private static final String MARKET_TITLE_REJECTED = "购买请求已拒绝";
 
     private final BookingMapper bookingMapper;
     private final NotificationDispatchService notificationDispatchService;
     private final NotificationWriteService notificationWriteService;
     private final OrderService orderService;
     private final ServiceModuleService serviceModuleService;
+    private final MarketService marketService;
     private final CacheService cacheService;
     private final AppMetricsService appMetricsService;
 
@@ -91,6 +101,39 @@ public class NotificationServiceImpl extends ServiceImpl<NotificationMapper, Not
     }
 
     @Override
+    public void saveNotificationWithMarketItem(
+            String userId,
+            String title,
+            String content,
+            String serviceName,
+            String relatedUserId,
+            Long marketItemId
+    ) {
+        notificationDispatchService.dispatchNotificationWithMarketItem(
+                userId,
+                title,
+                content,
+                serviceName,
+                relatedUserId,
+                marketItemId
+        );
+    }
+
+    @Override
+    public boolean hasPendingMarketPurchaseRequest(String sellerId, String buyerId, Long marketItemId) {
+        if (sellerId == null || sellerId.isBlank() || buyerId == null || buyerId.isBlank() || marketItemId == null) {
+            return false;
+        }
+        return lambdaQuery()
+                .eq(Notification::getUserId, sellerId)
+                .eq(Notification::getRelatedUserId, buyerId)
+                .eq(Notification::getRelatedMarketItemId, marketItemId)
+                .eq(Notification::getTitle, MARKET_REQUEST_TITLE)
+                .eq(Notification::getIsProcessed, false)
+                .count() > 0;
+    }
+
+    @Override
     public boolean processNotification(
             Long notificationId,
             String operatorUserId,
@@ -107,6 +150,10 @@ public class NotificationServiceImpl extends ServiceImpl<NotificationMapper, Not
         Notification notification = getById(notificationId);
         if (notification == null || Boolean.TRUE.equals(notification.getIsProcessed())) {
             return false;
+        }
+
+        if (notification.getRelatedMarketItemId() != null) {
+            return processMarketNotification(notification, operatorUserId, accept);
         }
 
         Booking booking = findBooking(notification);
@@ -128,7 +175,7 @@ public class NotificationServiceImpl extends ServiceImpl<NotificationMapper, Not
         if (!context.isValid()) {
             return false;
         }
-        return accept ? confirmNotification(notification, context) : rejectNotification(notification, context);
+        return accept ? confirmBookingNotification(notification, context) : rejectBookingNotification(notification, context);
     }
 
     /** 每天凌晨清理过期通知。 */
@@ -140,26 +187,75 @@ public class NotificationServiceImpl extends ServiceImpl<NotificationMapper, Not
                 .remove();
     }
 
-    private boolean confirmNotification(Notification notification, ProcessContext context) {
+    private boolean processMarketNotification(Notification notification, String operatorUserId, boolean accept) {
+        if (operatorUserId == null || operatorUserId.isBlank() || !operatorUserId.equals(notification.getUserId())) {
+            return false;
+        }
+
+        MarketItem item = marketService.getById(notification.getRelatedMarketItemId());
+        if (item == null || !operatorUserId.equals(item.getSellerId())) {
+            return false;
+        }
+
+        String buyerId = notification.getRelatedUserId();
+        if (buyerId == null || buyerId.isBlank()) {
+            return false;
+        }
+
+        String itemTitle = StringValueUtil.emptyTo(item.getTitle(), notification.getServiceName());
+        if (accept) {
+            String currentStatus = StringValueUtil.emptyTo(item.getStatus(), MARKET_STATUS_ACTIVE);
+            if (!MARKET_STATUS_ACTIVE.equals(currentStatus)) {
+                return false;
+            }
+            MarketItem update = new MarketItem();
+            update.setId(item.getId());
+            update.setStatus(MARKET_STATUS_SOLD);
+            if (!marketService.updateById(update)) {
+                return false;
+            }
+            markProcessed(notification.getId(), null);
+            notificationWriteService.saveProcessedNotification(
+                    buyerId,
+                    MARKET_TITLE_CONFIRMED,
+                    "您对商品《" + itemTitle + "》的购买请求已获卖家同意，请尽快联系对方完成交易。",
+                    itemTitle
+            );
+            evictNotificationList(notification.getUserId());
+            return true;
+        }
+
+        markProcessed(notification.getId(), null);
+        notificationWriteService.saveProcessedNotification(
+                buyerId,
+                MARKET_TITLE_REJECTED,
+                "您对商品《" + itemTitle + "》的购买请求已被卖家拒绝，可以继续浏览其他商品。",
+                itemTitle
+        );
+        evictNotificationList(notification.getUserId());
+        return true;
+    }
+
+    private boolean confirmBookingNotification(Notification notification, ProcessContext context) {
         Order order = createConfirmedOrder(notification, context);
         orderService.save(order);
-        return finishNotificationProcess(
+        return finishBookingNotificationProcess(
                 notification,
                 context,
                 order.getId(),
-                STATUS_CONFIRMED,
-                TITLE_CONFIRMED,
-                "您的服务预约《" + context.serviceTitle + "》已通过服务商确认，请按时到达。预约时间：" + context.bookingDate + " " + context.bookingTime
+                BOOKING_STATUS_CONFIRMED,
+                BOOKING_TITLE_CONFIRMED,
+                "您的服务预约《" + context.serviceTitle + "》已获服务商确认，请按时到达。预约时间：" + context.bookingDate + " " + context.bookingTime
         );
     }
 
-    private boolean rejectNotification(Notification notification, ProcessContext context) {
-        return finishNotificationProcess(
+    private boolean rejectBookingNotification(Notification notification, ProcessContext context) {
+        return finishBookingNotificationProcess(
                 notification,
                 context,
                 null,
-                STATUS_CANCELLED,
-                TITLE_REJECTED,
+                BOOKING_STATUS_CANCELLED,
+                BOOKING_TITLE_REJECTED,
                 "您的服务预约《" + context.serviceTitle + "》已被服务商拒绝，请尝试预约其他时间或服务。"
         );
     }
@@ -231,7 +327,7 @@ public class NotificationServiceImpl extends ServiceImpl<NotificationMapper, Not
         );
     }
 
-    private boolean finishNotificationProcess(
+    private boolean finishBookingNotificationProcess(
             Notification notification,
             ProcessContext context,
             Long orderId,
@@ -241,7 +337,12 @@ public class NotificationServiceImpl extends ServiceImpl<NotificationMapper, Not
     ) {
         markProcessed(notification.getId(), orderId);
         updateBookingStatus(notification.getRelatedBookingId(), bookingStatus);
-        saveProcessResultNotification(context, title, content);
+        notificationWriteService.saveProcessedNotification(
+                context.buyerId,
+                title,
+                content,
+                context.serviceTitle
+        );
         evictNotificationList(notification.getUserId());
         return true;
     }
@@ -254,15 +355,6 @@ public class NotificationServiceImpl extends ServiceImpl<NotificationMapper, Not
             update.set(Notification::getOrderId, orderId);
         }
         update.update();
-    }
-
-    private void saveProcessResultNotification(ProcessContext context, String title, String content) {
-        notificationWriteService.saveProcessedNotification(
-                context.buyerId,
-                title,
-                content,
-                context.serviceTitle
-        );
     }
 
     private void updateBookingStatus(Long bookingId, String status) {

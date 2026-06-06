@@ -10,11 +10,12 @@ import com.fasterxml.jackson.databind.ser.std.ToStringSerializer;
 import com.neighborhood.app.entity.content.Comment;
 import com.neighborhood.app.entity.content.News;
 import com.neighborhood.app.entity.user.User;
-import lombok.Data;
-import lombok.experimental.Accessors;
 import java.time.LocalDateTime;
 import java.util.List;
+import lombok.Data;
+import lombok.experimental.Accessors;
 
+/** 文件作用：资讯视图模型。 */
 @Data
 @Accessors(chain = true)
 public class NewsVO {

@@ -3,6 +3,7 @@ package com.neighborhood.app.vo.user;
 import com.neighborhood.app.entity.user.User;
 import lombok.Data;
 
+/** 文件作用：公开用户视图模型。 */
 @Data
 public class PublicUserVO {
     private String id;

@@ -1,13 +1,15 @@
 package com.neighborhood.app.config;
 
 import jakarta.annotation.PostConstruct;
+import java.util.List;
 import lombok.RequiredArgsConstructor;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Component;
 
-import java.util.List;
-
+/** 文件作用：数据库性能迁移任务。 */
 @Component
+@ConditionalOnProperty(prefix = "app.migration", name = "auto-run", havingValue = "true")
 @RequiredArgsConstructor
 public class DatabasePerformanceMigration {
 
@@ -49,6 +51,10 @@ public class DatabasePerformanceMigration {
     );
 
     private static final List<ColumnSpec> COLUMN_SPECS = List.of(
+            new ColumnSpec("t_user", "latitude", "ALTER TABLE t_user ADD COLUMN latitude DOUBLE DEFAULT NULL COMMENT 'user latitude'"),
+            new ColumnSpec("t_user", "longitude", "ALTER TABLE t_user ADD COLUMN longitude DOUBLE DEFAULT NULL COMMENT 'user longitude'"),
+            new ColumnSpec("t_news", "status", "ALTER TABLE t_news ADD COLUMN status VARCHAR(20) DEFAULT 'approved' COMMENT 'content status'"),
+            new ColumnSpec("t_news", "reject_reason", "ALTER TABLE t_news ADD COLUMN reject_reason VARCHAR(255) DEFAULT '' COMMENT 'reject reason'"),
             new ColumnSpec("t_comment", "parent_id", "ALTER TABLE t_comment ADD COLUMN parent_id BIGINT DEFAULT 0 COMMENT 'parent comment id'"),
             new ColumnSpec("t_comment", "status", "ALTER TABLE t_comment ADD COLUMN status VARCHAR(20) DEFAULT 'normal'"),
             new ColumnSpec("t_service_review", "status", "ALTER TABLE t_service_review ADD COLUMN status VARCHAR(20) DEFAULT 'normal'")
@@ -88,6 +94,7 @@ public class DatabasePerformanceMigration {
     );
 
     private static final List<String> SAFE_SQLS = List.of(
+            "UPDATE t_news SET status = 'approved' WHERE status IS NULL OR status = ''",
             "UPDATE t_comment SET status = 'normal' WHERE status = 'pending'",
             "UPDATE t_service_review SET status = 'normal' WHERE status = 'pending'"
     );

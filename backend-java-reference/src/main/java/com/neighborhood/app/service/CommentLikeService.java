@@ -2,11 +2,11 @@ package com.neighborhood.app.service;
 
 import com.baomidou.mybatisplus.extension.service.IService;
 import com.neighborhood.app.entity.content.CommentLike;
-
 import java.util.Collection;
 import java.util.Map;
 import java.util.Set;
 
+/** 文件作用：评论点赞服务接口。 */
 public interface CommentLikeService extends IService<CommentLike> {
     /** 评论点赞。 */
     boolean like(Long commentId, String userId);

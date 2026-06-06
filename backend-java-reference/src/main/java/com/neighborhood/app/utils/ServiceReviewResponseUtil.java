@@ -1,10 +1,10 @@
 package com.neighborhood.app.utils;
 
 import com.neighborhood.app.entity.service.ServiceReview;
-
 import java.util.HashMap;
 import java.util.Map;
 
+/** 文件作用：服务评价响应工具。 */
 public final class ServiceReviewResponseUtil {
 
     private ServiceReviewResponseUtil() {

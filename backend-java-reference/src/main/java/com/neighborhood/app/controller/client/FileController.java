@@ -3,6 +3,7 @@ package com.neighborhood.app.controller.client;
 import com.neighborhood.app.common.Result;
 import com.neighborhood.app.service.AppMetricsService;
 import com.neighborhood.app.service.FileService;
+import java.time.Duration;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.CacheControl;
 import org.springframework.http.HttpHeaders;
@@ -16,12 +17,13 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.multipart.MultipartFile;
 
-import java.time.Duration;
-
+/** 文件作用：用户端文件接口。 */
 @RestController
 @RequestMapping("/api/file")
 @RequiredArgsConstructor
 public class FileController {
+
+    private static final int MAX_PRESIGNED_EXPIRE_MINUTES = 60;
 
     private final FileService fileService;
     private final AppMetricsService appMetricsService;
@@ -45,7 +47,10 @@ public class FileController {
                                         @RequestParam(defaultValue = "60") int expiresMinutes) {
         try {
             appMetricsService.recordFileAccess("presign", "success");
-            return ResponseEntity.ok(Result.ok(fileService.generatePresignedUrl(cleanKey(filename), expiresMinutes)));
+            return ResponseEntity.ok(Result.ok(fileService.generatePresignedUrl(
+                    cleanKey(filename),
+                    safePresignedExpireMinutes(expiresMinutes)
+            )));
         } catch (Exception e) {
             appMetricsService.recordFileAccess("presign", "fail");
             return ResponseEntity.badRequest().body(Result.fail("获取签名地址失败: " + e.getMessage()));
@@ -77,7 +82,21 @@ public class FileController {
     }
 
     private String cleanKey(String filename) {
-        return filename.startsWith("/") ? filename.substring(1) : filename;
+        if (filename == null || filename.isBlank()) {
+            return "";
+        }
+        String normalized = filename.trim();
+        while (normalized.startsWith("/")) {
+            normalized = normalized.substring(1);
+        }
+        while (normalized.endsWith("/")) {
+            normalized = normalized.substring(0, normalized.length() - 1);
+        }
+        return normalized;
+    }
+
+    private int safePresignedExpireMinutes(int expiresMinutes) {
+        return Math.max(1, Math.min(expiresMinutes, MAX_PRESIGNED_EXPIRE_MINUTES));
     }
 
     private MediaType getMediaType(String key) {

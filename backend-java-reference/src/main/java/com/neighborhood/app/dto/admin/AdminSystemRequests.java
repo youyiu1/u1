@@ -2,6 +2,7 @@ package com.neighborhood.app.dto.admin;
 
 import java.util.List;
 
+/** 文件作用：管理端系统请求参数。 */
 public final class AdminSystemRequests {
 
     private AdminSystemRequests() {

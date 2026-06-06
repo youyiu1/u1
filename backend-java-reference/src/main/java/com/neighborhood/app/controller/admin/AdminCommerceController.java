@@ -4,6 +4,8 @@ import com.neighborhood.app.common.Result;
 import com.neighborhood.app.dto.admin.AdminCommerceRequests.CancelOrderRequest;
 import com.neighborhood.app.dto.admin.AdminCommerceRequests.ServiceCreateRequest;
 import com.neighborhood.app.dto.admin.AdminCommonRequests.StatusRequest;
+import java.util.List;
+import java.util.Map;
 import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -13,9 +15,7 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
-import java.util.List;
-import java.util.Map;
-
+/** 文件作用：管理端交易接口。 */
 @RestController
 @RequestMapping("/api/admin")
 @RequiredArgsConstructor

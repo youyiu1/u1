@@ -1,4 +1,4 @@
-/**
+﻿/**
  * @license
  * SPDX-License-Identifier: Apache-2.0
  */
@@ -47,13 +47,24 @@ interface SearchSectionConfig {
 }
 
 const QUICK_LINKS = [
-  { name: '控制台概览', path: '/admin/dashboard', icon: 'dashboard' },
+  { name: '控制台总览', path: '/admin/dashboard', icon: 'dashboard' },
   { name: '用户管理', path: '/admin/users', icon: 'group' },
   { name: '动态管理', path: '/admin/posts', icon: 'chat' },
   { name: '闲置商品管理', path: '/admin/market', icon: 'shopping_bag' },
   { name: '生活服务管理', path: '/admin/services', icon: 'handyman' },
   { name: '订单管理', path: '/admin/orders', icon: 'receipt_long' },
 ];
+
+function getAdminRoleLabel(adminRole?: string) {
+  switch (adminRole) {
+    case 'SUPER_ADMIN':
+      return '超级管理员';
+    case 'READONLY_ADMIN':
+      return '只读管理员';
+    default:
+      return '管理员';
+  }
+}
 
 export default function Header({
   username,
@@ -81,34 +92,30 @@ export default function Header({
   const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
 
   const adminAvatarSrc = getPrimaryImage(adminAvatar);
-  const adminRoleLabel =
-    adminRole === 'SUPER_ADMIN'
-      ? '超级管理员'
-      : adminRole === 'READONLY_ADMIN'
-        ? '只读管理员'
-        : '管理员';
+  const adminRoleLabel = getAdminRoleLabel(adminRole);
   const adminMeta = adminTag?.trim() ? `${adminRoleLabel} · ${adminTag}` : adminRoleLabel;
-  const unreadCount = notifications.filter((n) => !n.read).length;
+  const unreadCount = notifications.filter((item) => !item.read).length;
 
   const normalizedQuery = normalizeSearchTerm(searchQuery);
   const matchedUsers = useMemo(
-    () => (normalizedQuery ? users.filter((u) => matchesAnyKeyword(normalizedQuery, [u.name, u.email])) : []),
+    () => (normalizedQuery ? users.filter((item) => matchesAnyKeyword(normalizedQuery, [item.name, item.email])) : []),
     [normalizedQuery, users]
   );
   const matchedDynamics = useMemo(
-    () => (normalizedQuery ? dynamics.filter((d) => matchesAnyKeyword(normalizedQuery, [d.title, d.author])) : []),
+    () => (normalizedQuery ? dynamics.filter((item) => matchesAnyKeyword(normalizedQuery, [item.title, item.author])) : []),
     [dynamics, normalizedQuery]
   );
   const matchedGoods = useMemo(
-    () => (normalizedQuery ? goods.filter((g) => matchesAnyKeyword(normalizedQuery, [g.title, g.sellerName])) : []),
+    () => (normalizedQuery ? goods.filter((item) => matchesAnyKeyword(normalizedQuery, [item.title, item.sellerName])) : []),
     [goods, normalizedQuery]
   );
   const matchedServices = useMemo(
-    () => (normalizedQuery ? services.filter((s) => matchesAnyKeyword(normalizedQuery, [s.title, s.providerName])) : []),
+    () =>
+      normalizedQuery ? services.filter((item) => matchesAnyKeyword(normalizedQuery, [item.title, item.providerName])) : [],
     [normalizedQuery, services]
   );
   const matchedOrders = useMemo(
-    () => (normalizedQuery ? orders.filter((o) => matchesAnyKeyword(normalizedQuery, [o.id, o.buyerName])) : []),
+    () => (normalizedQuery ? orders.filter((item) => matchesAnyKeyword(normalizedQuery, [item.id, item.buyerName])) : []),
     [normalizedQuery, orders]
   );
 
@@ -127,123 +134,123 @@ export default function Header({
 
   const closeSearchDropdown = (clearQuery = false) => {
     setShowSearchDropdown(false);
-    if (clearQuery) setSearchQuery('');
+    if (clearQuery) {
+      setSearchQuery('');
+    }
   };
 
   const searchSections = useMemo<SearchSectionConfig[]>(
-    () => [
-      {
-        key: 'users',
-        title: `匹配用户 (${matchedUsers.length})`,
-        icon: 'group',
-        items: matchedUsers.slice(0, 3).map((user) => ({
-          id: user.id,
-          primary: user.name,
-          secondary: user.email,
-        })),
-        onClick: () => {
-          onNavigate?.('/admin/users');
-          closeSearchDropdown(true);
+    () =>
+      [
+        {
+          key: 'users',
+          title: `匹配用户 (${matchedUsers.length})`,
+          icon: 'group',
+          items: matchedUsers.slice(0, 3).map((item) => ({
+            id: item.id,
+            primary: item.name,
+            secondary: item.email,
+          })),
+          onClick: () => {
+            onNavigate?.('/admin/users');
+            closeSearchDropdown(true);
+          },
         },
-      },
-      {
-        key: 'dynamics',
-        title: `匹配动态 (${matchedDynamics.length})`,
-        icon: 'chat',
-        variant: 'stacked',
-        items: matchedDynamics.slice(0, 3).map((dynamic) => ({
-          id: dynamic.id,
-          primary: dynamic.title,
-          secondary: `作者: ${dynamic.author}`,
-        })),
-        onClick: () => {
-          onNavigate?.('/admin/posts');
-          closeSearchDropdown(true);
+        {
+          key: 'dynamics',
+          title: `匹配动态 (${matchedDynamics.length})`,
+          icon: 'chat',
+          variant: 'stacked',
+          items: matchedDynamics.slice(0, 3).map((item) => ({
+            id: item.id,
+            primary: item.title,
+            secondary: `作者：${item.author}`,
+          })),
+          onClick: () => {
+            onNavigate?.('/admin/posts');
+            closeSearchDropdown(true);
+          },
         },
-      },
-      {
-        key: 'goods',
-        title: `匹配商品 (${matchedGoods.length})`,
-        icon: 'shopping_bag',
-        items: matchedGoods.slice(0, 3).map((goodsItem) => ({
-          id: goodsItem.id,
-          primary: goodsItem.title,
-          secondaryRight: `¥${goodsItem.price}`,
-        })),
-        onClick: () => {
-          onNavigate?.('/admin/market');
-          closeSearchDropdown(true);
+        {
+          key: 'goods',
+          title: `匹配商品 (${matchedGoods.length})`,
+          icon: 'shopping_bag',
+          items: matchedGoods.slice(0, 3).map((item) => ({
+            id: item.id,
+            primary: item.title,
+            secondaryRight: `¥${item.price}`,
+          })),
+          onClick: () => {
+            onNavigate?.('/admin/market');
+            closeSearchDropdown(true);
+          },
         },
-      },
-      {
-        key: 'services',
-        title: `匹配服务 (${matchedServices.length})`,
-        icon: 'handyman',
-        variant: 'stacked',
-        items: matchedServices.slice(0, 3).map((service) => ({
-          id: service.id,
-          primary: service.title,
-          secondary: `服务者: ${service.providerName}`,
-        })),
-        onClick: () => {
-          onNavigate?.('/admin/services');
-          closeSearchDropdown(true);
+        {
+          key: 'services',
+          title: `匹配服务 (${matchedServices.length})`,
+          icon: 'handyman',
+          variant: 'stacked',
+          items: matchedServices.slice(0, 3).map((item) => ({
+            id: item.id,
+            primary: item.title,
+            secondary: `服务者：${item.providerName}`,
+          })),
+          onClick: () => {
+            onNavigate?.('/admin/services');
+            closeSearchDropdown(true);
+          },
         },
-      },
-      {
-        key: 'orders',
-        title: `匹配订单 (${matchedOrders.length})`,
-        icon: 'receipt_long',
-        items: matchedOrders.slice(0, 3).map((order) => ({
-          id: order.id,
-          primary: order.id,
-          secondaryRight: `${order.buyerName} | ¥${order.price}`,
-        })),
-        onClick: (item) => {
-          onNavigate?.('/admin/orders', item.id);
-          closeSearchDropdown(true);
+        {
+          key: 'orders',
+          title: `匹配订单 (${matchedOrders.length})`,
+          icon: 'receipt_long',
+          items: matchedOrders.slice(0, 3).map((item) => ({
+            id: item.id,
+            primary: item.id,
+            secondaryRight: `${item.buyerName} | ¥${item.price}`,
+          })),
+          onClick: (item) => {
+            onNavigate?.('/admin/orders', item.id);
+            closeSearchDropdown(true);
+          },
         },
-      },
-    ].filter((section) => section.items.length > 0),
+      ].filter((section) => section.items.length > 0),
     [matchedDynamics, matchedGoods, matchedOrders, matchedServices, matchedUsers, onNavigate]
   );
 
   return (
-    <header className="bg-surface-container-lowest min-h-16 border-b border-outline-variant/30 flex items-center justify-between gap-3 px-3 sm:px-4 lg:px-6 py-2 sticky top-0 z-30 select-none">
-      <div className="flex items-center gap-2 sm:gap-3 min-w-0">
+    <header className="sticky top-0 z-30 flex min-h-16 items-center justify-between gap-3 border-b border-outline-variant/30 bg-surface-container-lowest px-3 py-2 select-none sm:px-4 lg:px-6">
+      <div className="flex min-w-0 items-center gap-2 sm:gap-3">
         {!isDesktopLayout && (
           <button
             onClick={onToggleSidebar}
-            className="w-10 h-10 rounded-xl flex items-center justify-center hover:bg-outline-variant/15 text-secondary hover:text-on-surface transition-colors cursor-pointer border-none bg-transparent focus:outline-none lg:hidden"
+            className="flex h-10 w-10 items-center justify-center rounded-xl border-none bg-transparent text-secondary transition-colors hover:bg-outline-variant/15 hover:text-on-surface focus:outline-none lg:hidden"
             title="展开菜单"
           >
-            <Menu className="w-5 h-5" />
+            <Menu className="h-5 w-5" />
           </button>
         )}
-        <span className="text-secondary/60 text-[11px] sm:text-xs font-semibold select-none bg-surface-background border border-outline-variant/15 px-2.5 py-1 rounded font-data-mono hidden sm:inline-block whitespace-nowrap">
-          前端: 5173 / 接口: 8080
-        </span>
       </div>
 
-      <div className="flex items-center justify-end gap-2 sm:gap-3 lg:gap-4 min-w-0 flex-1">
-        <div className="relative flex-1 max-w-[13rem] sm:max-w-xs md:max-w-sm">
-          <div className="relative flex items-center w-full">
-            <span className="material-symbols-outlined absolute left-3 text-secondary/60 text-[18px] pointer-events-none">search</span>
+      <div className="flex min-w-0 flex-1 items-center justify-end gap-2 sm:gap-3 lg:gap-4">
+        <div className="relative max-w-[13rem] flex-1 sm:max-w-xs md:max-w-sm">
+          <div className="relative flex w-full items-center">
+            <span className="material-symbols-outlined pointer-events-none absolute left-3 text-[18px] text-secondary/60">search</span>
             <input
               type="text"
               value={searchQuery}
-              onChange={(e) => {
-                setSearchQuery(e.target.value);
+              onChange={(event) => {
+                setSearchQuery(event.target.value);
                 setShowSearchDropdown(true);
               }}
               onFocus={() => setShowSearchDropdown(true)}
               placeholder="搜索用户、动态、商品、服务、订单"
-              className="w-full bg-surface-container-low border border-outline-variant/30 rounded-full py-1.5 pl-9 pr-8 text-xs text-on-surface placeholder-outline focus:outline-none focus:border-primary/50 focus:bg-surface-container-lowest transition-all"
+              className="w-full rounded-full border border-outline-variant/30 bg-surface-container-low py-1.5 pl-9 pr-8 text-xs text-on-surface placeholder-outline transition-all focus:border-primary/50 focus:bg-surface-container-lowest focus:outline-none"
             />
             {searchQuery && (
               <button
                 onClick={() => setSearchQuery('')}
-                className="absolute right-3 text-outline hover:text-on-surface cursor-pointer border-none bg-transparent flex items-center justify-center p-0"
+                className="absolute right-3 flex items-center justify-center border-none bg-transparent p-0 text-outline hover:text-on-surface"
               >
                 <span className="material-symbols-outlined text-[16px]">close</span>
               </button>
@@ -258,11 +265,11 @@ export default function Header({
                   initial={{ opacity: 0, y: 8, scale: 0.98 }}
                   animate={{ opacity: 1, y: 0, scale: 1 }}
                   exit={{ opacity: 0, y: 8, scale: 0.98 }}
-                  className="absolute right-0 mt-2 w-[min(92vw,420px)] bg-surface-container-lowest border border-outline-variant/30 shadow-2xl rounded-xl max-h-[360px] overflow-y-auto z-50 p-3 text-on-surface text-left"
+                  className="absolute right-0 z-50 mt-2 max-h-[360px] w-[min(92vw,420px)] overflow-y-auto rounded-xl border border-outline-variant/30 bg-surface-container-lowest p-3 text-left text-on-surface shadow-2xl"
                 >
                   {!normalizedQuery ? (
                     <div className="space-y-2">
-                      <p className="text-[10px] text-outline font-bold uppercase tracking-wider px-2 select-none">快捷导航</p>
+                      <p className="px-2 text-[10px] font-bold uppercase tracking-wider text-outline select-none">快捷导航</p>
                       <div className="grid grid-cols-2 gap-1.5">
                         {QUICK_LINKS.map((link) => (
                           <button
@@ -271,7 +278,7 @@ export default function Header({
                               onNavigate?.(link.path);
                               closeSearchDropdown();
                             }}
-                            className="flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs hover:bg-primary/5 text-secondary hover:text-primary transition-all text-left w-full border-none bg-transparent cursor-pointer"
+                            className="flex w-full cursor-pointer items-center gap-2 rounded-lg border-none bg-transparent px-3 py-1.5 text-left text-xs text-secondary transition-all hover:bg-primary/5 hover:text-primary"
                           >
                             <span className="material-symbols-outlined text-[15px]">{link.icon}</span>
                             <span>{link.name}</span>
@@ -281,7 +288,7 @@ export default function Header({
                     </div>
                   ) : (
                     <div className="space-y-3.5">
-                      {!hasResults && <p className="text-center text-xs text-outline py-4 select-none">没有匹配的搜索结果</p>}
+                      {!hasResults && <p className="py-4 text-center text-xs text-outline select-none">没有匹配的搜索结果</p>}
                       {searchSections.map((section) => (
                         <React.Fragment key={section.key}>
                           <SearchResultSection section={section} />
@@ -297,7 +304,7 @@ export default function Header({
 
         <button
           onClick={handleRefreshClick}
-          className="hidden sm:flex w-9 h-9 rounded-full items-center justify-center hover:bg-outline-variant/15 text-secondary hover:text-on-surface transition-colors cursor-pointer border-none bg-transparent focus:outline-none"
+          className="hidden h-9 w-9 items-center justify-center rounded-full border-none bg-transparent text-secondary transition-colors hover:bg-outline-variant/15 hover:text-on-surface focus:outline-none sm:flex"
           title="刷新数据"
         >
           <span className={`material-symbols-outlined text-[20px] ${isRotating ? 'animate-spin' : ''}`}>refresh</span>
@@ -306,11 +313,11 @@ export default function Header({
         <div className="relative">
           <button
             onClick={() => setShowNoticeMenu(!showNoticeMenu)}
-            className="w-10 h-10 rounded-full flex items-center justify-center hover:bg-outline-variant/15 text-secondary hover:text-on-surface transition-colors cursor-pointer relative focus:outline-none"
+            className="relative flex h-10 w-10 items-center justify-center rounded-full text-secondary transition-colors hover:bg-outline-variant/15 hover:text-on-surface focus:outline-none"
           >
             <span className="material-symbols-outlined text-[23px]">notifications</span>
             {unreadCount > 0 && (
-              <span className="absolute top-2 right-2 w-4 h-4 bg-status-error text-white font-data-mono text-[9px] font-bold rounded-full flex items-center justify-center animate-bounce">
+              <span className="absolute right-2 top-2 flex h-4 w-4 items-center justify-center rounded-full bg-status-error text-[9px] font-bold text-white animate-bounce">
                 {unreadCount}
               </span>
             )}
@@ -324,46 +331,56 @@ export default function Header({
                   initial={{ opacity: 0, y: 12, scale: 0.95 }}
                   animate={{ opacity: 1, y: 0, scale: 1 }}
                   exit={{ opacity: 0, y: 12, scale: 0.95 }}
-                  className="absolute right-0 mt-2.5 w-80 bg-surface-container-lowest border border-outline-variant/30 shadow-2xl rounded-xl overflow-hidden z-50 text-on-surface"
+                  className="absolute right-0 z-50 mt-2.5 w-80 overflow-hidden rounded-xl border border-outline-variant/30 bg-surface-container-lowest text-on-surface shadow-2xl"
                 >
-                  <div className="px-4 py-3 bg-surface-container-low/50 border-b border-outline-variant/15 flex items-center justify-between">
-                    <span className="font-headline-sm text-headline-sm font-bold flex items-center gap-1">
+                  <div className="flex items-center justify-between border-b border-outline-variant/15 bg-surface-container-low/50 px-4 py-3">
+                    <span className="flex items-center gap-1 font-headline-sm text-headline-sm font-bold">
                       <span>通知提醒</span>
-                      <span className="font-data-mono text-[10px] bg-primary/10 text-primary px-1.5 py-0.5 rounded-full">{unreadCount} 条未读</span>
+                      <span className="rounded-full bg-primary/10 px-1.5 py-0.5 font-data-mono text-[10px] text-primary">
+                        {unreadCount} 条未读
+                      </span>
                     </span>
                     <button
                       onClick={() => {
                         onNavigateToNotifications();
                         setShowNoticeMenu(false);
                       }}
-                      className="text-primary font-semibold text-xs hover:underline cursor-pointer border-none bg-transparent"
+                      className="cursor-pointer border-none bg-transparent text-xs font-semibold text-primary hover:underline"
                     >
                       查看全部
                     </button>
                   </div>
 
-                  <div className="max-h-[260px] overflow-y-auto divide-y divide-outline-variant/10">
+                  <div className="max-h-[260px] divide-y divide-outline-variant/10 overflow-y-auto">
                     {notifications.length === 0 ? (
                       <p className="p-6 text-center text-xs text-outline">暂无系统通知</p>
                     ) : (
                       notifications.map((item) => (
                         <div
                           key={item.id}
-                          className={`p-3.5 hover:bg-surface-container-low transition-colors text-left flex gap-2.5 relative ${!item.read ? 'bg-primary-fixed/15 font-semibold' : ''}`}
+                          className={`relative flex gap-2.5 p-3.5 text-left transition-colors hover:bg-surface-container-low ${
+                            !item.read ? 'bg-primary-fixed/15 font-semibold' : ''
+                          }`}
                         >
-                          <span className={`material-symbols-outlined text-[16px] mt-0.5 ${!item.read ? 'text-primary fill' : 'text-outline'}`}>info</span>
-                          <div className="flex-1 min-w-0">
-                            <p className="text-xs text-on-surface truncate pr-4">{item.title}</p>
-                            <p className="text-[11px] text-on-surface-variant/75 truncate mt-0.5">{item.content}</p>
-                            <p className="font-data-mono text-[9px] text-outline mt-1">{item.time.slice(5, 16)}</p>
+                          <span
+                            className={`material-symbols-outlined mt-0.5 text-[16px] ${
+                              !item.read ? 'fill text-primary' : 'text-outline'
+                            }`}
+                          >
+                            info
+                          </span>
+                          <div className="min-w-0 flex-1">
+                            <p className="truncate pr-4 text-xs text-on-surface">{item.title}</p>
+                            <p className="mt-0.5 truncate text-[11px] text-on-surface-variant/75">{item.content}</p>
+                            <p className="mt-1 font-data-mono text-[9px] text-outline">{item.time.slice(5, 16)}</p>
                           </div>
                           {!item.read && (
                             <button
-                              onClick={(e) => {
-                                e.stopPropagation();
+                              onClick={(event) => {
+                                event.stopPropagation();
                                 onToggleNotificationRead(item.id);
                               }}
-                              className="absolute top-3 right-3 text-outline hover:text-primary cursor-pointer border-none bg-transparent p-0"
+                              className="absolute right-3 top-3 cursor-pointer border-none bg-transparent p-0 text-outline hover:text-primary"
                               title="标记为已读"
                             >
                               <span className="material-symbols-outlined text-[14px]">done</span>
@@ -379,27 +396,35 @@ export default function Header({
           </AnimatePresence>
         </div>
 
-        <div className="hidden sm:block h-8 w-[1px] bg-outline-variant/30" />
+        <div className="hidden h-8 w-[1px] bg-outline-variant/30 sm:block" />
 
-        <div className="flex items-center gap-2 sm:gap-2.5 select-none min-w-0">
+        <div className="flex min-w-0 items-center gap-2 select-none sm:gap-2.5">
           {adminAvatarSrc ? (
-            <img src={adminAvatarSrc} alt={username} className="w-8 h-8 rounded-full border border-outline-variant/60 object-cover object-center bg-slate-100" />
+            <img
+              src={adminAvatarSrc}
+              alt={username}
+              className="h-8 w-8 rounded-full border border-outline-variant/60 bg-slate-100 object-cover object-center"
+            />
           ) : (
-            <div className="w-8 h-8 rounded-full border border-outline-variant/60 bg-slate-100 text-slate-600 text-xs font-bold flex items-center justify-center">
+            <div className="flex h-8 w-8 items-center justify-center rounded-full border border-outline-variant/60 bg-slate-100 text-xs font-bold text-slate-600">
               {username.slice(0, 1).toUpperCase()}
             </div>
           )}
-          <div className="hidden md:block text-left min-w-0">
-            <p className="font-semibold text-xs text-on-surface leading-none">{username}</p>
-            <p className="font-data-mono text-[9px] text-outline mt-0.5 tracking-wider font-semibold truncate max-w-[160px]">{adminMeta}</p>
+          <div className="hidden min-w-0 text-left md:block">
+            <p className="text-xs font-semibold leading-none text-on-surface">{username}</p>
+            <p className="mt-0.5 max-w-[160px] truncate font-data-mono text-[9px] font-semibold tracking-wider text-outline">
+              {adminMeta}
+            </p>
           </div>
         </div>
 
         <div className="relative">
           <button
             onClick={() => setShowLogoutConfirm(!showLogoutConfirm)}
-            className={`w-8 h-8 rounded-full flex items-center justify-center transition-all cursor-pointer border-none bg-transparent focus:outline-none ${
-              showLogoutConfirm ? 'bg-status-error/15 text-status-error ring-2 ring-status-error/30' : 'hover:bg-red-500/10 text-outline hover:text-status-error'
+            className={`flex h-8 w-8 items-center justify-center rounded-full border-none bg-transparent transition-all focus:outline-none ${
+              showLogoutConfirm
+                ? 'bg-status-error/15 text-status-error ring-2 ring-status-error/30'
+                : 'text-outline hover:bg-red-500/10 hover:text-status-error'
             }`}
             title="退出管理端"
           >
@@ -409,27 +434,32 @@ export default function Header({
           <AnimatePresence>
             {showLogoutConfirm && (
               <>
-                <div className="fixed inset-0 z-40 cursor-default bg-black/5 dark:bg-black/20" onClick={() => setShowLogoutConfirm(false)} />
+                <div
+                  className="fixed inset-0 z-40 cursor-default bg-black/5 dark:bg-black/20"
+                  onClick={() => setShowLogoutConfirm(false)}
+                />
                 <motion.div
                   initial={{ opacity: 0, scale: 0.95, y: 10 }}
                   animate={{ opacity: 1, scale: 1, y: 0 }}
                   exit={{ opacity: 0, scale: 0.95, y: 10 }}
                   transition={{ type: 'spring', damping: 20, stiffness: 250 }}
-                  className="absolute right-0 mt-3 w-64 bg-surface-container-lowest border border-outline-variant/30 shadow-2xl rounded-xl p-4 z-50 text-left text-on-surface"
+                  className="absolute right-0 z-50 mt-3 w-64 rounded-xl border border-outline-variant/30 bg-surface-container-lowest p-4 text-left text-on-surface shadow-2xl"
                 >
                   <div className="flex items-start gap-2.5">
-                    <span className="material-symbols-outlined text-status-error text-[20px] mt-0.5 animate-pulse">error</span>
+                    <span className="material-symbols-outlined mt-0.5 text-[20px] text-status-error animate-pulse">
+                      error
+                    </span>
                     <div>
                       <h4 className="text-xs font-bold text-on-surface">确定退出登录吗？</h4>
-                      <p className="text-[10.5px] text-on-surface-variant/80 mt-1 leading-relaxed">
+                      <p className="mt-1 text-[10.5px] leading-relaxed text-on-surface-variant/80">
                         系统将清空当前管理员会话缓存，并安全返回登录页。
                       </p>
                     </div>
                   </div>
-                  <div className="flex items-center justify-end gap-2 mt-4 pt-2.5 border-t border-outline-variant/10">
+                  <div className="mt-4 flex items-center justify-end gap-2 border-t border-outline-variant/10 pt-2.5">
                     <button
                       onClick={() => setShowLogoutConfirm(false)}
-                      className="px-2.5 py-1.5 hover:bg-outline-variant/10 text-on-surface-variant hover:text-on-surface text-[11px] font-bold rounded-lg cursor-pointer border-none bg-transparent transition-colors focus:outline-none"
+                      className="cursor-pointer rounded-lg border-none bg-transparent px-2.5 py-1.5 text-[11px] font-bold text-on-surface-variant transition-colors hover:bg-outline-variant/10 hover:text-on-surface focus:outline-none"
                     >
                       取消
                     </button>
@@ -438,7 +468,7 @@ export default function Header({
                         setShowLogoutConfirm(false);
                         onLogout();
                       }}
-                      className="px-3 py-1.5 bg-status-error text-white text-[11px] font-bold rounded-lg hover:bg-status-error/95 hover:shadow-md cursor-pointer border-none transition-all focus:outline-none"
+                      className="cursor-pointer rounded-lg bg-status-error px-3 py-1.5 text-[11px] font-bold text-white transition-all hover:bg-status-error/95 hover:shadow-md focus:outline-none"
                     >
                       安全退出
                     </button>
@@ -456,7 +486,7 @@ export default function Header({
 function SearchResultSection({ section }: { section: SearchSectionConfig }) {
   return (
     <div>
-      <p className="text-[10px] text-primary font-bold uppercase tracking-wider px-2 mb-1.5 flex items-center gap-1 select-none">
+      <p className="mb-1.5 flex items-center gap-1 px-2 text-[10px] font-bold uppercase tracking-wider text-primary select-none">
         <span className="material-symbols-outlined text-[12px]">{section.icon}</span>
         {section.title}
       </p>
@@ -465,17 +495,21 @@ function SearchResultSection({ section }: { section: SearchSectionConfig }) {
           <button
             key={item.id}
             onClick={() => section.onClick(item)}
-            className={`w-full px-2 py-1 rounded-lg text-xs hover:bg-surface-container-low transition-all cursor-pointer border-none bg-transparent text-left ${
-              section.variant === 'stacked' ? 'flex flex-col' : 'flex justify-between items-center'
+            className={`w-full cursor-pointer rounded-lg border-none bg-transparent px-2 py-1 text-left text-xs transition-all hover:bg-surface-container-low ${
+              section.variant === 'stacked' ? 'flex flex-col' : 'flex items-center justify-between'
             }`}
           >
-            <span className={`truncate ${section.variant === 'stacked' ? 'w-full text-on-surface' : 'font-semibold text-on-surface'}`}>
+            <span
+              className={`truncate ${
+                section.variant === 'stacked' ? 'w-full text-on-surface' : 'font-semibold text-on-surface'
+              }`}
+            >
               {item.primary}
             </span>
             {section.variant === 'stacked' ? (
-              item.secondary ? <span className="text-[9px] text-outline mt-0.5">{item.secondary}</span> : null
+              item.secondary ? <span className="mt-0.5 text-[9px] text-outline">{item.secondary}</span> : null
             ) : (
-              <span className="text-[10px] text-outline font-data-mono truncate max-w-[150px]">
+              <span className="max-w-[150px] truncate font-data-mono text-[10px] text-outline">
                 {item.secondaryRight || item.secondary}
               </span>
             )}

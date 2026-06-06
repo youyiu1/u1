@@ -6,6 +6,7 @@ import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.cache.annotation.EnableCaching;
 import org.springframework.scheduling.annotation.EnableScheduling;
 
+/** 文件作用：应用启动入口。 */
 @SpringBootApplication
 @MapperScan("com.neighborhood.app.mapper")
 @EnableScheduling

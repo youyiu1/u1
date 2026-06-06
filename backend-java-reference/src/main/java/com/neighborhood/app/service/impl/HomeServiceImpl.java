@@ -1,6 +1,7 @@
 package com.neighborhood.app.service.impl;
 
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
+import com.neighborhood.app.dto.home.HomeIndexData;
 import com.neighborhood.app.entity.content.Comment;
 import com.neighborhood.app.entity.content.News;
 import com.neighborhood.app.entity.market.MarketItem;
@@ -18,14 +19,14 @@ import com.neighborhood.app.utils.CacheLookupUtil;
 import com.neighborhood.app.utils.UserLookupUtil;
 import com.neighborhood.app.vo.content.NewsVO;
 import com.neighborhood.app.vo.market.MarketItemVO;
-import lombok.RequiredArgsConstructor;
-import org.springframework.stereotype.Service;
-
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.stream.Collectors;
+import lombok.RequiredArgsConstructor;
+import org.springframework.stereotype.Service;
 
+/** 鏂囦欢浣滅敤锛氶椤垫湇鍔″疄鐜般€?*/
 @Service
 @RequiredArgsConstructor
 public class HomeServiceImpl implements HomeService {
@@ -46,7 +47,7 @@ public class HomeServiceImpl implements HomeService {
     private final AppMetricsService appMetricsService;
 
     @Override
-    public Map<String, Object> getHomeIndex() {
+    public HomeIndexData getHomeIndex() {
         return CacheLookupUtil.getOrLoadAndTrack(
                 cacheService::getCachedHomeIndex,
                 this::buildHomeIndex,
@@ -55,12 +56,12 @@ public class HomeServiceImpl implements HomeService {
         );
     }
 
-    private Map<String, Object> buildHomeIndex() {
-        return Map.of(
-                "hotNews", loadHotNews(),
-                "hotMarket", loadHotMarket(),
-                "hotServices", loadHotServices()
-        );
+    private HomeIndexData buildHomeIndex() {
+        HomeIndexData data = new HomeIndexData();
+        data.setHotNews(loadHotNews());
+        data.setHotMarket(loadHotMarket());
+        data.setHotServices(loadHotServices());
+        return data;
     }
 
     private List<NewsVO> loadHotNews() {

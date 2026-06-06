@@ -2,6 +2,7 @@ package com.neighborhood.app.common;
 
 import java.util.List;
 
+/** 文件作用：返回结果工具。 */
 public class ResultUtils {
 
     private ResultUtils() {

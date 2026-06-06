@@ -1,4 +1,4 @@
-﻿/**
+/**
  * @license
  * SPDX-License-Identifier: Apache-2.0
  */
@@ -12,6 +12,7 @@ import { newsApi } from '../../services/api';
 import { useToast } from '../../context/ToastContext';
 import { formatDateTime } from '../../utils/dateTime';
 import { getFallbackAvatar } from '../../utils/avatar';
+import { buildProfilePath, buildProfileRouteState } from '../../utils/profileRoute';
 
 interface CommentItemProps {
   comment: Comment;
@@ -86,7 +87,12 @@ export const CommentItem: React.FC<CommentItemProps> = ({
         className="relative shrink-0 cursor-pointer overflow-hidden rounded-2xl"
         onClick={(event) => {
           event.stopPropagation();
-          navigate(`/profile/${userName}`);
+          navigate(buildProfilePath(undefined, userName), {
+            state: buildProfileRouteState({
+              name: userName,
+              avatar,
+            }),
+          });
         }}
       >
         <img
@@ -102,7 +108,12 @@ export const CommentItem: React.FC<CommentItemProps> = ({
               className={`${compact ? 'text-[11px]' : 'text-sm'} cursor-pointer font-black text-ink transition-colors hover:text-primary`}
               onClick={(event) => {
                 event.stopPropagation();
-                navigate(`/profile/${userName}`);
+                navigate(buildProfilePath(undefined, userName), {
+                  state: buildProfileRouteState({
+                    name: userName,
+                    avatar,
+                  }),
+                });
               }}
             >
               {userName}

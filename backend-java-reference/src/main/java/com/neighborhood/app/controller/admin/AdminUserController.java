@@ -1,10 +1,12 @@
 package com.neighborhood.app.controller.admin;
 
 import com.neighborhood.app.common.Result;
-import com.neighborhood.app.dto.admin.AdminUserRequests.BlacklistCreateRequest;
 import com.neighborhood.app.dto.admin.AdminCommonRequests.StatusRequest;
+import com.neighborhood.app.dto.admin.AdminUserRequests.BlacklistCreateRequest;
 import com.neighborhood.app.dto.admin.AdminUserRequests.UserAdminRoleRequest;
 import com.neighborhood.app.dto.admin.AdminUserRequests.UserVerifiedRequest;
+import java.util.List;
+import java.util.Map;
 import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -15,9 +17,7 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
-import java.util.List;
-import java.util.Map;
-
+/** 文件作用：管理端用户接口。 */
 @RestController
 @RequestMapping("/api/admin")
 @RequiredArgsConstructor

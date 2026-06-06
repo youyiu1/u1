@@ -6,6 +6,9 @@ import com.neighborhood.app.entity.service.Order;
 import com.neighborhood.app.service.OrderService;
 import com.neighborhood.app.utils.RequestUserUtil;
 import jakarta.servlet.http.HttpServletRequest;
+import java.util.List;
+import java.util.function.BiPredicate;
+import java.util.function.Supplier;
 import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -14,10 +17,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
-import java.util.List;
-import java.util.function.BiPredicate;
-import java.util.function.Supplier;
-
+/** 文件作用：用户端订单接口。 */
 @RestController
 @RequestMapping("/api/order")
 @RequiredArgsConstructor

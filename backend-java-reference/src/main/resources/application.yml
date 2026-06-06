@@ -16,9 +16,9 @@ spring:
 
   datasource:
     driver-class-name: com.mysql.cj.jdbc.Driver
-    url: jdbc:mysql://localhost:3306/neighborhood_db?useUnicode=true&characterEncoding=utf8&useSSL=false&serverTimezone=Asia/Shanghai&allowPublicKeyRetrieval=true
-    username: root
-    password: root
+    url: ${DB_URL:jdbc:mysql://localhost:3306/neighborhood_db?useUnicode=true&characterEncoding=utf8&useSSL=false&serverTimezone=Asia/Shanghai&allowPublicKeyRetrieval=true}
+    username: ${DB_USERNAME:root}
+    password: ${DB_PASSWORD:root}
     hikari:
       minimum-idle: 5
       maximum-pool-size: 20
@@ -29,10 +29,10 @@ spring:
 
   data:
     redis:
-      host: localhost
-      port: 6379
-      database: 0
-      timeout: 3000ms
+      host: ${REDIS_HOST:localhost}
+      port: ${REDIS_PORT:6379}
+      database: ${REDIS_DATABASE:0}
+      timeout: ${REDIS_TIMEOUT:3000ms}
       lettuce:
         pool:
           max-active: 8
@@ -47,10 +47,10 @@ spring:
       - stateData
 
   rabbitmq:
-    host: localhost
-    port: 5672
-    username: guest
-    password: guest
+    host: ${RABBITMQ_HOST:localhost}
+    port: ${RABBITMQ_PORT:5672}
+    username: ${RABBITMQ_USERNAME:guest}
+    password: ${RABBITMQ_PASSWORD:guest}
     listener:
       simple:
         default-requeue-rejected: false
@@ -62,10 +62,10 @@ spring:
           multiplier: 2
 
   mail:
-    host: smtp.qq.com
-    port: 587
-    username: 1668820870@qq.com
-    password: mkfxxjnwxjzacbih
+    host: ${MAIL_HOST:smtp.qq.com}
+    port: ${MAIL_PORT:587}
+    username: ${MAIL_USERNAME:}
+    password: ${MAIL_PASSWORD:}
 
 mybatis-plus:
   type-aliases-package: com.neighborhood.app.entity
@@ -74,7 +74,7 @@ mybatis-plus:
   type-handlers-package: com.neighborhood.app.handler
   configuration:
     map-underscore-to-camel-case: true
-    log-impl: org.apache.ibatis.logging.stdout.StdOutImpl
+    log-impl: ${MYBATIS_LOG_IMPL:org.apache.ibatis.logging.nologging.NoLoggingImpl}
 
 cache:
   user:
@@ -87,46 +87,57 @@ cache:
     ttl: 300
 
 jwt:
-  secret: neighborhood-app-secret-key-2024-very-long-key-for-hs256
-  expiration: 86400000
+  secret: ${JWT_SECRET:change-this-jwt-secret-before-production}
+  expiration: ${JWT_EXPIRATION:86400000}
 
 rustfs:
-  endpoint: http://localhost:9000
-  access-key: 4a36qGmg5XTWojNU2Lb7
-  secret-key: 4tOJYvgIXHWw7GD2j0deLmA9ZnFrqyxBb1UaC6sl
-  bucket: neighborhood
+  endpoint: ${RUSTFS_ENDPOINT:http://localhost:9000}
+  access-key: ${RUSTFS_ACCESS_KEY:yuan}
+  secret-key: ${RUSTFS_SECRET_KEY:2006yyy}
+  bucket: ${RUSTFS_BUCKET:neighborhood}
 
 app:
+  migration:
+    auto-run: ${APP_MIGRATION_AUTO_RUN:false}
+  security:
+    cors:
+      allowed-origin-patterns: ${CORS_ALLOWED_ORIGIN_PATTERNS:http://localhost:5173,http://localhost:8080}
   cache:
     caffeine:
       initial-capacity: 256
       maximum-size: 5000
       expire-after-write-seconds: 45
   file:
-    public-base-url: http://localhost/api/file
-    cdn-base-url:
+    public-base-url: ${PUBLIC_FILE_BASE_URL:http://localhost:5173/api/file}
+    cdn-base-url: ${CDN_BASE_URL:}
   messaging:
     rabbit:
-      enabled: false
-      notification-queue: neighborhood.notification.write
-      notification-exchange: neighborhood.notification.exchange
-      notification-routing-key: notification.write
-      admin-log-queue: neighborhood.admin.log.write
-      admin-log-exchange: neighborhood.admin.log.exchange
-      admin-log-routing-key: admin.log.write
+      enabled: ${APP_RABBIT_ENABLED:false}
+      notification-queue: ${RABBIT_NOTIFICATION_QUEUE:neighborhood.notification.write}
+      notification-exchange: ${RABBIT_NOTIFICATION_EXCHANGE:neighborhood.notification.exchange}
+      notification-routing-key: ${RABBIT_NOTIFICATION_ROUTING_KEY:notification.write}
+      admin-log-queue: ${RABBIT_ADMIN_LOG_QUEUE:neighborhood.admin.log.write}
+      admin-log-exchange: ${RABBIT_ADMIN_LOG_EXCHANGE:neighborhood.admin.log.exchange}
+      admin-log-routing-key: ${RABBIT_ADMIN_LOG_ROUTING_KEY:admin.log.write}
+
+test:
+  rustfs:
+    enabled: ${TEST_RUSTFS_ENABLED:false}
 
 management:
   health:
     mail:
       enabled: false
+    rabbit:
+      enabled: ${APP_RABBIT_ENABLED:false}
   endpoints:
     web:
       base-path: /actuator
       exposure:
-        include: health,info,metrics,prometheus,caches
+        include: ${MANAGEMENT_EXPOSED_ENDPOINTS:health,info}
   endpoint:
     health:
-      show-details: always
+      show-details: ${MANAGEMENT_HEALTH_SHOW_DETAILS:never}
   metrics:
     tags:
       application: ${spring.application.name}
@@ -136,4 +147,4 @@ management:
   prometheus:
     metrics:
       export:
-        enabled: true
+        enabled: ${MANAGEMENT_PROMETHEUS_ENABLED:true}

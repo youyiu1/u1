@@ -1,10 +1,10 @@
 package com.neighborhood.app.utils;
 
 import com.neighborhood.app.service.AppMetricsService;
-
 import java.util.function.Consumer;
 import java.util.function.Supplier;
 
+/** 文件作用：缓存查询工具。 */
 public final class CacheLookupUtil {
 
     private CacheLookupUtil() {

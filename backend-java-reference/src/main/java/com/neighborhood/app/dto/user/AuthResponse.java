@@ -10,6 +10,7 @@ import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
+/** 文件作用：认证响应参数。 */
 @Data
 @NoArgsConstructor
 @AllArgsConstructor

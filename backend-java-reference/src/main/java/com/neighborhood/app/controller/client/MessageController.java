@@ -5,6 +5,7 @@ import com.neighborhood.app.common.ResultUtils;
 import com.neighborhood.app.dto.message.SendMessageRequest;
 import com.neighborhood.app.entity.message.Message;
 import com.neighborhood.app.service.MessageService;
+import java.util.List;
 import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -14,8 +15,7 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
-import java.util.List;
-
+/** 文件作用：用户端消息接口。 */
 @RestController
 @RequestMapping("/api/message")
 @RequiredArgsConstructor

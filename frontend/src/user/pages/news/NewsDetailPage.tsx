@@ -13,6 +13,7 @@ import { formatDateTime } from '../../utils/dateTime';
 import { fallbackText } from '../../utils/display';
 import { getErrorMessage } from '../../utils/error';
 import { parseImages } from '../../utils/images';
+import { buildProfilePath, buildProfileRouteState } from '../../utils/profileRoute';
 
 const COMMENT_FETCH_LIMIT = 200;
 const DETAIL_ACTION_BUTTON_CLASS = 'flex items-center gap-2 text-secondary transition-all hover:text-primary';
@@ -282,7 +283,14 @@ export default function NewsDetailPage() {
               isOwnPost={isOwnPost}
               isFollowed={isFollowed}
               onFollowChange={setIsFollowed}
-              onOpenProfile={() => navigate(`/profile/${authorName}`)}
+              onOpenProfile={() => navigate(buildProfilePath(authorId, authorName), {
+                state: buildProfileRouteState({
+                  id: authorId,
+                  name: authorName,
+                  avatar: authorAvatar,
+                  isVerified: authorVerified,
+                }),
+              })}
             />
 
             <div className="mb-8 space-y-6">
@@ -329,8 +337,20 @@ export default function NewsDetailPage() {
         <div className="mx-auto max-w-[720px] px-6 py-4">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-6">
-              <DetailStatButton active={isLiked} activeClassName="text-primary" count={likes} icon={<Heart className={`h-5 w-5 ${isLiked ? 'fill-current' : ''}`} />} onClick={toggleLike} />
-              <DetailStatButton active={isFavorited} activeClassName="text-accent-gold" count={collections} icon={<Bookmark className={`h-5 w-5 ${isFavorited ? 'fill-current' : ''}`} />} onClick={toggleFavorite} />
+              <DetailStatButton
+                active={isLiked}
+                activeClassName="text-red-500"
+                count={likes}
+                icon={<Heart className={`h-5 w-5 ${isLiked ? 'fill-current text-red-500' : ''}`} />}
+                onClick={toggleLike}
+              />
+              <DetailStatButton
+                active={isFavorited}
+                activeClassName="text-yellow-500"
+                count={collections}
+                icon={<Bookmark className={`h-5 w-5 ${isFavorited ? 'fill-current text-yellow-500' : ''}`} />}
+                onClick={toggleFavorite}
+              />
               <DetailStatButton count={post.shares || 0} icon={<Share2 className="h-5 w-5" />} />
             </div>
             <button className={DETAIL_ACTION_BUTTON_CLASS}>

@@ -6,11 +6,13 @@
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
 import { MapPin, Star, Trash2 } from 'lucide-react';
+import { MarketStatusBadge } from '../common/MarketStatusBadge';
 import { favoriteApi } from '../../services/api';
 import { useToast } from '../../context/ToastContext';
-import { getStoredUser } from '../../utils/authStorage';
-import { getPrimaryImage, parseImages } from '../../utils/images';
 import { Item, Post, Service } from '../../types';
+import { getStoredUser } from '../../utils/authStorage';
+import { formatCurrency } from '../../utils/display';
+import { getPrimaryImage, parseImages } from '../../utils/images';
 
 interface ProfileFavoriteItemProps {
   favorite: {
@@ -38,7 +40,9 @@ export const ProfileFavoriteItem: React.FC<ProfileFavoriteItemProps> = ({ favori
 
   const handleUnfavorite = async (event: React.MouseEvent) => {
     event.stopPropagation();
-    if (isRemoving) return;
+    if (isRemoving) {
+      return;
+    }
 
     const currentUser = getStoredUser();
     if (!currentUser?.id) {
@@ -106,7 +110,7 @@ export const ProfileFavoriteItem: React.FC<ProfileFavoriteItemProps> = ({ favori
   const item = data as Item | Service;
   const isItemType = 'itemCondition' in item;
   const primaryImage = getPrimaryImage((item as Item).images, item.image);
-  const locationText = 'location' in item ? (item.location || '未知位置') : item.distance;
+  const locationText = 'location' in item ? item.location || '未知位置' : item.distance;
   const typeLabel = TARGET_LABELS[favorite.targetType] || '内容';
 
   return (
@@ -123,6 +127,7 @@ export const ProfileFavoriteItem: React.FC<ProfileFavoriteItemProps> = ({ favori
         <div className="absolute left-2 top-2 rounded bg-primary/90 px-1.5 py-0.5 text-[9px] font-bold text-white backdrop-blur-md">
           {typeLabel}
         </div>
+        {isItemType ? <MarketStatusBadge status={item.status} rejectReason={item.rejectReason} className="absolute right-2 top-2" /> : null}
       </div>
 
       <div className="p-2">
@@ -134,9 +139,9 @@ export const ProfileFavoriteItem: React.FC<ProfileFavoriteItemProps> = ({ favori
 
         <div className="flex items-center justify-between">
           <div>
-            <span className="text-sm font-bold text-ink">¥{item.price}</span>
-            {isItemType && 'originalPrice' in item && item.originalPrice ? (
-              <span className="ml-1 text-[9px] text-muted line-through">¥{item.originalPrice}</span>
+            <span className="text-sm font-bold text-ink">{formatCurrency(item.price)}</span>
+            {isItemType && item.originalPrice ? (
+              <span className="ml-1 text-[9px] text-muted line-through">{formatCurrency(item.originalPrice)}</span>
             ) : null}
           </div>
 

@@ -3,21 +3,21 @@ package com.neighborhood.app.controller.admin.module;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.neighborhood.app.common.Result;
 import com.neighborhood.app.controller.admin.AdminSupport;
-import com.neighborhood.app.dto.admin.AdminUserRequests.BlacklistCreateRequest;
 import com.neighborhood.app.dto.admin.AdminCommonRequests.StatusRequest;
+import com.neighborhood.app.dto.admin.AdminUserRequests.BlacklistCreateRequest;
 import com.neighborhood.app.dto.admin.AdminUserRequests.UserAdminRoleRequest;
 import com.neighborhood.app.dto.admin.AdminUserRequests.UserVerifiedRequest;
 import com.neighborhood.app.entity.user.User;
 import com.neighborhood.app.mapper.user.UserMapper;
 import com.neighborhood.app.service.AdminBlacklistService;
 import com.neighborhood.app.service.UserService;
-import lombok.RequiredArgsConstructor;
-import org.springframework.stereotype.Component;
-
 import java.util.List;
 import java.util.Map;
 import java.util.function.Consumer;
+import lombok.RequiredArgsConstructor;
+import org.springframework.stereotype.Component;
 
+/** 文件作用：管理端用户模块封装。 */
 @Component
 @RequiredArgsConstructor
 public class AdminUserModule {
@@ -55,7 +55,17 @@ public class AdminUserModule {
     }
 
     public Result<Void> updateUserStatus(String id, StatusRequest body) {
-        return updateUser(id, user -> user.setStatus(support.requestStatus(body, "normal")));
+        String nextStatus = support.requestStatus(body, "normal");
+        return updateUser(id, user -> {
+            user.setStatus(nextStatus);
+            if ("disabled".equalsIgnoreCase(nextStatus)) {
+                adminBlacklistService.addUserBanItemIfAbsent(
+                        support.emptyTo(user.getName(), user.getId()),
+                        "管理端封禁发布账户",
+                        "admin-system"
+                );
+            }
+        });
     }
 
     public Result<Void> updateUserVerified(String id, UserVerifiedRequest body) {
@@ -85,6 +95,7 @@ public class AdminUserModule {
     }
 
     public Result<List<Map<String, Object>>> blacklist() {
+        syncDisabledUsersToBlacklist();
         return Result.ok(adminBlacklistService.listItems());
     }
 
@@ -111,5 +122,16 @@ public class AdminUserModule {
         updater.accept(user);
         userService.updateById(user);
         return Result.ok();
+    }
+
+    private void syncDisabledUsersToBlacklist() {
+        userService.lambdaQuery()
+                .eq(User::getStatus, "disabled")
+                .list()
+                .forEach(user -> adminBlacklistService.addUserBanItemIfAbsent(
+                        support.emptyTo(user.getName(), user.getId()),
+                        "管理端封禁发布账户",
+                        "admin-system"
+                ));
     }
 }

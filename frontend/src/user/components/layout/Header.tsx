@@ -10,6 +10,7 @@ import { AnimatePresence, motion } from 'motion/react';
 import { useChat } from '../../context/ChatContext';
 import { useAuthCheck } from '../../context/useAuthCheck';
 import { usePublish } from '../../context/PublishContext';
+import { createSectionPathRegex, matchPathByRegex } from '../../utils/pathMatch';
 import { HeaderNotifications } from './HeaderNotifications';
 import { HeaderSearch } from './HeaderSearch';
 import { HeaderUserMenu } from './HeaderUserMenu';
@@ -17,13 +18,12 @@ import { HeaderUserMenu } from './HeaderUserMenu';
 const PUBLISH_PRELOAD_DELAY = 1200;
 const PUBLISH_IDLE_TIMEOUT = 2500;
 const PUBLISH_UNMOUNT_DELAY = 260;
-
 const NAV_ITEMS = [
   { name: '首页', path: '/' },
   { name: '生活服务', path: '/service' },
   { name: '闲置交易', path: '/market' },
   { name: '同城动态', path: '/news' },
-];
+] as const;
 
 const loadPublishOverlay = () => import('../publish/PublishOverlay').then((mod) => ({ default: mod.PublishOverlay }));
 const PublishOverlay = lazy(loadPublishOverlay);
@@ -85,7 +85,8 @@ export default function Header() {
 
   return (
     <>
-      <header className="sticky top-0 z-50 w-full border-b border-hairline bg-white/90 shadow-sm backdrop-blur-md">
+      <header className="fixed inset-x-0 top-0 z-50 w-full border-b border-white/35 bg-white/55 shadow-[0_10px_30px_rgba(15,23,42,0.08)] backdrop-blur-2xl supports-[backdrop-filter]:bg-white/45">
+        <div className="pointer-events-none absolute inset-0 bg-gradient-to-b from-white/35 via-white/10 to-white/25" />
         <div className="mx-auto flex h-16 max-w-[1440px] items-center justify-between gap-4 px-4 md:h-20 md:gap-8 md:px-12">
           <div className="flex min-w-0 shrink items-center gap-4 md:gap-8">
             <Link to="/" className="flex min-w-0 shrink items-center gap-2 font-bold text-primary">
@@ -97,7 +98,7 @@ export default function Header() {
 
             <nav className="hidden min-w-0 items-center gap-1 transition-all duration-300 lg:flex">
               {NAV_ITEMS.map((item) => (
-                <DesktopNavLink key={item.path} item={item} active={location.pathname === item.path} />
+                <DesktopNavLink key={item.path} item={item} active={matchPathByRegex(location.pathname, createSectionPathRegex(item.path))} />
               ))}
             </nav>
           </div>
@@ -176,7 +177,7 @@ export default function Header() {
                 <nav className="space-y-1 p-4 md:p-6">
                   {NAV_ITEMS.map((item, index) => (
                     <motion.div key={item.path} initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: index * 0.05 }}>
-                      <MobileNavLink item={item} active={location.pathname === item.path} onClick={closeMobileMenu} />
+                      <MobileNavLink item={item} active={matchPathByRegex(location.pathname, createSectionPathRegex(item.path))} onClick={closeMobileMenu} />
                     </motion.div>
                   ))}
 
@@ -208,6 +209,8 @@ export default function Header() {
           ) : null}
         </AnimatePresence>
       </header>
+
+      <div className="h-16 md:h-20" aria-hidden="true" />
 
       {shouldRenderPublish ? (
         <Suspense fallback={null}>

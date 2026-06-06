@@ -4,6 +4,7 @@ import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
+/** 文件作用：管理端Log消息体。 */
 @Data
 @NoArgsConstructor
 @AllArgsConstructor

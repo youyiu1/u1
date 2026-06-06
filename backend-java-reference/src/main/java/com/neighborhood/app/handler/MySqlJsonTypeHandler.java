@@ -8,16 +8,16 @@ package com.neighborhood.app.handler;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ArrayNode;
-import org.apache.ibatis.type.BaseTypeHandler;
-import org.apache.ibatis.type.JdbcType;
-
 import java.sql.CallableStatement;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.List;
+import org.apache.ibatis.type.BaseTypeHandler;
+import org.apache.ibatis.type.JdbcType;
 
+/** 文件作用：MySQL JSON 类型处理器。 */
 public class MySqlJsonTypeHandler extends BaseTypeHandler<List<String>> {
 
     private static final ObjectMapper MAPPER = new ObjectMapper();

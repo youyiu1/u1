@@ -9,6 +9,7 @@ import com.baomidou.mybatisplus.extension.service.IService;
 import com.neighborhood.app.entity.service.ServiceReview;
 import java.util.List;
 
+/** 文件作用：服务评价服务接口。 */
 public interface ServiceReviewService extends IService<ServiceReview> {
     /**
      * 获取服务评价列表

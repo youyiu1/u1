@@ -1,11 +1,11 @@
 package com.neighborhood.app.service.impl;
 
+import com.neighborhood.app.service.AppMetricsService;
 import io.micrometer.core.instrument.MeterRegistry;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
-import com.neighborhood.app.service.AppMetricsService;
-
+/** 文件作用：应用指标服务实现。 */
 @Service
 @RequiredArgsConstructor
 public class AppMetricsServiceImpl implements AppMetricsService {

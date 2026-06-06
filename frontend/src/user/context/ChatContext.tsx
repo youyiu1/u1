@@ -33,23 +33,14 @@ export const ChatProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   // 计算总未读数
   const unreadCount = Object.values(unreadMessages).reduce((a: number, b: number) => a + b, 0);
 
-  const scheduleBackgroundRefresh = useCallback((task: () => void) => {
-    if (typeof globalThis === 'undefined') {
-      task();
-      return () => {};
+  const buildLastMessagePreview = useCallback((msg?: Message) => {
+    if (!msg) {
+      return '';
     }
-    const scope = globalThis as typeof globalThis & {
-      requestIdleCallback?: (callback: () => void, options?: { timeout: number }) => number;
-      cancelIdleCallback?: (id: number) => void;
-      setTimeout: (handler: () => void, timeout?: number) => ReturnType<typeof setTimeout>;
-      clearTimeout: (id: ReturnType<typeof setTimeout>) => void;
-    };
-    if (typeof scope.requestIdleCallback === 'function') {
-      const idleId = scope.requestIdleCallback(() => task(), { timeout: 1800 });
-      return () => scope.cancelIdleCallback?.(idleId);
+    if (msg.messageType === 'image') {
+      return '[图片]';
     }
-    const timer = scope.setTimeout(task, 300);
-    return () => scope.clearTimeout(timer);
+    return (msg.content || msg.text || '').trim();
   }, []);
 
   // 加载指定会话
@@ -111,9 +102,11 @@ export const ChatProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
             }
             partner.name = partnerUser.name;
             partner.avatar = partnerUser.avatar;
-            partner.lastMessage = conv.lastMsg.content;
+            partner.isOnline = partnerUser.isOnline || false;
+            partner.lastMessage = buildLastMessagePreview(conv.lastMsg);
           } catch (e) {
             console.error('Failed to get partner info:', e);
+            partner.lastMessage = buildLastMessagePreview(conv.lastMsg);
           }
           return partner;
         })
@@ -128,7 +121,7 @@ export const ChatProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     } catch (err) {
       console.error('Failed to load conversations:', err);
     }
-  }, [user?.id]);
+  }, [buildLastMessagePreview, user?.id]);
 
   const getOrCreateConversation = useCallback(async (partner: ChatPartner): Promise<ChatPartner | null> => {
     if (!user?.id) return null;
@@ -151,7 +144,7 @@ export const ChatProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         name: partnerUser.name || partner.name,
         avatar: partnerUser.avatar || partner.avatar,
         isOnline: partnerUser.isOnline || false,
-        lastMessage: existingConv?.content || '',
+        lastMessage: buildLastMessagePreview(existingConv),
       };
 
       return fullPartner;
@@ -159,7 +152,7 @@ export const ChatProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       console.error('Failed to get or create conversation:', err);
       return partner;
     }
-  }, [user?.id]);
+  }, [buildLastMessagePreview, user?.id]);
 
   // 打开聊天
   const openChat = useCallback(async (partner?: ChatPartner) => {
@@ -167,6 +160,11 @@ export const ChatProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     setIsChatOpen(true);
     setActivePartner(partner || null);
     setChatOpenTick(prev => prev + 1);
+
+    if (!partner) {
+      await refreshConversations();
+      return;
+    }
 
     if (partner) {
       setMessages(prev => ({ ...prev, [partner.id]: prev[partner.id] || [] }));
@@ -177,21 +175,12 @@ export const ChatProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         loadConversation(convPartner.id);
       }
     }
-  }, [markChatRead, loadConversation, getOrCreateConversation]);
+  }, [markChatRead, loadConversation, getOrCreateConversation, refreshConversations]);
 
   const closeChat = () => {
     setIsChatOpen(false);
     setActivePartner(null);
   };
-
-  // 初始化加载会话列表，仅在用户已登录且存在 token 时执行
-  useEffect(() => {
-    if (!user?.id || !getToken()) return;
-    const cancel = scheduleBackgroundRefresh(() => {
-      refreshConversations();
-    });
-    return cancel;
-  }, [user?.id, refreshConversations, scheduleBackgroundRefresh]);
 
   useEffect(() => {
     if (activePartner && isChatOpen && getToken()) {

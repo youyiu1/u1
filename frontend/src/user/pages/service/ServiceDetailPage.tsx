@@ -1,4 +1,4 @@
-﻿/**
+/**
  * @license
  * SPDX-License-Identifier: Apache-2.0
  */
@@ -42,6 +42,7 @@ import { resolveFollowState } from '../../utils/followStorage';
 import { resolveFavoriteState } from '../../utils/interactionStorage';
 import { readStorageValue, writeStorageJson, writeStorageValue } from '../../utils/jsonStorage';
 import { readCachedLocation } from '../../utils/location';
+import { buildProfilePath, buildProfileRouteState } from '../../utils/profileRoute';
 
 const CATEGORY_NAMES: Record<string, string> = {
   domestic: '家政服务',
@@ -374,6 +375,7 @@ export default function ServiceDetailPage() {
   const endTime = useMemo(() => getEndTime(bookingTime, duration), [bookingTime, duration]);
   const serviceFee = service ? getServiceFee(service.price, duration) : 0;
   const totalPrice = serviceFee + 20;
+  const sellerProfilePath = buildProfilePath(service?.seller?.id || service?.sellerId, service?.seller?.name);
 
   const sellerStats = [
     { label: '服务完成', value: `${service?.seller?.soldCount || 0}+` },
@@ -432,6 +434,18 @@ export default function ServiceDetailPage() {
         avatar: service.seller.avatar || '',
         isOnline: true,
       });
+    });
+  };
+
+  const handleOpenSellerProfile = () => {
+    navigate(sellerProfilePath, {
+      state: buildProfileRouteState({
+        id: service?.seller?.id || service?.sellerId,
+        name: service?.seller?.name,
+        avatar: service?.seller?.avatar,
+        isVerified: true,
+        followersCount: service?.seller?.followersCount,
+      }),
     });
   };
 
@@ -645,7 +659,7 @@ export default function ServiceDetailPage() {
             </div>
 
             <div className="group relative z-10 flex flex-col items-center gap-8 rounded-[40px] border border-hairline bg-white p-8 shadow-sm md:flex-row">
-              <div className="relative shrink-0">
+              <button type="button" onClick={handleOpenSellerProfile} className="relative shrink-0">
                 {service.seller?.avatar ? (
                   <img
                     src={service.seller.avatar}
@@ -660,7 +674,7 @@ export default function ServiceDetailPage() {
                 <div className="absolute -bottom-2 -right-2 rounded-xl border-4 border-white bg-blue-500 p-1.5 text-white shadow-lg">
                   <CheckCircle2 className="h-4 w-4" />
                 </div>
-              </div>
+              </button>
               <div className="flex-1 text-center md:text-left">
                 <div className="mb-3 flex flex-col gap-3 md:flex-row md:items-center">
                   <h3 className="text-2xl font-black text-ink">{fallbackText(service.seller?.name, '服务者')}</h3>

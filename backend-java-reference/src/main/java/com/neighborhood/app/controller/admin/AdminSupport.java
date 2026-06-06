@@ -27,20 +27,17 @@ import com.neighborhood.app.service.AdminRoleConfigService;
 import com.neighborhood.app.service.CacheService;
 import com.neighborhood.app.service.UserService;
 import com.neighborhood.app.util.JwtUtil;
+import com.neighborhood.app.utils.AuthTokenStore;
 import com.neighborhood.app.utils.CollectionStringUtil;
+import com.neighborhood.app.utils.PasswordCodec;
+import com.neighborhood.app.utils.RequestUserUtil;
 import com.neighborhood.app.utils.StringValueUtil;
 import jakarta.annotation.PostConstruct;
 import jakarta.servlet.http.HttpServletRequest;
-import lombok.RequiredArgsConstructor;
-import org.springframework.data.redis.core.RedisTemplate;
-import org.springframework.jdbc.core.JdbcTemplate;
-import org.springframework.stereotype.Component;
-
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
-import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
@@ -50,14 +47,19 @@ import java.util.Locale;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
-import java.util.concurrent.TimeUnit;
 import java.util.function.Function;
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.jdbc.core.JdbcTemplate;
+import org.springframework.stereotype.Component;
 
+/** 文件作用：管理端控制器公共支持。 */
+@Slf4j
 @Component
 @RequiredArgsConstructor
 public class AdminSupport {
 
-    private static final String TOKEN_PREFIX = "token:";
     public static final String ROLE_USER = "USER";
     public static final String ROLE_ADMIN = "ADMIN";
     public static final String ROLE_READONLY_ADMIN = "READONLY_ADMIN";
@@ -95,12 +97,16 @@ public class AdminSupport {
     private final ServiceMapper serviceMapper;
     private final ServiceReviewMapper serviceReviewMapper;
     private final JwtUtil jwtUtil;
-    private final RedisTemplate<String, Object> redisTemplate;
+    private final AuthTokenStore authTokenStore;
     private final CacheService cacheService;
     private final AdminLogDispatchService adminLogDispatchService;
     private final AdminImageStatusService adminImageStatusService;
     private final AdminRoleConfigService adminRoleConfigService;
     private final UserService userService;
+    private final PasswordCodec passwordCodec;
+
+    @Value("${app.migration.auto-run:false}")
+    private boolean migrationAutoRun;
 
     public record RoleSeed(
             String id,
@@ -122,6 +128,10 @@ public class AdminSupport {
 
     @PostConstruct
     public void ensureAdminSchema() {
+        if (!migrationAutoRun) {
+            log.info("已跳过后台管理表结构自动修复，app.migration.auto-run=false");
+            return;
+        }
         executeQuietly("ALTER TABLE t_user ADD COLUMN phone VARCHAR(32) DEFAULT ''");
         executeQuietly("ALTER TABLE t_user ADD COLUMN tag VARCHAR(50) DEFAULT ''");
         executeQuietly("ALTER TABLE t_user ADD COLUMN region VARCHAR(100) DEFAULT ''");
@@ -230,10 +240,11 @@ public class AdminSupport {
         String account = safeTrim(body == null ? null : body.username());
         String password = body == null ? "" : empty(body.password());
         User user = findUserByAccount(account);
-        if (user == null || !Objects.equals(user.getPassword(), password)) {
+        if (user == null || !passwordCodec.matches(password, user.getPassword())) {
             saveLoginLog("", account, requestIp(request), request.getHeader("User-Agent"), "failed", "\u8d26\u53f7\u6216\u5bc6\u7801\u9519\u8bef");
             return Result.fail("\u8d26\u53f7\u6216\u5bc6\u7801\u9519\u8bef");
         }
+        upgradePasswordIfNeeded(user, password);
         String adminRole = normalizeAdminRole(user.getAdminRole());
         if (ROLE_USER.equals(adminRole)) {
             saveLoginLog(user.getId(), user.getName(), requestIp(request), request.getHeader("User-Agent"), "failed", "\u666e\u901a\u7528\u6237\u4e0d\u80fd\u8bbf\u95ee\u7ba1\u7406\u7aef");
@@ -245,7 +256,10 @@ public class AdminSupport {
             return Result.fail("\u5f53\u524d\u7ba1\u7406\u5458\u89d2\u8272\u5df2\u505c\u7528");
         }
         String token = jwtUtil.generateToken(user.getId());
-        redisTemplate.opsForValue().set(TOKEN_PREFIX + user.getId(), token, jwtUtil.getExpiration(), TimeUnit.MILLISECONDS);
+        if (!authTokenStore.storeToken(user.getId(), token, jwtUtil.getExpiration())) {
+            saveLoginLog(user.getId(), user.getName(), requestIp(request), request.getHeader("User-Agent"), "failed", "\u767b\u5f55\u72b6\u6001\u5199\u5165\u5931\u8d25");
+            return Result.fail("\u64cd\u4f5c\u5931\u8d25\uff0c\u8bf7\u7a0d\u540e\u91cd\u8bd5");
+        }
         saveLoginLog(user.getId(), user.getName(), requestIp(request), request.getHeader("User-Agent"), "success", "");
         return Result.ok(Map.of(
                 "token", token,
@@ -255,6 +269,14 @@ public class AdminSupport {
                 "permissionCodes", roleConfig.permissionCodes(),
                 "menuIds", roleConfig.menuIds()
         ));
+    }
+
+    public Result<Boolean> logout(String userId, HttpServletRequest request) {
+        String token = RequestUserUtil.currentBearerToken(request);
+        if (token == null || token.isBlank()) {
+            return Result.ok(Boolean.TRUE);
+        }
+        return Result.ok(authTokenStore.revokeToken(userId, token));
     }
 
 
@@ -303,6 +325,15 @@ public class AdminSupport {
         List<User> users = userMapper.selectList(new com.baomidou.mybatisplus.core.conditions.query.QueryWrapper<User>()
                 .eq("email", account).or().eq("name", account).last("LIMIT 1"));
         return users.isEmpty() ? null : users.get(0);
+    }
+
+    private void upgradePasswordIfNeeded(User user, String rawPassword) {
+        if (user == null || !passwordCodec.needsUpgrade(user.getPassword())) {
+            return;
+        }
+        user.setPassword(passwordCodec.encode(rawPassword));
+        userMapper.updateById(user);
+        cacheService.evictUser(user.getId());
     }
 
     private User requireUser(String userId) {
@@ -391,6 +422,9 @@ public class AdminSupport {
     }
 
     public void ensureDefaultCategories() {
+        if (!migrationAutoRun) {
+            return;
+        }
         try {
             Long count = jdbcTemplate.queryForObject("SELECT COUNT(1) FROM t_category", Long.class);
             if (count != null && count > 0) return;
@@ -495,7 +529,7 @@ public class AdminSupport {
         item.put("price", decimal(row.get("price")));
         item.put("category", normalizeGoodsCategory(str(row.get("category"))));
         item.put("condition", str(row.get("item_condition")));
-        item.put("sellerName", emptyTo(str(row.get("seller_name")), "未知用户"));
+        item.put("sellerName", emptyTo(str(row.get("seller_name")), "未知商家"));
         item.put("sellerId", str(row.get("seller_id")));
         item.put("sellerAvatar", str(row.get("seller_avatar")));
         item.put("sellerTag", str(row.get("seller_tag")));
@@ -699,6 +733,9 @@ public class AdminSupport {
     }
 
     private void ensureDefaultAdminRoles() {
+        if (!migrationAutoRun) {
+            return;
+        }
         builtInRoleSeeds().forEach(this::upsertSystemRole);
     }
 

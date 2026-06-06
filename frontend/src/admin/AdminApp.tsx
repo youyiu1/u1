@@ -1,4 +1,4 @@
-﻿/**
+/**
  * @license
  * SPDX-License-Identifier: Apache-2.0
  */
@@ -380,17 +380,19 @@ export default function AdminApp() {
     try {
       switch (path) {
         case '/admin/dashboard': {
-          const [resStats, resDyn, resOrders, resServices, userRes] = await Promise.all([
+          const [resStats, resDyn, resGoods, resOrders, resServices, userRes] = await Promise.all([
             adminApi.getDashboardStats(),
             adminApi.getDynamics(),
+            adminApi.getGoods(),
             adminApi.getOrders(),
             adminApi.getServices(),
             adminApi.getUsers(),
           ]);
-          if ([resStats, resDyn, resOrders, resServices, userRes].some(isUnauthorized)) return handleUnauthorized();
+          if ([resStats, resDyn, resGoods, resOrders, resServices, userRes].some(isUnauthorized)) return handleUnauthorized();
           const userList = syncUsersFromResult(userRes);
           if (ok(resStats)) setDashboardStats(resStats.data);
           if (ok(resDyn)) applyEnrichedData('dynamics', resDyn.data, userList, setDynamics);
+          if (ok(resGoods)) applyEnrichedData('goods', resGoods.data, userList, setGoods);
           if (ok(resOrders)) applyEnrichedData('orders', resOrders.data, userList, setOrders);
           if (ok(resServices)) applyEnrichedData('services', resServices.data, userList, setServices);
           break;
@@ -521,7 +523,17 @@ export default function AdminApp() {
   const renderActiveView = () => {
     switch (currentPath) {
       case '/admin/dashboard':
-        return <DashboardView stats={dashboardStats} dynamics={dynamics} orders={orders} services={services} onNavigate={handleNavigateWithFilters} />;
+        return (
+          <DashboardView
+            stats={dashboardStats}
+            users={users}
+            dynamics={dynamics}
+            goods={goods}
+            orders={orders}
+            services={services}
+            onNavigate={handleNavigateWithFilters}
+          />
+        );
       case '/admin/users':
         return (
           <UserManagementView
@@ -537,9 +549,38 @@ export default function AdminApp() {
           <DynamicManagementView
             dynamics={dynamics}
             onUpdateDynamicStatus={(id, status, reason) => runAction(adminApi.updateDynamicStatus(id, status, reason))}
-            onBanUser={(authorName) => {
-              const target = users.find((u) => u.name === authorName);
-              if (target) runAction(adminApi.updateUserStatus(target.id, 'disabled'));
+            onBanUser={async (dynamic) => {
+              const targetId = dynamic.userId || users.find((u) => u.name === dynamic.author)?.id;
+              if (!targetId) {
+                alert('未找到对应用户，无法封禁');
+                return false;
+              }
+              const res = await adminApi.updateUserStatus(targetId, 'disabled');
+              if (isUnauthorized(res)) {
+                handleUnauthorized();
+                return false;
+              }
+              if (!ok(res)) {
+                alert(toAlertMessage(res));
+                return false;
+              }
+              const [userRes, dynamicRes, blacklistRes] = await Promise.all([
+                adminApi.getUsers(),
+                adminApi.getDynamics(),
+                adminApi.getBlacklist(),
+              ]);
+              if ([userRes, dynamicRes, blacklistRes].some(isUnauthorized)) {
+                handleUnauthorized();
+                return false;
+              }
+              const userList = syncUsersFromResult(userRes);
+              if (ok(dynamicRes)) {
+                applyEnrichedData('dynamics', dynamicRes.data, userList, setDynamics);
+              }
+              if (ok(blacklistRes)) {
+                setBlacklist(blacklistRes.data);
+              }
+              return true;
             }}
             onAddComment={(id, commenter, content) => runAction(adminApi.addComment(id, commenter, content))}
             onDeleteComment={(dynId, commentId) => runAction(adminApi.deleteComment(dynId, commentId))}

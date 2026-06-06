@@ -7,6 +7,7 @@ package com.neighborhood.app.utils;
 
 import java.util.Locale;
 
+/** 文件作用：距离工具。 */
 public class DistanceUtil {
     private static final double EARTH_RADIUS = 6371.0; // 地球半径（公里）
 

@@ -11,6 +11,8 @@ import com.neighborhood.app.utils.RequestUserUtil;
 import com.neighborhood.app.utils.RequestValueUtil;
 import com.neighborhood.app.vo.content.NewsVO;
 import jakarta.servlet.http.HttpServletRequest;
+import java.util.List;
+import java.util.Map;
 import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -20,9 +22,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
-import java.util.List;
-import java.util.Map;
-
+/** 文件作用：用户端资讯接口。 */
 @RestController
 @RequestMapping("/api/news")
 @RequiredArgsConstructor

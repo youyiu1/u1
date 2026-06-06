@@ -1,4 +1,4 @@
-﻿import React, { useContext, useEffect, useRef, useState } from 'react';
+import React, { useContext, useEffect, useRef, useState } from 'react';
 import { Bell, Check, X } from 'lucide-react';
 import { AnimatePresence, motion } from 'motion/react';
 import { notificationApi } from '../../services/api';
@@ -7,6 +7,9 @@ import { AuthContext } from '../../context/AuthContext';
 import { useNotification } from '../../context/NotificationContext';
 import { ConfirmDialog } from '../common/ConfirmDialog';
 import { getErrorMessage } from '../../utils/error';
+
+const BOOKING_REQUEST_TITLE = '新的预约请求';
+const MARKET_REQUEST_TITLE = '新的购买请求';
 
 const formatTime = (time: string) => {
   const date = new Date(time);
@@ -20,8 +23,27 @@ const formatTime = (time: string) => {
   return `${month}/${day} ${hours}:${minutes}`;
 };
 
+function isBookingNotification(notification: Notification) {
+  return notification.title === BOOKING_REQUEST_TITLE;
+}
+
+function isMarketNotification(notification: Notification) {
+  return notification.title === MARKET_REQUEST_TITLE;
+}
+
+function isActionableNotification(notification: Notification) {
+  return isBookingNotification(notification) || isMarketNotification(notification);
+}
+
+function getProcessErrorMessage(notification: Notification, accept: boolean) {
+  if (isMarketNotification(notification)) {
+    return accept ? '同意购买失败' : '拒绝购买失败';
+  }
+  return accept ? '同意预约失败' : '拒绝预约失败';
+}
+
 export const HeaderNotifications: React.FC = () => {
-  const { user } = useContext(AuthContext);
+  const { user, isAuthenticated, authReady } = useContext(AuthContext);
   const { clearUnread, refreshTrigger } = useNotification();
   const [showNotifications, setShowNotifications] = useState(false);
   const [notifications, setNotifications] = useState<Notification[]>([]);
@@ -42,56 +64,62 @@ export const HeaderNotifications: React.FC = () => {
   }, [showNotifications]);
 
   const refreshNotifications = async (userId: string, withLoading = false) => {
-    if (withLoading) setLoading(true);
+    if (withLoading) {
+      setLoading(true);
+    }
     try {
       const data = await notificationApi.list(userId);
       setNotifications(data);
     } catch (error) {
       console.error(getErrorMessage(error, '通知加载失败'));
     } finally {
-      if (withLoading) setLoading(false);
+      if (withLoading) {
+        setLoading(false);
+      }
     }
   };
 
   useEffect(() => {
-    if (!user?.id) {
+    if (!authReady) {
+      return;
+    }
+    if (!isAuthenticated || !user?.id) {
+      setNotifications([]);
       return;
     }
     void refreshNotifications(user.id, true);
-  }, [refreshTrigger, user?.id]);
+  }, [authReady, isAuthenticated, refreshTrigger, user?.id]);
 
   useEffect(() => {
-    if (!showNotifications || !user?.id) {
+    if (!authReady || !showNotifications || !isAuthenticated || !user?.id) {
       return;
     }
     const timer = window.setTimeout(() => {
       void refreshNotifications(user.id);
     }, 80);
     return () => window.clearTimeout(timer);
-  }, [showNotifications, user?.id]);
+  }, [authReady, isAuthenticated, showNotifications, user?.id]);
 
   const handleMarkAllRead = () => {
     setShowConfirm(true);
   };
 
   const confirmMarkAllRead = async () => {
-    if (!user?.id) {
+    if (!isAuthenticated || !user?.id) {
       return;
     }
     setShowConfirm(false);
     try {
       await notificationApi.markAllRead(user.id);
+      setNotifications((current) => current.map((notification) => ({ ...notification, isRead: true })));
+      clearUnread();
     } catch (error) {
       console.error(getErrorMessage(error, '全部已读操作失败'));
     }
-    setNotifications((current) => current.map((notification) => ({ ...notification, isRead: true })));
-    clearUnread();
   };
 
-  const isBookingNotification = (notification: Notification) => notification.title === '新的预约请求';
-
-  const handleProcessBooking = async (notification: Notification, accept: boolean) => {
-    if (!user) {
+  const handleProcessNotification = async (notification: Notification, accept: boolean) => {
+    if (!isAuthenticated || !user?.id) {
       return;
     }
     setProcessingId(notification.id);
@@ -103,14 +131,14 @@ export const HeaderNotifications: React.FC = () => {
       });
       await refreshNotifications(user.id);
     } catch (error) {
-      console.error(getErrorMessage(error, accept ? '同意预约失败' : '拒绝预约失败'));
+      console.error(getErrorMessage(error, getProcessErrorMessage(notification, accept)));
     } finally {
       setProcessingId(null);
     }
   };
 
   const markNotificationRead = async (notification: Notification) => {
-    if (notification.isRead || !user?.id || isBookingNotification(notification)) {
+    if (!isAuthenticated || !user?.id || notification.isRead || (isActionableNotification(notification) && !notification.isProcessed)) {
       return;
     }
     try {
@@ -127,7 +155,9 @@ export const HeaderNotifications: React.FC = () => {
     <div className="relative" ref={containerRef}>
       <button
         onClick={() => setShowNotifications((current) => !current)}
-        className={`relative rounded-2xl p-2.5 transition-all ${showNotifications ? 'bg-primary/5 text-primary' : 'text-secondary hover:bg-surface-soft'}`}
+        className={`relative rounded-2xl p-2.5 transition-all ${
+          showNotifications ? 'bg-primary/5 text-primary' : 'text-secondary hover:bg-surface-soft'
+        }`}
       >
         <Bell className="h-5 w-5" />
         {unreadCount > 0 ? (
@@ -160,7 +190,10 @@ export const HeaderNotifications: React.FC = () => {
               <div className="flex items-center justify-between border-b border-hairline p-6">
                 <h3 className="text-[10px] font-black uppercase tracking-widest text-ink">通知中心</h3>
                 {unreadCount > 0 ? (
-                  <button onClick={handleMarkAllRead} className="text-[10px] font-black uppercase tracking-widest text-primary transition-opacity hover:opacity-70">
+                  <button
+                    onClick={handleMarkAllRead}
+                    className="text-[10px] font-black uppercase tracking-widest text-primary transition-opacity hover:opacity-70"
+                  >
                     全部已读
                   </button>
                 ) : null}
@@ -173,32 +206,42 @@ export const HeaderNotifications: React.FC = () => {
                     <div
                       key={notification.id}
                       onClick={() => void markNotificationRead(notification)}
-                      className={`relative cursor-pointer px-6 py-4 transition-colors hover:bg-surface-soft ${!notification.isRead ? 'bg-primary/[0.03]' : ''}`}
+                      className={`relative cursor-pointer px-6 py-4 transition-colors hover:bg-surface-soft ${
+                        !notification.isRead ? 'bg-primary/[0.03]' : ''
+                      }`}
                     >
-                      {!notification.isRead ? <div className="absolute left-3 top-1/2 h-1.5 w-1.5 -translate-y-1/2 rounded-full bg-primary shadow-[0_0_8px_rgba(255,56,92,0.5)]" /> : null}
+                      {!notification.isRead ? (
+                        <div className="absolute left-3 top-1/2 h-1.5 w-1.5 -translate-y-1/2 rounded-full bg-primary shadow-[0_0_8px_rgba(255,56,92,0.5)]" />
+                      ) : null}
                       <div className="mb-1 flex items-start justify-between">
                         <h4 className={`text-sm tracking-tight ${notification.isRead ? 'font-bold text-secondary' : 'font-black text-ink'}`}>
                           {notification.title}
-                          {notification.serviceName ? <span className="ml-2 rounded-full bg-primary/5 px-2 py-0.5 text-[10px] text-primary">{notification.serviceName}</span> : null}
+                          {notification.serviceName ? (
+                            <span className="ml-2 rounded-full bg-primary/5 px-2 py-0.5 text-[10px] text-primary">
+                              {notification.serviceName}
+                            </span>
+                          ) : null}
                         </h4>
                         <span className="text-[10px] font-bold text-muted">{formatTime(notification.time)}</span>
                       </div>
                       <p className="line-clamp-2 text-xs leading-relaxed text-secondary">{notification.content}</p>
-                      {isBookingNotification(notification) && !notification.isProcessed ? (
+                      {isActionableNotification(notification) && !notification.isProcessed ? (
                         <div className="mt-3 flex items-center gap-2" onClick={(event) => event.stopPropagation()}>
                           <button
-                            onClick={() => void handleProcessBooking(notification, true)}
+                            onClick={() => void handleProcessNotification(notification, true)}
                             disabled={processingId === notification.id}
                             className="flex items-center gap-1 rounded-xl bg-green-500 px-3 py-1.5 text-xs font-bold text-white transition-colors hover:bg-green-600 disabled:opacity-50"
                           >
-                            <Check className="h-3 w-3" /> 同意
+                            <Check className="h-3 w-3" />
+                            同意
                           </button>
                           <button
-                            onClick={() => void handleProcessBooking(notification, false)}
+                            onClick={() => void handleProcessNotification(notification, false)}
                             disabled={processingId === notification.id}
                             className="flex items-center gap-1 rounded-xl bg-stone-200 px-3 py-1.5 text-xs font-bold text-stone-600 transition-colors hover:bg-stone-300 disabled:opacity-50"
                           >
-                            <X className="h-3 w-3" /> 拒绝
+                            <X className="h-3 w-3" />
+                            拒绝
                           </button>
                         </div>
                       ) : null}

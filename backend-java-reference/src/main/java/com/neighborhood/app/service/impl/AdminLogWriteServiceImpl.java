@@ -1,12 +1,12 @@
 package com.neighborhood.app.service.impl;
 
-import com.neighborhood.app.service.AdminLogWriteService;
-
 import com.neighborhood.app.messaging.AdminLogMessage;
+import com.neighborhood.app.service.AdminLogWriteService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Service;
 
+/** 文件作用：管理端Log写入服务实现。 */
 @Service
 @RequiredArgsConstructor
 public class AdminLogWriteServiceImpl implements AdminLogWriteService {

@@ -4,6 +4,7 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
 
+/** 文件作用：SQL集合工具。 */
 public final class SqlCollectionUtil {
 
     private SqlCollectionUtil() {

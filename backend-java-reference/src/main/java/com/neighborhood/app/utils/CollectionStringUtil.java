@@ -5,6 +5,7 @@ import java.util.Collection;
 import java.util.List;
 import java.util.stream.Collectors;
 
+/** 文件作用：集合String工具。 */
 public final class CollectionStringUtil {
 
     private CollectionStringUtil() {

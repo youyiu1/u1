@@ -1,20 +1,18 @@
 package com.neighborhood.app.service.impl;
 
-import com.neighborhood.app.service.AdminImageStatusService;
-
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
-import com.baomidou.mybatisplus.core.conditions.update.LambdaUpdateWrapper;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.neighborhood.app.entity.admin.AdminImageStatus;
 import com.neighborhood.app.mapper.admin.AdminImageStatusMapper;
-import lombok.RequiredArgsConstructor;
-import org.springframework.stereotype.Service;
-
+import com.neighborhood.app.service.AdminImageStatusService;
 import java.util.Collection;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import lombok.RequiredArgsConstructor;
+import org.springframework.stereotype.Service;
 
+/** 文件作用：管理端图片状态服务实现。 */
 @Service
 @RequiredArgsConstructor
 public class AdminImageStatusServiceImpl extends ServiceImpl<AdminImageStatusMapper, AdminImageStatus> implements AdminImageStatusService {

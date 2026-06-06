@@ -1,4 +1,4 @@
-﻿import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { motion } from 'motion/react';
 import { ShieldCheck, MessageCircle, MapPin, Calendar } from 'lucide-react';
 import { FollowButton } from '../common/FollowButton';
@@ -53,7 +53,7 @@ export const ProfileInfoCard: React.FC<ProfileInfoCardProps> = ({
       id: userData.id,
       name: userData.name || username,
       avatar: userData.avatar || '',
-      isOnline: true
+      isOnline: userData.isOnline
     }));
   };
 

@@ -1,14 +1,14 @@
 package com.neighborhood.app.service.impl;
 
+import com.neighborhood.app.messaging.AdminLogMessage;
 import com.neighborhood.app.service.AdminLogDispatchService;
 import com.neighborhood.app.service.AdminLogWriteService;
 import com.neighborhood.app.service.AsyncMessageDispatcher;
-
-import com.neighborhood.app.messaging.AdminLogMessage;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
+/** 文件作用：管理端Log分发服务实现。 */
 @Service
 @RequiredArgsConstructor
 public class AdminLogDispatchServiceImpl implements AdminLogDispatchService {

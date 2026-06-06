@@ -6,12 +6,12 @@ import com.neighborhood.app.dto.admin.AdminSecurityRequests.OperationLogCreateRe
 import com.neighborhood.app.dto.admin.AdminSecurityRequests.OperationLogRetentionRequest;
 import com.neighborhood.app.service.AdminLogDispatchService;
 import com.neighborhood.app.service.AdminLogQueryService;
+import java.util.List;
+import java.util.Map;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
 
-import java.util.List;
-import java.util.Map;
-
+/** 文件作用：管理端安全模块封装。 */
 @Component
 @RequiredArgsConstructor
 public class AdminSecurityModule {

@@ -13,13 +13,13 @@ import com.neighborhood.app.mapper.service.ServiceMapper;
 import com.neighborhood.app.service.MarketService;
 import com.neighborhood.app.service.OrderService;
 import com.neighborhood.app.service.ServiceModuleService;
-import lombok.RequiredArgsConstructor;
-import org.springframework.stereotype.Component;
-
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Map;
+import lombok.RequiredArgsConstructor;
+import org.springframework.stereotype.Component;
 
+/** 文件作用：管理端交易模块封装。 */
 @Component
 @RequiredArgsConstructor
 public class AdminCommerceModule {

@@ -80,8 +80,7 @@ export default function LoginPage() {
             </div>
           </div>
 
-          <div className="flex items-center justify-between gap-4 text-xs font-bold">
-            <span className="text-muted">测试账号：test1/123456</span>
+          <div className="flex items-center justify-end gap-4 text-xs font-bold">
             <div className="text-muted">
               还没有账号？
               <Link to="/register" className="ml-1 text-primary hover:underline">

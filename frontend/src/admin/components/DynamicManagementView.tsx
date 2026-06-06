@@ -28,6 +28,7 @@ import {
 import { Dynamic } from '../types';
 import { useToast } from '../hooks/useToast';
 import { groupItemsByOwner, type EntityOwnerGroup } from '../utils/entityGrouping';
+import { getPrimaryImage } from '../utils/images';
 import { matchesAnyKeyword, normalizeSearchTerm } from '../utils/search';
 import AdminFilterPills from './common/AdminFilterPills';
 import AdminGroupHeader from './common/AdminGroupHeader';
@@ -39,7 +40,7 @@ import UserSquareCard from './common/UserSquareCard';
 interface DynamicManagementViewProps {
   dynamics: Dynamic[];
   onUpdateDynamicStatus: (dynId: string, status: 'normal' | 'removed' | 'pending', rejectReason?: string) => void;
-  onBanUser: (userName: string) => void;
+  onBanUser: (dynamic: Dynamic) => Promise<boolean>;
   onAddComment: (dynId: string, author: string, text: string) => void;
   onDeleteComment: (dynId: string, commentId: string) => void;
   initialTabFilter?: string;
@@ -231,13 +232,13 @@ export default function DynamicManagementView({
     showToast('评论已删除', 'info');
   };
 
-  const handleConfirmBan = () => {
-    if (!banConfirmAuthor) return;
-    onBanUser(banConfirmAuthor);
-    if (selectedDyn?.author === banConfirmAuthor) {
-      setSelectedDyn({ ...selectedDyn, verifiedUser: false });
+  const handleConfirmBan = async () => {
+    if (!banConfirmAuthor || !selectedDyn || selectedDyn.author !== banConfirmAuthor) return;
+    const success = await onBanUser(selectedDyn);
+    if (success) {
+      setSelectedDyn({ ...selectedDyn, authorStatus: 'disabled' });
+      showToast(`用户“${banConfirmAuthor}”已被封禁`, 'error');
     }
-    showToast(`用户“${banConfirmAuthor}”已被封禁`, 'error');
     setBanConfirmAuthor(null);
   };
 
@@ -367,14 +368,6 @@ export default function DynamicManagementView({
         {selectedDyn && (
           <>
             <motion.div
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 0.5 }}
-              exit={{ opacity: 0 }}
-              onClick={() => setSelectedDyn(null)}
-              className="fixed inset-0 z-45 bg-black/60 backdrop-blur-xs"
-            />
-
-            <motion.div
               initial={{ x: '100%' }}
               animate={{ x: 0 }}
               exit={{ x: '100%' }}
@@ -405,7 +398,7 @@ export default function DynamicManagementView({
                     <span className="font-mono text-[10px] font-semibold uppercase text-gray-400 dark:text-gray-500">Post ID: {selectedDyn.id}</span>
                   </div>
 
-                  <div className="grid grid-cols-2 gap-2 text-[10px] md:grid-cols-5">
+                  <div className="grid grid-cols-1 gap-2 text-[10px] sm:grid-cols-2 xl:grid-cols-5">
                     <MetaChip icon={<Heart className="h-3 w-3" />} label="点赞" value={selectedDyn.likes} tone="rose" />
                     <MetaChip icon={<Bookmark className="h-3 w-3" />} label="收藏" value={getDynamicMeta(selectedDyn).favoriteCount} tone="amber" />
                     <MetaChip icon={<Eye className="h-3 w-3" />} label="浏览" value={getDynamicMeta(selectedDyn).viewCount} tone="sky" />
@@ -594,13 +587,32 @@ function DynamicListCard({
   onReject: () => void;
 }) {
   const meta = getDynamicMeta(item);
+  const coverImage = getPrimaryImage(item.images);
 
   return (
-    <div className="w-full rounded-lg border border-gray-100 bg-white px-2.5 py-2 hover:border-primary/30 dark:border-gray-800 dark:bg-gray-900">
-      <div className="flex items-center justify-between gap-3">
-        <span className="truncate text-[11px] font-semibold text-gray-700 dark:text-gray-200">{item.title}</span>
-        <span className={`shrink-0 rounded-lg px-2 py-0.5 text-[10px] font-bold ${getCategoryColor(item.category)}`}>{normalizeCategory(item.category)}</span>
-      </div>
+    <div className="relative w-full rounded-lg border border-gray-100 bg-white px-2.5 py-2 pr-36 hover:border-primary/30 dark:border-gray-800 dark:bg-gray-900">
+      <span className={`absolute right-2.5 top-2.5 rounded-lg px-2 py-0.5 text-[10px] font-bold ${getCategoryColor(item.category)}`}>
+        {normalizeCategory(item.category)}
+      </span>
+      <div className="flex items-center gap-3">
+        <div className="flex h-14 w-14 shrink-0 items-center justify-center overflow-hidden rounded-lg border border-gray-100 bg-gray-50 dark:border-gray-800 dark:bg-gray-800/50">
+          {coverImage ? (
+            <img
+              src={coverImage}
+              alt={item.title}
+              className="h-full w-full object-cover"
+              loading="lazy"
+              decoding="async"
+              referrerPolicy="no-referrer"
+            />
+          ) : (
+            <ImageIcon className="h-5 w-5 text-gray-400" />
+          )}
+        </div>
+        <div className="flex min-w-0 flex-1 flex-col justify-center">
+          <div className="flex items-center gap-3 pr-2">
+            <span className="truncate text-[11px] font-semibold text-gray-700 dark:text-gray-200">{item.title}</span>
+          </div>
 
       <div className="mt-1 flex flex-wrap items-center gap-1.5 text-[10px] text-gray-500">
         <StatBadge icon={<Heart className="h-3 w-3" />} value={item.likes} tone="rose" />
@@ -614,7 +626,10 @@ function DynamicListCard({
         <span className="truncate">更新：{meta.updateTime}</span>
       </div>
 
-      <div className="mt-1.5 flex items-center justify-end gap-1">
+        </div>
+      </div>
+
+      <div className="absolute right-2.5 top-[58%] flex -translate-y-1/2 items-center gap-1">
         <button onClick={onOpen} className="rounded-md bg-gray-100 px-2 py-0.5 text-[10px] text-gray-700 dark:bg-gray-800 dark:text-gray-200">
           详情
         </button>
@@ -634,12 +649,14 @@ function DynamicListCard({
 }
 
 function DrawerAuthorPanel({ item, onBan }: { item: Dynamic; onBan: () => void }) {
+  const isAuthorDisabled = item.authorStatus === 'disabled';
+
   return (
     <div className="flex items-center justify-between rounded-2xl border border-gray-100 bg-gray-50 p-4 dark:border-gray-800/50 dark:bg-gray-800/40">
       <div className="flex items-center gap-3">
         <img src={item.authorAvatar} alt={item.author} className="h-12 w-12 rounded-full border border-gray-200 object-cover dark:border-gray-700" />
         <div>
-          <h4 className={`flex items-center gap-1 text-sm font-bold ${!item.verifiedUser ? 'text-gray-400 line-through decoration-rose-500 dark:text-gray-500' : 'text-gray-900 dark:text-white'}`}>
+          <h4 className={`flex items-center gap-1 text-sm font-bold ${isAuthorDisabled ? 'text-gray-400 line-through decoration-rose-500 dark:text-gray-500' : 'text-gray-900 dark:text-white'}`}>
             {item.author}
             {item.verifiedUser ? <Sparkles className="h-4 w-4 fill-primary text-primary" /> : null}
           </h4>
@@ -652,14 +669,14 @@ function DrawerAuthorPanel({ item, onBan }: { item: Dynamic; onBan: () => void }
 
       <button
         onClick={onBan}
-        disabled={!item.verifiedUser}
+        disabled={isAuthorDisabled}
         className={`rounded-xl border px-3 py-1.5 text-[11px] font-bold transition-all ${
-          item.verifiedUser
+          !isAuthorDisabled
             ? 'border-rose-200 bg-rose-50/10 text-rose-600 hover:bg-rose-100/20 dark:border-rose-900/60 dark:text-rose-400'
             : 'cursor-not-allowed border-gray-200 bg-gray-100 text-gray-400 dark:border-gray-800 dark:bg-gray-800/40 dark:text-gray-500'
         }`}
       >
-        {item.verifiedUser ? '封禁发布者账号' : '该账号已处于封禁状态'}
+        {!isAuthorDisabled ? '封禁发布者账号' : '该账号已处于封禁状态'}
       </button>
     </div>
   );
@@ -769,9 +786,9 @@ function StatBadge({
   }[tone];
 
   return (
-    <span className={`inline-flex items-center gap-1 rounded px-1.5 py-0.5 ${toneClass}`}>
-      {icon}
-      {value}
+    <span className={`inline-flex min-w-[4.75rem] items-center justify-between gap-1 rounded px-1.5 py-0.5 font-mono tabular-nums ${toneClass}`}>
+      <span className="flex items-center gap-1">{icon}</span>
+      <span className="text-right">{value}</span>
     </span>
   );
 }
@@ -795,10 +812,12 @@ function MetaChip({
   }[tone];
 
   return (
-    <span className={`inline-flex items-center gap-1 rounded-lg border px-2 py-1 ${toneClass}`}>
-      {icon}
-      <span className="font-semibold">{label}</span>
-      <span className="font-bold">{value}</span>
+    <span className={`inline-flex min-h-9 items-center justify-between gap-2 rounded-lg border px-2.5 py-1.5 ${toneClass}`}>
+      <span className="flex min-w-0 items-center gap-1.5">
+        {icon}
+        <span className="whitespace-nowrap font-semibold">{label}</span>
+      </span>
+      <span className="font-mono font-bold tabular-nums text-right">{value}</span>
     </span>
   );
 }

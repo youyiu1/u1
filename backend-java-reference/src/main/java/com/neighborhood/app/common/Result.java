@@ -5,11 +5,12 @@
 
 package com.neighborhood.app.common;
 
+import java.util.List;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
-import java.util.List;
 
+/** 文件作用：统一返回结果封装。 */
 @Data
 @NoArgsConstructor
 @AllArgsConstructor

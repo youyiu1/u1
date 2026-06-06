@@ -1,4 +1,4 @@
-﻿import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { homeApi } from '../../services/api';
 import { GlobalCard } from '../../components/common/Card';
 import { HeroSection } from '../../components/home/HeroSection';
@@ -9,9 +9,9 @@ import { Item, Post, Service } from '../../types';
 import { getErrorMessage } from '../../utils/error';
 
 const SECTIONS = [
-  { title: '精选服务', tag: 'Service Selection', link: '/service', linkText: '查看更多服务', dataKey: 'hotServices' as const },
-  { title: '闲置好物', tag: 'Market Trends', link: '/market', linkText: '查看更多闲置', dataKey: 'hotMarket' as const },
-  { title: '同城动态', tag: 'Community Pulse', link: '/news', linkText: '查看更多动态', dataKey: 'hotNews' as const },
+  { title: '精选服务', tag: 'Service Selection', link: '/service', linkText: '查看更多服务', dataKey: 'hotServices' as const, previewCount: 5 },
+  { title: '闲置好物', tag: 'Market Trends', link: '/market', linkText: '查看更多闲置', dataKey: 'hotMarket' as const, previewCount: 5 },
+  { title: '同城动态', tag: 'Community Pulse', link: '/news', linkText: '查看更多动态', dataKey: 'hotNews' as const, previewCount: 3 },
 ];
 
 interface HomeData {
@@ -32,6 +32,7 @@ function SectionWrapper({
   loading,
   columns,
   skeletonHeight,
+  itemClassName,
   renderItem,
 }: {
   section: (typeof SECTIONS)[number];
@@ -39,9 +40,10 @@ function SectionWrapper({
   loading: boolean;
   columns: string;
   skeletonHeight: string;
+  itemClassName?: string;
   renderItem: (item: Service | Item | Post, idx: number) => React.ReactNode;
 }) {
-  const previewCount = section.dataKey === 'hotNews' ? 2 : 4;
+  const previewCount = section.previewCount;
 
   return (
     <section className="content-visibility-auto">
@@ -52,19 +54,52 @@ function SectionWrapper({
         linkText={section.linkText}
         isButton={section.dataKey === 'hotNews'}
       />
-      <div className={`grid ${columns} gap-8 md:gap-12`}>
+      <div className={`grid ${columns} gap-12`}>
         {loading
           ? Array(previewCount)
               .fill(0)
               .map((_, index) => <div key={index} className={`${skeletonHeight} animate-pulse rounded-2xl bg-stone-200`} />)
           : data.slice(0, previewCount).map((item, idx) => (
-              <div key={item.id} className="content-visibility-auto">
+              <div key={item.id} className={`content-visibility-auto ${itemClassName || ''}`}>
                 {renderItem(item, idx)}
               </div>
             ))}
       </div>
     </section>
   );
+}
+
+function sortServicesByReview(services: Service[]) {
+  return [...services].sort((a, b) => {
+    const reviewDiff = (b.reviews || 0) - (a.reviews || 0);
+    if (reviewDiff !== 0) {
+      return reviewDiff;
+    }
+
+    return (b.rating || 0) - (a.rating || 0);
+  });
+}
+
+function sortItemsBySellerValue(items: Item[]) {
+  return [...items].sort((a, b) => {
+    const soldDiff = (b.sellerSoldCount || 0) - (a.sellerSoldCount || 0);
+    if (soldDiff !== 0) {
+      return soldDiff;
+    }
+
+    return (b.sellerFollowersCount || 0) - (a.sellerFollowersCount || 0);
+  });
+}
+
+function sortPostsByEngagement(posts: Post[]) {
+  return [...posts].sort((a, b) => {
+    const commentDiff = (b.commentsCount || 0) - (a.commentsCount || 0);
+    if (commentDiff !== 0) {
+      return commentDiff;
+    }
+
+    return (b.likes || 0) - (a.likes || 0);
+  });
 }
 
 export default function HomePage() {
@@ -91,6 +126,10 @@ export default function HomePage() {
     fetchData();
   }, []);
 
+  const sortedServices = sortServicesByReview(data.hotServices);
+  const sortedMarket = sortItemsBySellerValue(data.hotMarket);
+  const sortedNews = sortPostsByEngagement(data.hotNews);
+
   if (error) {
     return (
       <div className="flex min-h-screen items-center justify-center">
@@ -109,27 +148,30 @@ export default function HomePage() {
         <div className="space-y-20 md:space-y-32">
           <SectionWrapper
             section={SECTIONS[0]}
-            data={data.hotServices}
+            data={sortedServices}
             loading={loading}
-            columns="grid-cols-1 sm:grid-cols-2 lg:grid-cols-4"
-            skeletonHeight="h-64"
-            renderItem={(item) => <GlobalCard type="service" data={item as Service} />}
+            columns="grid-cols-1 justify-start sm:grid-cols-2 lg:[grid-template-columns:repeat(5,minmax(0,220px))]"
+            skeletonHeight="h-44"
+            itemClassName="w-full"
+            renderItem={(item) => <GlobalCard type="service" data={item as Service} size="homeCompact" />}
           />
           <SectionWrapper
             section={SECTIONS[1]}
-            data={data.hotMarket}
+            data={sortedMarket}
             loading={loading}
-            columns="grid-cols-1 sm:grid-cols-2 lg:grid-cols-4"
-            skeletonHeight="h-64"
-            renderItem={(item) => <GlobalCard type="item" data={item as Item} />}
+            columns="grid-cols-1 justify-start sm:grid-cols-2 lg:[grid-template-columns:repeat(5,minmax(0,220px))]"
+            skeletonHeight="h-44"
+            itemClassName="w-full"
+            renderItem={(item) => <GlobalCard type="item" data={item as Item} size="homeCompact" />}
           />
           <SectionWrapper
             section={SECTIONS[2]}
-            data={data.hotNews}
+            data={sortedNews}
             loading={loading}
-            columns="grid-cols-1 lg:grid-cols-2"
-            skeletonHeight="h-48"
-            renderItem={(item, idx) => <HomePostCard post={item as Post} idx={idx} />}
+            columns="grid-cols-1 justify-start lg:[grid-template-columns:repeat(3,minmax(0,1fr))]"
+            skeletonHeight="h-36"
+            itemClassName="w-full"
+            renderItem={(item, idx) => <HomePostCard post={item as Post} idx={idx} compact />}
           />
         </div>
       </main>

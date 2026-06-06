@@ -10,6 +10,7 @@ import com.baomidou.mybatisplus.annotation.TableId;
 import com.baomidou.mybatisplus.annotation.TableName;
 import lombok.Data;
 
+/** 文件作用：评论点赞实体。 */
 @Data
 @TableName("t_comment_like")
 public class CommentLike {

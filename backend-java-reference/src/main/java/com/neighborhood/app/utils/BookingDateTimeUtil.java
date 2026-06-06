@@ -10,6 +10,7 @@ import java.time.LocalDateTime;
 import java.time.LocalTime;
 import java.time.format.DateTimeFormatter;
 
+/** 文件作用：预约日期时间工具。 */
 public final class BookingDateTimeUtil {
 
     private BookingDateTimeUtil() {

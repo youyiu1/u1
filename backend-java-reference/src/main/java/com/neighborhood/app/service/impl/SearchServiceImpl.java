@@ -11,6 +11,7 @@ import com.neighborhood.app.utils.CacheLookupUtil;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
+/** 文件作用：搜索服务实现。 */
 @Service
 @RequiredArgsConstructor
 public class SearchServiceImpl implements SearchService {
