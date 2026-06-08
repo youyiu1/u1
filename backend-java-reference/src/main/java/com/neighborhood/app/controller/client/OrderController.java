@@ -4,6 +4,7 @@ import com.neighborhood.app.common.Result;
 import com.neighborhood.app.common.ResultUtils;
 import com.neighborhood.app.entity.service.Order;
 import com.neighborhood.app.service.OrderService;
+import com.neighborhood.app.utils.RequestUserResolver;
 import com.neighborhood.app.utils.RequestUserUtil;
 import jakarta.servlet.http.HttpServletRequest;
 import java.util.List;
@@ -29,20 +30,21 @@ public class OrderController {
     private static final String STATUS_CANCELLED = "cancelled";
 
     private final OrderService orderService;
+    private final RequestUserResolver requestUserResolver;
 
     @GetMapping("/list")
     public Result<List<Order>> list(@RequestParam(required = false) String userId, HttpServletRequest request) {
-        return Result.ok(orderService.listByUserId(RequestUserUtil.getEffectiveUserId(request, userId)));
+        return Result.ok(orderService.listByUserId(requestUserResolver.getEffectiveUserId(request, userId)));
     }
 
     @GetMapping("/list/completed")
     public Result<List<Order>> completedList(@RequestParam(required = false) String userId, HttpServletRequest request) {
-        return Result.ok(orderService.listCompletedByUserId(RequestUserUtil.getEffectiveUserId(request, userId)));
+        return Result.ok(orderService.listCompletedByUserId(requestUserResolver.getEffectiveUserId(request, userId)));
     }
 
     @GetMapping("/list/in_progress")
     public Result<List<Order>> inProgressList(@RequestParam(required = false) String userId, HttpServletRequest request) {
-        return Result.ok(orderService.listInProgressByUserId(RequestUserUtil.getEffectiveUserId(request, userId)));
+        return Result.ok(orderService.listInProgressByUserId(requestUserResolver.getEffectiveUserId(request, userId)));
     }
 
     @GetMapping("/{id}")

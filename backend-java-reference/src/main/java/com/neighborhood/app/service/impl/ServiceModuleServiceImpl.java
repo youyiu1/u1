@@ -1,10 +1,15 @@
 package com.neighborhood.app.service.impl;
 
+import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
+import com.baomidou.mybatisplus.core.metadata.IPage;
+import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.neighborhood.app.entity.service.Booking;
+import com.neighborhood.app.entity.service.Order;
 import com.neighborhood.app.entity.service.ServiceEntity;
 import com.neighborhood.app.entity.user.User;
 import com.neighborhood.app.mapper.service.BookingMapper;
+import com.neighborhood.app.mapper.service.OrderMapper;
 import com.neighborhood.app.mapper.service.ServiceMapper;
 import com.neighborhood.app.service.AppMetricsService;
 import com.neighborhood.app.service.CacheService;
@@ -21,6 +26,7 @@ import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.HashMap;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.BeanUtils;
@@ -32,11 +38,13 @@ import org.springframework.stereotype.Service;
 public class ServiceModuleServiceImpl extends ServiceImpl<ServiceMapper, ServiceEntity> implements ServiceModuleService {
 
     private static final String ACTIVE_STATUS = "active";
+    private static final String COMPLETED_STATUS = "completed";
     private static final String PENDING_STATUS = "pending";
     private static final String UNKNOWN_DISTANCE = "距离未知";
 
     private final CacheService cacheService;
     private final BookingMapper bookingMapper;
+    private final OrderMapper orderMapper;
     private final UserService userService;
     private final AppMetricsService appMetricsService;
 
@@ -74,7 +82,32 @@ public class ServiceModuleServiceImpl extends ServiceImpl<ServiceMapper, Service
             return null;
         }
         User seller = userService.getById(service.getSellerId());
-        return ServiceDetailVO.fromService(service, seller, buyerLat, buyerLng);
+        ServiceDetailVO vo = ServiceDetailVO.fromService(service, seller, buyerLat, buyerLng);
+        if (vo != null && vo.getSeller() != null) {
+            vo.getSeller().setSoldCount(countCompletedOrders(service.getSellerId()));
+        }
+        return vo;
+    }
+
+    @Override
+    public IPage<ServiceEntity> listPage(String category, String keyword, Double buyerLat, Double buyerLng, long pageNum, long pageSize) {
+        List<ServiceEntity> source = buyerLat != null && buyerLng != null ? listWithDistance(buyerLat, buyerLng) : list();
+        String normalizedKeyword = normalizeKeyword(keyword);
+        List<ServiceEntity> filtered = source.stream()
+                .filter(service -> matchesCategory(category, service.getCategory()))
+                .filter(service -> matchesKeyword(normalizedKeyword, service.getTitle()))
+                .toList();
+
+        Page<ServiceEntity> result = new Page<>(pageNum, pageSize, filtered.size());
+        long start = Math.max(0L, (pageNum - 1) * pageSize);
+        if (start >= filtered.size()) {
+            result.setRecords(List.of());
+            return result;
+        }
+        int fromIndex = (int) start;
+        int toIndex = (int) Math.min(filtered.size(), start + pageSize);
+        result.setRecords(filtered.subList(fromIndex, toIndex));
+        return result;
     }
 
     @Override
@@ -143,6 +176,30 @@ public class ServiceModuleServiceImpl extends ServiceImpl<ServiceMapper, Service
         ServiceEntity copied = new ServiceEntity();
         BeanUtils.copyProperties(item, copied);
         return copied;
+    }
+
+    private boolean matchesCategory(String category, String currentCategory) {
+        return category == null || category.isBlank() || "all".equalsIgnoreCase(category) || category.equals(currentCategory);
+    }
+
+    private boolean matchesKeyword(String keyword, String value) {
+        if (keyword == null || keyword.isEmpty()) {
+            return true;
+        }
+        return value != null && value.toLowerCase(Locale.ROOT).contains(keyword);
+    }
+
+    private String normalizeKeyword(String keyword) {
+        return keyword == null ? "" : keyword.trim().toLowerCase(Locale.ROOT);
+    }
+
+    private int countCompletedOrders(String sellerId) {
+        if (sellerId == null || sellerId.isBlank()) {
+            return 0;
+        }
+        return Math.toIntExact(orderMapper.selectCount(new LambdaQueryWrapper<Order>()
+                .eq(Order::getSellerId, sellerId)
+                .eq(Order::getStatus, COMPLETED_STATUS)));
     }
 
     private void fillUnknownDistance(ServiceEntity service) {

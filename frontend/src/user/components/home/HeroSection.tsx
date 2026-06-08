@@ -1,4 +1,4 @@
-﻿import React, { useCallback, useEffect, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { motion } from 'motion/react';
 
 const WORDS = ['生活灵感', '邻里温情', '社区动态', '身边故事', '同城烟火'];
@@ -57,41 +57,44 @@ export const HeroSection: React.FC = () => {
   }, [clearTimers, currentIndex, displayText, isDeleting]);
 
   return (
-    <section className="relative z-10 mx-auto max-w-[1440px] overflow-hidden px-4 pb-14 pt-20 sm:pt-24 md:px-12 md:pb-16 md:pt-32">
+    <section className="relative z-10 mx-auto max-w-[1440px] overflow-hidden px-4 pb-10 pt-18 sm:pt-22 md:px-12 md:pb-12 md:pt-28">
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 1, ease: [0.16, 1, 0.3, 1] }}
+        transition={{ duration: 0.9, ease: [0.16, 1, 0.3, 1] }}
+        className="max-w-[980px]"
       >
-        <div className="mb-6 flex items-center gap-3 sm:mb-8 sm:gap-4">
+        <div className="mb-5 flex items-center gap-3 sm:mb-7 sm:gap-4">
           <div className="h-[1px] w-8 bg-primary sm:w-12" />
-          <span className="text-[9px] font-black uppercase tracking-[0.24em] text-primary sm:text-[10px] sm:tracking-[0.4em]">
+          <span className="text-[9px] font-black uppercase tracking-[0.24em] text-primary sm:text-[10px] sm:tracking-[0.36em]">
             Discover Nearby Inspiration
           </span>
         </div>
 
-        <h1 className="mb-10 text-4xl font-black leading-[0.9] tracking-tighter text-ink sm:mb-12 sm:text-6xl md:mb-16 md:text-8xl md:leading-[0.85] lg:text-9xl">
+        <h1 className="mb-6 text-4xl font-black leading-[0.92] tracking-tighter text-ink sm:mb-8 sm:text-6xl md:text-8xl md:leading-[0.88] lg:text-[5.6rem]">
           发现身边的
           <br />
-          <span className="bg-gradient-to-r from-primary to-primary-light bg-clip-text pr-2 italic text-transparent sm:pr-4">
+          <span className="pr-2 italic text-primary sm:pr-4">
             {displayText}
             <span className="inline-block animate-pulse">|</span>
           </span>
         </h1>
 
-        <div className="flex max-w-xl flex-col flex-wrap gap-4 sm:flex-row sm:gap-6">
+        <p className="mb-8 max-w-2xl text-sm leading-7 text-muted sm:text-[15px]">
+          在同城里找服务、逛闲置、看动态，也把自己的生活分享给附近的人。
+        </p>
+
+        <div className="flex max-w-xl flex-col flex-wrap gap-4 sm:flex-row sm:gap-5">
           <button
             onClick={() => {
               document.getElementById('discovery-results')?.scrollIntoView({ behavior: 'smooth' });
             }}
-            className="group relative w-full overflow-hidden rounded-[24px] bg-ink px-8 py-4 text-[11px] font-black uppercase tracking-widest text-white shadow-premium transition-all duration-500 hover:bg-primary active:scale-95 sm:w-auto sm:rounded-[28px] sm:px-12 sm:py-6"
+            className="group relative w-full overflow-hidden rounded-[24px] bg-ink px-8 py-4 text-[11px] font-black uppercase tracking-widest text-white shadow-sm transition-all duration-300 hover:bg-primary active:scale-95 sm:w-auto sm:px-10 sm:py-5"
           >
             <span className="relative z-10">立即探索</span>
-            <div className="absolute inset-0 translate-y-full bg-white/10 transition-transform duration-500 group-hover:translate-y-0" />
           </button>
-          <button className="group relative w-full overflow-hidden rounded-[24px] border border-hairline bg-white px-8 py-4 text-center text-[11px] font-black uppercase tracking-widest text-ink shadow-sm transition-all duration-500 hover:border-ink active:scale-95 sm:w-auto sm:rounded-[28px] sm:px-12 sm:py-6">
+          <button className="group relative w-full overflow-hidden rounded-[24px] border border-stone-200 bg-white px-8 py-4 text-center text-[11px] font-black uppercase tracking-widest text-ink transition-all duration-300 hover:border-ink active:scale-95 sm:w-auto sm:px-10 sm:py-5">
             <span className="relative z-10">随便逛逛</span>
-            <div className="absolute inset-0 translate-y-full bg-ink/5 transition-transform duration-500 group-hover:translate-y-0" />
           </button>
         </div>
       </motion.div>

@@ -30,6 +30,9 @@ public class MarketItemVO {
     private String sellerName;
     private String sellerAvatar;
     private Boolean sellerVerified;
+    private String sellerTag;
+    private String sellerBio;
+    private String sellerRegion;
     private Integer sellerFollowersCount;
     private Integer sellerOnSaleCount;
     private Integer sellerSoldCount;
@@ -62,9 +65,11 @@ public class MarketItemVO {
             vo.setSellerName(seller.getName());
             vo.setSellerAvatar(seller.getAvatar());
             vo.setSellerVerified(seller.getIsVerified());
+            vo.setSellerTag(seller.getTag());
+            vo.setSellerBio(seller.getBio());
+            vo.setSellerRegion(seller.getRegion());
             vo.setSellerFollowersCount(seller.getFollowersCount());
-            vo.setSellerOnSaleCount(seller.getSoldCount());
-            vo.setSellerSoldCount(seller.getRating() != null ? seller.getRating().intValue() : 0);
+            vo.setSellerSoldCount(seller.getSoldCount());
         }
         return vo;
     }

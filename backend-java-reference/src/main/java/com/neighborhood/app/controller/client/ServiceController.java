@@ -2,6 +2,7 @@ package com.neighborhood.app.controller.client;
 
 import com.neighborhood.app.common.Result;
 import com.neighborhood.app.common.ResultUtils;
+import com.neighborhood.app.dto.common.PageQueryRequest;
 import com.neighborhood.app.dto.service.AddReviewRequest;
 import com.neighborhood.app.dto.service.BookingRequest;
 import com.neighborhood.app.entity.service.ServiceEntity;
@@ -11,6 +12,7 @@ import com.neighborhood.app.service.NotificationService;
 import com.neighborhood.app.service.ServiceModuleService;
 import com.neighborhood.app.service.ServiceReviewService;
 import com.neighborhood.app.service.UserService;
+import com.neighborhood.app.utils.RequestUserResolver;
 import com.neighborhood.app.utils.RequestUserUtil;
 import com.neighborhood.app.utils.RequestValueUtil;
 import com.neighborhood.app.utils.ServiceReviewResponseUtil;
@@ -40,16 +42,25 @@ public class ServiceController {
     private final ServiceReviewService serviceReviewService;
     private final NotificationService notificationService;
     private final UserService userService;
+    private final RequestUserResolver requestUserResolver;
 
     /** 获取服务列表。 */
     @GetMapping("/list")
     public Result<List<ServiceEntity>> list(
+            @RequestParam(required = false) String category,
+            @RequestParam(required = false) String keyword,
             @RequestParam(required = false) Double lat,
-            @RequestParam(required = false) Double lng) {
-        if (lat != null && lng != null) {
-            return ResultUtils.ok(serviceModuleService.listWithDistance(lat, lng));
-        }
-        return ResultUtils.ok(serviceModuleService.list());
+            @RequestParam(required = false) Double lng,
+            PageQueryRequest pageQuery) {
+        var page = serviceModuleService.listPage(
+                category,
+                keyword,
+                lat,
+                lng,
+                pageQuery.normalizedPageNum(),
+                pageQuery.normalizedPageSize()
+        );
+        return Result.ok(page.getRecords(), page.getTotal());
     }
 
     /** 获取用户发布的服务列表。 */
@@ -70,7 +81,7 @@ public class ServiceController {
     /** 获取服务评价列表。 */
     @GetMapping("/{id}/reviews")
     public Result<List<Map<String, Object>>> getReviews(@PathVariable Long id, HttpServletRequest request) {
-        String userId = RequestUserUtil.currentUserId(request);
+        String userId = requestUserResolver.currentUserId(request);
         if (userId != null && !userId.isBlank()) {
             return ResultUtils.ok(serviceReviewService.getByServiceIdWithLikeStatus(id, userId));
         }

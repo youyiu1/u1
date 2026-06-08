@@ -15,6 +15,7 @@ import com.neighborhood.app.service.EmailService;
 import com.neighborhood.app.service.UserService;
 import com.neighborhood.app.util.JwtUtil;
 import com.neighborhood.app.utils.AuthTokenStore;
+import com.neighborhood.app.utils.RequestUserResolver;
 import com.neighborhood.app.utils.RequestUserUtil;
 import com.neighborhood.app.vo.user.PublicUserVO;
 import com.neighborhood.app.vo.user.UserVO;
@@ -43,6 +44,7 @@ public class UserController {
     private final EmailService emailService;
     private final JwtUtil jwtUtil;
     private final AuthTokenStore authTokenStore;
+    private final RequestUserResolver requestUserResolver;
 
     /** 获取用户详情。 */
     @GetMapping("/{id}")
@@ -203,7 +205,7 @@ public class UserController {
     }
 
     private String effectiveUserId(HttpServletRequest request, String userId) {
-        return RequestUserUtil.getEffectiveUserId(request, userId);
+        return requestUserResolver.getEffectiveUserId(request, userId);
     }
 
     private UserVO buildUserVO(User user) {

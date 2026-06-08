@@ -1,0 +1,429 @@
+[2m12:32:59[22m [31m[1m[vite][22m[39m [31mInternal server error: D:\下载文件\同城生活\frontend\src\user\pages\service\ServiceDetailPage.tsx: Unexpected token, expected "," (693:18)
+
+[0m [90m 691 |[31m                     资质已认证
+ [90m 692 |[31m                   [33m<[31m[33m/[31m[33mspan[31m[33m>[31m
+[31m[1m>[22m[31m[90m 693 |[31m                   {[33m![31misOwnService [33m&&[31m sellerId [33m?[31m (
+ [90m     |[31m                   [31m[1m^[22m[31m
+ [90m 694 |[31m                     [33m<[31m[33mFollowButton[31m
+ [90m 695 |[31m                       targetId[33m=[31m{sellerId}
+ [90m 696 |[31m                       isFollowingInitial[33m=[31m{isFollowing}[0m[39m
+  Plugin: [35mvite:react-babel[39m
+  File: [36mD:/下载文件/同城生活/frontend/src/user/pages/service/ServiceDetailPage.tsx[39m:693:18
+[33m  705|                    服务者信息已通过平台校验，可在线沟通、预约服务，支持按约定时间上门或到店完成服务。
+  706|                  </p>
+  707|                  <div className="flex items-center justify-center gap-8 md:justify-start">
+     |                                                ^
+  708|                    {sellerStats.map((stat) => (
+  709|                      <React.Fragment key={stat.label}>[39m
+      at constructor (D:\下载文件\同城生活\frontend\node_modules\@babel\parser\lib\index.js:365:19)
+      at TypeScriptParserMixin.raise (D:\下载文件\同城生活\frontend\node_modules\@babel\parser\lib\index.js:6616:19)
+      at TypeScriptParserMixin.unexpected (D:\下载文件\同城生活\frontend\node_modules\@babel\parser\lib\index.js:6636:16)
+      at TypeScriptParserMixin.expect (D:\下载文件\同城生活\frontend\node_modules\@babel\parser\lib\index.js:6916:12)
+      at TypeScriptParserMixin.parseParenAndDistinguishExpression (D:\下载文件\同城生活\frontend\node_modules\@babel\parser\lib\index.js:11678:14)
+      at TypeScriptParserMixin.parseExprAtom (D:\下载文件\同城生活\frontend\node_modules\@babel\parser\lib\index.js:11348:23)
+      at TypeScriptParserMixin.parseExprAtom (D:\下载文件\同城生活\frontend\node_modules\@babel\parser\lib\index.js:4776:20)
+      at TypeScriptParserMixin.parseExprSubscripts (D:\下载文件\同城生活\frontend\node_modules\@babel\parser\lib\index.js:11098:23)
+      at TypeScriptParserMixin.parseUpdate (D:\下载文件\同城生活\frontend\node_modules\@babel\parser\lib\index.js:11083:21)
+      at TypeScriptParserMixin.parseMaybeUnary (D:\下载文件\同城生活\frontend\node_modules\@babel\parser\lib\index.js:11063:23)
+      at TypeScriptParserMixin.parseMaybeUnary (D:\下载文件\同城生活\frontend\node_modules\@babel\parser\lib\index.js:9854:18)
+      at TypeScriptParserMixin.parseMaybeUnaryOrPrivate (D:\下载文件\同城生活\frontend\node_modules\@babel\parser\lib\index.js:10916:61)
+      at TypeScriptParserMixin.parseExprOps (D:\下载文件\同城生活\frontend\node_modules\@babel\parser\lib\index.js:10921:23)
+      at TypeScriptParserMixin.parseMaybeConditional (D:\下载文件\同城生活\frontend\node_modules\@babel\parser\lib\index.js:10898:23)
+      at TypeScriptParserMixin.parseMaybeAssign (D:\下载文件\同城生活\frontend\node_modules\@babel\parser\lib\index.js:10848:21)
+      at TypeScriptParserMixin.parseMaybeAssign (D:\下载文件\同城生活\frontend\node_modules\@babel\parser\lib\index.js:9803:20)
+      at D:\下载文件\同城生活\frontend\node_modules\@babel\parser\lib\index.js:10817:39
+      at TypeScriptParserMixin.allowInAnd (D:\下载文件\同城生活\frontend\node_modules\@babel\parser\lib\index.js:12443:12)
+      at TypeScriptParserMixin.parseMaybeAssignAllowIn (D:\下载文件\同城生活\frontend\node_modules\@babel\parser\lib\index.js:10817:17)
+      at TypeScriptParserMixin.parseConditional (D:\下载文件\同城生活\frontend\node_modules\@babel\parser\lib\index.js:10908:30)
+      at TypeScriptParserMixin.parseConditional (D:\下载文件\同城生活\frontend\node_modules\@babel\parser\lib\index.js:9620:18)
+      at TypeScriptParserMixin.parseMaybeConditional (D:\下载文件\同城生活\frontend\node_modules\@babel\parser\lib\index.js:10902:17)
+      at TypeScriptParserMixin.parseMaybeAssign (D:\下载文件\同城生活\frontend\node_modules\@babel\parser\lib\index.js:10848:21)
+      at TypeScriptParserMixin.parseMaybeAssign (D:\下载文件\同城生活\frontend\node_modules\@babel\parser\lib\index.js:9803:20)
+      at TypeScriptParserMixin.parseExpressionBase (D:\下载文件\同城生活\frontend\node_modules\@babel\parser\lib\index.js:10801:23)
+      at D:\下载文件\同城生活\frontend\node_modules\@babel\parser\lib\index.js:10797:39
+      at TypeScriptParserMixin.allowInAnd (D:\下载文件\同城生活\frontend\node_modules\@babel\parser\lib\index.js:12443:12)
+      at TypeScriptParserMixin.parseExpression (D:\下载文件\同城生活\frontend\node_modules\@babel\parser\lib\index.js:10797:17)
+      at TypeScriptParserMixin.jsxParseExpressionContainer (D:\下载文件\同城生活\frontend\node_modules\@babel\parser\lib\index.js:4644:31)
+      at TypeScriptParserMixin.jsxParseElementAt (D:\下载文件\同城生活\frontend\node_modules\@babel\parser\lib\index.js:4723:36)
+      at TypeScriptParserMixin.jsxParseElementAt (D:\下载文件\同城生活\frontend\node_modules\@babel\parser\lib\index.js:4710:32)
+      at TypeScriptParserMixin.jsxParseElementAt (D:\下载文件\同城生活\frontend\node_modules\@babel\parser\lib\index.js:4710:32)
+      at TypeScriptParserMixin.jsxParseElementAt (D:\下载文件\同城生活\frontend\node_modules\@babel\parser\lib\index.js:4710:32)
+      at TypeScriptParserMixin.jsxParseElementAt (D:\下载文件\同城生活\frontend\node_modules\@babel\parser\lib\index.js:4710:32)
+      at TypeScriptParserMixin.jsxParseElementAt (D:\下载文件\同城生活\frontend\node_modules\@babel\parser\lib\index.js:4710:32)
+      at TypeScriptParserMixin.jsxParseElementAt (D:\下载文件\同城生活\frontend\node_modules\@babel\parser\lib\index.js:4710:32)
+      at TypeScriptParserMixin.jsxParseElement (D:\下载文件\同城生活\frontend\node_modules\@babel\parser\lib\index.js:4761:17)
+      at TypeScriptParserMixin.parseExprAtom (D:\下载文件\同城生活\frontend\node_modules\@babel\parser\lib\index.js:4771:19)
+      at TypeScriptParserMixin.parseExprSubscripts (D:\下载文件\同城生活\frontend\node_modules\@babel\parser\lib\index.js:11098:23)
+      at TypeScriptParserMixin.parseUpdate (D:\下载文件\同城生活\frontend\node_modules\@babel\parser\lib\index.js:11083:21)
+      at TypeScriptParserMixin.parseMaybeUnary (D:\下载文件\同城生活\frontend\node_modules\@babel\parser\lib\index.js:11063:23)
+      at TypeScriptParserMixin.parseMaybeUnary (D:\下载文件\同城生活\frontend\node_modules\@babel\parser\lib\index.js:9854:18)
+      at TypeScriptParserMixin.parseMaybeUnaryOrPrivate (D:\下载文件\同城生活\frontend\node_modules\@babel\parser\lib\index.js:10916:61)
+      at TypeScriptParserMixin.parseExprOps (D:\下载文件\同城生活\frontend\node_modules\@babel\parser\lib\index.js:10921:23)
+      at TypeScriptParserMixin.parseMaybeConditional (D:\下载文件\同城生活\frontend\node_modules\@babel\parser\lib\index.js:10898:23)
+      at TypeScriptParserMixin.parseMaybeAssign (D:\下载文件\同城生活\frontend\node_modules\@babel\parser\lib\index.js:10848:21)
+      at D:\下载文件\同城生活\frontend\node_modules\@babel\parser\lib\index.js:9792:39
+      at TypeScriptParserMixin.tryParse (D:\下载文件\同城生活\frontend\node_modules\@babel\parser\lib\index.js:6924:20)
+      at TypeScriptParserMixin.parseMaybeAssign (D:\下载文件\同城生活\frontend\node_modules\@babel\parser\lib\index.js:9792:18)
+      at D:\下载文件\同城生活\frontend\node_modules\@babel\parser\lib\index.js:10817:39
+[2m12:33:00[22m [31m[1m[vite][22m[39m [31mInternal server error: D:\下载文件\同城生活\frontend\src\user\pages\service\ServiceDetailPage.tsx: Unexpected token, expected "," (693:18)
+
+[0m [90m 691 |[31m                     资质已认证
+ [90m 692 |[31m                   [33m<[31m[33m/[31m[33mspan[31m[33m>[31m
+[31m[1m>[22m[31m[90m 693 |[31m                   {[33m![31misOwnService [33m&&[31m sellerId [33m?[31m (
+ [90m     |[31m                   [31m[1m^[22m[31m
+ [90m 694 |[31m                     [33m<[31m[33mFollowButton[31m
+ [90m 695 |[31m                       targetId[33m=[31m{sellerId}
+ [90m 696 |[31m                       isFollowingInitial[33m=[31m{isFollowing}[0m[39m
+  Plugin: [35mvite:react-babel[39m
+  File: [36mD:/下载文件/同城生活/frontend/src/user/pages/service/ServiceDetailPage.tsx[39m:693:18
+[33m  705|                    服务者信息已通过平台校验，可在线沟通、预约服务，支持按约定时间上门或到店完成服务。
+  706|                  </p>
+  707|                  <div className="flex items-center justify-center gap-8 md:justify-start">
+     |                                                ^
+  708|                    {sellerStats.map((stat) => (
+  709|                      <React.Fragment key={stat.label}>[39m
+      at constructor (D:\下载文件\同城生活\frontend\node_modules\@babel\parser\lib\index.js:365:19)
+      at TypeScriptParserMixin.raise (D:\下载文件\同城生活\frontend\node_modules\@babel\parser\lib\index.js:6616:19)
+      at TypeScriptParserMixin.unexpected (D:\下载文件\同城生活\frontend\node_modules\@babel\parser\lib\index.js:6636:16)
+      at TypeScriptParserMixin.expect (D:\下载文件\同城生活\frontend\node_modules\@babel\parser\lib\index.js:6916:12)
+      at TypeScriptParserMixin.parseParenAndDistinguishExpression (D:\下载文件\同城生活\frontend\node_modules\@babel\parser\lib\index.js:11678:14)
+      at TypeScriptParserMixin.parseExprAtom (D:\下载文件\同城生活\frontend\node_modules\@babel\parser\lib\index.js:11348:23)
+      at TypeScriptParserMixin.parseExprAtom (D:\下载文件\同城生活\frontend\node_modules\@babel\parser\lib\index.js:4776:20)
+      at TypeScriptParserMixin.parseExprSubscripts (D:\下载文件\同城生活\frontend\node_modules\@babel\parser\lib\index.js:11098:23)
+      at TypeScriptParserMixin.parseUpdate (D:\下载文件\同城生活\frontend\node_modules\@babel\parser\lib\index.js:11083:21)
+      at TypeScriptParserMixin.parseMaybeUnary (D:\下载文件\同城生活\frontend\node_modules\@babel\parser\lib\index.js:11063:23)
+      at TypeScriptParserMixin.parseMaybeUnary (D:\下载文件\同城生活\frontend\node_modules\@babel\parser\lib\index.js:9854:18)
+      at TypeScriptParserMixin.parseMaybeUnaryOrPrivate (D:\下载文件\同城生活\frontend\node_modules\@babel\parser\lib\index.js:10916:61)
+      at TypeScriptParserMixin.parseExprOps (D:\下载文件\同城生活\frontend\node_modules\@babel\parser\lib\index.js:10921:23)
+      at TypeScriptParserMixin.parseMaybeConditional (D:\下载文件\同城生活\frontend\node_modules\@babel\parser\lib\index.js:10898:23)
+      at TypeScriptParserMixin.parseMaybeAssign (D:\下载文件\同城生活\frontend\node_modules\@babel\parser\lib\index.js:10848:21)
+      at TypeScriptParserMixin.parseMaybeAssign (D:\下载文件\同城生活\frontend\node_modules\@babel\parser\lib\index.js:9803:20)
+      at D:\下载文件\同城生活\frontend\node_modules\@babel\parser\lib\index.js:10817:39
+      at TypeScriptParserMixin.allowInAnd (D:\下载文件\同城生活\frontend\node_modules\@babel\parser\lib\index.js:12443:12)
+      at TypeScriptParserMixin.parseMaybeAssignAllowIn (D:\下载文件\同城生活\frontend\node_modules\@babel\parser\lib\index.js:10817:17)
+      at TypeScriptParserMixin.parseConditional (D:\下载文件\同城生活\frontend\node_modules\@babel\parser\lib\index.js:10908:30)
+      at TypeScriptParserMixin.parseConditional (D:\下载文件\同城生活\frontend\node_modules\@babel\parser\lib\index.js:9620:18)
+      at TypeScriptParserMixin.parseMaybeConditional (D:\下载文件\同城生活\frontend\node_modules\@babel\parser\lib\index.js:10902:17)
+      at TypeScriptParserMixin.parseMaybeAssign (D:\下载文件\同城生活\frontend\node_modules\@babel\parser\lib\index.js:10848:21)
+      at TypeScriptParserMixin.parseMaybeAssign (D:\下载文件\同城生活\frontend\node_modules\@babel\parser\lib\index.js:9803:20)
+      at TypeScriptParserMixin.parseExpressionBase (D:\下载文件\同城生活\frontend\node_modules\@babel\parser\lib\index.js:10801:23)
+      at D:\下载文件\同城生活\frontend\node_modules\@babel\parser\lib\index.js:10797:39
+      at TypeScriptParserMixin.allowInAnd (D:\下载文件\同城生活\frontend\node_modules\@babel\parser\lib\index.js:12443:12)
+      at TypeScriptParserMixin.parseExpression (D:\下载文件\同城生活\frontend\node_modules\@babel\parser\lib\index.js:10797:17)
+      at TypeScriptParserMixin.jsxParseExpressionContainer (D:\下载文件\同城生活\frontend\node_modules\@babel\parser\lib\index.js:4644:31)
+      at TypeScriptParserMixin.jsxParseElementAt (D:\下载文件\同城生活\frontend\node_modules\@babel\parser\lib\index.js:4723:36)
+      at TypeScriptParserMixin.jsxParseElementAt (D:\下载文件\同城生活\frontend\node_modules\@babel\parser\lib\index.js:4710:32)
+      at TypeScriptParserMixin.jsxParseElementAt (D:\下载文件\同城生活\frontend\node_modules\@babel\parser\lib\index.js:4710:32)
+      at TypeScriptParserMixin.jsxParseElementAt (D:\下载文件\同城生活\frontend\node_modules\@babel\parser\lib\index.js:4710:32)
+      at TypeScriptParserMixin.jsxParseElementAt (D:\下载文件\同城生活\frontend\node_modules\@babel\parser\lib\index.js:4710:32)
+      at TypeScriptParserMixin.jsxParseElementAt (D:\下载文件\同城生活\frontend\node_modules\@babel\parser\lib\index.js:4710:32)
+      at TypeScriptParserMixin.jsxParseElementAt (D:\下载文件\同城生活\frontend\node_modules\@babel\parser\lib\index.js:4710:32)
+      at TypeScriptParserMixin.jsxParseElement (D:\下载文件\同城生活\frontend\node_modules\@babel\parser\lib\index.js:4761:17)
+      at TypeScriptParserMixin.parseExprAtom (D:\下载文件\同城生活\frontend\node_modules\@babel\parser\lib\index.js:4771:19)
+      at TypeScriptParserMixin.parseExprSubscripts (D:\下载文件\同城生活\frontend\node_modules\@babel\parser\lib\index.js:11098:23)
+      at TypeScriptParserMixin.parseUpdate (D:\下载文件\同城生活\frontend\node_modules\@babel\parser\lib\index.js:11083:21)
+      at TypeScriptParserMixin.parseMaybeUnary (D:\下载文件\同城生活\frontend\node_modules\@babel\parser\lib\index.js:11063:23)
+      at TypeScriptParserMixin.parseMaybeUnary (D:\下载文件\同城生活\frontend\node_modules\@babel\parser\lib\index.js:9854:18)
+      at TypeScriptParserMixin.parseMaybeUnaryOrPrivate (D:\下载文件\同城生活\frontend\node_modules\@babel\parser\lib\index.js:10916:61)
+      at TypeScriptParserMixin.parseExprOps (D:\下载文件\同城生活\frontend\node_modules\@babel\parser\lib\index.js:10921:23)
+      at TypeScriptParserMixin.parseMaybeConditional (D:\下载文件\同城生活\frontend\node_modules\@babel\parser\lib\index.js:10898:23)
+      at TypeScriptParserMixin.parseMaybeAssign (D:\下载文件\同城生活\frontend\node_modules\@babel\parser\lib\index.js:10848:21)
+      at D:\下载文件\同城生活\frontend\node_modules\@babel\parser\lib\index.js:9792:39
+      at TypeScriptParserMixin.tryParse (D:\下载文件\同城生活\frontend\node_modules\@babel\parser\lib\index.js:6924:20)
+      at TypeScriptParserMixin.parseMaybeAssign (D:\下载文件\同城生活\frontend\node_modules\@babel\parser\lib\index.js:9792:18)
+      at D:\下载文件\同城生活\frontend\node_modules\@babel\parser\lib\index.js:10817:39
+[2m12:43:21[22m [31m[1m[vite][22m[39m [31mInternal server error: D:\下载文件\同城生活\frontend\src\user\pages\service\ServiceDetailPage.tsx: Unterminated string constant. (67:10)
+
+[0m [90m 65 |[31m     icon[33m:[31m [33m<[31m[33mShieldCheck[31m className[33m=[31m[32m"h-5 w-5 text-green-500"[31m [33m/[31m[33m>[31m[33m,[31m
+ [90m 66 |[31m     title[33m:[31m [32m'骞冲彴淇濋殰'[31m[33m,[31m
+[31m[1m>[22m[31m[90m 67 |[31m     desc[33m:[31m [32m'鏈嶅姟淇℃伅缁忚繃瀹℃牳锛岄绾︽祦绋嬬暀鐥曪紝娌熼€氳褰曞彲杩芥函銆?,[31m
+ [90m    |[31m           [31m[1m^[22m[31m
+ [90m 68 |[31m   }[33m,[31m
+ [90m 69 |[31m   {
+ [90m 70 |[31m     icon[33m:[31m [33m<[31m[33mZap[31m className[33m=[31m[32m"h-5 w-5 text-blue-500"[31m [33m/[31m[33m>[31m[33m,[31m[0m[39m
+  Plugin: [35mvite:react-babel[39m
+  File: [36mD:/下载文件/同城生活/frontend/src/user/pages/service/ServiceDetailPage.tsx[39m:67:10
+[33m  68 |    },
+  69 |    {
+  70 |      icon: <Zap className="h-5 w-5 text-blue-500" />,
+     |                   ^
+  71 |      title: '鍝嶅簲鏇村揩',
+  72 |      desc: '鏀寔鍦ㄧ嚎棰勭害涓庡嵆鏃舵矡閫氾紝鍑忓皯鏉ュ洖纭鎴愭湰銆?,[39m
+      at constructor (D:\下载文件\同城生活\frontend\node_modules\@babel\parser\lib\index.js:365:19)
+      at TypeScriptParserMixin.raise (D:\下载文件\同城生活\frontend\node_modules\@babel\parser\lib\index.js:6616:19)
+      at Object.unterminated (D:\下载文件\同城生活\frontend\node_modules\@babel\parser\lib\index.js:5681:20)
+      at readStringContents (D:\下载文件\同城生活\frontend\node_modules\@babel\parser\lib\index.js:5423:16)
+      at TypeScriptParserMixin.readString (D:\下载文件\同城生活\frontend\node_modules\@babel\parser\lib\index.js:6515:9)
+      at TypeScriptParserMixin.getTokenFromCode (D:\下载文件\同城生活\frontend\node_modules\@babel\parser\lib\index.js:6275:14)
+      at TypeScriptParserMixin.getTokenFromCode (D:\下载文件\同城生活\frontend\node_modules\@babel\parser\lib\index.js:4809:11)
+      at TypeScriptParserMixin.getTokenFromCode (D:\下载文件\同城生活\frontend\node_modules\@babel\parser\lib\index.js:10004:11)
+      at TypeScriptParserMixin.nextToken (D:\下载文件\同城生活\frontend\node_modules\@babel\parser\lib\index.js:5799:10)
+      at TypeScriptParserMixin.next (D:\下载文件\同城生活\frontend\node_modules\@babel\parser\lib\index.js:5709:10)
+      at TypeScriptParserMixin.eat (D:\下载文件\同城生活\frontend\node_modules\@babel\parser\lib\index.js:5713:12)
+      at TypeScriptParserMixin.parseObjectProperty (D:\下载文件\同城生活\frontend\node_modules\@babel\parser\lib\index.js:11966:14)
+      at TypeScriptParserMixin.parseObjPropValue (D:\下载文件\同城生活\frontend\node_modules\@babel\parser\lib\index.js:11995:100)
+      at TypeScriptParserMixin.parseObjPropValue (D:\下载文件\同城生活\frontend\node_modules\@babel\parser\lib\index.js:9761:18)
+      at TypeScriptParserMixin.parsePropertyDefinition (D:\下载文件\同城生活\frontend\node_modules\@babel\parser\lib\index.js:11932:17)
+      at TypeScriptParserMixin.parseObjectLike (D:\下载文件\同城生活\frontend\node_modules\@babel\parser\lib\index.js:11849:21)
+      at TypeScriptParserMixin.parseExprAtom (D:\下载文件\同城生活\frontend\node_modules\@babel\parser\lib\index.js:11356:23)
+      at TypeScriptParserMixin.parseExprAtom (D:\下载文件\同城生活\frontend\node_modules\@babel\parser\lib\index.js:4776:20)
+      at TypeScriptParserMixin.parseExprSubscripts (D:\下载文件\同城生活\frontend\node_modules\@babel\parser\lib\index.js:11098:23)
+      at TypeScriptParserMixin.parseUpdate (D:\下载文件\同城生活\frontend\node_modules\@babel\parser\lib\index.js:11083:21)
+      at TypeScriptParserMixin.parseMaybeUnary (D:\下载文件\同城生活\frontend\node_modules\@babel\parser\lib\index.js:11063:23)
+      at TypeScriptParserMixin.parseMaybeUnary (D:\下载文件\同城生活\frontend\node_modules\@babel\parser\lib\index.js:9854:18)
+      at TypeScriptParserMixin.parseMaybeUnaryOrPrivate (D:\下载文件\同城生活\frontend\node_modules\@babel\parser\lib\index.js:10916:61)
+      at TypeScriptParserMixin.parseExprOps (D:\下载文件\同城生活\frontend\node_modules\@babel\parser\lib\index.js:10921:23)
+      at TypeScriptParserMixin.parseMaybeConditional (D:\下载文件\同城生活\frontend\node_modules\@babel\parser\lib\index.js:10898:23)
+      at TypeScriptParserMixin.parseMaybeAssign (D:\下载文件\同城生活\frontend\node_modules\@babel\parser\lib\index.js:10848:21)
+      at TypeScriptParserMixin.parseMaybeAssign (D:\下载文件\同城生活\frontend\node_modules\@babel\parser\lib\index.js:9803:20)
+      at D:\下载文件\同城生活\frontend\node_modules\@babel\parser\lib\index.js:10817:39
+      at TypeScriptParserMixin.allowInAnd (D:\下载文件\同城生活\frontend\node_modules\@babel\parser\lib\index.js:12443:12)
+      at TypeScriptParserMixin.parseMaybeAssignAllowIn (D:\下载文件\同城生活\frontend\node_modules\@babel\parser\lib\index.js:10817:17)
+      at TypeScriptParserMixin.parseMaybeAssignAllowInOrVoidPattern (D:\下载文件\同城生活\frontend\node_modules\@babel\parser\lib\index.js:12510:17)
+      at TypeScriptParserMixin.parseExprListItem (D:\下载文件\同城生活\frontend\node_modules\@babel\parser\lib\index.js:12192:18)
+      at TypeScriptParserMixin.parseExprList (D:\下载文件\同城生活\frontend\node_modules\@babel\parser\lib\index.js:12167:22)
+      at TypeScriptParserMixin.parseArrayLike (D:\下载文件\同城生活\frontend\node_modules\@babel\parser\lib\index.js:12074:26)
+      at TypeScriptParserMixin.parseArrayLike (D:\下载文件\同城生活\frontend\node_modules\@babel\parser\lib\index.js:9210:24)
+      at TypeScriptParserMixin.parseExprAtom (D:\下载文件\同城生活\frontend\node_modules\@babel\parser\lib\index.js:11352:23)
+      at TypeScriptParserMixin.parseExprAtom (D:\下载文件\同城生活\frontend\node_modules\@babel\parser\lib\index.js:4776:20)
+      at TypeScriptParserMixin.parseExprSubscripts (D:\下载文件\同城生活\frontend\node_modules\@babel\parser\lib\index.js:11098:23)
+      at TypeScriptParserMixin.parseUpdate (D:\下载文件\同城生活\frontend\node_modules\@babel\parser\lib\index.js:11083:21)
+      at TypeScriptParserMixin.parseMaybeUnary (D:\下载文件\同城生活\frontend\node_modules\@babel\parser\lib\index.js:11063:23)
+      at TypeScriptParserMixin.parseMaybeUnary (D:\下载文件\同城生活\frontend\node_modules\@babel\parser\lib\index.js:9854:18)
+      at TypeScriptParserMixin.parseMaybeUnaryOrPrivate (D:\下载文件\同城生活\frontend\node_modules\@babel\parser\lib\index.js:10916:61)
+      at TypeScriptParserMixin.parseExprOps (D:\下载文件\同城生活\frontend\node_modules\@babel\parser\lib\index.js:10921:23)
+      at TypeScriptParserMixin.parseMaybeConditional (D:\下载文件\同城生活\frontend\node_modules\@babel\parser\lib\index.js:10898:23)
+      at TypeScriptParserMixin.parseMaybeAssign (D:\下载文件\同城生活\frontend\node_modules\@babel\parser\lib\index.js:10848:21)
+      at TypeScriptParserMixin.parseMaybeAssign (D:\下载文件\同城生活\frontend\node_modules\@babel\parser\lib\index.js:9803:20)
+      at D:\下载文件\同城生活\frontend\node_modules\@babel\parser\lib\index.js:10817:39
+      at TypeScriptParserMixin.allowInAnd (D:\下载文件\同城生活\frontend\node_modules\@babel\parser\lib\index.js:12438:16)
+      at TypeScriptParserMixin.parseMaybeAssignAllowIn (D:\下载文件\同城生活\frontend\node_modules\@babel\parser\lib\index.js:10817:17)
+      at TypeScriptParserMixin.parseVar (D:\下载文件\同城生活\frontend\node_modules\@babel\parser\lib\index.js:13401:91)
+[2m12:43:22[22m [31m[1m[vite][22m[39m [31mInternal server error: D:\下载文件\同城生活\frontend\src\user\pages\service\ServiceDetailPage.tsx: Unterminated string constant. (67:10)
+
+[0m [90m 65 |[31m     icon[33m:[31m [33m<[31m[33mShieldCheck[31m className[33m=[31m[32m"h-5 w-5 text-green-500"[31m [33m/[31m[33m>[31m[33m,[31m
+ [90m 66 |[31m     title[33m:[31m [32m'骞冲彴淇濋殰'[31m[33m,[31m
+[31m[1m>[22m[31m[90m 67 |[31m     desc[33m:[31m [32m'鏈嶅姟淇℃伅缁忚繃瀹℃牳锛岄绾︽祦绋嬬暀鐥曪紝娌熼€氳褰曞彲杩芥函銆?,[31m
+ [90m    |[31m           [31m[1m^[22m[31m
+ [90m 68 |[31m   }[33m,[31m
+ [90m 69 |[31m   {
+ [90m 70 |[31m     icon[33m:[31m [33m<[31m[33mZap[31m className[33m=[31m[32m"h-5 w-5 text-blue-500"[31m [33m/[31m[33m>[31m[33m,[31m[0m[39m
+  Plugin: [35mvite:react-babel[39m
+  File: [36mD:/下载文件/同城生活/frontend/src/user/pages/service/ServiceDetailPage.tsx[39m:67:10
+[33m  68 |    },
+  69 |    {
+  70 |      icon: <Zap className="h-5 w-5 text-blue-500" />,
+     |                   ^
+  71 |      title: '鍝嶅簲鏇村揩',
+  72 |      desc: '鏀寔鍦ㄧ嚎棰勭害涓庡嵆鏃舵矡閫氾紝鍑忓皯鏉ュ洖纭鎴愭湰銆?,[39m
+      at constructor (D:\下载文件\同城生活\frontend\node_modules\@babel\parser\lib\index.js:365:19)
+      at TypeScriptParserMixin.raise (D:\下载文件\同城生活\frontend\node_modules\@babel\parser\lib\index.js:6616:19)
+      at Object.unterminated (D:\下载文件\同城生活\frontend\node_modules\@babel\parser\lib\index.js:5681:20)
+      at readStringContents (D:\下载文件\同城生活\frontend\node_modules\@babel\parser\lib\index.js:5423:16)
+      at TypeScriptParserMixin.readString (D:\下载文件\同城生活\frontend\node_modules\@babel\parser\lib\index.js:6515:9)
+      at TypeScriptParserMixin.getTokenFromCode (D:\下载文件\同城生活\frontend\node_modules\@babel\parser\lib\index.js:6275:14)
+      at TypeScriptParserMixin.getTokenFromCode (D:\下载文件\同城生活\frontend\node_modules\@babel\parser\lib\index.js:4809:11)
+      at TypeScriptParserMixin.getTokenFromCode (D:\下载文件\同城生活\frontend\node_modules\@babel\parser\lib\index.js:10004:11)
+      at TypeScriptParserMixin.nextToken (D:\下载文件\同城生活\frontend\node_modules\@babel\parser\lib\index.js:5799:10)
+      at TypeScriptParserMixin.next (D:\下载文件\同城生活\frontend\node_modules\@babel\parser\lib\index.js:5709:10)
+      at TypeScriptParserMixin.eat (D:\下载文件\同城生活\frontend\node_modules\@babel\parser\lib\index.js:5713:12)
+      at TypeScriptParserMixin.parseObjectProperty (D:\下载文件\同城生活\frontend\node_modules\@babel\parser\lib\index.js:11966:14)
+      at TypeScriptParserMixin.parseObjPropValue (D:\下载文件\同城生活\frontend\node_modules\@babel\parser\lib\index.js:11995:100)
+      at TypeScriptParserMixin.parseObjPropValue (D:\下载文件\同城生活\frontend\node_modules\@babel\parser\lib\index.js:9761:18)
+      at TypeScriptParserMixin.parsePropertyDefinition (D:\下载文件\同城生活\frontend\node_modules\@babel\parser\lib\index.js:11932:17)
+      at TypeScriptParserMixin.parseObjectLike (D:\下载文件\同城生活\frontend\node_modules\@babel\parser\lib\index.js:11849:21)
+      at TypeScriptParserMixin.parseExprAtom (D:\下载文件\同城生活\frontend\node_modules\@babel\parser\lib\index.js:11356:23)
+      at TypeScriptParserMixin.parseExprAtom (D:\下载文件\同城生活\frontend\node_modules\@babel\parser\lib\index.js:4776:20)
+      at TypeScriptParserMixin.parseExprSubscripts (D:\下载文件\同城生活\frontend\node_modules\@babel\parser\lib\index.js:11098:23)
+      at TypeScriptParserMixin.parseUpdate (D:\下载文件\同城生活\frontend\node_modules\@babel\parser\lib\index.js:11083:21)
+      at TypeScriptParserMixin.parseMaybeUnary (D:\下载文件\同城生活\frontend\node_modules\@babel\parser\lib\index.js:11063:23)
+      at TypeScriptParserMixin.parseMaybeUnary (D:\下载文件\同城生活\frontend\node_modules\@babel\parser\lib\index.js:9854:18)
+      at TypeScriptParserMixin.parseMaybeUnaryOrPrivate (D:\下载文件\同城生活\frontend\node_modules\@babel\parser\lib\index.js:10916:61)
+      at TypeScriptParserMixin.parseExprOps (D:\下载文件\同城生活\frontend\node_modules\@babel\parser\lib\index.js:10921:23)
+      at TypeScriptParserMixin.parseMaybeConditional (D:\下载文件\同城生活\frontend\node_modules\@babel\parser\lib\index.js:10898:23)
+      at TypeScriptParserMixin.parseMaybeAssign (D:\下载文件\同城生活\frontend\node_modules\@babel\parser\lib\index.js:10848:21)
+      at TypeScriptParserMixin.parseMaybeAssign (D:\下载文件\同城生活\frontend\node_modules\@babel\parser\lib\index.js:9803:20)
+      at D:\下载文件\同城生活\frontend\node_modules\@babel\parser\lib\index.js:10817:39
+      at TypeScriptParserMixin.allowInAnd (D:\下载文件\同城生活\frontend\node_modules\@babel\parser\lib\index.js:12443:12)
+      at TypeScriptParserMixin.parseMaybeAssignAllowIn (D:\下载文件\同城生活\frontend\node_modules\@babel\parser\lib\index.js:10817:17)
+      at TypeScriptParserMixin.parseMaybeAssignAllowInOrVoidPattern (D:\下载文件\同城生活\frontend\node_modules\@babel\parser\lib\index.js:12510:17)
+      at TypeScriptParserMixin.parseExprListItem (D:\下载文件\同城生活\frontend\node_modules\@babel\parser\lib\index.js:12192:18)
+      at TypeScriptParserMixin.parseExprList (D:\下载文件\同城生活\frontend\node_modules\@babel\parser\lib\index.js:12167:22)
+      at TypeScriptParserMixin.parseArrayLike (D:\下载文件\同城生活\frontend\node_modules\@babel\parser\lib\index.js:12074:26)
+      at TypeScriptParserMixin.parseArrayLike (D:\下载文件\同城生活\frontend\node_modules\@babel\parser\lib\index.js:9210:24)
+      at TypeScriptParserMixin.parseExprAtom (D:\下载文件\同城生活\frontend\node_modules\@babel\parser\lib\index.js:11352:23)
+      at TypeScriptParserMixin.parseExprAtom (D:\下载文件\同城生活\frontend\node_modules\@babel\parser\lib\index.js:4776:20)
+      at TypeScriptParserMixin.parseExprSubscripts (D:\下载文件\同城生活\frontend\node_modules\@babel\parser\lib\index.js:11098:23)
+      at TypeScriptParserMixin.parseUpdate (D:\下载文件\同城生活\frontend\node_modules\@babel\parser\lib\index.js:11083:21)
+      at TypeScriptParserMixin.parseMaybeUnary (D:\下载文件\同城生活\frontend\node_modules\@babel\parser\lib\index.js:11063:23)
+      at TypeScriptParserMixin.parseMaybeUnary (D:\下载文件\同城生活\frontend\node_modules\@babel\parser\lib\index.js:9854:18)
+      at TypeScriptParserMixin.parseMaybeUnaryOrPrivate (D:\下载文件\同城生活\frontend\node_modules\@babel\parser\lib\index.js:10916:61)
+      at TypeScriptParserMixin.parseExprOps (D:\下载文件\同城生活\frontend\node_modules\@babel\parser\lib\index.js:10921:23)
+      at TypeScriptParserMixin.parseMaybeConditional (D:\下载文件\同城生活\frontend\node_modules\@babel\parser\lib\index.js:10898:23)
+      at TypeScriptParserMixin.parseMaybeAssign (D:\下载文件\同城生活\frontend\node_modules\@babel\parser\lib\index.js:10848:21)
+      at TypeScriptParserMixin.parseMaybeAssign (D:\下载文件\同城生活\frontend\node_modules\@babel\parser\lib\index.js:9803:20)
+      at D:\下载文件\同城生活\frontend\node_modules\@babel\parser\lib\index.js:10817:39
+      at TypeScriptParserMixin.allowInAnd (D:\下载文件\同城生活\frontend\node_modules\@babel\parser\lib\index.js:12438:16)
+      at TypeScriptParserMixin.parseMaybeAssignAllowIn (D:\下载文件\同城生活\frontend\node_modules\@babel\parser\lib\index.js:10817:17)
+      at TypeScriptParserMixin.parseVar (D:\下载文件\同城生活\frontend\node_modules\@babel\parser\lib\index.js:13401:91)
+[2m12:44:03[22m [31m[1m[vite][22m[39m [31mInternal server error: D:\下载文件\同城生活\frontend\src\user\pages\service\ServiceDetailPage.tsx: Unterminated string constant. (67:10)
+
+[0m [90m 65 |[31m     icon[33m:[31m [33m<[31m[33mShieldCheck[31m className[33m=[31m[32m"h-5 w-5 text-green-500"[31m [33m/[31m[33m>[31m[33m,[31m
+ [90m 66 |[31m     title[33m:[31m [32m'骞冲彴淇濋殰'[31m[33m,[31m
+[31m[1m>[22m[31m[90m 67 |[31m     desc[33m:[31m [32m'鏈嶅姟淇℃伅缁忚繃瀹℃牳锛岄绾︽祦绋嬬暀鐥曪紝娌熼€氳褰曞彲杩芥函銆?,[31m
+ [90m    |[31m           [31m[1m^[22m[31m
+ [90m 68 |[31m   }[33m,[31m
+ [90m 69 |[31m   {
+ [90m 70 |[31m     icon[33m:[31m [33m<[31m[33mZap[31m className[33m=[31m[32m"h-5 w-5 text-blue-500"[31m [33m/[31m[33m>[31m[33m,[31m[0m[39m
+  Plugin: [35mvite:react-babel[39m
+  File: [36mD:/下载文件/同城生活/frontend/src/user/pages/service/ServiceDetailPage.tsx[39m:67:10
+[33m  68 |    },
+  69 |    {
+  70 |      icon: <Zap className="h-5 w-5 text-blue-500" />,
+     |                   ^
+  71 |      title: '鍝嶅簲鏇村揩',
+  72 |      desc: '鏀寔鍦ㄧ嚎棰勭害涓庡嵆鏃舵矡閫氾紝鍑忓皯鏉ュ洖纭鎴愭湰銆?,[39m
+      at constructor (D:\下载文件\同城生活\frontend\node_modules\@babel\parser\lib\index.js:365:19)
+      at TypeScriptParserMixin.raise (D:\下载文件\同城生活\frontend\node_modules\@babel\parser\lib\index.js:6616:19)
+      at Object.unterminated (D:\下载文件\同城生活\frontend\node_modules\@babel\parser\lib\index.js:5681:20)
+      at readStringContents (D:\下载文件\同城生活\frontend\node_modules\@babel\parser\lib\index.js:5423:16)
+      at TypeScriptParserMixin.readString (D:\下载文件\同城生活\frontend\node_modules\@babel\parser\lib\index.js:6515:9)
+      at TypeScriptParserMixin.getTokenFromCode (D:\下载文件\同城生活\frontend\node_modules\@babel\parser\lib\index.js:6275:14)
+      at TypeScriptParserMixin.getTokenFromCode (D:\下载文件\同城生活\frontend\node_modules\@babel\parser\lib\index.js:4809:11)
+      at TypeScriptParserMixin.getTokenFromCode (D:\下载文件\同城生活\frontend\node_modules\@babel\parser\lib\index.js:10004:11)
+      at TypeScriptParserMixin.nextToken (D:\下载文件\同城生活\frontend\node_modules\@babel\parser\lib\index.js:5799:10)
+      at TypeScriptParserMixin.next (D:\下载文件\同城生活\frontend\node_modules\@babel\parser\lib\index.js:5709:10)
+      at TypeScriptParserMixin.eat (D:\下载文件\同城生活\frontend\node_modules\@babel\parser\lib\index.js:5713:12)
+      at TypeScriptParserMixin.parseObjectProperty (D:\下载文件\同城生活\frontend\node_modules\@babel\parser\lib\index.js:11966:14)
+      at TypeScriptParserMixin.parseObjPropValue (D:\下载文件\同城生活\frontend\node_modules\@babel\parser\lib\index.js:11995:100)
+      at TypeScriptParserMixin.parseObjPropValue (D:\下载文件\同城生活\frontend\node_modules\@babel\parser\lib\index.js:9761:18)
+      at TypeScriptParserMixin.parsePropertyDefinition (D:\下载文件\同城生活\frontend\node_modules\@babel\parser\lib\index.js:11932:17)
+      at TypeScriptParserMixin.parseObjectLike (D:\下载文件\同城生活\frontend\node_modules\@babel\parser\lib\index.js:11849:21)
+      at TypeScriptParserMixin.parseExprAtom (D:\下载文件\同城生活\frontend\node_modules\@babel\parser\lib\index.js:11356:23)
+      at TypeScriptParserMixin.parseExprAtom (D:\下载文件\同城生活\frontend\node_modules\@babel\parser\lib\index.js:4776:20)
+      at TypeScriptParserMixin.parseExprSubscripts (D:\下载文件\同城生活\frontend\node_modules\@babel\parser\lib\index.js:11098:23)
+      at TypeScriptParserMixin.parseUpdate (D:\下载文件\同城生活\frontend\node_modules\@babel\parser\lib\index.js:11083:21)
+      at TypeScriptParserMixin.parseMaybeUnary (D:\下载文件\同城生活\frontend\node_modules\@babel\parser\lib\index.js:11063:23)
+      at TypeScriptParserMixin.parseMaybeUnary (D:\下载文件\同城生活\frontend\node_modules\@babel\parser\lib\index.js:9854:18)
+      at TypeScriptParserMixin.parseMaybeUnaryOrPrivate (D:\下载文件\同城生活\frontend\node_modules\@babel\parser\lib\index.js:10916:61)
+      at TypeScriptParserMixin.parseExprOps (D:\下载文件\同城生活\frontend\node_modules\@babel\parser\lib\index.js:10921:23)
+      at TypeScriptParserMixin.parseMaybeConditional (D:\下载文件\同城生活\frontend\node_modules\@babel\parser\lib\index.js:10898:23)
+      at TypeScriptParserMixin.parseMaybeAssign (D:\下载文件\同城生活\frontend\node_modules\@babel\parser\lib\index.js:10848:21)
+      at TypeScriptParserMixin.parseMaybeAssign (D:\下载文件\同城生活\frontend\node_modules\@babel\parser\lib\index.js:9803:20)
+      at D:\下载文件\同城生活\frontend\node_modules\@babel\parser\lib\index.js:10817:39
+      at TypeScriptParserMixin.allowInAnd (D:\下载文件\同城生活\frontend\node_modules\@babel\parser\lib\index.js:12443:12)
+      at TypeScriptParserMixin.parseMaybeAssignAllowIn (D:\下载文件\同城生活\frontend\node_modules\@babel\parser\lib\index.js:10817:17)
+      at TypeScriptParserMixin.parseMaybeAssignAllowInOrVoidPattern (D:\下载文件\同城生活\frontend\node_modules\@babel\parser\lib\index.js:12510:17)
+      at TypeScriptParserMixin.parseExprListItem (D:\下载文件\同城生活\frontend\node_modules\@babel\parser\lib\index.js:12192:18)
+      at TypeScriptParserMixin.parseExprList (D:\下载文件\同城生活\frontend\node_modules\@babel\parser\lib\index.js:12167:22)
+      at TypeScriptParserMixin.parseArrayLike (D:\下载文件\同城生活\frontend\node_modules\@babel\parser\lib\index.js:12074:26)
+      at TypeScriptParserMixin.parseArrayLike (D:\下载文件\同城生活\frontend\node_modules\@babel\parser\lib\index.js:9210:24)
+      at TypeScriptParserMixin.parseExprAtom (D:\下载文件\同城生活\frontend\node_modules\@babel\parser\lib\index.js:11352:23)
+      at TypeScriptParserMixin.parseExprAtom (D:\下载文件\同城生活\frontend\node_modules\@babel\parser\lib\index.js:4776:20)
+      at TypeScriptParserMixin.parseExprSubscripts (D:\下载文件\同城生活\frontend\node_modules\@babel\parser\lib\index.js:11098:23)
+      at TypeScriptParserMixin.parseUpdate (D:\下载文件\同城生活\frontend\node_modules\@babel\parser\lib\index.js:11083:21)
+      at TypeScriptParserMixin.parseMaybeUnary (D:\下载文件\同城生活\frontend\node_modules\@babel\parser\lib\index.js:11063:23)
+      at TypeScriptParserMixin.parseMaybeUnary (D:\下载文件\同城生活\frontend\node_modules\@babel\parser\lib\index.js:9854:18)
+      at TypeScriptParserMixin.parseMaybeUnaryOrPrivate (D:\下载文件\同城生活\frontend\node_modules\@babel\parser\lib\index.js:10916:61)
+      at TypeScriptParserMixin.parseExprOps (D:\下载文件\同城生活\frontend\node_modules\@babel\parser\lib\index.js:10921:23)
+      at TypeScriptParserMixin.parseMaybeConditional (D:\下载文件\同城生活\frontend\node_modules\@babel\parser\lib\index.js:10898:23)
+      at TypeScriptParserMixin.parseMaybeAssign (D:\下载文件\同城生活\frontend\node_modules\@babel\parser\lib\index.js:10848:21)
+      at TypeScriptParserMixin.parseMaybeAssign (D:\下载文件\同城生活\frontend\node_modules\@babel\parser\lib\index.js:9803:20)
+      at D:\下载文件\同城生活\frontend\node_modules\@babel\parser\lib\index.js:10817:39
+      at TypeScriptParserMixin.allowInAnd (D:\下载文件\同城生活\frontend\node_modules\@babel\parser\lib\index.js:12438:16)
+      at TypeScriptParserMixin.parseMaybeAssignAllowIn (D:\下载文件\同城生活\frontend\node_modules\@babel\parser\lib\index.js:10817:17)
+      at TypeScriptParserMixin.parseVar (D:\下载文件\同城生活\frontend\node_modules\@babel\parser\lib\index.js:13401:91)
+[2m18:48:43[22m [31m[1m[vite][22m[39m [31m[2m(client)[22m[39m Pre-transform error: Failed to resolve import "../common/AiAssistantWidget" from "src/user/components/layout/Layout.tsx". Does the file exist?
+  Plugin: [35mvite:import-analysis[39m
+  File: [36mD:/下载文件/同城生活/frontend/src/user/components/layout/Layout.tsx[39m:9:34
+[33m  8  |  import { Outlet, useLocation } from "react-router-dom";
+  9  |  import { ChatOverlay } from "../chat/ChatOverlay";
+  10 |  import { AiAssistantWidget } from "../common/AiAssistantWidget";
+     |                                     ^
+  11 |  import Footer from "./Footer";
+  12 |  import Header from "./Header";[39m
+[2m18:48:43[22m [31m[1m[vite][22m[39m [31mInternal server error: Failed to resolve import "../common/AiAssistantWidget" from "src/user/components/layout/Layout.tsx". Does the file exist?[39m
+  Plugin: [35mvite:import-analysis[39m
+  File: [36mD:/下载文件/同城生活/frontend/src/user/components/layout/Layout.tsx[39m:9:34
+[33m  8  |  import { Outlet, useLocation } from "react-router-dom";
+  9  |  import { ChatOverlay } from "../chat/ChatOverlay";
+  10 |  import { AiAssistantWidget } from "../common/AiAssistantWidget";
+     |                                     ^
+  11 |  import Footer from "./Footer";
+  12 |  import Header from "./Header";[39m
+      at TransformPluginContext._formatLog (file:///D:/%E4%B8%8B%E8%BD%BD%E6%96%87%E4%BB%B6/%E5%90%8C%E5%9F%8E%E7%94%9F%E6%B4%BB/frontend/node_modules/vite/dist/node/chunks/dep-Dq2t6Dq0.js:42553:41)
+      at TransformPluginContext.error (file:///D:/%E4%B8%8B%E8%BD%BD%E6%96%87%E4%BB%B6/%E5%90%8C%E5%9F%8E%E7%94%9F%E6%B4%BB/frontend/node_modules/vite/dist/node/chunks/dep-Dq2t6Dq0.js:42550:16)
+      at normalizeUrl (file:///D:/%E4%B8%8B%E8%BD%BD%E6%96%87%E4%BB%B6/%E5%90%8C%E5%9F%8E%E7%94%9F%E6%B4%BB/frontend/node_modules/vite/dist/node/chunks/dep-Dq2t6Dq0.js:40529:23)
+      at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+      at async file:///D:/%E4%B8%8B%E8%BD%BD%E6%96%87%E4%BB%B6/%E5%90%8C%E5%9F%8E%E7%94%9F%E6%B4%BB/frontend/node_modules/vite/dist/node/chunks/dep-Dq2t6Dq0.js:40648:37
+      at async Promise.all (index 4)
+      at async TransformPluginContext.transform (file:///D:/%E4%B8%8B%E8%BD%BD%E6%96%87%E4%BB%B6/%E5%90%8C%E5%9F%8E%E7%94%9F%E6%B4%BB/frontend/node_modules/vite/dist/node/chunks/dep-Dq2t6Dq0.js:40575:7)
+      at async EnvironmentPluginContainer.transform (file:///D:/%E4%B8%8B%E8%BD%BD%E6%96%87%E4%BB%B6/%E5%90%8C%E5%9F%8E%E7%94%9F%E6%B4%BB/frontend/node_modules/vite/dist/node/chunks/dep-Dq2t6Dq0.js:42348:18)
+      at async loadAndTransform (file:///D:/%E4%B8%8B%E8%BD%BD%E6%96%87%E4%BB%B6/%E5%90%8C%E5%9F%8E%E7%94%9F%E6%B4%BB/frontend/node_modules/vite/dist/node/chunks/dep-Dq2t6Dq0.js:35740:27)
+      at async viteTransformMiddleware (file:///D:/%E4%B8%8B%E8%BD%BD%E6%96%87%E4%BB%B6/%E5%90%8C%E5%9F%8E%E7%94%9F%E6%B4%BB/frontend/node_modules/vite/dist/node/chunks/dep-Dq2t6Dq0.js:37264:24)
+[2m19:19:32[22m [31m[1m[vite][22m[39m [31m[2m(client)[22m[39m Pre-transform error: Failed to resolve import "../common/AiAssistantWidget" from "src/user/components/layout/Layout.tsx". Does the file exist?
+  Plugin: [35mvite:import-analysis[39m
+  File: [36mD:/下载文件/同城生活/frontend/src/user/components/layout/Layout.tsx[39m:9:34
+[33m  8  |  import { Outlet, useLocation } from "react-router-dom";
+  9  |  import { ChatOverlay } from "../chat/ChatOverlay";
+  10 |  import { AiAssistantWidget } from "../common/AiAssistantWidget";
+     |                                     ^
+  11 |  import Footer from "./Footer";
+  12 |  import Header from "./Header";[39m
+[2m19:19:32[22m [31m[1m[vite][22m[39m [31mInternal server error: Failed to resolve import "../common/AiAssistantWidget" from "src/user/components/layout/Layout.tsx". Does the file exist?[39m
+  Plugin: [35mvite:import-analysis[39m
+  File: [36mD:/下载文件/同城生活/frontend/src/user/components/layout/Layout.tsx[39m:9:34
+[33m  8  |  import { Outlet, useLocation } from "react-router-dom";
+  9  |  import { ChatOverlay } from "../chat/ChatOverlay";
+  10 |  import { AiAssistantWidget } from "../common/AiAssistantWidget";
+     |                                     ^
+  11 |  import Footer from "./Footer";
+  12 |  import Header from "./Header";[39m
+      at TransformPluginContext._formatLog (file:///D:/%E4%B8%8B%E8%BD%BD%E6%96%87%E4%BB%B6/%E5%90%8C%E5%9F%8E%E7%94%9F%E6%B4%BB/frontend/node_modules/vite/dist/node/chunks/dep-Dq2t6Dq0.js:42553:41)
+      at TransformPluginContext.error (file:///D:/%E4%B8%8B%E8%BD%BD%E6%96%87%E4%BB%B6/%E5%90%8C%E5%9F%8E%E7%94%9F%E6%B4%BB/frontend/node_modules/vite/dist/node/chunks/dep-Dq2t6Dq0.js:42550:16)
+      at normalizeUrl (file:///D:/%E4%B8%8B%E8%BD%BD%E6%96%87%E4%BB%B6/%E5%90%8C%E5%9F%8E%E7%94%9F%E6%B4%BB/frontend/node_modules/vite/dist/node/chunks/dep-Dq2t6Dq0.js:40529:23)
+      at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+      at async file:///D:/%E4%B8%8B%E8%BD%BD%E6%96%87%E4%BB%B6/%E5%90%8C%E5%9F%8E%E7%94%9F%E6%B4%BB/frontend/node_modules/vite/dist/node/chunks/dep-Dq2t6Dq0.js:40648:37
+      at async Promise.all (index 4)
+      at async TransformPluginContext.transform (file:///D:/%E4%B8%8B%E8%BD%BD%E6%96%87%E4%BB%B6/%E5%90%8C%E5%9F%8E%E7%94%9F%E6%B4%BB/frontend/node_modules/vite/dist/node/chunks/dep-Dq2t6Dq0.js:40575:7)
+      at async EnvironmentPluginContainer.transform (file:///D:/%E4%B8%8B%E8%BD%BD%E6%96%87%E4%BB%B6/%E5%90%8C%E5%9F%8E%E7%94%9F%E6%B4%BB/frontend/node_modules/vite/dist/node/chunks/dep-Dq2t6Dq0.js:42348:18)
+      at async loadAndTransform (file:///D:/%E4%B8%8B%E8%BD%BD%E6%96%87%E4%BB%B6/%E5%90%8C%E5%9F%8E%E7%94%9F%E6%B4%BB/frontend/node_modules/vite/dist/node/chunks/dep-Dq2t6Dq0.js:35740:27)
+      at async viteTransformMiddleware (file:///D:/%E4%B8%8B%E8%BD%BD%E6%96%87%E4%BB%B6/%E5%90%8C%E5%9F%8E%E7%94%9F%E6%B4%BB/frontend/node_modules/vite/dist/node/chunks/dep-Dq2t6Dq0.js:37264:24)
+[2m21:46:59[22m [31m[1m[vite][22m[39m [31mInternal server error: Failed to resolve import "../../components/home/HeroSection" from "src/user/pages/home/HomePage.tsx". Does the file exist?[39m
+  Plugin: [35mvite:import-analysis[39m
+  File: [36mD:/下载文件/同城生活/frontend/src/user/pages/home/HomePage.tsx[39m:4:28
+[33m  4  |  import { homeApi } from "../../services/api";
+  5  |  import { GlobalCard } from "../../components/common/Card";
+  6  |  import { HeroSection } from "../../components/home/HeroSection";
+     |                               ^
+  7  |  import { SectionHeader } from "../../components/common/SectionHeader";
+  8  |  import { HomePostCard } from "../../components/home/HomePostCard";[39m
+      at TransformPluginContext._formatLog (file:///D:/%E4%B8%8B%E8%BD%BD%E6%96%87%E4%BB%B6/%E5%90%8C%E5%9F%8E%E7%94%9F%E6%B4%BB/frontend/node_modules/vite/dist/node/chunks/dep-Dq2t6Dq0.js:42553:41)
+      at TransformPluginContext.error (file:///D:/%E4%B8%8B%E8%BD%BD%E6%96%87%E4%BB%B6/%E5%90%8C%E5%9F%8E%E7%94%9F%E6%B4%BB/frontend/node_modules/vite/dist/node/chunks/dep-Dq2t6Dq0.js:42550:16)
+      at normalizeUrl (file:///D:/%E4%B8%8B%E8%BD%BD%E6%96%87%E4%BB%B6/%E5%90%8C%E5%9F%8E%E7%94%9F%E6%B4%BB/frontend/node_modules/vite/dist/node/chunks/dep-Dq2t6Dq0.js:40529:23)
+      at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+      at async file:///D:/%E4%B8%8B%E8%BD%BD%E6%96%87%E4%BB%B6/%E5%90%8C%E5%9F%8E%E7%94%9F%E6%B4%BB/frontend/node_modules/vite/dist/node/chunks/dep-Dq2t6Dq0.js:40648:37
+      at async Promise.all (index 4)
+      at async TransformPluginContext.transform (file:///D:/%E4%B8%8B%E8%BD%BD%E6%96%87%E4%BB%B6/%E5%90%8C%E5%9F%8E%E7%94%9F%E6%B4%BB/frontend/node_modules/vite/dist/node/chunks/dep-Dq2t6Dq0.js:40575:7)
+      at async EnvironmentPluginContainer.transform (file:///D:/%E4%B8%8B%E8%BD%BD%E6%96%87%E4%BB%B6/%E5%90%8C%E5%9F%8E%E7%94%9F%E6%B4%BB/frontend/node_modules/vite/dist/node/chunks/dep-Dq2t6Dq0.js:42348:18)
+      at async loadAndTransform (file:///D:/%E4%B8%8B%E8%BD%BD%E6%96%87%E4%BB%B6/%E5%90%8C%E5%9F%8E%E7%94%9F%E6%B4%BB/frontend/node_modules/vite/dist/node/chunks/dep-Dq2t6Dq0.js:35740:27)
+      at async viteTransformMiddleware (file:///D:/%E4%B8%8B%E8%BD%BD%E6%96%87%E4%BB%B6/%E5%90%8C%E5%9F%8E%E7%94%9F%E6%B4%BB/frontend/node_modules/vite/dist/node/chunks/dep-Dq2t6Dq0.js:37264:24)
+[2m21:47:31[22m [31m[1m[vite][22m[39m [31mInternal server error: Failed to resolve import "../../components/common/SectionHeader" from "src/user/pages/home/HomePage.tsx". Does the file exist?[39m
+  Plugin: [35mvite:import-analysis[39m
+  File: [36mD:/下载文件/同城生活/frontend/src/user/pages/home/HomePage.tsx[39m:5:30
+[33m  5  |  import { GlobalCard } from "../../components/common/Card";
+  6  |  import { HeroSection } from "../../components/home/HeroSection";
+  7  |  import { SectionHeader } from "../../components/common/SectionHeader";
+     |                                 ^
+  8  |  import { HomePostCard } from "../../components/home/HomePostCard";
+  9  |  import { BackToTop } from "../../components/common/BackToTop";[39m
+      at TransformPluginContext._formatLog (file:///D:/%E4%B8%8B%E8%BD%BD%E6%96%87%E4%BB%B6/%E5%90%8C%E5%9F%8E%E7%94%9F%E6%B4%BB/frontend/node_modules/vite/dist/node/chunks/dep-Dq2t6Dq0.js:42553:41)
+      at TransformPluginContext.error (file:///D:/%E4%B8%8B%E8%BD%BD%E6%96%87%E4%BB%B6/%E5%90%8C%E5%9F%8E%E7%94%9F%E6%B4%BB/frontend/node_modules/vite/dist/node/chunks/dep-Dq2t6Dq0.js:42550:16)
+      at normalizeUrl (file:///D:/%E4%B8%8B%E8%BD%BD%E6%96%87%E4%BB%B6/%E5%90%8C%E5%9F%8E%E7%94%9F%E6%B4%BB/frontend/node_modules/vite/dist/node/chunks/dep-Dq2t6Dq0.js:40529:23)
+      at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+      at async file:///D:/%E4%B8%8B%E8%BD%BD%E6%96%87%E4%BB%B6/%E5%90%8C%E5%9F%8E%E7%94%9F%E6%B4%BB/frontend/node_modules/vite/dist/node/chunks/dep-Dq2t6Dq0.js:40648:37
+      at async Promise.all (index 5)
+      at async TransformPluginContext.transform (file:///D:/%E4%B8%8B%E8%BD%BD%E6%96%87%E4%BB%B6/%E5%90%8C%E5%9F%8E%E7%94%9F%E6%B4%BB/frontend/node_modules/vite/dist/node/chunks/dep-Dq2t6Dq0.js:40575:7)
+      at async EnvironmentPluginContainer.transform (file:///D:/%E4%B8%8B%E8%BD%BD%E6%96%87%E4%BB%B6/%E5%90%8C%E5%9F%8E%E7%94%9F%E6%B4%BB/frontend/node_modules/vite/dist/node/chunks/dep-Dq2t6Dq0.js:42348:18)
+      at async loadAndTransform (file:///D:/%E4%B8%8B%E8%BD%BD%E6%96%87%E4%BB%B6/%E5%90%8C%E5%9F%8E%E7%94%9F%E6%B4%BB/frontend/node_modules/vite/dist/node/chunks/dep-Dq2t6Dq0.js:35740:27)
+      at async viteTransformMiddleware (file:///D:/%E4%B8%8B%E8%BD%BD%E6%96%87%E4%BB%B6/%E5%90%8C%E5%9F%8E%E7%94%9F%E6%B4%BB/frontend/node_modules/vite/dist/node/chunks/dep-Dq2t6Dq0.js:37264:24)

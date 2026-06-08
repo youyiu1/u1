@@ -6,6 +6,7 @@
 import { AnimatePresence, motion } from 'motion/react';
 import { Outlet, useLocation } from 'react-router-dom';
 import { ChatOverlay } from '../chat/ChatOverlay';
+import { AiAssistantWidget } from '../common/AiAssistantWidget';
 import Footer from './Footer';
 import Header from './Header';
 
@@ -34,6 +35,7 @@ export default function Layout() {
         </AnimatePresence>
       </main>
       <Footer />
+      <AiAssistantWidget />
       <ChatOverlay />
     </div>
   );

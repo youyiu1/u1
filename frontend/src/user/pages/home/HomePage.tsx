@@ -58,7 +58,7 @@ function SectionWrapper({
         {loading
           ? Array(previewCount)
               .fill(0)
-              .map((_, index) => <div key={index} className={`${skeletonHeight} animate-pulse rounded-2xl bg-stone-200`} />)
+              .map((_, index) => <div key={index} className={`${skeletonHeight} animate-pulse rounded-2xl bg-stone-100`} />)
           : data.slice(0, previewCount).map((item, idx) => (
               <div key={item.id} className={`content-visibility-auto ${itemClassName || ''}`}>
                 {renderItem(item, idx)}
@@ -132,20 +132,18 @@ export default function HomePage() {
 
   if (error) {
     return (
-      <div className="flex min-h-screen items-center justify-center">
+      <div className="flex min-h-screen items-center justify-center bg-white">
         <div className="text-center text-red-500">{error}</div>
       </div>
     );
   }
 
   return (
-    <div className="relative min-h-screen overflow-hidden bg-stone-50/30">
-      <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_80%_10%,rgba(255,56,92,0.14),transparent_32%),radial-gradient(circle_at_10%_40%,rgba(95,94,94,0.08),transparent_30%),linear-gradient(to_bottom,rgba(255,56,92,0.08),rgba(255,255,255,0))]" />
-
+    <div className="relative min-h-screen overflow-hidden bg-white">
       <HeroSection />
 
-      <main id="discovery-results" className="mx-auto max-w-[1440px] scroll-mt-32 px-4 pb-12 pt-12 md:px-12 md:pb-16 md:pt-16">
-        <div className="space-y-20 md:space-y-32">
+      <main id="discovery-results" className="mx-auto max-w-[1440px] scroll-mt-32 px-4 pb-12 pt-10 md:px-12 md:pb-16 md:pt-12">
+        <div className="space-y-20 md:space-y-28">
           <SectionWrapper
             section={SECTIONS[0]}
             data={sortedServices}

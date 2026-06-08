@@ -3,12 +3,13 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { Bike, MapPin, MoreHorizontal, Plus, Search, Smartphone, Sofa, Sparkles, Shirt } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { BackToTop } from '../../components/common/BackToTop';
 import { FavoriteButton } from '../../components/common/FavoriteButton';
 import { MarketStatusBadge } from '../../components/common/MarketStatusBadge';
+import { Pagination } from '../../components/common/Pagination';
 import { PublishOverlay } from '../../components/publish/PublishOverlay';
 import { useAuthCheck } from '../../context/useAuthCheck';
 import { marketApi } from '../../services/api';
@@ -16,7 +17,6 @@ import { Item } from '../../types';
 import { fallbackText, formatCurrency } from '../../utils/display';
 import { getErrorMessage } from '../../utils/error';
 import { getItemPrimaryImage } from '../../utils/images';
-import { matchesAnyKeyword, normalizeSearchTerm } from '../../utils/search';
 
 type MarketCategory = {
   id: string;
@@ -33,6 +33,8 @@ const CATEGORIES: MarketCategory[] = [
   { id: 'sports', name: '户外', icon: <Bike className="h-4 w-4" /> },
   { id: 'others', name: '其他', icon: <MoreHorizontal className="h-4 w-4" /> },
 ];
+
+const DEFAULT_PAGE_SIZE = 10;
 
 function getConditionLabel(item: Item) {
   return fallbackText(item.itemCondition || item.condition, '全新');
@@ -60,12 +62,23 @@ export default function MarketListPage() {
   const [searchQuery, setSearchQuery] = useState('');
   const [activeCategory, setActiveCategory] = useState('all');
   const [isPublishOpen, setIsPublishOpen] = useState(false);
+  const [currentPage, setCurrentPage] = useState(1);
+  const [pageSize, setPageSize] = useState(DEFAULT_PAGE_SIZE);
+  const [totalItems, setTotalItems] = useState(0);
 
   useEffect(() => {
     const fetchItems = async () => {
       try {
-        const data = await marketApi.list();
-        setItems(data);
+        setLoading(true);
+        setError(null);
+        const result = await marketApi.list({
+          category: activeCategory,
+          keyword: searchQuery.trim(),
+          pageNum: currentPage,
+          pageSize,
+        });
+        setItems(result.data);
+        setTotalItems(result.total);
       } catch (fetchError: unknown) {
         setError(getErrorMessage(fetchError, '加载失败'));
       } finally {
@@ -74,16 +87,15 @@ export default function MarketListPage() {
     };
 
     void fetchItems();
-  }, []);
+  }, [activeCategory, currentPage, pageSize, searchQuery]);
 
-  const filteredItems = useMemo(() => {
-    const keyword = normalizeSearchTerm(searchQuery);
-    return items.filter(
-      (item) =>
-        (activeCategory === 'all' || item.category === activeCategory) &&
-        matchesAnyKeyword(keyword, [item.title, item.description, item.location])
-    );
-  }, [activeCategory, items, searchQuery]);
+  const totalPages = Math.max(1, Math.ceil(totalItems / pageSize));
+
+  useEffect(() => {
+    if (currentPage > totalPages) {
+      setCurrentPage(totalPages);
+    }
+  }, [currentPage, totalPages]);
 
   return (
     <div className="min-h-screen bg-white pb-20">
@@ -100,7 +112,10 @@ export default function MarketListPage() {
                   type="text"
                   placeholder="搜索商品..."
                   value={searchQuery}
-                  onChange={(event) => setSearchQuery(event.target.value)}
+                  onChange={(event) => {
+                    setSearchQuery(event.target.value);
+                    setCurrentPage(1);
+                  }}
                   className="w-full rounded-2xl border border-hairline bg-white py-3.5 pl-12 pr-4 text-sm font-medium outline-none transition-all focus:ring-2 focus:ring-primary/10 sm:py-4"
                 />
               </div>
@@ -119,7 +134,10 @@ export default function MarketListPage() {
             {CATEGORIES.map((category) => (
               <button
                 key={category.id}
-                onClick={() => setActiveCategory(category.id)}
+                onClick={() => {
+                  setActiveCategory(category.id);
+                  setCurrentPage(1);
+                }}
                 className={`flex shrink-0 items-center gap-2 rounded-xl px-6 py-2.5 text-sm font-bold transition-all ${
                   activeCategory === category.id
                     ? 'bg-primary text-white shadow-md'
@@ -150,16 +168,27 @@ export default function MarketListPage() {
                 <div className="h-3 w-1/2 animate-pulse rounded bg-stone-200" />
               </div>
             ))
-          ) : filteredItems.length === 0 ? (
+          ) : totalItems === 0 ? (
             <div className="col-span-full py-16 text-center text-muted">暂无商品</div>
           ) : (
-            filteredItems.map((item) => (
+            items.map((item) => (
               <React.Fragment key={item.id}>
                 <MarketItemCard item={item} onClick={() => navigate(`/item/${item.id}`)} />
               </React.Fragment>
             ))
           )}
         </div>
+        <Pagination
+          currentPage={currentPage}
+          totalPages={totalPages}
+          totalItems={totalItems}
+          pageSize={pageSize}
+          onPageChange={setCurrentPage}
+          onPageSizeChange={(size) => {
+            setPageSize(size);
+            setCurrentPage(1);
+          }}
+        />
       </main>
 
       <BackToTop />

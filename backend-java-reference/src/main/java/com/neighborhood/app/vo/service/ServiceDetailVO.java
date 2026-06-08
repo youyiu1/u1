@@ -41,6 +41,10 @@ public class ServiceDetailVO {
         private String id;
         private String name;
         private String avatar;
+        private String tag;
+        private String bio;
+        private String region;
+        private Boolean isVerified;
         private Double rating;
         private Integer soldCount;
         private Integer followersCount;
@@ -77,6 +81,10 @@ public class ServiceDetailVO {
             sellerInfo.setId(seller.getId());
             sellerInfo.setName(seller.getName());
             sellerInfo.setAvatar(seller.getAvatar());
+            sellerInfo.setTag(seller.getTag());
+            sellerInfo.setBio(seller.getBio());
+            sellerInfo.setRegion(seller.getRegion());
+            sellerInfo.setIsVerified(seller.getIsVerified());
             sellerInfo.setRating(seller.getRating());
             sellerInfo.setSoldCount(seller.getSoldCount());
             sellerInfo.setFollowersCount(seller.getFollowersCount());

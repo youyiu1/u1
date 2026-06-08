@@ -33,21 +33,21 @@ function SectionAction({ link, linkText, isButton }: Pick<SectionHeaderProps, 'l
 }
 
 export const SectionHeader: React.FC<SectionHeaderProps> = ({ title, tag, link, linkText, isButton }) => (
-  <div className="mb-10 flex flex-col justify-between gap-6 border-b border-hairline pb-8 md:mb-16 md:flex-row md:items-end">
-    <div className="space-y-4">
+  <div className="mb-8 flex flex-col justify-between gap-5 border-b border-stone-200 pb-6 md:mb-12 md:flex-row md:items-end">
+    <div className="space-y-3">
       <div className="flex items-center gap-3">
         <motion.div
           initial={{ width: 0 }}
-          whileInView={{ width: 48 }}
+          whileInView={{ width: 40 }}
           viewport={{ once: true }}
-          transition={{ delay: 0.5, duration: 1 }}
+          transition={{ delay: 0.2, duration: 0.7 }}
           className="h-px bg-primary"
         />
-        <span className="text-[10px] font-black uppercase tracking-[0.4em] text-primary">{tag}</span>
+        <span className="text-[10px] font-black uppercase tracking-[0.28em] text-primary">{tag}</span>
       </div>
 
-      <h2 className="text-4xl font-black leading-[0.9] tracking-tighter text-ink md:text-5xl lg:text-6xl">
-        热门 <span className="bg-gradient-to-r from-primary to-primary-light bg-clip-text text-transparent italic">{title}</span>
+      <h2 className="text-3xl font-black leading-none tracking-tight text-ink md:text-4xl">
+        {title}
       </h2>
     </div>
 

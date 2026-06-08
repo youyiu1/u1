@@ -85,6 +85,9 @@ export interface Item {
   sellerName?: string;
   sellerAvatar?: string;
   sellerVerified?: boolean;
+  sellerTag?: string;
+  sellerBio?: string;
+  sellerRegion?: string;
   sellerFollowersCount?: number;
   sellerOnSaleCount?: number;
   sellerSoldCount?: number;
@@ -100,6 +103,10 @@ export interface Seller {
   name: string;
   avatar: string;
   rating: string | number;
+  verified?: boolean;
+  tag?: string;
+  bio?: string;
+  region?: string;
   onSaleCount: number;
   soldCount: number;
   followersCount?: number;
@@ -115,6 +122,10 @@ export interface ServiceSeller {
   id: string;
   name: string;
   avatar: string;
+  tag?: string;
+  bio?: string;
+  region?: string;
+  isVerified?: boolean;
   rating: number;
   soldCount: number;
   followersCount: number;

@@ -15,6 +15,18 @@ View your app in AI Studio: https://ai.studio/apps/bba63dc7-8f6d-4952-91be-6fd3e
 
 1. Install dependencies:
    `npm install`
-2. Set the `GEMINI_API_KEY` in [.env.local](.env.local) to your Gemini API key
-3. Run the app:
+2. Run the app:
    `npm run dev`
+
+## Docker
+
+Use the repository wrapper so Docker Compose always gets a stable project name and the correct env file:
+
+`powershell -ExecutionPolicy Bypass -File deploy/docker-compose.ps1 up -d --build`
+
+Required private files are not stored in the repository:
+
+- `.env.docker.local`
+- `backend-java-reference/application-secret.yml`
+
+If either file is missing, the Docker startup wrapper will fail immediately.

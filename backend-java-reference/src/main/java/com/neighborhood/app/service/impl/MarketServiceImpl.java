@@ -1,5 +1,8 @@
 package com.neighborhood.app.service.impl;
 
+import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
+import com.baomidou.mybatisplus.core.metadata.IPage;
+import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.neighborhood.app.entity.market.MarketItem;
 import com.neighborhood.app.entity.user.User;
@@ -15,6 +18,7 @@ import com.neighborhood.app.utils.UserLookupUtil;
 import com.neighborhood.app.vo.market.MarketItemVO;
 import java.util.List;
 import java.util.Map;
+import java.util.Locale;
 import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -73,7 +77,12 @@ public class MarketServiceImpl extends ServiceImpl<MarketMapper, MarketItem> imp
             return null;
         }
         User seller = UserLookupUtil.getById(cacheService, userMapper, item.getSellerId());
-        return toMarketItemVO(item, seller);
+        MarketItemVO vo = toMarketItemVO(item, seller);
+        if (vo != null) {
+            vo.setSellerOnSaleCount(countSellerActiveItems(item.getSellerId()));
+            vo.setSellerSoldCount(countSellerSoldItems(item.getSellerId()));
+        }
+        return vo;
     }
 
     @Override
@@ -86,6 +95,22 @@ public class MarketServiceImpl extends ServiceImpl<MarketMapper, MarketItem> imp
         return items.stream()
                 .map(item -> toMarketItemVO(item, userMap.get(item.getSellerId())))
                 .collect(Collectors.toList());
+    }
+
+    @Override
+    public IPage<MarketItemVO> listPage(String category, String keyword, long pageNum, long pageSize) {
+        Page<MarketItem> itemPage = page(new Page<>(pageNum, pageSize), buildListPageQuery(category, keyword));
+        Page<MarketItemVO> result = new Page<>(itemPage.getCurrent(), itemPage.getSize(), itemPage.getTotal());
+        List<MarketItem> records = itemPage.getRecords();
+        if (records.isEmpty()) {
+            result.setRecords(List.of());
+            return result;
+        }
+        Map<String, User> userMap = UserLookupUtil.mapByExtractor(cacheService, userMapper, records, MarketItem::getSellerId);
+        result.setRecords(records.stream()
+                .map(item -> toMarketItemVO(item, userMap.get(item.getSellerId())))
+                .collect(Collectors.toList()));
+        return result;
     }
 
     @Override
@@ -124,6 +149,48 @@ public class MarketServiceImpl extends ServiceImpl<MarketMapper, MarketItem> imp
 
     private MarketItemVO toMarketItemVO(MarketItem item, User seller) {
         return MarketItemVO.fromMarketItem(item, seller);
+    }
+
+    private int countSellerActiveItems(String sellerId) {
+        if (sellerId == null || sellerId.isBlank()) {
+            return 0;
+        }
+        return Math.toIntExact(lambdaQuery()
+                .eq(MarketItem::getSellerId, sellerId)
+                .eq(MarketItem::getStatus, ACTIVE_STATUS)
+                .count());
+    }
+
+    private int countSellerSoldItems(String sellerId) {
+        if (sellerId == null || sellerId.isBlank()) {
+            return 0;
+        }
+        return Math.toIntExact(lambdaQuery()
+                .eq(MarketItem::getSellerId, sellerId)
+                .eq(MarketItem::getStatus, SOLD_STATUS)
+                .count());
+    }
+
+    private LambdaQueryWrapper<MarketItem> buildListPageQuery(String category, String keyword) {
+        LambdaQueryWrapper<MarketItem> wrapper = new LambdaQueryWrapper<MarketItem>()
+                .eq(MarketItem::getStatus, ACTIVE_STATUS)
+                .orderByDesc(MarketItem::getId);
+        if (category != null && !category.isBlank() && !"all".equalsIgnoreCase(category)) {
+            wrapper.eq(MarketItem::getCategory, category);
+        }
+        String normalizedKeyword = normalizeKeyword(keyword);
+        if (!normalizedKeyword.isEmpty()) {
+            wrapper.and(query -> query.like(MarketItem::getTitle, normalizedKeyword)
+                    .or()
+                    .like(MarketItem::getDescription, normalizedKeyword)
+                    .or()
+                    .like(MarketItem::getLocation, normalizedKeyword));
+        }
+        return wrapper;
+    }
+
+    private String normalizeKeyword(String keyword) {
+        return keyword == null ? "" : keyword.trim().toLowerCase(Locale.ROOT);
     }
 
     private boolean canViewDetail(MarketItem item, String status, String viewerUserId) {

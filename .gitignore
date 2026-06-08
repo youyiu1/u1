@@ -9,6 +9,9 @@ coverage/
 
 backend-java-reference/target/
 backend-java-reference/uploads/
+backend-java-reference/application-secret.yml
+backend-java-reference/application-secret.yaml
+backend-java-reference/application-secret.properties
 runtime-logs/
 frontend/dist/
 uploads/

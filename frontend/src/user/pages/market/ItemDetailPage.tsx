@@ -74,6 +74,9 @@ export default function ItemDetailPage() {
   const sellerName = fallbackText(item?.seller?.name || item?.sellerName, '本地卖家');
   const sellerAvatar = item?.seller?.avatar || item?.sellerAvatar || '';
   const sellerVerified = item?.seller?.verified ?? item?.sellerVerified ?? false;
+  const sellerTag = item?.seller?.tag || item?.sellerTag || '';
+  const sellerBio = item?.seller?.bio || item?.sellerBio || '';
+  const sellerRegion = item?.seller?.region || item?.sellerRegion || '';
   const itemCondition = fallbackText(item?.itemCondition || item?.condition, '成色未知');
   const sellerOnSaleCount = item?.seller?.onSaleCount ?? item?.sellerOnSaleCount ?? 0;
   const sellerSoldCount = item?.seller?.soldCount ?? item?.sellerSoldCount ?? 0;
@@ -92,6 +95,7 @@ export default function ItemDetailPage() {
 
   const activeImage = images[activeImg] || images[0] || '';
   const sellerProfilePath = buildProfilePath(sellerId, sellerName);
+  const sellerMeta = [sellerTag, sellerRegion].filter((value): value is string => Boolean(value && value.trim()));
   const statusNotice = getStatusNotice(item, isOwnItem);
 
   useEffect(() => {
@@ -145,6 +149,9 @@ export default function ItemDetailPage() {
         id: sellerId,
         name: sellerName,
         avatar: sellerAvatar,
+        tag: sellerTag,
+        bio: sellerBio,
+        region: sellerRegion,
         isVerified: sellerVerified,
         followersCount: sellerFollowersCount,
       }),
@@ -477,9 +484,18 @@ export default function ItemDetailPage() {
                       <h3 className="group cursor-pointer font-black text-ink transition-colors hover:text-primary" onClick={handleOpenSellerProfile}>
                         {sellerName}
                       </h3>
-                      <div className="mt-0.5 flex items-center gap-1.5">
-                        <span className="rounded-md bg-primary/10 px-2 py-0.5 text-[10px] font-black text-primary">本地活跃卖家</span>
-                      </div>
+                      {sellerMeta.length > 0 || sellerVerified ? (
+                        <div className="mt-0.5 flex flex-wrap items-center gap-1.5">
+                          {sellerVerified ? (
+                            <span className="rounded-md bg-primary/10 px-2 py-0.5 text-[10px] font-black text-primary">已认证</span>
+                          ) : null}
+                          {sellerMeta.map((meta) => (
+                            <span key={meta} className="rounded-md bg-white px-2 py-0.5 text-[10px] font-black text-secondary">
+                              {meta}
+                            </span>
+                          ))}
+                        </div>
+                      ) : null}
                     </div>
                   </div>
                   {!isOwnItem ? (
@@ -500,6 +516,9 @@ export default function ItemDetailPage() {
                     </React.Fragment>
                   ))}
                 </div>
+                <p className="text-sm leading-relaxed text-secondary">
+                  {fallbackText(sellerBio, '卖家暂未填写个人简介。')}
+                </p>
               </div>
 
               {!isOwnItem ? (

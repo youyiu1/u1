@@ -2,13 +2,11 @@ package com.neighborhood.app.config;
 
 import jakarta.annotation.PostConstruct;
 import lombok.RequiredArgsConstructor;
-import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Component;
 
 /** 消息与通知表结构迁移。 */
 @Component
-@ConditionalOnProperty(prefix = "app.migration", name = "auto-run", havingValue = "true")
 @RequiredArgsConstructor
 public class MessageSchemaMigration {
 

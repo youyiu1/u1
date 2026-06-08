@@ -1,6 +1,9 @@
 package com.neighborhood.app.service.impl;
 
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
+import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
+import com.baomidou.mybatisplus.core.metadata.IPage;
+import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.neighborhood.app.entity.content.Comment;
 import com.neighborhood.app.entity.content.News;
@@ -20,6 +23,8 @@ import com.neighborhood.app.utils.FollowLookupUtil;
 import com.neighborhood.app.utils.StringValueUtil;
 import com.neighborhood.app.utils.UserLookupUtil;
 import com.neighborhood.app.vo.content.NewsVO;
+import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -34,6 +39,7 @@ import org.springframework.transaction.annotation.Transactional;
 public class NewsServiceImpl extends ServiceImpl<NewsMapper, News> implements NewsService {
 
     private static final String NORMAL_STATUS = "normal";
+    private static final String PENDING_STATUS = "pending";
     private static final String FAVORITE_TARGET_NEWS = "news";
 
     private final CommentMapper commentMapper;
@@ -90,7 +96,8 @@ public class NewsServiceImpl extends ServiceImpl<NewsMapper, News> implements Ne
     @Override
     public NewsVO getNewsVOById(Long id, String userId) {
         News news = getById(id);
-        if (news == null || !NORMAL_STATUS.equals(StringValueUtil.emptyTo(news.getStatus(), NORMAL_STATUS))) {
+        String status = news == null ? null : StringValueUtil.emptyTo(news.getStatus(), NORMAL_STATUS);
+        if (news == null || !canViewDetail(news, status, userId)) {
             return null;
         }
         User author = UserLookupUtil.getById(cacheService, userMapper, news.getAuthorId());
@@ -106,7 +113,7 @@ public class NewsServiceImpl extends ServiceImpl<NewsMapper, News> implements Ne
 
     @Override
     public List<NewsVO> listDescVO(String userId) {
-        List<News> newsList = listDescWithMetrics();
+        List<News> newsList = visibleNewsFeed(userId);
         if (newsList.isEmpty()) {
             return List.of();
         }
@@ -119,6 +126,34 @@ public class NewsServiceImpl extends ServiceImpl<NewsMapper, News> implements Ne
                     return vo;
                 })
                 .collect(Collectors.toList());
+    }
+
+    @Override
+    public IPage<NewsVO> listDescPage(String userId, long pageNum, long pageSize) {
+        List<News> visibleNews = visibleNewsFeed(userId);
+        Page<NewsVO> result = new Page<>(pageNum, pageSize, visibleNews.size());
+        long start = Math.max(0L, (pageNum - 1) * pageSize);
+        if (start >= visibleNews.size()) {
+            result.setRecords(List.of());
+            return result;
+        }
+        int fromIndex = (int) start;
+        int toIndex = (int) Math.min(visibleNews.size(), start + pageSize);
+        List<News> records = visibleNews.subList(fromIndex, toIndex);
+        if (records.isEmpty()) {
+            result.setRecords(List.of());
+            return result;
+        }
+        Map<String, User> userMap = authorMap(records);
+        Set<String> followedAuthorIds = followedAuthorIds(userId, records);
+        result.setRecords(records.stream()
+                .map(news -> {
+                    NewsVO vo = toNewsVO(news, userMap.get(news.getAuthorId()));
+                    setUserInteractionStatus(vo, userId, followedAuthorIds);
+                    return vo;
+                })
+                .collect(Collectors.toList()));
+        return result;
     }
 
     @Override
@@ -258,6 +293,33 @@ public class NewsServiceImpl extends ServiceImpl<NewsMapper, News> implements Ne
                 "news",
                 "list"
         );
+    }
+
+    private List<News> visibleNewsFeed(String userId) {
+        List<News> visibleNews = new ArrayList<>(listDescWithMetrics());
+        if (userId != null && !userId.isBlank()) {
+            visibleNews.addAll(listOwnPendingNews(userId));
+            visibleNews.sort(Comparator.comparing(News::getCreateTime, Comparator.nullsLast(Comparator.reverseOrder())));
+        }
+        return visibleNews;
+    }
+
+    private List<News> listOwnPendingNews(String userId) {
+        return lambdaQuery()
+                .eq(News::getAuthorId, userId)
+                .eq(News::getStatus, PENDING_STATUS)
+                .orderByDesc(News::getCreateTime)
+                .list();
+    }
+
+    private boolean canViewDetail(News news, String status, String userId) {
+        if (NORMAL_STATUS.equals(status)) {
+            return true;
+        }
+        return userId != null
+                && !userId.isBlank()
+                && news.getAuthorId() != null
+                && userId.equals(news.getAuthorId());
     }
 
     private Set<String> followedAuthorIds(String userId, List<News> newsList) {

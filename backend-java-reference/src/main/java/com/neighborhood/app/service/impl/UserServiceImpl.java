@@ -11,17 +11,28 @@ import com.neighborhood.app.entity.user.User;
 import com.neighborhood.app.mapper.user.FollowMapper;
 import com.neighborhood.app.mapper.user.UserMapper;
 import com.neighborhood.app.service.CacheService;
+import com.neighborhood.app.service.FileService;
 import com.neighborhood.app.service.UserService;
 import com.neighborhood.app.utils.CounterSqlUtil;
 import com.neighborhood.app.utils.FollowLookupUtil;
 import com.neighborhood.app.utils.PasswordCodec;
 import com.neighborhood.app.utils.UserLookupUtil;
+import java.awt.Color;
+import java.awt.Font;
+import java.awt.GradientPaint;
+import java.awt.Graphics2D;
+import java.awt.RenderingHints;
+import java.awt.geom.Ellipse2D;
+import java.awt.image.BufferedImage;
+import java.io.ByteArrayOutputStream;
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.function.Consumer;
 import java.util.stream.Collectors;
+import javax.imageio.ImageIO;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -31,12 +42,21 @@ import org.springframework.transaction.annotation.Transactional;
 @RequiredArgsConstructor
 public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements UserService {
 
-    private static final String DEFAULT_AVATAR = "/api/file/931f8e1a2d834e03a288800df5a7e6ec.jpg";
+    private static final int AVATAR_SIZE = 256;
+    private static final Color[] AVATAR_PALETTE = new Color[] {
+            new Color(0xF59E0B),
+            new Color(0xEF4444),
+            new Color(0x10B981),
+            new Color(0x3B82F6),
+            new Color(0xEC4899),
+            new Color(0x8B5CF6)
+    };
 
     private final FollowMapper followMapper;
     private final CacheService cacheService;
     private final UserMapper userMapper;
     private final PasswordCodec passwordCodec;
+    private final FileService fileService;
 
     @Override
     public User register(String name, String email, String password) {
@@ -225,7 +245,7 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements Us
         user.setName(name);
         user.setEmail(email);
         user.setPassword(passwordCodec.encode(password));
-        user.setAvatar(DEFAULT_AVATAR);
+        user.setAvatar(createDefaultAvatar(name));
         user.setTag("社区新人");
         user.setIsVerified(false);
         user.setFollowersCount(0);
@@ -240,6 +260,63 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements Us
         user.setPostsVisible("public");
         user.setShowLocation(true);
         return user;
+    }
+
+    private String createDefaultAvatar(String name) {
+        try {
+            return fileService.uploadBytes(renderDefaultAvatar(name), buildAvatarFilename(name));
+        } catch (IOException exception) {
+            throw new IllegalStateException("默认头像创建失败", exception);
+        }
+    }
+
+    private byte[] renderDefaultAvatar(String name) throws IOException {
+        BufferedImage image = new BufferedImage(AVATAR_SIZE, AVATAR_SIZE, BufferedImage.TYPE_INT_ARGB);
+        Graphics2D graphics = image.createGraphics();
+        try {
+            graphics.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+            graphics.setRenderingHint(RenderingHints.KEY_TEXT_ANTIALIASING, RenderingHints.VALUE_TEXT_ANTIALIAS_ON);
+
+            Color primary = AVATAR_PALETTE[Math.floorMod(trimToEmpty(name).hashCode(), AVATAR_PALETTE.length)];
+            Color secondary = primary.brighter();
+
+            graphics.setPaint(new GradientPaint(0, 0, primary, AVATAR_SIZE, AVATAR_SIZE, secondary));
+            graphics.fillRect(0, 0, AVATAR_SIZE, AVATAR_SIZE);
+
+            graphics.setColor(new Color(255, 255, 255, 48));
+            graphics.fill(new Ellipse2D.Double(24, 24, 96, 96));
+            graphics.fill(new Ellipse2D.Double(148, 136, 72, 72));
+
+            graphics.setColor(new Color(255, 255, 255, 220));
+            graphics.fill(new Ellipse2D.Double(48, 48, 160, 160));
+
+            graphics.setColor(primary.darker());
+            graphics.setFont(new Font(Font.SANS_SERIF, Font.BOLD, 92));
+            String glyph = avatarGlyph(name);
+            var metrics = graphics.getFontMetrics();
+            int x = (AVATAR_SIZE - metrics.stringWidth(glyph)) / 2;
+            int y = ((AVATAR_SIZE - metrics.getHeight()) / 2) + metrics.getAscent();
+            graphics.drawString(glyph, x, y);
+        } finally {
+            graphics.dispose();
+        }
+
+        ByteArrayOutputStream output = new ByteArrayOutputStream();
+        ImageIO.write(image, "png", output);
+        return output.toByteArray();
+    }
+
+    private String buildAvatarFilename(String name) {
+        return "avatar-" + Math.abs(trimToEmpty(name).hashCode()) + ".png";
+    }
+
+    private String avatarGlyph(String name) {
+        String trimmed = trimToEmpty(name);
+        if (trimmed.isEmpty()) {
+            return "?";
+        }
+        int firstCodePoint = trimmed.codePointAt(0);
+        return new String(Character.toChars(firstCodePoint)).toUpperCase();
     }
 
     private boolean passwordMatched(User user, String rawPassword) {

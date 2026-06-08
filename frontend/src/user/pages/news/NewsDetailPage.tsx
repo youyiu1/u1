@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
-import { Bookmark, ChevronLeft, Heart, MessageSquare, MoreHorizontal, Share2 } from 'lucide-react';
+import { AlertCircle, Bookmark, ChevronLeft, Clock3, Heart, MessageSquare, MoreHorizontal, Share2 } from 'lucide-react';
 import { motion } from 'motion/react';
 import { useLocation, useNavigate, useParams } from 'react-router-dom';
 import { newsApi } from '../../services/api';
@@ -14,6 +14,7 @@ import { fallbackText } from '../../utils/display';
 import { getErrorMessage } from '../../utils/error';
 import { parseImages } from '../../utils/images';
 import { buildProfilePath, buildProfileRouteState } from '../../utils/profileRoute';
+import { getPendingReviewState, getRejectedReviewState } from '../../utils/reviewState';
 
 const COMMENT_FETCH_LIMIT = 200;
 const DETAIL_ACTION_BUTTON_CLASS = 'flex items-center gap-2 text-secondary transition-all hover:text-primary';
@@ -89,6 +90,15 @@ export default function NewsDetailPage() {
   const authorVerified = post?.author?.verified ?? post?.authorVerified ?? false;
   const postTime = formatDateTime(post?.time || post?.createTime, '刚刚');
   const isOwnPost = Boolean(user?.id && user.id === authorId);
+  const reviewState = isOwnPost
+    ? getPendingReviewState(post?.status, {
+        label: '待平台审核，通过后才会公开展示',
+      }) ||
+      getRejectedReviewState(post?.status, post?.rejectReason, {
+        label: '未通过审核',
+        fallbackReason: '请根据原因调整后重新发布',
+      })
+    : null;
   const postImages = useMemo(() => parseImages(post?.images), [post?.images]);
   const locationLabel = fallbackText(post?.location, '同城社区');
 
@@ -294,6 +304,19 @@ export default function NewsDetailPage() {
             />
 
             <div className="mb-8 space-y-6">
+              {reviewState ? (
+                <div className={`flex items-start gap-2 rounded-2xl px-4 py-3 text-sm font-bold ${reviewState.className}`}>
+                  {reviewState.status === 'pending' ? (
+                    <Clock3 className="mt-0.5 h-4 w-4 shrink-0" />
+                  ) : (
+                    <AlertCircle className="mt-0.5 h-4 w-4 shrink-0" />
+                  )}
+                  <div>
+                    <p>{reviewState.label}</p>
+                    {reviewState.reason ? <p className="mt-1 text-xs font-medium opacity-80">{reviewState.reason}</p> : null}
+                  </div>
+                </div>
+              ) : null}
               {post.title ? <h1 className="text-xl font-black leading-tight tracking-tight text-ink md:text-2xl">{post.title}</h1> : null}
               <p className="text-base font-medium leading-relaxed text-ink">{post.content}</p>
 

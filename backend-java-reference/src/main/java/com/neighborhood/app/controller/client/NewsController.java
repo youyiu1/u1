@@ -1,12 +1,14 @@
 package com.neighborhood.app.controller.client;
 
 import com.neighborhood.app.common.Result;
+import com.neighborhood.app.dto.common.PageQueryRequest;
 import com.neighborhood.app.dto.interaction.CommentRequest;
 import com.neighborhood.app.entity.content.Comment;
 import com.neighborhood.app.entity.content.News;
 import com.neighborhood.app.service.CommentLikeService;
 import com.neighborhood.app.service.NewsService;
 import com.neighborhood.app.service.UserService;
+import com.neighborhood.app.utils.RequestUserResolver;
 import com.neighborhood.app.utils.RequestUserUtil;
 import com.neighborhood.app.utils.RequestValueUtil;
 import com.neighborhood.app.vo.content.NewsVO;
@@ -33,10 +35,16 @@ public class NewsController {
     private final NewsService newsService;
     private final CommentLikeService commentLikeService;
     private final UserService userService;
+    private final RequestUserResolver requestUserResolver;
 
     @GetMapping("/list")
-    public Result<List<NewsVO>> list(HttpServletRequest request) {
-        return Result.ok(newsService.listDescVO(RequestUserUtil.currentUserId(request)));
+    public Result<List<NewsVO>> list(PageQueryRequest pageQuery, HttpServletRequest request) {
+        var page = newsService.listDescPage(
+                requestUserResolver.currentUserId(request),
+                pageQuery.normalizedPageNum(),
+                pageQuery.normalizedPageSize()
+        );
+        return Result.ok(page.getRecords(), page.getTotal());
     }
 
     @GetMapping("/user/{userId}")
@@ -61,7 +69,7 @@ public class NewsController {
 
     @GetMapping("/{id}")
     public Result<NewsVO> getById(@PathVariable Long id, HttpServletRequest request) {
-        return Result.ok(newsService.getNewsVOById(id, RequestUserUtil.currentUserId(request)));
+        return Result.ok(newsService.getNewsVOById(id, requestUserResolver.currentUserId(request)));
     }
 
     @PostMapping("/{id}/like")
@@ -96,7 +104,7 @@ public class NewsController {
                 id,
                 limit,
                 offset,
-                RequestUserUtil.getEffectiveUserId(request, userId)
+                requestUserResolver.getEffectiveUserId(request, userId)
         ));
     }
 

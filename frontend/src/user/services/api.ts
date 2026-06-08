@@ -21,6 +21,11 @@ interface Result<T> {
   total: number | null;
 }
 
+export interface PageData<T> {
+  data: T;
+  total: number;
+}
+
 interface AuthResponse {
   user: User;
   token: string;
@@ -109,7 +114,7 @@ function invalidateAuthState(requestToken: string | null): void {
   removeStoredUser();
 }
 
-async function parseResponse<T>(res: Response, requestToken: string | null): Promise<T> {
+async function parseResponse<T>(res: Response, requestToken: string | null): Promise<Result<T>> {
   if (res.status === 401) {
     const json = await res.json();
     const message = json.message || '';
@@ -127,10 +132,10 @@ async function parseResponse<T>(res: Response, requestToken: string | null): Pro
   if (!json.success) {
     throw new Error(json.message || '请求失败');
   }
-  return json.data;
+  return json;
 }
 
-async function request<T>(url: string, options?: RequestInit): Promise<T> {
+async function requestResult<T>(url: string, options?: RequestInit): Promise<Result<T>> {
   const method = options?.method?.toUpperCase() || 'GET';
   const isGetWithoutBody = method === 'GET' && !options?.body;
   const requestToken = getToken();
@@ -141,7 +146,7 @@ async function request<T>(url: string, options?: RequestInit): Promise<T> {
   }
 
   if (isGetWithoutBody && inflightGetRequests.has(requestKey)) {
-    return inflightGetRequests.get(requestKey) as Promise<T>;
+    return inflightGetRequests.get(requestKey) as Promise<Result<T>>;
   }
 
   const doRequest = async () => {
@@ -154,9 +159,9 @@ async function request<T>(url: string, options?: RequestInit): Promise<T> {
         ...options?.headers,
       },
     });
-    const data = await parseResponse<T>(res, requestToken);
+    const result = await parseResponse<T>(res, requestToken);
     logSlowRequest(method, url, startAt);
-    return data;
+    return result;
   };
 
   if (!isGetWithoutBody) {
@@ -168,6 +173,19 @@ async function request<T>(url: string, options?: RequestInit): Promise<T> {
   });
   inflightGetRequests.set(requestKey, promise);
   return promise;
+}
+
+async function request<T>(url: string, options?: RequestInit): Promise<T> {
+  const result = await requestResult<T>(url, options);
+  return result.data;
+}
+
+async function requestPage<T>(url: string, options?: RequestInit): Promise<PageData<T>> {
+  const result = await requestResult<T>(url, options);
+  return {
+    data: result.data,
+    total: result.total ?? (Array.isArray(result.data) ? result.data.length : 0),
+  };
 }
 
 function postJson<T>(url: string, body?: unknown) {
@@ -183,6 +201,10 @@ function postFlag(path: string, body?: unknown) {
 
 function requestWithQuery<T>(path: string, params?: QueryParams) {
   return request<T>(`${path}${params ? buildQuery(params) : ''}`);
+}
+
+function requestPageWithQuery<T>(path: string, params?: QueryParams) {
+  return requestPage<T>(`${path}${params ? buildQuery(params) : ''}`);
 }
 
 function mutateJson<T>(method: JsonBodyMethod, path: string, body?: unknown) {
@@ -261,7 +283,7 @@ export const userApi = {
 };
 
 export const newsApi = {
-  list: () => request<Post[]>('/news/list'),
+  list: (pageNum = 1, pageSize = 10) => requestPageWithQuery<Post[]>('/news/list', { pageNum, pageSize }),
   get: (id: string, userId?: string) => requestWithQuery<Post>(`/news/${id}`, { userId }),
   getByUserId: (userId: string) => request<Post[]>(`/news/user/${userId}`),
   create: (post: { title: string; content: string; category: string; images?: string[] | string; location?: string }) =>
@@ -278,7 +300,8 @@ export const newsApi = {
 };
 
 export const marketApi = {
-  list: () => request<Item[]>('/market/list'),
+  list: (params?: { category?: string; keyword?: string; pageNum?: number; pageSize?: number }) =>
+    requestPageWithQuery<Item[]>('/market/list', params),
   get: (id: string) => request<Item>(`/market/${id}`),
   getByUserId: (userId: string) => request<Item[]>(`/market/user/${userId}`),
   create: (item: Partial<Item>) => postFlag('/market/create', item),
@@ -286,7 +309,8 @@ export const marketApi = {
 };
 
 export const serviceApi = {
-  list: (lat?: number, lng?: number) => requestWithQuery<Service[]>('/service/list', { lat, lng }),
+  list: (params?: { category?: string; keyword?: string; lat?: number; lng?: number; pageNum?: number; pageSize?: number }) =>
+    requestPageWithQuery<Service[]>('/service/list', params),
   get: (id: string, lat?: number, lng?: number) => requestWithQuery<ServiceDetail>(`/service/${id}`, { lat, lng }),
   getByUserId: (userId: string) => request<Service[]>(`/service/user/${userId}`),
   getReviews: (id: string) => request<Review[]>(`/service/${id}/reviews`),
@@ -366,6 +390,10 @@ export const reviewApi = {
 
 export const searchApi = {
   all: (keyword: string) => requestWithQuery<{ services: Service[]; items: Item[]; posts: Post[] }>('/search', { keyword }),
+};
+
+export const aiApi = {
+  chat: (message: string, systemPrompt?: string) => postJson<string>('/ai/chat', { message, systemPrompt }),
 };
 
 export const fileApi = {

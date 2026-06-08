@@ -5,6 +5,7 @@
 
 package com.neighborhood.app.service;
 
+import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.extension.service.IService;
 import com.neighborhood.app.entity.content.Comment;
 import com.neighborhood.app.entity.content.News;
@@ -24,6 +25,8 @@ public interface NewsService extends IService<News> {
     List<NewsVO> listDescVO();
 
     List<NewsVO> listDescVO(String userId);
+
+    IPage<NewsVO> listDescPage(String userId, long pageNum, long pageSize);
 
     List<NewsVO> listByUserId(String userId);
 

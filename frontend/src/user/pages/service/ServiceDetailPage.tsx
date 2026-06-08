@@ -131,6 +131,7 @@ function ReviewSection({ serviceId, rating }: { serviceId: string; rating: numbe
   const [reviews, setReviews] = useState<Review[]>([]);
   const [likedReviews, setLikedReviews] = useState<Set<string>>(new Set());
   const [likeLoading, setLikeLoading] = useState<string | null>(null);
+  const [showAllReviews, setShowAllReviews] = useState(false);
   const { requireAuth } = useAuthCheck();
 
   useEffect(() => {
@@ -153,6 +154,10 @@ function ReviewSection({ serviceId, rating }: { serviceId: string; rating: numbe
     return () => {
       mounted = false;
     };
+  }, [serviceId]);
+
+  useEffect(() => {
+    setShowAllReviews(false);
   }, [serviceId]);
 
   const handleLike = async (reviewId: string) => {
@@ -200,6 +205,8 @@ function ReviewSection({ serviceId, rating }: { serviceId: string; rating: numbe
     }
   };
 
+  const visibleReviews = showAllReviews ? reviews : reviews.slice(0, 2);
+
   return (
     <div className="space-y-12">
       <header className="flex items-center justify-between gap-4">
@@ -215,7 +222,7 @@ function ReviewSection({ serviceId, rating }: { serviceId: string; rating: numbe
         {reviews.length === 0 ? (
           <div className="py-12 text-center text-muted">暂时还没有评价</div>
         ) : (
-          reviews.map((review) => (
+          visibleReviews.map((review) => (
             <div key={review.id} className="space-y-6 rounded-[32px] border border-hairline bg-white p-8 shadow-sm">
               <div className="flex items-start justify-between gap-4">
                 <div className="flex items-center gap-4">
@@ -266,6 +273,17 @@ function ReviewSection({ serviceId, rating }: { serviceId: string; rating: numbe
           ))
         )}
       </div>
+      {reviews.length > 2 ? (
+        <div className="flex justify-center">
+          <button
+            type="button"
+            onClick={() => setShowAllReviews((current) => !current)}
+            className="rounded-2xl border border-hairline bg-white px-6 py-3 text-sm font-black text-ink transition-all hover:border-primary/20 hover:text-primary"
+          >
+            {showAllReviews ? '收起评价' : '更多评价'}
+          </button>
+        </div>
+      ) : null}
     </div>
   );
 }
@@ -376,6 +394,9 @@ export default function ServiceDetailPage() {
   const serviceFee = service ? getServiceFee(service.price, duration) : 0;
   const totalPrice = serviceFee + 20;
   const sellerProfilePath = buildProfilePath(service?.seller?.id || service?.sellerId, service?.seller?.name);
+  const sellerMeta = [service?.seller?.tag, service?.seller?.region].filter(
+    (value): value is string => Boolean(value && value.trim())
+  );
 
   const sellerStats = [
     { label: '服务完成', value: `${service?.seller?.soldCount || 0}+` },
@@ -443,7 +464,10 @@ export default function ServiceDetailPage() {
         id: service?.seller?.id || service?.sellerId,
         name: service?.seller?.name,
         avatar: service?.seller?.avatar,
-        isVerified: true,
+        tag: service?.seller?.tag,
+        bio: service?.seller?.bio,
+        region: service?.seller?.region,
+        isVerified: service?.seller?.isVerified,
         followersCount: service?.seller?.followersCount,
       }),
     });
@@ -671,16 +695,28 @@ export default function ServiceDetailPage() {
                     <User className="h-10 w-10 text-muted" />
                   </div>
                 )}
-                <div className="absolute -bottom-2 -right-2 rounded-xl border-4 border-white bg-blue-500 p-1.5 text-white shadow-lg">
-                  <CheckCircle2 className="h-4 w-4" />
-                </div>
+                {service.seller?.isVerified ? (
+                  <div className="absolute -bottom-2 -right-2 rounded-xl border-4 border-white bg-blue-500 p-1.5 text-white shadow-lg">
+                    <CheckCircle2 className="h-4 w-4" />
+                  </div>
+                ) : null}
               </button>
               <div className="flex-1 text-center md:text-left">
                 <div className="mb-3 flex flex-col gap-3 md:flex-row md:items-center">
                   <h3 className="text-2xl font-black text-ink">{fallbackText(service.seller?.name, '服务者')}</h3>
-                  <span className="rounded-lg bg-green-50 px-3 py-1 text-[10px] font-black uppercase tracking-widest text-green-600">
-                    资质已认证
-                  </span>
+                  {service.seller?.isVerified ? (
+                    <span className="rounded-lg bg-green-50 px-3 py-1 text-[10px] font-black uppercase tracking-widest text-green-600">
+                      资质已认证
+                    </span>
+                  ) : null}
+                  {sellerMeta.map((item) => (
+                    <span
+                      key={item}
+                      className="rounded-lg bg-surface-soft px-3 py-1 text-[10px] font-black uppercase tracking-widest text-secondary"
+                    >
+                      {item}
+                    </span>
+                  ))}
                   {!isOwnService && sellerId ? (
                     <FollowButton
                       targetId={sellerId}
@@ -693,7 +729,7 @@ export default function ServiceDetailPage() {
                   ) : null}
                 </div>
                 <p className="mb-4 max-w-lg leading-relaxed text-secondary">
-                  服务者信息已通过平台校验，可在线沟通、预约服务，支持按约定时间上门或到店完成服务。
+                  {fallbackText(service.seller?.bio, '服务者暂未填写个人简介。')}
                 </p>
                 <div className="flex items-center justify-center gap-8 md:justify-start">
                   {sellerStats.map((stat) => (

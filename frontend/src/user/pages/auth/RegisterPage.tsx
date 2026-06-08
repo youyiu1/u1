@@ -94,8 +94,8 @@ export default function RegisterPage() {
           return current - 1;
         });
       }, 1000);
-    } catch {
-      setError('验证码发送失败，请稍后重试');
+    } catch (sendCodeError: unknown) {
+      setError(getErrorMessage(sendCodeError, '验证码发送失败，请稍后重试'));
     } finally {
       setCodeLoading(false);
     }

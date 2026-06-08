@@ -3,11 +3,12 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { Brush, CheckCircle2, Dumbbell, MapPin, Plus, Scissors, Search, Sparkles, Star, Wrench } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { BackToTop } from '../../components/common/BackToTop';
 import { FavoriteButton } from '../../components/common/FavoriteButton';
+import { Pagination } from '../../components/common/Pagination';
 import { useAuthCheck } from '../../context/useAuthCheck';
 import { usePublish } from '../../context/PublishContext';
 import { serviceApi } from '../../services/api';
@@ -15,7 +16,6 @@ import { Service } from '../../types';
 import { getErrorMessage } from '../../utils/error';
 import { getServicePrimaryImage } from '../../utils/images';
 import { getCurrentLocation, getGeolocationPermissionState, readCachedLocation } from '../../utils/location';
-import { matchesAnyKeyword, normalizeSearchTerm } from '../../utils/search';
 
 type ServiceCategory = {
   id: string;
@@ -30,6 +30,8 @@ const CATEGORIES: ServiceCategory[] = [
   { id: 'pet', name: '宠物生活', icon: <Scissors className="h-4 w-4" /> },
   { id: 'sports', name: '运动私教', icon: <Dumbbell className="h-4 w-4" /> },
 ];
+
+const DEFAULT_PAGE_SIZE = 10;
 
 function getDistanceLabel(distance?: string) {
   return distance?.trim() ? distance : '距离未知';
@@ -52,19 +54,35 @@ export default function ServiceListPage() {
   const [nearbyEnabled, setNearbyEnabled] = useState(false);
   const [locating, setLocating] = useState(false);
   const [locationTip, setLocationTip] = useState('');
+  const [currentPage, setCurrentPage] = useState(1);
+  const [pageSize, setPageSize] = useState(DEFAULT_PAGE_SIZE);
+  const [totalItems, setTotalItems] = useState(0);
+  const [locationCoords, setLocationCoords] = useState<{ latitude: number; longitude: number } | null>(null);
+
+  useEffect(() => {
+    const cachedLocation = readCachedLocation();
+    if (!cachedLocation) {
+      return;
+    }
+    setNearbyEnabled(true);
+    setLocationCoords(cachedLocation);
+  }, []);
 
   useEffect(() => {
     const fetchServices = async () => {
       try {
-        const baseData = await serviceApi.list();
-        setServices(baseData);
-
-        const cachedLocation = readCachedLocation();
-        if (cachedLocation) {
-          setNearbyEnabled(true);
-          const localizedData = await serviceApi.list(cachedLocation.latitude, cachedLocation.longitude);
-          setServices(localizedData);
-        }
+        setLoading(true);
+        setError(null);
+        const result = await serviceApi.list({
+          category: activeCategory,
+          keyword: searchQuery.trim(),
+          lat: locationCoords?.latitude,
+          lng: locationCoords?.longitude,
+          pageNum: currentPage,
+          pageSize,
+        });
+        setServices(result.data);
+        setTotalItems(result.total);
       } catch (fetchError: unknown) {
         setError(getErrorMessage(fetchError, '加载失败'));
       } finally {
@@ -73,7 +91,7 @@ export default function ServiceListPage() {
     };
 
     void fetchServices();
-  }, []);
+  }, [activeCategory, currentPage, locationCoords, pageSize, searchQuery]);
 
   const enableNearbySort = async () => {
     if (locating) {
@@ -96,9 +114,9 @@ export default function ServiceListPage() {
         return;
       }
 
-      const localizedData = await serviceApi.list(location.latitude, location.longitude);
-      setServices(localizedData);
+      setLocationCoords(location);
       setNearbyEnabled(true);
+      setCurrentPage(1);
       setLocationTip('已开启附近排序。');
     } catch {
       setLocationTip('定位失败，已保持默认排序。');
@@ -107,14 +125,13 @@ export default function ServiceListPage() {
     }
   };
 
-  const filteredServices = useMemo(() => {
-    const keyword = normalizeSearchTerm(searchQuery);
-    return services.filter(
-      (service) =>
-        (activeCategory === 'all' || service.category === activeCategory) &&
-        matchesAnyKeyword(keyword, [service.title])
-    );
-  }, [activeCategory, searchQuery, services]);
+  const totalPages = Math.max(1, Math.ceil(totalItems / pageSize));
+
+  useEffect(() => {
+    if (currentPage > totalPages) {
+      setCurrentPage(totalPages);
+    }
+  }, [currentPage, totalPages]);
 
   return (
     <div className="min-h-screen bg-white pb-20">
@@ -131,7 +148,10 @@ export default function ServiceListPage() {
                   type="text"
                   placeholder="搜索服务名称、关键词..."
                   value={searchQuery}
-                  onChange={(event) => setSearchQuery(event.target.value)}
+                  onChange={(event) => {
+                    setSearchQuery(event.target.value);
+                    setCurrentPage(1);
+                  }}
                   onKeyDown={(event) => {
                     if (event.key === 'Enter') {
                       event.preventDefault();
@@ -155,7 +175,10 @@ export default function ServiceListPage() {
             {CATEGORIES.map((category) => (
               <button
                 key={category.id}
-                onClick={() => setActiveCategory(category.id)}
+                onClick={() => {
+                  setActiveCategory(category.id);
+                  setCurrentPage(1);
+                }}
                 className={`flex shrink-0 items-center gap-2 rounded-xl px-6 py-2.5 text-sm font-bold transition-all ${
                   activeCategory === category.id
                     ? 'bg-primary text-white shadow-md'
@@ -207,10 +230,10 @@ export default function ServiceListPage() {
                 <div className="h-3 w-1/2 animate-pulse rounded bg-stone-200" />
               </div>
             ))
-          ) : filteredServices.length === 0 ? (
+          ) : totalItems === 0 ? (
             <div className="col-span-full py-16 text-center text-muted">暂无服务</div>
           ) : (
-            filteredServices.map((service) => (
+            services.map((service) => (
               <ServiceCard
                 key={service.id}
                 service={service}
@@ -221,6 +244,17 @@ export default function ServiceListPage() {
             ))
           )}
         </div>
+        <Pagination
+          currentPage={currentPage}
+          totalPages={totalPages}
+          totalItems={totalItems}
+          pageSize={pageSize}
+          onPageChange={setCurrentPage}
+          onPageSizeChange={(size) => {
+            setPageSize(size);
+            setCurrentPage(1);
+          }}
+        />
       </main>
 
       <BackToTop />

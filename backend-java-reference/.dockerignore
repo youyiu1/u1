@@ -1,6 +1,10 @@
 target
 logs
 uploads
+.env*
+application-secret.yml
+application-secret.yaml
+application-secret.properties
 tmp-javac
 tmp-javac-news
 *.log

@@ -1,10 +1,11 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { Image as ImageIcon, Loader2, MapPin, Share2, TrendingUp, Users, X } from 'lucide-react';
+import { AlertCircle, Clock3, Image as ImageIcon, Loader2, MapPin, Share2, TrendingUp, Users, X } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { fileApi, newsApi, userApi } from '../../services/api';
 import { BackToTop } from '../../components/common/BackToTop';
 import { FollowButton } from '../../components/common/FollowButton';
 import { LocationPicker } from '../../components/common/LocationPicker';
+import { Pagination } from '../../components/common/Pagination';
 import { PostItemActions } from '../../components/common/PostItemActions';
 import { PostMenu } from '../../components/common/PostMenu';
 import { useAuth } from '../../context/AuthContext';
@@ -14,6 +15,7 @@ import { formatDateTime } from '../../utils/dateTime';
 import { getErrorMessage } from '../../utils/error';
 import { parseImages } from '../../utils/images';
 import { buildProfilePath, buildProfileRouteState } from '../../utils/profileRoute';
+import { getPendingReviewState, getRejectedReviewState } from '../../utils/reviewState';
 
 interface TrendingItem {
   id: string;
@@ -37,6 +39,8 @@ type ComposerAction = {
   onClick: () => void;
   disabled?: boolean;
 };
+
+const DEFAULT_PAGE_SIZE = 6;
 
 function renderHashtags(content: string): React.ReactNode {
   const hashtagRegex = /#([^#]+)#/g;
@@ -79,17 +83,14 @@ export default function NewsListPage() {
   const [postLocation, setPostLocation] = useState('');
   const [trending, setTrending] = useState<TrendingItem[]>([]);
   const [suggestedUsers, setSuggestedUsers] = useState<SuggestedUser[]>([]);
+  const [currentPage, setCurrentPage] = useState(1);
+  const [pageSize, setPageSize] = useState(DEFAULT_PAGE_SIZE);
+  const [totalItems, setTotalItems] = useState(0);
 
   useEffect(() => {
     const fetchData = async () => {
       try {
-        const [postData, trendingData, suggestedData] = await Promise.all([
-          newsApi.list(),
-          newsApi.getTrending(4),
-          userApi.getSuggestedUsers(5),
-        ]);
-
-        setPosts(postData);
+        const [trendingData, suggestedData] = await Promise.all([newsApi.getTrending(4), userApi.getSuggestedUsers(5)]);
         setTrending(
           trendingData.map((post) => ({
             id: post.id,
@@ -117,10 +118,37 @@ export default function NewsListPage() {
     void fetchData();
   }, []);
 
-  const refreshPosts = async () => {
-    const data = await newsApi.list();
-    setPosts(data);
+  useEffect(() => {
+    const fetchPosts = async () => {
+      try {
+        setLoading(true);
+        setError(null);
+        const result = await newsApi.list(currentPage, pageSize);
+        setPosts(result.data);
+        setTotalItems(result.total);
+      } catch (fetchError: unknown) {
+        setError(getErrorMessage(fetchError, '动态加载失败'));
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    void fetchPosts();
+  }, [currentPage, pageSize]);
+
+  const refreshPosts = async (targetPage = currentPage) => {
+    const result = await newsApi.list(targetPage, pageSize);
+    setPosts(result.data);
+    setTotalItems(result.total);
   };
+
+  const totalPages = Math.max(1, Math.ceil(totalItems / pageSize));
+
+  useEffect(() => {
+    if (currentPage > totalPages) {
+      setCurrentPage(totalPages);
+    }
+  }, [currentPage, totalPages]);
 
   const handleShare = async (postId: string, event: React.MouseEvent) => {
     event.stopPropagation();
@@ -149,7 +177,11 @@ export default function NewsListPage() {
       setPostText('');
       setPostImages([]);
       setPostLocation('');
-      await refreshPosts();
+      if (currentPage === 1) {
+        await refreshPosts(1);
+      } else {
+        setCurrentPage(1);
+      }
       showToast('发布成功', 'success');
     } catch (createError: unknown) {
       showToast(getErrorMessage(createError, '发布失败，请稍后重试'), 'error');
@@ -326,7 +358,11 @@ export default function NewsListPage() {
                           return;
                         }
                         await newsApi.delete(postId);
-                        setPosts((current) => current.filter((currentPost) => currentPost.id !== postId));
+                        if (posts.length === 1 && currentPage > 1) {
+                          setCurrentPage((page) => page - 1);
+                        } else {
+                          await refreshPosts();
+                        }
                       }}
                       onReport={async () => {
                         if (!window.confirm('确认举报这条动态吗？')) {
@@ -340,6 +376,17 @@ export default function NewsListPage() {
                 ))
               )}
             </div>
+            <Pagination
+              currentPage={currentPage}
+              totalPages={totalPages}
+              totalItems={totalItems}
+              pageSize={pageSize}
+              onPageChange={setCurrentPage}
+              onPageSizeChange={(size) => {
+                setPageSize(size);
+                setCurrentPage(1);
+              }}
+            />
           </div>
 
           <aside className="space-y-8 lg:col-span-4">
@@ -469,9 +516,28 @@ function NewsPostCard({
   const authorAvatar = post.author?.avatar || post.authorAvatar || '';
   const postTime = formatDateTime(post.time || post.createTime, '刚刚');
   const postImagesList = parseImages(post.images);
+  const isOwner = Boolean(currentUserId && currentUserId === authorId);
+  const reviewState = isOwner
+    ? getPendingReviewState(post.status, {
+        label: '待平台审核，通过后才会公开展示',
+      }) ||
+      getRejectedReviewState(post.status, post.rejectReason, {
+        label: '未通过审核',
+        fallbackReason: '请根据原因调整后重新发布',
+      })
+    : null;
 
   return (
-    <article className="cursor-pointer rounded-3xl border border-hairline bg-white p-6 shadow-sm transition-shadow hover:shadow-md" onClick={onOpen}>
+    <article
+      className={`cursor-pointer rounded-3xl border bg-white p-6 shadow-sm transition-shadow hover:shadow-md ${
+        reviewState?.status === 'pending'
+          ? 'border-amber-100 bg-amber-50/30'
+          : reviewState
+            ? 'border-rose-100 bg-rose-50/30'
+            : 'border-hairline'
+      }`}
+      onClick={onOpen}
+    >
       <header className="mb-4 flex items-center justify-between">
         <div
           className="group flex cursor-pointer items-center gap-3"
@@ -512,6 +578,19 @@ function NewsPostCard({
       </header>
 
       <div className="space-y-4">
+        {reviewState ? (
+          <div className={`flex items-start gap-2 rounded-2xl px-4 py-3 text-xs font-bold ${reviewState.className}`}>
+            {reviewState.status === 'pending' ? (
+              <Clock3 className="mt-0.5 h-4 w-4 shrink-0" />
+            ) : (
+              <AlertCircle className="mt-0.5 h-4 w-4 shrink-0" />
+            )}
+            <div>
+              <p>{reviewState.label}</p>
+              {reviewState.reason ? <p className="mt-1 font-medium opacity-80">{reviewState.reason}</p> : null}
+            </div>
+          </div>
+        ) : null}
         <p className="text-sm font-medium leading-relaxed text-secondary transition-colors group-hover:text-ink">{renderHashtags(post.content)}</p>
 
         {postImagesList.length > 0 ? (

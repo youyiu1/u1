@@ -8,6 +8,8 @@ server:
 spring:
   application:
     name: neighborhood-app
+  config:
+    import: optional:file:./application-secret.yml,optional:file:./application-secret.yaml,optional:file:./application-secret.properties
 
   servlet:
     multipart:
@@ -67,6 +69,16 @@ spring:
     username: ${MAIL_USERNAME:}
     password: ${MAIL_PASSWORD:}
 
+  ai:
+    model:
+      chat: zhipuai
+    zhipuai:
+      api-key: ${ZHIPUAI_API_KEY:}
+      chat:
+        options:
+          model: ${ZHIPUAI_MODEL:glm-4.7-flash}
+          temperature: ${ZHIPUAI_TEMPERATURE:0.7}
+
 mybatis-plus:
   type-aliases-package: com.neighborhood.app.entity
   type-handler-strategy: other
@@ -92,8 +104,8 @@ jwt:
 
 rustfs:
   endpoint: ${RUSTFS_ENDPOINT:http://localhost:9000}
-  access-key: ${RUSTFS_ACCESS_KEY:yuan}
-  secret-key: ${RUSTFS_SECRET_KEY:2006yyy}
+  access-key: ${RUSTFS_ACCESS_KEY:}
+  secret-key: ${RUSTFS_SECRET_KEY:}
   bucket: ${RUSTFS_BUCKET:neighborhood}
 
 app:
@@ -119,6 +131,9 @@ app:
       admin-log-queue: ${RABBIT_ADMIN_LOG_QUEUE:neighborhood.admin.log.write}
       admin-log-exchange: ${RABBIT_ADMIN_LOG_EXCHANGE:neighborhood.admin.log.exchange}
       admin-log-routing-key: ${RABBIT_ADMIN_LOG_ROUTING_KEY:admin.log.write}
+  ai:
+    enabled: ${APP_AI_ENABLED:false}
+    system-prompt: ${APP_AI_SYSTEM_PROMPT:你是同城生活社区平台的 AI 助手，请使用简洁、友好、实用的中文回答，优先围绕生活服务、闲置交易、同城动态、消息沟通和个人主页等场景提供可直接使用的内容。}
 
 test:
   rustfs:

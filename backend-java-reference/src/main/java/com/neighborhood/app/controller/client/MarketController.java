@@ -7,12 +7,14 @@ package com.neighborhood.app.controller.client;
 
 import com.neighborhood.app.common.Result;
 import com.neighborhood.app.common.ResultUtils;
+import com.neighborhood.app.dto.common.PageQueryRequest;
 import com.neighborhood.app.dto.market.MarketPurchaseRequest;
 import com.neighborhood.app.entity.market.MarketItem;
 import com.neighborhood.app.entity.user.User;
 import com.neighborhood.app.service.MarketService;
 import com.neighborhood.app.service.NotificationService;
 import com.neighborhood.app.service.UserService;
+import com.neighborhood.app.utils.RequestUserResolver;
 import com.neighborhood.app.utils.RequestUserUtil;
 import com.neighborhood.app.utils.StringValueUtil;
 import com.neighborhood.app.vo.market.MarketItemVO;
@@ -25,6 +27,7 @@ import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 /** 用户端闲置商品接口。 */
@@ -41,10 +44,15 @@ public class MarketController {
     private final MarketService marketService;
     private final NotificationService notificationService;
     private final UserService userService;
+    private final RequestUserResolver requestUserResolver;
 
     @GetMapping("/list")
-    public Result<List<MarketItemVO>> list() {
-        return Result.ok(marketService.listVO());
+    public Result<List<MarketItemVO>> list(
+            @RequestParam(required = false) String category,
+            @RequestParam(required = false) String keyword,
+            PageQueryRequest pageQuery) {
+        var page = marketService.listPage(category, keyword, pageQuery.normalizedPageNum(), pageQuery.normalizedPageSize());
+        return Result.ok(page.getRecords(), page.getTotal());
     }
 
     /** 获取用户商品列表。 */
@@ -56,7 +64,7 @@ public class MarketController {
     /** 获取闲置商品详情。 */
     @GetMapping("/{id}")
     public Result<MarketItemVO> getById(@PathVariable Long id, HttpServletRequest request) {
-        return Result.ok(marketService.getMarketItemVOById(id, RequestUserUtil.currentUserId(request)));
+        return Result.ok(marketService.getMarketItemVOById(id, requestUserResolver.currentUserId(request)));
     }
 
     /** 创建闲置商品。 */

@@ -5,6 +5,7 @@
 
 package com.neighborhood.app.service;
 
+import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.extension.service.IService;
 import com.neighborhood.app.entity.market.MarketItem;
 import com.neighborhood.app.vo.market.MarketItemVO;
@@ -21,6 +22,8 @@ public interface MarketService extends IService<MarketItem> {
     MarketItemVO getMarketItemVOById(Long id, String viewerUserId);
 
     List<MarketItemVO> listVO();
+
+    IPage<MarketItemVO> listPage(String category, String keyword, long pageNum, long pageSize);
 
     List<MarketItemVO> listByUserId(String userId);
 

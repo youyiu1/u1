@@ -26,19 +26,12 @@ export const ConfirmDialog: React.FC<ConfirmDialogProps> = ({
   return (
     <AnimatePresence>
       {isOpen && (
-        <div className="fixed inset-0 z-[200]">
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            onClick={onCancel}
-            className="absolute inset-0 bg-ink/40 backdrop-blur-sm"
-          />
+        <div className="fixed inset-0 z-[200] pointer-events-none">
           <motion.div
             initial={{ opacity: 0, scale: 0.9, y: position === 'button' ? -10 : 20 }}
             animate={{ opacity: 1, scale: 1, y: 0 }}
             exit={{ opacity: 0, scale: 0.9, y: position === 'button' ? -10 : 20 }}
-            className={`absolute z-[201] w-full max-w-sm rounded-[32px] bg-white p-8 shadow-2xl ${
+            className={`pointer-events-auto absolute z-[201] w-full max-w-sm rounded-[32px] bg-white p-8 shadow-2xl ${
               position === 'button'
                 ? 'right-0 top-full mt-2 -translate-x-16'
                 : 'left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2'

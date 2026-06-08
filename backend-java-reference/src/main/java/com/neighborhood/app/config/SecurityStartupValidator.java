@@ -20,8 +20,11 @@ public class SecurityStartupValidator {
     private static final String DEFAULT_DB_PASSWORD = "root";
     private static final String DEFAULT_RABBIT_USERNAME = "guest";
     private static final String DEFAULT_RABBIT_PASSWORD = "guest";
-    private static final String DEFAULT_RUSTFS_ACCESS_KEY = "local-rustfs-access-key";
-    private static final String DEFAULT_RUSTFS_SECRET_KEY = "local-rustfs-secret-key";
+    private static final String DEFAULT_MAIL_USERNAME = "";
+    private static final String DEFAULT_MAIL_PASSWORD = "";
+    private static final String DEFAULT_RUSTFS_ACCESS_KEY = "";
+    private static final String DEFAULT_RUSTFS_SECRET_KEY = "";
+    private static final String DEFAULT_ZHIPUAI_API_KEY = "";
 
     private final Environment environment;
 
@@ -40,11 +43,23 @@ public class SecurityStartupValidator {
     @Value("${spring.rabbitmq.password:" + DEFAULT_RABBIT_PASSWORD + "}")
     private String rabbitPassword;
 
+    @Value("${spring.mail.username:" + DEFAULT_MAIL_USERNAME + "}")
+    private String mailUsername;
+
+    @Value("${spring.mail.password:" + DEFAULT_MAIL_PASSWORD + "}")
+    private String mailPassword;
+
     @Value("${rustfs.access-key:" + DEFAULT_RUSTFS_ACCESS_KEY + "}")
     private String rustfsAccessKey;
 
     @Value("${rustfs.secret-key:" + DEFAULT_RUSTFS_SECRET_KEY + "}")
     private String rustfsSecretKey;
+
+    @Value("${app.ai.enabled:false}")
+    private boolean aiEnabled;
+
+    @Value("${spring.ai.zhipuai.api-key:" + DEFAULT_ZHIPUAI_API_KEY + "}")
+    private String zhipuAiApiKey;
 
     @PostConstruct
     public void validate() {
@@ -54,8 +69,11 @@ public class SecurityStartupValidator {
             requireSafeValue(dbPassword, DEFAULT_DB_PASSWORD, "DB_PASSWORD");
             requireSafeValue(rabbitUsername, DEFAULT_RABBIT_USERNAME, "RABBITMQ_USERNAME");
             requireSafeValue(rabbitPassword, DEFAULT_RABBIT_PASSWORD, "RABBITMQ_PASSWORD");
+            requireSafeValue(mailUsername, DEFAULT_MAIL_USERNAME, "MAIL_USERNAME");
+            requireSafeValue(mailPassword, DEFAULT_MAIL_PASSWORD, "MAIL_PASSWORD");
             requireSafeValue(rustfsAccessKey, DEFAULT_RUSTFS_ACCESS_KEY, "RUSTFS_ACCESS_KEY");
             requireSafeValue(rustfsSecretKey, DEFAULT_RUSTFS_SECRET_KEY, "RUSTFS_SECRET_KEY");
+            requireAiSecretIfEnabled();
             return;
         }
         warnIfUnsafe(jwtSecret, DEFAULT_JWT_SECRET, "JWT_SECRET");
@@ -63,8 +81,11 @@ public class SecurityStartupValidator {
         warnIfUnsafe(dbPassword, DEFAULT_DB_PASSWORD, "DB_PASSWORD");
         warnIfUnsafe(rabbitUsername, DEFAULT_RABBIT_USERNAME, "RABBITMQ_USERNAME");
         warnIfUnsafe(rabbitPassword, DEFAULT_RABBIT_PASSWORD, "RABBITMQ_PASSWORD");
+        warnIfUnsafe(mailUsername, DEFAULT_MAIL_USERNAME, "MAIL_USERNAME");
+        warnIfUnsafe(mailPassword, DEFAULT_MAIL_PASSWORD, "MAIL_PASSWORD");
         warnIfUnsafe(rustfsAccessKey, DEFAULT_RUSTFS_ACCESS_KEY, "RUSTFS_ACCESS_KEY");
         warnIfUnsafe(rustfsSecretKey, DEFAULT_RUSTFS_SECRET_KEY, "RUSTFS_SECRET_KEY");
+        warnAiSecretIfEnabled();
     }
 
     private boolean isProductionMode() {
@@ -91,5 +112,17 @@ public class SecurityStartupValidator {
 
     private boolean isUnsafe(String actual, String dangerousDefault) {
         return actual == null || actual.isBlank() || dangerousDefault.equals(actual);
+    }
+
+    private void requireAiSecretIfEnabled() {
+        if (aiEnabled) {
+            requireSafeValue(zhipuAiApiKey, DEFAULT_ZHIPUAI_API_KEY, "ZHIPUAI_API_KEY");
+        }
+    }
+
+    private void warnAiSecretIfEnabled() {
+        if (aiEnabled) {
+            warnIfUnsafe(zhipuAiApiKey, DEFAULT_ZHIPUAI_API_KEY, "ZHIPUAI_API_KEY");
+        }
     }
 }
