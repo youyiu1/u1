@@ -427,3 +427,307 @@
       at async EnvironmentPluginContainer.transform (file:///D:/%E4%B8%8B%E8%BD%BD%E6%96%87%E4%BB%B6/%E5%90%8C%E5%9F%8E%E7%94%9F%E6%B4%BB/frontend/node_modules/vite/dist/node/chunks/dep-Dq2t6Dq0.js:42348:18)
       at async loadAndTransform (file:///D:/%E4%B8%8B%E8%BD%BD%E6%96%87%E4%BB%B6/%E5%90%8C%E5%9F%8E%E7%94%9F%E6%B4%BB/frontend/node_modules/vite/dist/node/chunks/dep-Dq2t6Dq0.js:35740:27)
       at async viteTransformMiddleware (file:///D:/%E4%B8%8B%E8%BD%BD%E6%96%87%E4%BB%B6/%E5%90%8C%E5%9F%8E%E7%94%9F%E6%B4%BB/frontend/node_modules/vite/dist/node/chunks/dep-Dq2t6Dq0.js:37264:24)
+[2m21:56:55[22m [31m[1m[vite][22m[39m [31mInternal server error: Failed to resolve import "../../components/home/HeroSection" from "src/user/pages/home/HomePage.tsx". Does the file exist?[39m
+  Plugin: [35mvite:import-analysis[39m
+  File: [36mD:/下载文件/同城生活/frontend/src/user/pages/home/HomePage.tsx[39m:4:28
+[33m  4  |  import { homeApi } from "../../services/api";
+  5  |  import { GlobalCard } from "../../components/common/Card";
+  6  |  import { HeroSection } from "../../components/home/HeroSection";
+     |                               ^
+  7  |  import { SectionHeader } from "../../components/common/SectionHeader";
+  8  |  import { HomePostCard } from "../../components/home/HomePostCard";[39m
+      at TransformPluginContext._formatLog (file:///D:/%E4%B8%8B%E8%BD%BD%E6%96%87%E4%BB%B6/%E5%90%8C%E5%9F%8E%E7%94%9F%E6%B4%BB/frontend/node_modules/vite/dist/node/chunks/dep-Dq2t6Dq0.js:42553:41)
+      at TransformPluginContext.error (file:///D:/%E4%B8%8B%E8%BD%BD%E6%96%87%E4%BB%B6/%E5%90%8C%E5%9F%8E%E7%94%9F%E6%B4%BB/frontend/node_modules/vite/dist/node/chunks/dep-Dq2t6Dq0.js:42550:16)
+      at normalizeUrl (file:///D:/%E4%B8%8B%E8%BD%BD%E6%96%87%E4%BB%B6/%E5%90%8C%E5%9F%8E%E7%94%9F%E6%B4%BB/frontend/node_modules/vite/dist/node/chunks/dep-Dq2t6Dq0.js:40529:23)
+      at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+      at async file:///D:/%E4%B8%8B%E8%BD%BD%E6%96%87%E4%BB%B6/%E5%90%8C%E5%9F%8E%E7%94%9F%E6%B4%BB/frontend/node_modules/vite/dist/node/chunks/dep-Dq2t6Dq0.js:40648:37
+      at async Promise.all (index 4)
+      at async TransformPluginContext.transform (file:///D:/%E4%B8%8B%E8%BD%BD%E6%96%87%E4%BB%B6/%E5%90%8C%E5%9F%8E%E7%94%9F%E6%B4%BB/frontend/node_modules/vite/dist/node/chunks/dep-Dq2t6Dq0.js:40575:7)
+      at async EnvironmentPluginContainer.transform (file:///D:/%E4%B8%8B%E8%BD%BD%E6%96%87%E4%BB%B6/%E5%90%8C%E5%9F%8E%E7%94%9F%E6%B4%BB/frontend/node_modules/vite/dist/node/chunks/dep-Dq2t6Dq0.js:42348:18)
+      at async loadAndTransform (file:///D:/%E4%B8%8B%E8%BD%BD%E6%96%87%E4%BB%B6/%E5%90%8C%E5%9F%8E%E7%94%9F%E6%B4%BB/frontend/node_modules/vite/dist/node/chunks/dep-Dq2t6Dq0.js:35740:27)
+      at async viteTransformMiddleware (file:///D:/%E4%B8%8B%E8%BD%BD%E6%96%87%E4%BB%B6/%E5%90%8C%E5%9F%8E%E7%94%9F%E6%B4%BB/frontend/node_modules/vite/dist/node/chunks/dep-Dq2t6Dq0.js:37264:24)
+[2m21:57:47[22m [31m[1m[vite][22m[39m [31mInternal server error: Failed to resolve import "../../components/common/SectionHeader" from "src/user/pages/home/HomePage.tsx". Does the file exist?[39m
+  Plugin: [35mvite:import-analysis[39m
+  File: [36mD:/下载文件/同城生活/frontend/src/user/pages/home/HomePage.tsx[39m:5:30
+[33m  5  |  import { GlobalCard } from "../../components/common/Card";
+  6  |  import { HeroSection } from "../../components/home/HeroSection";
+  7  |  import { SectionHeader } from "../../components/common/SectionHeader";
+     |                                 ^
+  8  |  import { HomePostCard } from "../../components/home/HomePostCard";
+  9  |  import { BackToTop } from "../../components/common/BackToTop";[39m
+      at TransformPluginContext._formatLog (file:///D:/%E4%B8%8B%E8%BD%BD%E6%96%87%E4%BB%B6/%E5%90%8C%E5%9F%8E%E7%94%9F%E6%B4%BB/frontend/node_modules/vite/dist/node/chunks/dep-Dq2t6Dq0.js:42553:41)
+      at TransformPluginContext.error (file:///D:/%E4%B8%8B%E8%BD%BD%E6%96%87%E4%BB%B6/%E5%90%8C%E5%9F%8E%E7%94%9F%E6%B4%BB/frontend/node_modules/vite/dist/node/chunks/dep-Dq2t6Dq0.js:42550:16)
+      at normalizeUrl (file:///D:/%E4%B8%8B%E8%BD%BD%E6%96%87%E4%BB%B6/%E5%90%8C%E5%9F%8E%E7%94%9F%E6%B4%BB/frontend/node_modules/vite/dist/node/chunks/dep-Dq2t6Dq0.js:40529:23)
+      at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+      at async file:///D:/%E4%B8%8B%E8%BD%BD%E6%96%87%E4%BB%B6/%E5%90%8C%E5%9F%8E%E7%94%9F%E6%B4%BB/frontend/node_modules/vite/dist/node/chunks/dep-Dq2t6Dq0.js:40648:37
+      at async Promise.all (index 5)
+      at async TransformPluginContext.transform (file:///D:/%E4%B8%8B%E8%BD%BD%E6%96%87%E4%BB%B6/%E5%90%8C%E5%9F%8E%E7%94%9F%E6%B4%BB/frontend/node_modules/vite/dist/node/chunks/dep-Dq2t6Dq0.js:40575:7)
+      at async EnvironmentPluginContainer.transform (file:///D:/%E4%B8%8B%E8%BD%BD%E6%96%87%E4%BB%B6/%E5%90%8C%E5%9F%8E%E7%94%9F%E6%B4%BB/frontend/node_modules/vite/dist/node/chunks/dep-Dq2t6Dq0.js:42348:18)
+      at async loadAndTransform (file:///D:/%E4%B8%8B%E8%BD%BD%E6%96%87%E4%BB%B6/%E5%90%8C%E5%9F%8E%E7%94%9F%E6%B4%BB/frontend/node_modules/vite/dist/node/chunks/dep-Dq2t6Dq0.js:35740:27)
+      at async viteTransformMiddleware (file:///D:/%E4%B8%8B%E8%BD%BD%E6%96%87%E4%BB%B6/%E5%90%8C%E5%9F%8E%E7%94%9F%E6%B4%BB/frontend/node_modules/vite/dist/node/chunks/dep-Dq2t6Dq0.js:37264:24)
+[2m22:02:49[22m [31m[1m[vite][22m[39m [31mInternal server error: Failed to resolve import "../../components/home/HeroSection" from "src/user/pages/home/HomePage.tsx". Does the file exist?[39m
+  Plugin: [35mvite:import-analysis[39m
+  File: [36mD:/下载文件/同城生活/frontend/src/user/pages/home/HomePage.tsx[39m:6:28
+[33m  6  |  import { homeApi } from "../../services/api";
+  7  |  import { GlobalCard } from "../../components/common/Card";
+  8  |  import { HeroSection } from "../../components/home/HeroSection";
+     |                               ^
+  9  |  import { SectionHeader } from "../../components/common/SectionHeader";
+  10 |  import { HomePostCard } from "../../components/home/HomePostCard";[39m
+      at TransformPluginContext._formatLog (file:///D:/%E4%B8%8B%E8%BD%BD%E6%96%87%E4%BB%B6/%E5%90%8C%E5%9F%8E%E7%94%9F%E6%B4%BB/frontend/node_modules/vite/dist/node/chunks/dep-Dq2t6Dq0.js:42553:41)
+      at TransformPluginContext.error (file:///D:/%E4%B8%8B%E8%BD%BD%E6%96%87%E4%BB%B6/%E5%90%8C%E5%9F%8E%E7%94%9F%E6%B4%BB/frontend/node_modules/vite/dist/node/chunks/dep-Dq2t6Dq0.js:42550:16)
+      at normalizeUrl (file:///D:/%E4%B8%8B%E8%BD%BD%E6%96%87%E4%BB%B6/%E5%90%8C%E5%9F%8E%E7%94%9F%E6%B4%BB/frontend/node_modules/vite/dist/node/chunks/dep-Dq2t6Dq0.js:40529:23)
+      at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+      at async file:///D:/%E4%B8%8B%E8%BD%BD%E6%96%87%E4%BB%B6/%E5%90%8C%E5%9F%8E%E7%94%9F%E6%B4%BB/frontend/node_modules/vite/dist/node/chunks/dep-Dq2t6Dq0.js:40648:37
+      at async Promise.all (index 6)
+      at async TransformPluginContext.transform (file:///D:/%E4%B8%8B%E8%BD%BD%E6%96%87%E4%BB%B6/%E5%90%8C%E5%9F%8E%E7%94%9F%E6%B4%BB/frontend/node_modules/vite/dist/node/chunks/dep-Dq2t6Dq0.js:40575:7)
+      at async EnvironmentPluginContainer.transform (file:///D:/%E4%B8%8B%E8%BD%BD%E6%96%87%E4%BB%B6/%E5%90%8C%E5%9F%8E%E7%94%9F%E6%B4%BB/frontend/node_modules/vite/dist/node/chunks/dep-Dq2t6Dq0.js:42348:18)
+      at async loadAndTransform (file:///D:/%E4%B8%8B%E8%BD%BD%E6%96%87%E4%BB%B6/%E5%90%8C%E5%9F%8E%E7%94%9F%E6%B4%BB/frontend/node_modules/vite/dist/node/chunks/dep-Dq2t6Dq0.js:35740:27)
+      at async viteTransformMiddleware (file:///D:/%E4%B8%8B%E8%BD%BD%E6%96%87%E4%BB%B6/%E5%90%8C%E5%9F%8E%E7%94%9F%E6%B4%BB/frontend/node_modules/vite/dist/node/chunks/dep-Dq2t6Dq0.js:37264:24)
+[2m22:03:08[22m [31m[1m[vite][22m[39m [31mInternal server error: Failed to resolve import "../../components/common/SectionHeader" from "src/user/pages/home/HomePage.tsx". Does the file exist?[39m
+  Plugin: [35mvite:import-analysis[39m
+  File: [36mD:/下载文件/同城生活/frontend/src/user/pages/home/HomePage.tsx[39m:7:30
+[33m  7  |  import { GlobalCard } from "../../components/common/Card";
+  8  |  import { HeroSection } from "../../components/home/HeroSection";
+  9  |  import { SectionHeader } from "../../components/common/SectionHeader";
+     |                                 ^
+  10 |  import { HomePostCard } from "../../components/home/HomePostCard";
+  11 |  import { BackToTop } from "../../components/common/BackToTop";[39m
+      at TransformPluginContext._formatLog (file:///D:/%E4%B8%8B%E8%BD%BD%E6%96%87%E4%BB%B6/%E5%90%8C%E5%9F%8E%E7%94%9F%E6%B4%BB/frontend/node_modules/vite/dist/node/chunks/dep-Dq2t6Dq0.js:42553:41)
+      at TransformPluginContext.error (file:///D:/%E4%B8%8B%E8%BD%BD%E6%96%87%E4%BB%B6/%E5%90%8C%E5%9F%8E%E7%94%9F%E6%B4%BB/frontend/node_modules/vite/dist/node/chunks/dep-Dq2t6Dq0.js:42550:16)
+      at normalizeUrl (file:///D:/%E4%B8%8B%E8%BD%BD%E6%96%87%E4%BB%B6/%E5%90%8C%E5%9F%8E%E7%94%9F%E6%B4%BB/frontend/node_modules/vite/dist/node/chunks/dep-Dq2t6Dq0.js:40529:23)
+      at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+      at async file:///D:/%E4%B8%8B%E8%BD%BD%E6%96%87%E4%BB%B6/%E5%90%8C%E5%9F%8E%E7%94%9F%E6%B4%BB/frontend/node_modules/vite/dist/node/chunks/dep-Dq2t6Dq0.js:40648:37
+      at async Promise.all (index 7)
+      at async TransformPluginContext.transform (file:///D:/%E4%B8%8B%E8%BD%BD%E6%96%87%E4%BB%B6/%E5%90%8C%E5%9F%8E%E7%94%9F%E6%B4%BB/frontend/node_modules/vite/dist/node/chunks/dep-Dq2t6Dq0.js:40575:7)
+      at async EnvironmentPluginContainer.transform (file:///D:/%E4%B8%8B%E8%BD%BD%E6%96%87%E4%BB%B6/%E5%90%8C%E5%9F%8E%E7%94%9F%E6%B4%BB/frontend/node_modules/vite/dist/node/chunks/dep-Dq2t6Dq0.js:42348:18)
+      at async loadAndTransform (file:///D:/%E4%B8%8B%E8%BD%BD%E6%96%87%E4%BB%B6/%E5%90%8C%E5%9F%8E%E7%94%9F%E6%B4%BB/frontend/node_modules/vite/dist/node/chunks/dep-Dq2t6Dq0.js:35740:27)
+      at async viteTransformMiddleware (file:///D:/%E4%B8%8B%E8%BD%BD%E6%96%87%E4%BB%B6/%E5%90%8C%E5%9F%8E%E7%94%9F%E6%B4%BB/frontend/node_modules/vite/dist/node/chunks/dep-Dq2t6Dq0.js:37264:24)
+[2m22:06:11[22m [31m[1m[vite][22m[39m [31mInternal server error: Failed to resolve import "../../components/home/HeroSection" from "src/user/pages/home/HomePage.tsx". Does the file exist?[39m
+  Plugin: [35mvite:import-analysis[39m
+  File: [36mD:/下载文件/同城生活/frontend/src/user/pages/home/HomePage.tsx[39m:4:28
+[33m  4  |  import { homeApi } from "../../services/api";
+  5  |  import { GlobalCard } from "../../components/common/Card";
+  6  |  import { HeroSection } from "../../components/home/HeroSection";
+     |                               ^
+  7  |  import { SectionHeader } from "../../components/common/SectionHeader";
+  8  |  import { HomePostCard } from "../../components/home/HomePostCard";[39m
+      at TransformPluginContext._formatLog (file:///D:/%E4%B8%8B%E8%BD%BD%E6%96%87%E4%BB%B6/%E5%90%8C%E5%9F%8E%E7%94%9F%E6%B4%BB/frontend/node_modules/vite/dist/node/chunks/dep-Dq2t6Dq0.js:42553:41)
+      at TransformPluginContext.error (file:///D:/%E4%B8%8B%E8%BD%BD%E6%96%87%E4%BB%B6/%E5%90%8C%E5%9F%8E%E7%94%9F%E6%B4%BB/frontend/node_modules/vite/dist/node/chunks/dep-Dq2t6Dq0.js:42550:16)
+      at normalizeUrl (file:///D:/%E4%B8%8B%E8%BD%BD%E6%96%87%E4%BB%B6/%E5%90%8C%E5%9F%8E%E7%94%9F%E6%B4%BB/frontend/node_modules/vite/dist/node/chunks/dep-Dq2t6Dq0.js:40529:23)
+      at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+      at async file:///D:/%E4%B8%8B%E8%BD%BD%E6%96%87%E4%BB%B6/%E5%90%8C%E5%9F%8E%E7%94%9F%E6%B4%BB/frontend/node_modules/vite/dist/node/chunks/dep-Dq2t6Dq0.js:40648:37
+      at async Promise.all (index 4)
+      at async TransformPluginContext.transform (file:///D:/%E4%B8%8B%E8%BD%BD%E6%96%87%E4%BB%B6/%E5%90%8C%E5%9F%8E%E7%94%9F%E6%B4%BB/frontend/node_modules/vite/dist/node/chunks/dep-Dq2t6Dq0.js:40575:7)
+      at async EnvironmentPluginContainer.transform (file:///D:/%E4%B8%8B%E8%BD%BD%E6%96%87%E4%BB%B6/%E5%90%8C%E5%9F%8E%E7%94%9F%E6%B4%BB/frontend/node_modules/vite/dist/node/chunks/dep-Dq2t6Dq0.js:42348:18)
+      at async loadAndTransform (file:///D:/%E4%B8%8B%E8%BD%BD%E6%96%87%E4%BB%B6/%E5%90%8C%E5%9F%8E%E7%94%9F%E6%B4%BB/frontend/node_modules/vite/dist/node/chunks/dep-Dq2t6Dq0.js:35740:27)
+      at async viteTransformMiddleware (file:///D:/%E4%B8%8B%E8%BD%BD%E6%96%87%E4%BB%B6/%E5%90%8C%E5%9F%8E%E7%94%9F%E6%B4%BB/frontend/node_modules/vite/dist/node/chunks/dep-Dq2t6Dq0.js:37264:24)
+[2m22:07:06[22m [31m[1m[vite][22m[39m [31mInternal server error: Failed to resolve import "../../components/common/SectionHeader" from "src/user/pages/home/HomePage.tsx". Does the file exist?[39m
+  Plugin: [35mvite:import-analysis[39m
+  File: [36mD:/下载文件/同城生活/frontend/src/user/pages/home/HomePage.tsx[39m:5:30
+[33m  5  |  import { GlobalCard } from "../../components/common/Card";
+  6  |  import { HeroSection } from "../../components/home/HeroSection";
+  7  |  import { SectionHeader } from "../../components/common/SectionHeader";
+     |                                 ^
+  8  |  import { HomePostCard } from "../../components/home/HomePostCard";
+  9  |  import { BackToTop } from "../../components/common/BackToTop";[39m
+      at TransformPluginContext._formatLog (file:///D:/%E4%B8%8B%E8%BD%BD%E6%96%87%E4%BB%B6/%E5%90%8C%E5%9F%8E%E7%94%9F%E6%B4%BB/frontend/node_modules/vite/dist/node/chunks/dep-Dq2t6Dq0.js:42553:41)
+      at TransformPluginContext.error (file:///D:/%E4%B8%8B%E8%BD%BD%E6%96%87%E4%BB%B6/%E5%90%8C%E5%9F%8E%E7%94%9F%E6%B4%BB/frontend/node_modules/vite/dist/node/chunks/dep-Dq2t6Dq0.js:42550:16)
+      at normalizeUrl (file:///D:/%E4%B8%8B%E8%BD%BD%E6%96%87%E4%BB%B6/%E5%90%8C%E5%9F%8E%E7%94%9F%E6%B4%BB/frontend/node_modules/vite/dist/node/chunks/dep-Dq2t6Dq0.js:40529:23)
+      at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+      at async file:///D:/%E4%B8%8B%E8%BD%BD%E6%96%87%E4%BB%B6/%E5%90%8C%E5%9F%8E%E7%94%9F%E6%B4%BB/frontend/node_modules/vite/dist/node/chunks/dep-Dq2t6Dq0.js:40648:37
+      at async Promise.all (index 5)
+      at async TransformPluginContext.transform (file:///D:/%E4%B8%8B%E8%BD%BD%E6%96%87%E4%BB%B6/%E5%90%8C%E5%9F%8E%E7%94%9F%E6%B4%BB/frontend/node_modules/vite/dist/node/chunks/dep-Dq2t6Dq0.js:40575:7)
+      at async EnvironmentPluginContainer.transform (file:///D:/%E4%B8%8B%E8%BD%BD%E6%96%87%E4%BB%B6/%E5%90%8C%E5%9F%8E%E7%94%9F%E6%B4%BB/frontend/node_modules/vite/dist/node/chunks/dep-Dq2t6Dq0.js:42348:18)
+      at async loadAndTransform (file:///D:/%E4%B8%8B%E8%BD%BD%E6%96%87%E4%BB%B6/%E5%90%8C%E5%9F%8E%E7%94%9F%E6%B4%BB/frontend/node_modules/vite/dist/node/chunks/dep-Dq2t6Dq0.js:35740:27)
+      at async viteTransformMiddleware (file:///D:/%E4%B8%8B%E8%BD%BD%E6%96%87%E4%BB%B6/%E5%90%8C%E5%9F%8E%E7%94%9F%E6%B4%BB/frontend/node_modules/vite/dist/node/chunks/dep-Dq2t6Dq0.js:37264:24)
+[2m22:10:44[22m [31m[1m[vite][22m[39m [31mInternal server error: Failed to resolve import "../../components/home/HeroSection" from "src/user/pages/home/HomePage.tsx". Does the file exist?[39m
+  Plugin: [35mvite:import-analysis[39m
+  File: [36mD:/下载文件/同城生活/frontend/src/user/pages/home/HomePage.tsx[39m:6:28
+[33m  6  |  import { homeApi } from "../../services/api";
+  7  |  import { GlobalCard } from "../../components/common/Card";
+  8  |  import { HeroSection } from "../../components/home/HeroSection";
+     |                               ^
+  9  |  import { SectionHeader } from "../../components/common/SectionHeader";
+  10 |  import { HomePostCard } from "../../components/home/HomePostCard";[39m
+      at TransformPluginContext._formatLog (file:///D:/%E4%B8%8B%E8%BD%BD%E6%96%87%E4%BB%B6/%E5%90%8C%E5%9F%8E%E7%94%9F%E6%B4%BB/frontend/node_modules/vite/dist/node/chunks/dep-Dq2t6Dq0.js:42553:41)
+      at TransformPluginContext.error (file:///D:/%E4%B8%8B%E8%BD%BD%E6%96%87%E4%BB%B6/%E5%90%8C%E5%9F%8E%E7%94%9F%E6%B4%BB/frontend/node_modules/vite/dist/node/chunks/dep-Dq2t6Dq0.js:42550:16)
+      at normalizeUrl (file:///D:/%E4%B8%8B%E8%BD%BD%E6%96%87%E4%BB%B6/%E5%90%8C%E5%9F%8E%E7%94%9F%E6%B4%BB/frontend/node_modules/vite/dist/node/chunks/dep-Dq2t6Dq0.js:40529:23)
+      at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+      at async file:///D:/%E4%B8%8B%E8%BD%BD%E6%96%87%E4%BB%B6/%E5%90%8C%E5%9F%8E%E7%94%9F%E6%B4%BB/frontend/node_modules/vite/dist/node/chunks/dep-Dq2t6Dq0.js:40648:37
+      at async Promise.all (index 6)
+      at async TransformPluginContext.transform (file:///D:/%E4%B8%8B%E8%BD%BD%E6%96%87%E4%BB%B6/%E5%90%8C%E5%9F%8E%E7%94%9F%E6%B4%BB/frontend/node_modules/vite/dist/node/chunks/dep-Dq2t6Dq0.js:40575:7)
+      at async EnvironmentPluginContainer.transform (file:///D:/%E4%B8%8B%E8%BD%BD%E6%96%87%E4%BB%B6/%E5%90%8C%E5%9F%8E%E7%94%9F%E6%B4%BB/frontend/node_modules/vite/dist/node/chunks/dep-Dq2t6Dq0.js:42348:18)
+      at async loadAndTransform (file:///D:/%E4%B8%8B%E8%BD%BD%E6%96%87%E4%BB%B6/%E5%90%8C%E5%9F%8E%E7%94%9F%E6%B4%BB/frontend/node_modules/vite/dist/node/chunks/dep-Dq2t6Dq0.js:35740:27)
+      at async viteTransformMiddleware (file:///D:/%E4%B8%8B%E8%BD%BD%E6%96%87%E4%BB%B6/%E5%90%8C%E5%9F%8E%E7%94%9F%E6%B4%BB/frontend/node_modules/vite/dist/node/chunks/dep-Dq2t6Dq0.js:37264:24)
+[2m22:11:36[22m [31m[1m[vite][22m[39m [31mInternal server error: Failed to resolve import "../../components/common/SectionHeader" from "src/user/pages/home/HomePage.tsx". Does the file exist?[39m
+  Plugin: [35mvite:import-analysis[39m
+  File: [36mD:/下载文件/同城生活/frontend/src/user/pages/home/HomePage.tsx[39m:7:30
+[33m  7  |  import { GlobalCard } from "../../components/common/Card";
+  8  |  import { HeroSection } from "../../components/home/HeroSection";
+  9  |  import { SectionHeader } from "../../components/common/SectionHeader";
+     |                                 ^
+  10 |  import { HomePostCard } from "../../components/home/HomePostCard";
+  11 |  import { BackToTop } from "../../components/common/BackToTop";[39m
+      at TransformPluginContext._formatLog (file:///D:/%E4%B8%8B%E8%BD%BD%E6%96%87%E4%BB%B6/%E5%90%8C%E5%9F%8E%E7%94%9F%E6%B4%BB/frontend/node_modules/vite/dist/node/chunks/dep-Dq2t6Dq0.js:42553:41)
+      at TransformPluginContext.error (file:///D:/%E4%B8%8B%E8%BD%BD%E6%96%87%E4%BB%B6/%E5%90%8C%E5%9F%8E%E7%94%9F%E6%B4%BB/frontend/node_modules/vite/dist/node/chunks/dep-Dq2t6Dq0.js:42550:16)
+      at normalizeUrl (file:///D:/%E4%B8%8B%E8%BD%BD%E6%96%87%E4%BB%B6/%E5%90%8C%E5%9F%8E%E7%94%9F%E6%B4%BB/frontend/node_modules/vite/dist/node/chunks/dep-Dq2t6Dq0.js:40529:23)
+      at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+      at async file:///D:/%E4%B8%8B%E8%BD%BD%E6%96%87%E4%BB%B6/%E5%90%8C%E5%9F%8E%E7%94%9F%E6%B4%BB/frontend/node_modules/vite/dist/node/chunks/dep-Dq2t6Dq0.js:40648:37
+      at async Promise.all (index 7)
+      at async TransformPluginContext.transform (file:///D:/%E4%B8%8B%E8%BD%BD%E6%96%87%E4%BB%B6/%E5%90%8C%E5%9F%8E%E7%94%9F%E6%B4%BB/frontend/node_modules/vite/dist/node/chunks/dep-Dq2t6Dq0.js:40575:7)
+      at async EnvironmentPluginContainer.transform (file:///D:/%E4%B8%8B%E8%BD%BD%E6%96%87%E4%BB%B6/%E5%90%8C%E5%9F%8E%E7%94%9F%E6%B4%BB/frontend/node_modules/vite/dist/node/chunks/dep-Dq2t6Dq0.js:42348:18)
+      at async loadAndTransform (file:///D:/%E4%B8%8B%E8%BD%BD%E6%96%87%E4%BB%B6/%E5%90%8C%E5%9F%8E%E7%94%9F%E6%B4%BB/frontend/node_modules/vite/dist/node/chunks/dep-Dq2t6Dq0.js:35740:27)
+      at async viteTransformMiddleware (file:///D:/%E4%B8%8B%E8%BD%BD%E6%96%87%E4%BB%B6/%E5%90%8C%E5%9F%8E%E7%94%9F%E6%B4%BB/frontend/node_modules/vite/dist/node/chunks/dep-Dq2t6Dq0.js:37264:24)
+[2m22:18:42[22m [31m[1m[vite][22m[39m [31mInternal server error: Failed to resolve import "../../components/common/SectionHeader" from "src/user/pages/home/HomePage.tsx". Does the file exist?[39m
+  Plugin: [35mvite:import-analysis[39m
+  File: [36mD:/下载文件/同城生活/frontend/src/user/pages/home/HomePage.tsx[39m:5:30
+[33m  5  |  import { GlobalCard } from "../../components/common/Card";
+  6  |  import { HeroSection } from "../../components/home/HeroSection";
+  7  |  import { SectionHeader } from "../../components/common/SectionHeader";
+     |                                 ^
+  8  |  import { HomePostCard } from "../../components/home/HomePostCard";
+  9  |  import { BackToTop } from "../../components/common/BackToTop";[39m
+      at TransformPluginContext._formatLog (file:///D:/%E4%B8%8B%E8%BD%BD%E6%96%87%E4%BB%B6/%E5%90%8C%E5%9F%8E%E7%94%9F%E6%B4%BB/frontend/node_modules/vite/dist/node/chunks/dep-Dq2t6Dq0.js:42553:41)
+      at TransformPluginContext.error (file:///D:/%E4%B8%8B%E8%BD%BD%E6%96%87%E4%BB%B6/%E5%90%8C%E5%9F%8E%E7%94%9F%E6%B4%BB/frontend/node_modules/vite/dist/node/chunks/dep-Dq2t6Dq0.js:42550:16)
+      at normalizeUrl (file:///D:/%E4%B8%8B%E8%BD%BD%E6%96%87%E4%BB%B6/%E5%90%8C%E5%9F%8E%E7%94%9F%E6%B4%BB/frontend/node_modules/vite/dist/node/chunks/dep-Dq2t6Dq0.js:40529:23)
+      at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+      at async file:///D:/%E4%B8%8B%E8%BD%BD%E6%96%87%E4%BB%B6/%E5%90%8C%E5%9F%8E%E7%94%9F%E6%B4%BB/frontend/node_modules/vite/dist/node/chunks/dep-Dq2t6Dq0.js:40648:37
+      at async Promise.all (index 5)
+      at async TransformPluginContext.transform (file:///D:/%E4%B8%8B%E8%BD%BD%E6%96%87%E4%BB%B6/%E5%90%8C%E5%9F%8E%E7%94%9F%E6%B4%BB/frontend/node_modules/vite/dist/node/chunks/dep-Dq2t6Dq0.js:40575:7)
+      at async EnvironmentPluginContainer.transform (file:///D:/%E4%B8%8B%E8%BD%BD%E6%96%87%E4%BB%B6/%E5%90%8C%E5%9F%8E%E7%94%9F%E6%B4%BB/frontend/node_modules/vite/dist/node/chunks/dep-Dq2t6Dq0.js:42348:18)
+      at async loadAndTransform (file:///D:/%E4%B8%8B%E8%BD%BD%E6%96%87%E4%BB%B6/%E5%90%8C%E5%9F%8E%E7%94%9F%E6%B4%BB/frontend/node_modules/vite/dist/node/chunks/dep-Dq2t6Dq0.js:35740:27)
+      at async viteTransformMiddleware (file:///D:/%E4%B8%8B%E8%BD%BD%E6%96%87%E4%BB%B6/%E5%90%8C%E5%9F%8E%E7%94%9F%E6%B4%BB/frontend/node_modules/vite/dist/node/chunks/dep-Dq2t6Dq0.js:37264:24)
+[2m22:33:24[22m [31m[1m[vite][22m[39m [31mInternal server error: Failed to resolve import "../../components/home/HeroSection" from "src/user/pages/home/HomePage.tsx". Does the file exist?[39m
+  Plugin: [35mvite:import-analysis[39m
+  File: [36mD:/下载文件/同城生活/frontend/src/user/pages/home/HomePage.tsx[39m:4:28
+[33m  4  |  import { homeApi } from "../../services/api";
+  5  |  import { GlobalCard } from "../../components/common/Card";
+  6  |  import { HeroSection } from "../../components/home/HeroSection";
+     |                               ^
+  7  |  import { SectionHeader } from "../../components/common/SectionHeader";
+  8  |  import { HomePostCard } from "../../components/home/HomePostCard";[39m
+      at TransformPluginContext._formatLog (file:///D:/%E4%B8%8B%E8%BD%BD%E6%96%87%E4%BB%B6/%E5%90%8C%E5%9F%8E%E7%94%9F%E6%B4%BB/frontend/node_modules/vite/dist/node/chunks/dep-Dq2t6Dq0.js:42553:41)
+      at TransformPluginContext.error (file:///D:/%E4%B8%8B%E8%BD%BD%E6%96%87%E4%BB%B6/%E5%90%8C%E5%9F%8E%E7%94%9F%E6%B4%BB/frontend/node_modules/vite/dist/node/chunks/dep-Dq2t6Dq0.js:42550:16)
+      at normalizeUrl (file:///D:/%E4%B8%8B%E8%BD%BD%E6%96%87%E4%BB%B6/%E5%90%8C%E5%9F%8E%E7%94%9F%E6%B4%BB/frontend/node_modules/vite/dist/node/chunks/dep-Dq2t6Dq0.js:40529:23)
+      at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+      at async file:///D:/%E4%B8%8B%E8%BD%BD%E6%96%87%E4%BB%B6/%E5%90%8C%E5%9F%8E%E7%94%9F%E6%B4%BB/frontend/node_modules/vite/dist/node/chunks/dep-Dq2t6Dq0.js:40648:37
+      at async Promise.all (index 4)
+      at async TransformPluginContext.transform (file:///D:/%E4%B8%8B%E8%BD%BD%E6%96%87%E4%BB%B6/%E5%90%8C%E5%9F%8E%E7%94%9F%E6%B4%BB/frontend/node_modules/vite/dist/node/chunks/dep-Dq2t6Dq0.js:40575:7)
+      at async EnvironmentPluginContainer.transform (file:///D:/%E4%B8%8B%E8%BD%BD%E6%96%87%E4%BB%B6/%E5%90%8C%E5%9F%8E%E7%94%9F%E6%B4%BB/frontend/node_modules/vite/dist/node/chunks/dep-Dq2t6Dq0.js:42348:18)
+      at async loadAndTransform (file:///D:/%E4%B8%8B%E8%BD%BD%E6%96%87%E4%BB%B6/%E5%90%8C%E5%9F%8E%E7%94%9F%E6%B4%BB/frontend/node_modules/vite/dist/node/chunks/dep-Dq2t6Dq0.js:35740:27)
+      at async viteTransformMiddleware (file:///D:/%E4%B8%8B%E8%BD%BD%E6%96%87%E4%BB%B6/%E5%90%8C%E5%9F%8E%E7%94%9F%E6%B4%BB/frontend/node_modules/vite/dist/node/chunks/dep-Dq2t6Dq0.js:37264:24)
+[2m22:41:35[22m [31m[1m[vite][22m[39m [31mInternal server error: Failed to resolve import "../../components/home/HeroSection" from "src/user/pages/home/HomePage.tsx". Does the file exist?[39m
+  Plugin: [35mvite:import-analysis[39m
+  File: [36mD:/下载文件/同城生活/frontend/src/user/pages/home/HomePage.tsx[39m:4:28
+[33m  4  |  import { homeApi } from "../../services/api";
+  5  |  import { GlobalCard } from "../../components/common/Card";
+  6  |  import { HeroSection } from "../../components/home/HeroSection";
+     |                               ^
+  7  |  import { SectionHeader } from "../../components/common/SectionHeader";
+  8  |  import { HomePostCard } from "../../components/home/HomePostCard";[39m
+      at TransformPluginContext._formatLog (file:///D:/%E4%B8%8B%E8%BD%BD%E6%96%87%E4%BB%B6/%E5%90%8C%E5%9F%8E%E7%94%9F%E6%B4%BB/frontend/node_modules/vite/dist/node/chunks/dep-Dq2t6Dq0.js:42553:41)
+      at TransformPluginContext.error (file:///D:/%E4%B8%8B%E8%BD%BD%E6%96%87%E4%BB%B6/%E5%90%8C%E5%9F%8E%E7%94%9F%E6%B4%BB/frontend/node_modules/vite/dist/node/chunks/dep-Dq2t6Dq0.js:42550:16)
+      at normalizeUrl (file:///D:/%E4%B8%8B%E8%BD%BD%E6%96%87%E4%BB%B6/%E5%90%8C%E5%9F%8E%E7%94%9F%E6%B4%BB/frontend/node_modules/vite/dist/node/chunks/dep-Dq2t6Dq0.js:40529:23)
+      at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+      at async file:///D:/%E4%B8%8B%E8%BD%BD%E6%96%87%E4%BB%B6/%E5%90%8C%E5%9F%8E%E7%94%9F%E6%B4%BB/frontend/node_modules/vite/dist/node/chunks/dep-Dq2t6Dq0.js:40648:37
+      at async Promise.all (index 4)
+      at async TransformPluginContext.transform (file:///D:/%E4%B8%8B%E8%BD%BD%E6%96%87%E4%BB%B6/%E5%90%8C%E5%9F%8E%E7%94%9F%E6%B4%BB/frontend/node_modules/vite/dist/node/chunks/dep-Dq2t6Dq0.js:40575:7)
+      at async EnvironmentPluginContainer.transform (file:///D:/%E4%B8%8B%E8%BD%BD%E6%96%87%E4%BB%B6/%E5%90%8C%E5%9F%8E%E7%94%9F%E6%B4%BB/frontend/node_modules/vite/dist/node/chunks/dep-Dq2t6Dq0.js:42348:18)
+      at async loadAndTransform (file:///D:/%E4%B8%8B%E8%BD%BD%E6%96%87%E4%BB%B6/%E5%90%8C%E5%9F%8E%E7%94%9F%E6%B4%BB/frontend/node_modules/vite/dist/node/chunks/dep-Dq2t6Dq0.js:35740:27)
+      at async viteTransformMiddleware (file:///D:/%E4%B8%8B%E8%BD%BD%E6%96%87%E4%BB%B6/%E5%90%8C%E5%9F%8E%E7%94%9F%E6%B4%BB/frontend/node_modules/vite/dist/node/chunks/dep-Dq2t6Dq0.js:37264:24)
+[2m22:48:52[22m [31m[1m[vite][22m[39m [31mInternal server error: Failed to resolve import "../../components/home/HomePostCard" from "src/user/pages/home/HomePage.tsx". Does the file exist?[39m
+  Plugin: [35mvite:import-analysis[39m
+  File: [36mD:/下载文件/同城生活/frontend/src/user/pages/home/HomePage.tsx[39m:6:29
+[33m  6  |  import { HeroSection } from "../../components/home/HeroSection";
+  7  |  import { SectionHeader } from "../../components/common/SectionHeader";
+  8  |  import { HomePostCard } from "../../components/home/HomePostCard";
+     |                                ^
+  9  |  import { BackToTop } from "../../components/common/BackToTop";
+  10 |  import { getErrorMessage } from "../../utils/error";[39m
+      at TransformPluginContext._formatLog (file:///D:/%E4%B8%8B%E8%BD%BD%E6%96%87%E4%BB%B6/%E5%90%8C%E5%9F%8E%E7%94%9F%E6%B4%BB/frontend/node_modules/vite/dist/node/chunks/dep-Dq2t6Dq0.js:42553:41)
+      at TransformPluginContext.error (file:///D:/%E4%B8%8B%E8%BD%BD%E6%96%87%E4%BB%B6/%E5%90%8C%E5%9F%8E%E7%94%9F%E6%B4%BB/frontend/node_modules/vite/dist/node/chunks/dep-Dq2t6Dq0.js:42550:16)
+      at normalizeUrl (file:///D:/%E4%B8%8B%E8%BD%BD%E6%96%87%E4%BB%B6/%E5%90%8C%E5%9F%8E%E7%94%9F%E6%B4%BB/frontend/node_modules/vite/dist/node/chunks/dep-Dq2t6Dq0.js:40529:23)
+      at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+      at async file:///D:/%E4%B8%8B%E8%BD%BD%E6%96%87%E4%BB%B6/%E5%90%8C%E5%9F%8E%E7%94%9F%E6%B4%BB/frontend/node_modules/vite/dist/node/chunks/dep-Dq2t6Dq0.js:40648:37
+      at async Promise.all (index 6)
+      at async TransformPluginContext.transform (file:///D:/%E4%B8%8B%E8%BD%BD%E6%96%87%E4%BB%B6/%E5%90%8C%E5%9F%8E%E7%94%9F%E6%B4%BB/frontend/node_modules/vite/dist/node/chunks/dep-Dq2t6Dq0.js:40575:7)
+      at async EnvironmentPluginContainer.transform (file:///D:/%E4%B8%8B%E8%BD%BD%E6%96%87%E4%BB%B6/%E5%90%8C%E5%9F%8E%E7%94%9F%E6%B4%BB/frontend/node_modules/vite/dist/node/chunks/dep-Dq2t6Dq0.js:42348:18)
+      at async loadAndTransform (file:///D:/%E4%B8%8B%E8%BD%BD%E6%96%87%E4%BB%B6/%E5%90%8C%E5%9F%8E%E7%94%9F%E6%B4%BB/frontend/node_modules/vite/dist/node/chunks/dep-Dq2t6Dq0.js:35740:27)
+      at async viteTransformMiddleware (file:///D:/%E4%B8%8B%E8%BD%BD%E6%96%87%E4%BB%B6/%E5%90%8C%E5%9F%8E%E7%94%9F%E6%B4%BB/frontend/node_modules/vite/dist/node/chunks/dep-Dq2t6Dq0.js:37264:24)
+[2m22:50:10[22m [31m[1m[vite][22m[39m [31mInternal server error: Failed to resolve import "../../components/common/Card" from "src/user/pages/home/HomePage.tsx". Does the file exist?[39m
+  Plugin: [35mvite:import-analysis[39m
+  File: [36mD:/下载文件/同城生活/frontend/src/user/pages/home/HomePage.tsx[39m:3:27
+[33m  3  |  import { useEffect, useState } from "react";
+  4  |  import { homeApi } from "../../services/api";
+  5  |  import { GlobalCard } from "../../components/common/Card";
+     |                              ^
+  6  |  import { HeroSection } from "../../components/home/HeroSection";
+  7  |  import { SectionHeader } from "../../components/common/SectionHeader";[39m
+      at TransformPluginContext._formatLog (file:///D:/%E4%B8%8B%E8%BD%BD%E6%96%87%E4%BB%B6/%E5%90%8C%E5%9F%8E%E7%94%9F%E6%B4%BB/frontend/node_modules/vite/dist/node/chunks/dep-Dq2t6Dq0.js:42553:41)
+      at TransformPluginContext.error (file:///D:/%E4%B8%8B%E8%BD%BD%E6%96%87%E4%BB%B6/%E5%90%8C%E5%9F%8E%E7%94%9F%E6%B4%BB/frontend/node_modules/vite/dist/node/chunks/dep-Dq2t6Dq0.js:42550:16)
+      at normalizeUrl (file:///D:/%E4%B8%8B%E8%BD%BD%E6%96%87%E4%BB%B6/%E5%90%8C%E5%9F%8E%E7%94%9F%E6%B4%BB/frontend/node_modules/vite/dist/node/chunks/dep-Dq2t6Dq0.js:40529:23)
+      at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+      at async file:///D:/%E4%B8%8B%E8%BD%BD%E6%96%87%E4%BB%B6/%E5%90%8C%E5%9F%8E%E7%94%9F%E6%B4%BB/frontend/node_modules/vite/dist/node/chunks/dep-Dq2t6Dq0.js:40648:37
+      at async Promise.all (index 3)
+      at async TransformPluginContext.transform (file:///D:/%E4%B8%8B%E8%BD%BD%E6%96%87%E4%BB%B6/%E5%90%8C%E5%9F%8E%E7%94%9F%E6%B4%BB/frontend/node_modules/vite/dist/node/chunks/dep-Dq2t6Dq0.js:40575:7)
+      at async EnvironmentPluginContainer.transform (file:///D:/%E4%B8%8B%E8%BD%BD%E6%96%87%E4%BB%B6/%E5%90%8C%E5%9F%8E%E7%94%9F%E6%B4%BB/frontend/node_modules/vite/dist/node/chunks/dep-Dq2t6Dq0.js:42348:18)
+      at async loadAndTransform (file:///D:/%E4%B8%8B%E8%BD%BD%E6%96%87%E4%BB%B6/%E5%90%8C%E5%9F%8E%E7%94%9F%E6%B4%BB/frontend/node_modules/vite/dist/node/chunks/dep-Dq2t6Dq0.js:35740:27)
+      at async viteTransformMiddleware (file:///D:/%E4%B8%8B%E8%BD%BD%E6%96%87%E4%BB%B6/%E5%90%8C%E5%9F%8E%E7%94%9F%E6%B4%BB/frontend/node_modules/vite/dist/node/chunks/dep-Dq2t6Dq0.js:37264:24)
+[2m22:55:19[22m [31m[1m[vite][22m[39m [31mInternal server error: Failed to resolve import "../../components/common/SectionHeader" from "src/user/pages/home/HomePage.tsx". Does the file exist?[39m
+  Plugin: [35mvite:import-analysis[39m
+  File: [36mD:/下载文件/同城生活/frontend/src/user/pages/home/HomePage.tsx[39m:5:30
+[33m  5  |  import { GlobalCard } from "../../components/common/Card";
+  6  |  import { HeroSection } from "../../components/home/HeroSection";
+  7  |  import { SectionHeader } from "../../components/common/SectionHeader";
+     |                                 ^
+  8  |  import { HomePostCard } from "../../components/home/HomePostCard";
+  9  |  import { BackToTop } from "../../components/common/BackToTop";[39m
+      at TransformPluginContext._formatLog (file:///D:/%E4%B8%8B%E8%BD%BD%E6%96%87%E4%BB%B6/%E5%90%8C%E5%9F%8E%E7%94%9F%E6%B4%BB/frontend/node_modules/vite/dist/node/chunks/dep-Dq2t6Dq0.js:42553:41)
+      at TransformPluginContext.error (file:///D:/%E4%B8%8B%E8%BD%BD%E6%96%87%E4%BB%B6/%E5%90%8C%E5%9F%8E%E7%94%9F%E6%B4%BB/frontend/node_modules/vite/dist/node/chunks/dep-Dq2t6Dq0.js:42550:16)
+      at normalizeUrl (file:///D:/%E4%B8%8B%E8%BD%BD%E6%96%87%E4%BB%B6/%E5%90%8C%E5%9F%8E%E7%94%9F%E6%B4%BB/frontend/node_modules/vite/dist/node/chunks/dep-Dq2t6Dq0.js:40529:23)
+      at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+      at async file:///D:/%E4%B8%8B%E8%BD%BD%E6%96%87%E4%BB%B6/%E5%90%8C%E5%9F%8E%E7%94%9F%E6%B4%BB/frontend/node_modules/vite/dist/node/chunks/dep-Dq2t6Dq0.js:40648:37
+      at async Promise.all (index 5)
+      at async TransformPluginContext.transform (file:///D:/%E4%B8%8B%E8%BD%BD%E6%96%87%E4%BB%B6/%E5%90%8C%E5%9F%8E%E7%94%9F%E6%B4%BB/frontend/node_modules/vite/dist/node/chunks/dep-Dq2t6Dq0.js:40575:7)
+      at async EnvironmentPluginContainer.transform (file:///D:/%E4%B8%8B%E8%BD%BD%E6%96%87%E4%BB%B6/%E5%90%8C%E5%9F%8E%E7%94%9F%E6%B4%BB/frontend/node_modules/vite/dist/node/chunks/dep-Dq2t6Dq0.js:42348:18)
+      at async loadAndTransform (file:///D:/%E4%B8%8B%E8%BD%BD%E6%96%87%E4%BB%B6/%E5%90%8C%E5%9F%8E%E7%94%9F%E6%B4%BB/frontend/node_modules/vite/dist/node/chunks/dep-Dq2t6Dq0.js:35740:27)
+      at async viteTransformMiddleware (file:///D:/%E4%B8%8B%E8%BD%BD%E6%96%87%E4%BB%B6/%E5%90%8C%E5%9F%8E%E7%94%9F%E6%B4%BB/frontend/node_modules/vite/dist/node/chunks/dep-Dq2t6Dq0.js:37264:24)
+[2m23:02:08[22m [31m[1m[vite][22m[39m [31mInternal server error: Failed to resolve import "../../components/common/Card" from "src/user/pages/home/HomePage.tsx". Does the file exist?[39m
+  Plugin: [35mvite:import-analysis[39m
+  File: [36mD:/下载文件/同城生活/frontend/src/user/pages/home/HomePage.tsx[39m:3:27
+[33m  3  |  import { useEffect, useState } from "react";
+  4  |  import { homeApi } from "../../services/api";
+  5  |  import { GlobalCard } from "../../components/common/Card";
+     |                              ^
+  6  |  import { HeroSection } from "../../components/home/HeroSection";
+  7  |  import { SectionHeader } from "../../components/common/SectionHeader";[39m
+      at TransformPluginContext._formatLog (file:///D:/%E4%B8%8B%E8%BD%BD%E6%96%87%E4%BB%B6/%E5%90%8C%E5%9F%8E%E7%94%9F%E6%B4%BB/frontend/node_modules/vite/dist/node/chunks/dep-Dq2t6Dq0.js:42553:41)
+      at TransformPluginContext.error (file:///D:/%E4%B8%8B%E8%BD%BD%E6%96%87%E4%BB%B6/%E5%90%8C%E5%9F%8E%E7%94%9F%E6%B4%BB/frontend/node_modules/vite/dist/node/chunks/dep-Dq2t6Dq0.js:42550:16)
+      at normalizeUrl (file:///D:/%E4%B8%8B%E8%BD%BD%E6%96%87%E4%BB%B6/%E5%90%8C%E5%9F%8E%E7%94%9F%E6%B4%BB/frontend/node_modules/vite/dist/node/chunks/dep-Dq2t6Dq0.js:40529:23)
+      at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+      at async file:///D:/%E4%B8%8B%E8%BD%BD%E6%96%87%E4%BB%B6/%E5%90%8C%E5%9F%8E%E7%94%9F%E6%B4%BB/frontend/node_modules/vite/dist/node/chunks/dep-Dq2t6Dq0.js:40648:37
+      at async Promise.all (index 3)
+      at async TransformPluginContext.transform (file:///D:/%E4%B8%8B%E8%BD%BD%E6%96%87%E4%BB%B6/%E5%90%8C%E5%9F%8E%E7%94%9F%E6%B4%BB/frontend/node_modules/vite/dist/node/chunks/dep-Dq2t6Dq0.js:40575:7)
+      at async EnvironmentPluginContainer.transform (file:///D:/%E4%B8%8B%E8%BD%BD%E6%96%87%E4%BB%B6/%E5%90%8C%E5%9F%8E%E7%94%9F%E6%B4%BB/frontend/node_modules/vite/dist/node/chunks/dep-Dq2t6Dq0.js:42348:18)
+      at async loadAndTransform (file:///D:/%E4%B8%8B%E8%BD%BD%E6%96%87%E4%BB%B6/%E5%90%8C%E5%9F%8E%E7%94%9F%E6%B4%BB/frontend/node_modules/vite/dist/node/chunks/dep-Dq2t6Dq0.js:35740:27)
+      at async viteTransformMiddleware (file:///D:/%E4%B8%8B%E8%BD%BD%E6%96%87%E4%BB%B6/%E5%90%8C%E5%9F%8E%E7%94%9F%E6%B4%BB/frontend/node_modules/vite/dist/node/chunks/dep-Dq2t6Dq0.js:37264:24)
+[2m23:02:53[22m [31m[1m[vite][22m[39m [31mInternal server error: Failed to resolve import "../../components/home/HomePostCard" from "src/user/pages/home/HomePage.tsx". Does the file exist?[39m
+  Plugin: [35mvite:import-analysis[39m
+  File: [36mD:/下载文件/同城生活/frontend/src/user/pages/home/HomePage.tsx[39m:6:29
+[33m  6  |  import { HeroSection } from "../../components/home/HeroSection";
+  7  |  import { SectionHeader } from "../../components/common/SectionHeader";
+  8  |  import { HomePostCard } from "../../components/home/HomePostCard";
+     |                                ^
+  9  |  import { BackToTop } from "../../components/common/BackToTop";
+  10 |  import { getErrorMessage } from "../../utils/error";[39m
+      at TransformPluginContext._formatLog (file:///D:/%E4%B8%8B%E8%BD%BD%E6%96%87%E4%BB%B6/%E5%90%8C%E5%9F%8E%E7%94%9F%E6%B4%BB/frontend/node_modules/vite/dist/node/chunks/dep-Dq2t6Dq0.js:42553:41)
+      at TransformPluginContext.error (file:///D:/%E4%B8%8B%E8%BD%BD%E6%96%87%E4%BB%B6/%E5%90%8C%E5%9F%8E%E7%94%9F%E6%B4%BB/frontend/node_modules/vite/dist/node/chunks/dep-Dq2t6Dq0.js:42550:16)
+      at normalizeUrl (file:///D:/%E4%B8%8B%E8%BD%BD%E6%96%87%E4%BB%B6/%E5%90%8C%E5%9F%8E%E7%94%9F%E6%B4%BB/frontend/node_modules/vite/dist/node/chunks/dep-Dq2t6Dq0.js:40529:23)
+      at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+      at async file:///D:/%E4%B8%8B%E8%BD%BD%E6%96%87%E4%BB%B6/%E5%90%8C%E5%9F%8E%E7%94%9F%E6%B4%BB/frontend/node_modules/vite/dist/node/chunks/dep-Dq2t6Dq0.js:40648:37
+      at async Promise.all (index 6)
+      at async TransformPluginContext.transform (file:///D:/%E4%B8%8B%E8%BD%BD%E6%96%87%E4%BB%B6/%E5%90%8C%E5%9F%8E%E7%94%9F%E6%B4%BB/frontend/node_modules/vite/dist/node/chunks/dep-Dq2t6Dq0.js:40575:7)
+      at async EnvironmentPluginContainer.transform (file:///D:/%E4%B8%8B%E8%BD%BD%E6%96%87%E4%BB%B6/%E5%90%8C%E5%9F%8E%E7%94%9F%E6%B4%BB/frontend/node_modules/vite/dist/node/chunks/dep-Dq2t6Dq0.js:42348:18)
+      at async loadAndTransform (file:///D:/%E4%B8%8B%E8%BD%BD%E6%96%87%E4%BB%B6/%E5%90%8C%E5%9F%8E%E7%94%9F%E6%B4%BB/frontend/node_modules/vite/dist/node/chunks/dep-Dq2t6Dq0.js:35740:27)
+      at async viteTransformMiddleware (file:///D:/%E4%B8%8B%E8%BD%BD%E6%96%87%E4%BB%B6/%E5%90%8C%E5%9F%8E%E7%94%9F%E6%B4%BB/frontend/node_modules/vite/dist/node/chunks/dep-Dq2t6Dq0.js:37264:24)

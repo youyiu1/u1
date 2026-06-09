@@ -31,8 +31,8 @@ export const GlobalCard: React.FC<CardProps> = ({ type, data, size = 'default' }
     <div className="group h-full cursor-pointer content-visibility-auto">
       <div className="flex h-full flex-col" onClick={() => navigate(`/${isService ? 'service' : 'item'}/${data.id}`, { state: { from: '/' } })}>
         <div
-          className={`relative aspect-[4/5] overflow-hidden rounded-[16px] bg-stone-100 shadow-inner transition-shadow duration-300 ease-out ${
-            isHomeCompact ? 'mb-2' : 'mb-6 rounded-[32px]'
+          className={`relative aspect-[4/5] overflow-hidden rounded-[16px] bg-stone-100 transition-shadow duration-300 ease-out ${
+            isHomeCompact ? 'mb-2.5 shadow-[0_8px_18px_rgba(15,23,42,0.06)]' : 'mb-6 rounded-[32px] shadow-inner'
           }`}
         >
           <img
@@ -68,11 +68,11 @@ export const GlobalCard: React.FC<CardProps> = ({ type, data, size = 'default' }
           </div>
         </div>
 
-        <div className={`${isHomeCompact ? 'flex min-h-[48px] flex-1 flex-col gap-0.5 px-0.5' : 'space-y-3 px-2'}`}>
+        <div className={`${isHomeCompact ? 'flex min-h-[52px] flex-1 flex-col gap-1 px-0.5' : 'space-y-3 px-2'}`}>
           <div className="flex min-h-[26px] items-start justify-between gap-1.5">
             <h3
               className={`line-clamp-2 text-left font-black leading-[1.12] tracking-tight text-ink transition-colors duration-500 group-hover:text-primary ${
-                isHomeCompact ? 'text-[10px]' : 'text-lg'
+                isHomeCompact ? 'text-[11px]' : 'text-lg'
               }`}
             >
               {data.title}
@@ -89,8 +89,8 @@ export const GlobalCard: React.FC<CardProps> = ({ type, data, size = 'default' }
             ) : null}
           </div>
 
-          <div className={`mt-auto flex min-h-[18px] items-baseline text-left ${isHomeCompact ? 'gap-0.5' : 'gap-2'}`}>
-            <span className={`${isHomeCompact ? 'text-[12px]' : 'text-xl'} tabular-nums font-black tracking-tighter text-ink`}>
+          <div className={`mt-auto flex min-h-[18px] items-baseline text-left ${isHomeCompact ? 'gap-1' : 'gap-2'}`}>
+            <span className={`${isHomeCompact ? 'text-[13px]' : 'text-xl'} tabular-nums font-black tracking-tighter text-ink`}>
               {priceText}
             </span>
             {isService ? (

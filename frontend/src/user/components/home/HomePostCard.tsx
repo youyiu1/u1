@@ -32,7 +32,7 @@ export const HomePostCard: React.FC<HomePostCardProps> = ({ post, idx, compact =
 
   return (
     <div
-      className={`group flex h-full cursor-pointer flex-col rounded-[16px] border border-hairline bg-white p-3 transition-shadow duration-300 content-visibility-auto hover:shadow-lg ${
+      className={`group flex h-full cursor-pointer flex-col rounded-[16px] border border-stone-200/80 bg-white p-3 transition-shadow duration-300 content-visibility-auto hover:shadow-[0_12px_26px_rgba(15,23,42,0.08)] ${
         compact ? '' : 'rounded-[48px] p-10'
       }`}
       onClick={() => navigate(`/news/${post.id}`)}
@@ -79,16 +79,16 @@ export const HomePostCard: React.FC<HomePostCardProps> = ({ post, idx, compact =
         </div>
       </div>
 
-      <p className={`${compact ? 'mb-2 min-h-[28px] line-clamp-2 text-[10px]' : 'mb-10 line-clamp-3 text-xl'} text-left font-medium leading-relaxed text-ink transition-colors group-hover:text-ink/80`}>
+      <p className={`${compact ? 'mb-2.5 min-h-[32px] line-clamp-2 text-[10px]' : 'mb-10 line-clamp-3 text-xl'} text-left font-medium leading-relaxed text-ink transition-colors group-hover:text-ink/80`}>
         {post.content}
       </p>
 
       {images.length > 0 && images[0] ? (
-        <div className={`${compact ? 'mb-2 rounded-[14px]' : 'mb-10 rounded-[32px]'} aspect-[16/9] overflow-hidden bg-stone-100 shadow-inner`}>
+        <div className={`${compact ? 'mb-2.5 rounded-[14px]' : 'mb-10 rounded-[32px]'} aspect-[16/9] overflow-hidden bg-stone-100 shadow-inner`}>
           <img src={images[0]} alt="Post content" loading="lazy" decoding="async" className="h-full w-full object-cover" />
         </div>
       ) : (
-        <div className={`${compact ? 'mb-2 h-[84px] rounded-[14px]' : 'mb-10 h-[160px] rounded-[32px]'} bg-stone-50`} />
+        <div className={`${compact ? 'mb-2.5 h-[84px] rounded-[14px]' : 'mb-10 h-[160px] rounded-[32px]'} bg-stone-50`} />
       )}
 
       <div className={`${compact ? 'pt-2' : 'pt-10'} mt-auto flex items-center justify-between border-t border-hairline`} onClick={(e) => e.stopPropagation()}>

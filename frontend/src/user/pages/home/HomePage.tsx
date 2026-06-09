@@ -16,7 +16,7 @@ const SECTIONS = [
     link: '/service',
     linkText: '查看更多服务',
     dataKey: 'hotServices' as const,
-    previewCount: 5,
+    previewCount: 3,
   },
   {
     title: '闲置好物',
@@ -25,7 +25,7 @@ const SECTIONS = [
     link: '/market',
     linkText: '查看更多闲置',
     dataKey: 'hotMarket' as const,
-    previewCount: 5,
+    previewCount: 3,
   },
   {
     title: '同城动态',
@@ -70,7 +70,7 @@ function SectionWrapper({
   const previewCount = section.previewCount;
 
   return (
-    <section className="rounded-[24px] border border-stone-200 bg-white px-3.5 py-3.5 shadow-[0_6px_18px_rgba(15,23,42,0.04)] md:px-4 md:py-4">
+    <section className="py-1">
       <SectionHeader
         title={section.title}
         tag={section.tag}
@@ -80,7 +80,7 @@ function SectionWrapper({
         isButton={section.dataKey === 'hotNews'}
         highlightAction
       />
-      <div className={`grid ${columns} justify-start items-stretch gap-3 md:gap-4`}>
+      <div className={`grid ${columns} items-stretch gap-3.5 md:gap-4.5`}>
         {loading
           ? Array(previewCount)
               .fill(0)
@@ -168,15 +168,15 @@ export default function HomePage() {
     <div className="relative min-h-screen overflow-hidden bg-white">
       <HeroSection />
 
-      <main id="discovery-results" className="mx-auto max-w-[1300px] scroll-mt-32 px-4 pb-10 pt-5 md:px-7 md:pb-14 md:pt-6">
-        <div className="grid gap-5 lg:gap-6">
+      <main id="discovery-results" className="mx-auto max-w-[1300px] scroll-mt-32 px-4 pb-10 pt-4 md:px-7 md:pb-14 md:pt-5">
+        <div className="grid gap-6 md:gap-7">
           <SectionWrapper
             section={SECTIONS[0]}
             data={sortedServices}
             loading={loading}
-            columns="grid-cols-1 sm:grid-cols-2 lg:[grid-template-columns:repeat(5,minmax(0,188px))]"
+            columns="grid-cols-1 sm:grid-cols-2 lg:grid-cols-3"
             skeletonHeight="h-52"
-            itemClassName="w-full max-w-[188px]"
+            itemClassName="w-full"
             renderItem={(item) => <GlobalCard type="service" data={item as Service} size="homeCompact" />}
           />
 
@@ -184,9 +184,9 @@ export default function HomePage() {
             section={SECTIONS[1]}
             data={sortedMarket}
             loading={loading}
-            columns="grid-cols-1 sm:grid-cols-2 lg:[grid-template-columns:repeat(5,minmax(0,188px))]"
+            columns="grid-cols-1 sm:grid-cols-2 lg:grid-cols-3"
             skeletonHeight="h-52"
-            itemClassName="w-full max-w-[188px]"
+            itemClassName="w-full"
             renderItem={(item) => <GlobalCard type="item" data={item as Item} size="homeCompact" />}
           />
 
@@ -194,9 +194,9 @@ export default function HomePage() {
             section={SECTIONS[2]}
             data={sortedNews}
             loading={loading}
-            columns="grid-cols-1 lg:[grid-template-columns:repeat(3,minmax(0,248px))]"
+            columns="grid-cols-1 lg:grid-cols-3"
             skeletonHeight="h-60"
-            itemClassName="w-full max-w-[248px]"
+            itemClassName="w-full"
             renderItem={(item, idx) => <HomePostCard post={item as Post} idx={idx} compact />}
           />
         </div>
