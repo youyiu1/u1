@@ -9,9 +9,33 @@ import { Item, Post, Service } from '../../types';
 import { getErrorMessage } from '../../utils/error';
 
 const SECTIONS = [
-  { title: '精选服务', tag: 'Service Selection', link: '/service', linkText: '查看更多服务', dataKey: 'hotServices' as const, previewCount: 5 },
-  { title: '闲置好物', tag: 'Market Trends', link: '/market', linkText: '查看更多闲置', dataKey: 'hotMarket' as const, previewCount: 5 },
-  { title: '同城动态', tag: 'Community Pulse', link: '/news', linkText: '查看更多动态', dataKey: 'hotNews' as const, previewCount: 3 },
+  {
+    title: '精选服务',
+    tag: 'Service Selection',
+    description: '把高评价和高响应的本地服务收在一处，浏览会更集中。',
+    link: '/service',
+    linkText: '查看更多服务',
+    dataKey: 'hotServices' as const,
+    previewCount: 5,
+  },
+  {
+    title: '闲置好物',
+    tag: 'Market Trends',
+    description: '优先展示更受欢迎、转化更高的闲置物品。',
+    link: '/market',
+    linkText: '查看更多闲置',
+    dataKey: 'hotMarket' as const,
+    previewCount: 5,
+  },
+  {
+    title: '同城动态',
+    tag: 'Community Pulse',
+    description: '来自附近用户的真实分享和生活记录。',
+    link: '/news',
+    linkText: '查看更多动态',
+    dataKey: 'hotNews' as const,
+    previewCount: 3,
+  },
 ];
 
 interface HomeData {
@@ -46,21 +70,23 @@ function SectionWrapper({
   const previewCount = section.previewCount;
 
   return (
-    <section className="content-visibility-auto">
+    <section className="rounded-[24px] border border-stone-200 bg-white px-3.5 py-3.5 shadow-[0_6px_18px_rgba(15,23,42,0.04)] md:px-4 md:py-4">
       <SectionHeader
         title={section.title}
         tag={section.tag}
+        description={section.description}
         link={section.link}
         linkText={section.linkText}
         isButton={section.dataKey === 'hotNews'}
+        highlightAction
       />
-      <div className={`grid ${columns} gap-12`}>
+      <div className={`grid ${columns} justify-start items-stretch gap-3 md:gap-4`}>
         {loading
           ? Array(previewCount)
               .fill(0)
-              .map((_, index) => <div key={index} className={`${skeletonHeight} animate-pulse rounded-2xl bg-stone-100`} />)
+              .map((_, index) => <div key={index} className={`${skeletonHeight} ${itemClassName || ''} animate-pulse rounded-[18px] bg-stone-100`} />)
           : data.slice(0, previewCount).map((item, idx) => (
-              <div key={item.id} className={`content-visibility-auto ${itemClassName || ''}`}>
+              <div key={item.id} className={`min-w-0 content-visibility-auto ${itemClassName || ''}`}>
                 {renderItem(item, idx)}
               </div>
             ))}
@@ -142,33 +168,35 @@ export default function HomePage() {
     <div className="relative min-h-screen overflow-hidden bg-white">
       <HeroSection />
 
-      <main id="discovery-results" className="mx-auto max-w-[1440px] scroll-mt-32 px-4 pb-12 pt-10 md:px-12 md:pb-16 md:pt-12">
-        <div className="space-y-20 md:space-y-28">
+      <main id="discovery-results" className="mx-auto max-w-[1300px] scroll-mt-32 px-4 pb-10 pt-5 md:px-7 md:pb-14 md:pt-6">
+        <div className="grid gap-5 lg:gap-6">
           <SectionWrapper
             section={SECTIONS[0]}
             data={sortedServices}
             loading={loading}
-            columns="grid-cols-1 justify-start sm:grid-cols-2 lg:[grid-template-columns:repeat(5,minmax(0,220px))]"
-            skeletonHeight="h-44"
-            itemClassName="w-full"
+            columns="grid-cols-1 sm:grid-cols-2 lg:[grid-template-columns:repeat(5,minmax(0,188px))]"
+            skeletonHeight="h-52"
+            itemClassName="w-full max-w-[188px]"
             renderItem={(item) => <GlobalCard type="service" data={item as Service} size="homeCompact" />}
           />
+
           <SectionWrapper
             section={SECTIONS[1]}
             data={sortedMarket}
             loading={loading}
-            columns="grid-cols-1 justify-start sm:grid-cols-2 lg:[grid-template-columns:repeat(5,minmax(0,220px))]"
-            skeletonHeight="h-44"
-            itemClassName="w-full"
+            columns="grid-cols-1 sm:grid-cols-2 lg:[grid-template-columns:repeat(5,minmax(0,188px))]"
+            skeletonHeight="h-52"
+            itemClassName="w-full max-w-[188px]"
             renderItem={(item) => <GlobalCard type="item" data={item as Item} size="homeCompact" />}
           />
+
           <SectionWrapper
             section={SECTIONS[2]}
             data={sortedNews}
             loading={loading}
-            columns="grid-cols-1 justify-start lg:[grid-template-columns:repeat(3,minmax(0,1fr))]"
-            skeletonHeight="h-36"
-            itemClassName="w-full"
+            columns="grid-cols-1 lg:[grid-template-columns:repeat(3,minmax(0,248px))]"
+            skeletonHeight="h-60"
+            itemClassName="w-full max-w-[248px]"
             renderItem={(item, idx) => <HomePostCard post={item as Post} idx={idx} compact />}
           />
         </div>
