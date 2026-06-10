@@ -25,6 +25,7 @@ import com.neighborhood.app.service.AdminImageStatusService;
 import com.neighborhood.app.service.AdminLogDispatchService;
 import com.neighborhood.app.service.AdminRoleConfigService;
 import com.neighborhood.app.service.CacheService;
+import com.neighborhood.app.service.CaptchaService;
 import com.neighborhood.app.service.UserService;
 import com.neighborhood.app.util.JwtUtil;
 import com.neighborhood.app.utils.AuthTokenStore;
@@ -104,6 +105,7 @@ public class AdminSupport {
     private final AdminRoleConfigService adminRoleConfigService;
     private final UserService userService;
     private final PasswordCodec passwordCodec;
+    private final CaptchaService captchaService;
 
     @Value("${app.migration.auto-run:false}")
     private boolean migrationAutoRun;
@@ -239,6 +241,18 @@ public class AdminSupport {
     public Result<Map<String, Object>> login(LoginRequest body, HttpServletRequest request) {
         String account = safeTrim(body == null ? null : body.username());
         String password = body == null ? "" : empty(body.password());
+        String captchaId = safeTrim(body == null ? null : body.captchaId());
+        String captchaCode = safeTrim(body == null ? null : body.captchaCode());
+        if (account.isEmpty() || password.isEmpty() || captchaId.isEmpty() || captchaCode.isEmpty()) {
+            return Result.fail("账号、密码和图形验证码不能为空");
+        }
+        if (captchaCode.length() != 4) {
+            return Result.fail("图形验证码格式不正确");
+        }
+        if (!captchaService.validateCaptcha(resolveClientKey(request), captchaId, captchaCode)) {
+            saveLoginLog("", account, requestIp(request), request.getHeader("User-Agent"), "failed", "图形验证码错误或已过期");
+            return Result.fail("图形验证码错误或已过期");
+        }
         User user = findUserByAccount(account);
         if (user == null || !passwordCodec.matches(password, user.getPassword())) {
             saveLoginLog("", account, requestIp(request), request.getHeader("User-Agent"), "failed", "\u8d26\u53f7\u6216\u5bc6\u7801\u9519\u8bef");
@@ -902,6 +916,12 @@ public class AdminSupport {
     private String requestIp(HttpServletRequest request) {
         String forwarded = request.getHeader("X-Forwarded-For");
         return forwarded == null || forwarded.isBlank() ? request.getRemoteAddr() : forwarded.split(",")[0].trim();
+    }
+
+    private String resolveClientKey(HttpServletRequest request) {
+        String ip = requestIp(request);
+        String userAgent = request.getHeader("User-Agent");
+        return (ip == null ? "unknown" : ip) + "|" + (userAgent == null ? "unknown" : userAgent);
     }
 
     public String str(Object value) {

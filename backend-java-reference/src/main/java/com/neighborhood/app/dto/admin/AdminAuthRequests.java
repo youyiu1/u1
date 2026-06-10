@@ -8,7 +8,9 @@ public final class AdminAuthRequests {
 
     public record LoginRequest(
             String username,
-            String password
+            String password,
+            String captchaId,
+            String captchaCode
     ) {
     }
 }

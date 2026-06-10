@@ -23,8 +23,20 @@ type AiMessage = {
   content: string;
 };
 
+type FloatingPosition = {
+  x: number;
+  y: number;
+};
+
+type SurfaceSize = {
+  width: number;
+  height: number;
+};
+
 const STORAGE_KEY = 'ai_assistant_messages';
+const POSITION_STORAGE_KEY = 'ai_assistant_position';
 const MAX_MESSAGES = 24;
+const DRAG_THRESHOLD = 6;
 const DEFAULT_SYSTEM_PROMPT =
   '你是同城生活社区平台的 AI 助手，请结合本项目的生活服务、闲置交易、同城动态、消息通知、用户主页等场景，用简洁、友好、实用的中文回答。';
 const QUICK_QUESTIONS = [
@@ -68,6 +80,96 @@ function readStoredMessages(): AiMessage[] {
   } catch {
     return DEFAULT_MESSAGES;
   }
+}
+
+function readStoredPosition(): FloatingPosition | null {
+  if (typeof window === 'undefined') {
+    return null;
+  }
+
+  try {
+    const raw = window.localStorage.getItem(POSITION_STORAGE_KEY);
+    if (!raw) {
+      return null;
+    }
+
+    const parsed = JSON.parse(raw) as Partial<FloatingPosition>;
+    if (typeof parsed.x !== 'number' || typeof parsed.y !== 'number') {
+      return null;
+    }
+
+    return { x: parsed.x, y: parsed.y };
+  } catch {
+    return null;
+  }
+}
+
+function getViewportMargin() {
+  if (typeof window === 'undefined') {
+    return 12;
+  }
+  return window.innerWidth < 640 ? 8 : 16;
+}
+
+function getFallbackSurfaceSize(isOpen: boolean): SurfaceSize {
+  if (typeof window === 'undefined') {
+    return isOpen ? { width: 352, height: 640 } : { width: 220, height: 72 };
+  }
+
+  if (isOpen) {
+    return {
+      width: Math.min(window.innerWidth - 16, 352),
+      height: Math.min(window.innerHeight * 0.72, 640),
+    };
+  }
+
+  return {
+    width: window.innerWidth < 640 ? 96 : 220,
+    height: 72,
+  };
+}
+
+function clampPosition(position: FloatingPosition, size: SurfaceSize): FloatingPosition {
+  if (typeof window === 'undefined') {
+    return position;
+  }
+
+  const margin = getViewportMargin();
+  const maxX = Math.max(margin, window.innerWidth - size.width - margin);
+  const maxY = Math.max(margin, window.innerHeight - size.height - margin);
+
+  return {
+    x: Math.min(Math.max(position.x, margin), maxX),
+    y: Math.min(Math.max(position.y, margin), maxY),
+  };
+}
+
+function getDefaultPosition(isOpen: boolean): FloatingPosition {
+  if (typeof window === 'undefined') {
+    return { x: 0, y: 0 };
+  }
+
+  const size = getFallbackSurfaceSize(isOpen);
+  const margin = getViewportMargin();
+  const isMobile = window.innerWidth < 640;
+
+  if (isMobile) {
+    return clampPosition(
+      {
+        x: window.innerWidth - size.width - margin,
+        y: window.innerHeight - size.height - 112,
+      },
+      size
+    );
+  }
+
+  return clampPosition(
+    {
+      x: window.innerWidth - size.width - margin,
+      y: window.innerHeight * 0.68 - size.height / 2,
+    },
+    size
+  );
 }
 
 function AssistantBubble({ content }: { content: string }) {
@@ -116,7 +218,21 @@ export function AiAssistantWidget() {
   const [input, setInput] = useState('');
   const [isSending, setIsSending] = useState(false);
   const [messages, setMessages] = useState<AiMessage[]>(() => readStoredMessages());
+  const [buttonPosition, setButtonPosition] = useState<FloatingPosition>(() => readStoredPosition() ?? getDefaultPosition(false));
+  const [panelPosition, setPanelPosition] = useState<FloatingPosition | null>(null);
+  const [isDragging, setIsDragging] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
+  const buttonRef = useRef<HTMLButtonElement>(null);
+  const panelRef = useRef<HTMLElement>(null);
+  const suppressToggleRef = useRef(false);
+  const panelMovedRef = useRef(false);
+  const dragStateRef = useRef<{
+    pointerId: number;
+    offsetX: number;
+    offsetY: number;
+    startX: number;
+    startY: number;
+  } | null>(null);
 
   useEffect(() => {
     if (typeof window === 'undefined') {
@@ -126,11 +242,34 @@ export function AiAssistantWidget() {
   }, [messages]);
 
   useEffect(() => {
+    if (typeof window === 'undefined') {
+      return;
+    }
+    window.localStorage.setItem(POSITION_STORAGE_KEY, JSON.stringify(buttonPosition));
+  }, [buttonPosition]);
+
+  useEffect(() => {
     if (!scrollRef.current) {
       return;
     }
     scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
   }, [messages, isOpen, isSending]);
+
+  const getCurrentSurfaceSize = (openState: boolean): SurfaceSize => {
+    const rect = openState ? panelRef.current?.getBoundingClientRect() : buttonRef.current?.getBoundingClientRect();
+    if (rect) {
+      return { width: rect.width, height: rect.height };
+    }
+    return getFallbackSurfaceSize(openState);
+  };
+
+  const closePanel = () => {
+    if (panelMovedRef.current && panelPosition) {
+      setButtonPosition(clampPosition(panelPosition, getCurrentSurfaceSize(false)));
+    }
+    panelMovedRef.current = false;
+    setIsOpen(false);
+  };
 
   useEffect(() => {
     if (!isOpen) {
@@ -139,13 +278,27 @@ export function AiAssistantWidget() {
 
     const handleKeyDown = (event: KeyboardEvent) => {
       if (event.key === 'Escape') {
-        setIsOpen(false);
+        closePanel();
       }
     };
 
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [isOpen]);
+  }, [isOpen, panelPosition]);
+
+  useEffect(() => {
+    if (typeof window === 'undefined') {
+      return;
+    }
+
+    const handleResize = () => {
+      setButtonPosition((current) => clampPosition(current, getCurrentSurfaceSize(false)));
+      setPanelPosition((current) => (current ? clampPosition(current, getCurrentSurfaceSize(true)) : current));
+    };
+
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
 
   const canSend = input.trim().length > 0 && !isSending;
   const panelTitle = isAuthenticated ? 'AI 助手在线' : '登录后可用';
@@ -203,48 +356,159 @@ export function AiAssistantWidget() {
     }
   };
 
+  const handleDragStart = (event: React.PointerEvent<HTMLElement>, openState: boolean) => {
+    if (event.pointerType === 'mouse' && event.button !== 0) {
+      return;
+    }
+
+    const rect = openState ? panelRef.current?.getBoundingClientRect() : buttonRef.current?.getBoundingClientRect();
+    if (!rect) {
+      return;
+    }
+
+    dragStateRef.current = {
+      pointerId: event.pointerId,
+      offsetX: event.clientX - rect.left,
+      offsetY: event.clientY - rect.top,
+      startX: event.clientX,
+      startY: event.clientY,
+    };
+
+    suppressToggleRef.current = false;
+    setIsDragging(true);
+    event.currentTarget.setPointerCapture(event.pointerId);
+  };
+
+  const handleDragMove = (event: React.PointerEvent<HTMLElement>, openState: boolean) => {
+    const dragState = dragStateRef.current;
+    if (!dragState || dragState.pointerId !== event.pointerId) {
+      return;
+    }
+
+    const movedX = Math.abs(event.clientX - dragState.startX);
+    const movedY = Math.abs(event.clientY - dragState.startY);
+    if (movedX > DRAG_THRESHOLD || movedY > DRAG_THRESHOLD) {
+      suppressToggleRef.current = true;
+    }
+
+    const nextPosition = clampPosition(
+      {
+        x: event.clientX - dragState.offsetX,
+        y: event.clientY - dragState.offsetY,
+      },
+      getCurrentSurfaceSize(openState)
+    );
+
+    if (openState) {
+      panelMovedRef.current = true;
+      setPanelPosition(nextPosition);
+      return;
+    }
+
+    setButtonPosition(nextPosition);
+  };
+
+  const handleDragEnd = (event: React.PointerEvent<HTMLElement>) => {
+    const dragState = dragStateRef.current;
+    if (!dragState || dragState.pointerId !== event.pointerId) {
+      return;
+    }
+
+    dragStateRef.current = null;
+    setIsDragging(false);
+
+    if (event.currentTarget.hasPointerCapture(event.pointerId)) {
+      event.currentTarget.releasePointerCapture(event.pointerId);
+    }
+
+    if (suppressToggleRef.current) {
+      window.setTimeout(() => {
+        suppressToggleRef.current = false;
+      }, 0);
+    }
+  };
+
+  const toggleOpen = () => {
+    if (suppressToggleRef.current) {
+      suppressToggleRef.current = false;
+      return;
+    }
+
+    if (isOpen) {
+      closePanel();
+      return;
+    }
+
+    setPanelPosition(clampPosition(buttonPosition, getCurrentSurfaceSize(true)));
+    panelMovedRef.current = false;
+    setIsOpen(true);
+  };
+
+  const activePosition = isOpen ? panelPosition ?? buttonPosition : buttonPosition;
+
   return (
     <>
-      <motion.button
-        type="button"
-        onClick={() => setIsOpen((current) => !current)}
-        initial={false}
-        animate={{ x: isOpen ? 0 : 82 }}
-        whileHover={{ x: isOpen ? 0 : 60 }}
-        whileTap={{ scale: 0.98 }}
-        aria-label={isOpen ? '关闭 AI 助手' : '打开 AI 助手'}
-        className="fixed bottom-28 right-0 z-[55] flex items-center gap-3 rounded-l-[26px] rounded-r-none border border-r-0 border-primary/15 bg-white/96 px-3.5 py-3 text-left shadow-[0_18px_40px_rgba(15,23,42,0.14)] backdrop-blur md:bottom-auto md:top-[68%] md:-translate-y-1/2"
-      >
-        <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl bg-linear-to-br from-primary via-[#ff7b5f] to-[#ffb457] text-white shadow-lg shadow-primary/20">
-          <Bot className="h-5 w-5" />
-        </div>
-        <div className="hidden min-w-0 pr-1 sm:block">
-          <p className="text-sm font-black text-ink">AI 小助手</p>
-          <p className="text-[11px] font-medium text-muted">服务 / 交易 / 动态</p>
-        </div>
-      </motion.button>
+      {!isOpen ? (
+        <motion.button
+          ref={buttonRef}
+          type="button"
+          onClick={toggleOpen}
+          onPointerDown={(event) => handleDragStart(event, false)}
+          onPointerMove={(event) => handleDragMove(event, false)}
+          onPointerUp={handleDragEnd}
+          onPointerCancel={handleDragEnd}
+          initial={false}
+          animate={{ scale: isDragging ? 1.01 : 1 }}
+          whileTap={{ scale: 0.98 }}
+          aria-label="打开 AI 助手"
+          style={{ left: activePosition.x, top: activePosition.y, touchAction: 'none' }}
+          className={`fixed z-[55] flex min-h-[72px] items-center gap-3 rounded-[26px] border border-primary/15 bg-white/96 px-3.5 py-3 text-left shadow-[0_18px_40px_rgba(15,23,42,0.14)] backdrop-blur sm:min-w-[220px] ${
+            isDragging ? 'cursor-grabbing' : 'cursor-grab'
+          }`}
+        >
+          <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl bg-linear-to-br from-primary via-[#ff7b5f] to-[#ffb457] text-white shadow-lg shadow-primary/20">
+            <Bot className="h-5 w-5" />
+          </div>
+          <div className="hidden min-w-0 pr-1 sm:block">
+            <p className="text-sm font-black text-ink">AI 小助手</p>
+            <p className="text-[11px] font-medium text-muted">服务 / 交易 / 动态</p>
+          </div>
+        </motion.button>
+      ) : null}
 
       <AnimatePresence>
         {isOpen ? (
           <motion.aside
-            initial={{ opacity: 0, x: 24, scale: 0.98 }}
-            animate={{ opacity: 1, x: 0, scale: 1 }}
-            exit={{ opacity: 0, x: 20, scale: 0.98 }}
+            ref={panelRef}
+            initial={{ opacity: 0, scale: 0.98 }}
+            animate={{ opacity: 1, scale: 1 }}
+            exit={{ opacity: 0, scale: 0.98 }}
             transition={{ duration: 0.2, ease: [0.22, 1, 0.36, 1] }}
-            className="fixed bottom-24 right-3 z-[55] flex h-[min(72vh,40rem)] w-[calc(100vw-1rem)] max-w-[22rem] flex-col overflow-hidden rounded-[28px] border border-white/75 bg-[#fcfaf7] shadow-[0_28px_72px_rgba(15,23,42,0.16)] sm:right-5 md:right-6"
+            style={{ left: activePosition.x, top: activePosition.y }}
+            className="fixed z-[55] flex h-[min(72vh,40rem)] w-[calc(100vw-1rem)] max-w-[22rem] flex-col overflow-hidden rounded-[28px] border border-white/75 bg-[#fcfaf7] shadow-[0_28px_72px_rgba(15,23,42,0.16)]"
           >
-            <div className="border-b border-stone-200/80 bg-[radial-gradient(circle_at_top_left,_rgba(255,255,255,0.2),_transparent_34%),linear-gradient(135deg,#16100a_0%,#2d2015_45%,#53331d_100%)] px-4 py-3 text-white">
+            <div
+              onPointerDown={(event) => handleDragStart(event, true)}
+              onPointerMove={(event) => handleDragMove(event, true)}
+              onPointerUp={handleDragEnd}
+              onPointerCancel={handleDragEnd}
+              style={{ touchAction: 'none' }}
+              className={`border-b border-stone-200/80 bg-[radial-gradient(circle_at_top_left,_rgba(255,255,255,0.2),_transparent_34%),linear-gradient(135deg,#16100a_0%,#2d2015_45%,#53331d_100%)] px-4 py-3 text-white ${
+                isDragging ? 'cursor-grabbing' : 'cursor-grab'
+              }`}
+            >
               <div className="flex items-start justify-between gap-3">
-                <div className="min-w-0">
+                <div className="min-w-0 flex-1">
                   <div className="mb-1.5 inline-flex items-center gap-2 rounded-full border border-white/15 bg-white/10 px-2.5 py-1 text-[10px] font-black uppercase tracking-[0.16em] text-white/90">
                     <Sparkles className="h-3.5 w-3.5 text-amber-300" />
                     {panelTitle}
                   </div>
-                  <h3 className="text-base font-black tracking-tight">更懂当前项目的内容助手</h3>
+                  <h3 className="text-base font-black tracking-tight">更懂当前项目内容的 AI 助手</h3>
                 </div>
                 <div className="flex items-center gap-1">
                   <button
                     type="button"
+                    onPointerDown={(event) => event.stopPropagation()}
                     onClick={clearMessages}
                     className="rounded-full p-2 text-white/70 transition-colors hover:bg-white/10 hover:text-white"
                     title="清空记录"
@@ -253,7 +517,8 @@ export function AiAssistantWidget() {
                   </button>
                   <button
                     type="button"
-                    onClick={() => setIsOpen(false)}
+                    onPointerDown={(event) => event.stopPropagation()}
+                    onClick={closePanel}
                     className="rounded-full p-2 text-white/70 transition-colors hover:bg-white/10 hover:text-white"
                     title="关闭"
                   >

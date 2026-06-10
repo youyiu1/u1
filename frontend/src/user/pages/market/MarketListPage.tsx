@@ -4,7 +4,7 @@
  */
 
 import React, { useEffect, useState } from 'react';
-import { Bike, MapPin, MoreHorizontal, Plus, Search, Smartphone, Sofa, Sparkles, Shirt } from 'lucide-react';
+import { Bike, MapPin, MoreHorizontal, Plus, Smartphone, Sofa, Sparkles, Shirt } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { BackToTop } from '../../components/common/BackToTop';
 import { FavoriteButton } from '../../components/common/FavoriteButton';
@@ -59,7 +59,6 @@ export default function MarketListPage() {
   const [items, setItems] = useState<Item[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [searchQuery, setSearchQuery] = useState('');
   const [activeCategory, setActiveCategory] = useState('all');
   const [isPublishOpen, setIsPublishOpen] = useState(false);
   const [currentPage, setCurrentPage] = useState(1);
@@ -73,7 +72,6 @@ export default function MarketListPage() {
         setError(null);
         const result = await marketApi.list({
           category: activeCategory,
-          keyword: searchQuery.trim(),
           pageNum: currentPage,
           pageSize,
         });
@@ -87,7 +85,7 @@ export default function MarketListPage() {
     };
 
     void fetchItems();
-  }, [activeCategory, currentPage, pageSize, searchQuery]);
+  }, [activeCategory, currentPage, pageSize]);
 
   const totalPages = Math.max(1, Math.ceil(totalItems / pageSize));
 
@@ -98,97 +96,113 @@ export default function MarketListPage() {
   }, [currentPage, totalPages]);
 
   return (
-    <div className="min-h-screen bg-white pb-20">
-      <div className="bg-primary/5 pb-8 pt-10 sm:pt-12">
+    <div className="min-h-screen pb-20">
+      <div className="pb-8 pt-10 sm:pt-12">
         <div className="mx-auto max-w-[1280px] px-4 sm:px-6 lg:px-20">
-          <div className="flex flex-col items-stretch justify-between gap-4 sm:gap-6 md:flex-row md:items-end">
-            <div className="max-w-2xl flex-1">
-              <h1 className="mb-4 text-2xl font-bold text-ink sm:mb-6 sm:text-3xl">发现身边的好物</h1>
-              <div className="group relative">
-                <div className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-4">
-                  <Search className="h-5 w-5 text-muted transition-colors group-focus-within:text-primary" />
+          <div className="px-1 py-3 sm:px-2 sm:py-4">
+            <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
+              <div className="min-w-0">
+                <div className="inline-flex items-center gap-2 rounded-full bg-primary/5 px-3 py-1.5 text-[11px] font-semibold tracking-[0.16em] text-primary">
+                  <Sparkles className="h-3.5 w-3.5" />
+                  闲置交易
                 </div>
-                <input
-                  type="text"
-                  placeholder="搜索商品..."
-                  value={searchQuery}
-                  onChange={(event) => {
-                    setSearchQuery(event.target.value);
-                    setCurrentPage(1);
-                  }}
-                  className="w-full rounded-2xl border border-hairline bg-white py-3.5 pl-12 pr-4 text-sm font-medium outline-none transition-all focus:ring-2 focus:ring-primary/10 sm:py-4"
-                />
+                <h1 className="mt-4 text-[26px] font-semibold tracking-[-0.03em] text-ink sm:text-[32px]">找同城好物，直接按分类挑</h1>
+              </div>
+
+              <div className="flex flex-col gap-3 sm:flex-row lg:justify-end">
+                <button
+                  type="button"
+                  className="flex items-center justify-center gap-2 rounded-2xl border border-hairline bg-white px-5 py-3 text-sm font-black text-secondary transition-all hover:border-primary/30 hover:text-primary"
+                >
+                  <MapPin className="h-4 w-4" />
+                  默认同城展示
+                </button>
+
+                <button
+                  onClick={() => requireAuth(() => setIsPublishOpen(true))}
+                  className="flex items-center justify-center gap-2 rounded-2xl bg-primary px-5 py-3 text-sm font-black text-white shadow-lg shadow-primary/15 transition-all hover:bg-primary-hover"
+                >
+                  <Plus className="h-4 w-4" />
+                  发布闲置
+                </button>
               </div>
             </div>
 
-            <button
-              onClick={() => requireAuth(() => setIsPublishOpen(true))}
-              className="flex w-full items-center justify-center gap-2 rounded-2xl bg-primary px-6 py-3.5 font-bold text-white shadow-lg shadow-primary/10 transition-all hover:bg-primary-hover md:w-auto sm:px-8 sm:py-4"
-            >
-              <Plus className="h-5 w-5" />
-              发布闲置
-            </button>
+            <div className="mt-2.5">
+              <p className="max-w-2xl text-[14px] font-normal leading-6 text-secondary sm:text-[15px]">
+                同城见面更方便，价格更透明，沟通更直接。
+              </p>
+              <p className="mt-2 text-[14px] font-semibold text-ink">默认同城优先展示</p>
+              <p className="mt-1 text-xs text-muted">可按分类快速筛选附近闲置好物。</p>
+            </div>
           </div>
 
-          <div className="no-scrollbar mt-6 flex items-center gap-3 overflow-x-auto pb-2 sm:mt-8 sm:gap-4">
-            {CATEGORIES.map((category) => (
-              <button
-                key={category.id}
-                onClick={() => {
-                  setActiveCategory(category.id);
-                  setCurrentPage(1);
-                }}
-                className={`flex shrink-0 items-center gap-2 rounded-xl px-6 py-2.5 text-sm font-bold transition-all ${
-                  activeCategory === category.id
-                    ? 'bg-primary text-white shadow-md'
-                    : 'border border-hairline bg-white text-secondary hover:border-primary/20'
-                }`}
-              >
-                {category.icon}
-                {category.name}
-              </button>
-            ))}
+          <div className="mt-4 px-1 sm:px-2">
+            <div className="no-scrollbar mt-5 flex items-center gap-3 overflow-x-auto pb-3 sm:gap-4">
+              {CATEGORIES.map((category) => (
+                <button
+                  key={category.id}
+                  onClick={() => {
+                    setActiveCategory(category.id);
+                    setCurrentPage(1);
+                  }}
+                  className={`flex shrink-0 items-center gap-2 rounded-2xl px-5 py-3 text-sm font-bold transition-all ${
+                    activeCategory === category.id
+                      ? 'bg-primary text-white'
+                      : 'border border-hairline bg-[#fcfaf7] text-secondary hover:border-primary/20 hover:bg-white'
+                  }`}
+                >
+                  {category.icon}
+                  {category.name}
+                </button>
+              ))}
+            </div>
           </div>
+        </div>
+        <div className="mx-auto mt-2 max-w-[1280px] px-4 sm:px-6 lg:px-20">
+          <div className="h-px w-full bg-stone-200/80" />
         </div>
       </div>
 
-      <main className="mx-auto max-w-[1280px] px-4 py-10 sm:px-6 sm:py-12 lg:px-20">
-        <div className="mb-6 flex items-center justify-between sm:mb-8">
-          <h2 className="text-lg font-bold text-ink sm:text-xl">附近好物</h2>
-        </div>
+      <main className="mx-auto max-w-[1280px] px-4 py-8 sm:px-6 sm:py-10 lg:px-20">
+        <div className="rounded-[24px] border border-stone-200/80 bg-white/90 px-3 py-5 shadow-[0_12px_32px_rgba(15,23,42,0.04)] sm:px-5 sm:py-6">
+          <div className="mb-6 flex items-center justify-between sm:mb-8">
+            <h2 className="text-lg font-bold text-ink sm:text-xl">附近好物</h2>
+          </div>
 
-        {error ? <div className="py-8 text-center text-red-500">{error}</div> : null}
+          {error ? <div className="py-8 text-center text-red-500">{error}</div> : null}
 
-        <div className="grid grid-cols-1 gap-x-4 gap-y-8 xs:grid-cols-2 sm:gap-x-6 sm:gap-y-10 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5">
-          {loading ? (
-            Array.from({ length: 10 }).map((_, index) => (
-              <div key={index} className="space-y-3">
-                <div className="aspect-square animate-pulse rounded-2xl bg-stone-200" />
-                <div className="h-4 animate-pulse rounded bg-stone-200" />
-                <div className="h-3 w-1/2 animate-pulse rounded bg-stone-200" />
-              </div>
-            ))
-          ) : totalItems === 0 ? (
-            <div className="col-span-full py-16 text-center text-muted">暂无商品</div>
-          ) : (
-            items.map((item) => (
-              <React.Fragment key={item.id}>
-                <MarketItemCard item={item} onClick={() => navigate(`/item/${item.id}`)} />
-              </React.Fragment>
-            ))
-          )}
+          <div className="grid grid-cols-1 gap-x-4 gap-y-8 xs:grid-cols-2 sm:gap-x-6 sm:gap-y-10 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5">
+            {loading ? (
+              Array.from({ length: 10 }).map((_, index) => (
+                <div key={index} className="space-y-3">
+                  <div className="aspect-square animate-pulse rounded-2xl bg-stone-200" />
+                  <div className="h-4 animate-pulse rounded bg-stone-200" />
+                  <div className="h-3 w-1/2 animate-pulse rounded bg-stone-200" />
+                </div>
+              ))
+            ) : totalItems === 0 ? (
+              <div className="col-span-full py-16 text-center text-muted">暂无商品</div>
+            ) : (
+              items.map((item) => (
+                <React.Fragment key={item.id}>
+                  <MarketItemCard item={item} onClick={() => navigate(`/item/${item.id}`)} />
+                </React.Fragment>
+              ))
+            )}
+          </div>
+          <Pagination
+            currentPage={currentPage}
+            totalPages={totalPages}
+            totalItems={totalItems}
+            pageSize={pageSize}
+            onPageChange={setCurrentPage}
+            onPageSizeChange={(size) => {
+              setPageSize(size);
+              setCurrentPage(1);
+            }}
+          />
         </div>
-        <Pagination
-          currentPage={currentPage}
-          totalPages={totalPages}
-          totalItems={totalItems}
-          pageSize={pageSize}
-          onPageChange={setCurrentPage}
-          onPageSizeChange={(size) => {
-            setPageSize(size);
-            setCurrentPage(1);
-          }}
-        />
       </main>
 
       <BackToTop />

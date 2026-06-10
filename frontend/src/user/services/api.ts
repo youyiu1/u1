@@ -31,6 +31,12 @@ interface AuthResponse {
   token: string;
 }
 
+interface CaptchaResponse {
+  captchaId: string;
+  imageBase64: string;
+  expiresInSeconds: number;
+}
+
 const AUTH_ERROR_MESSAGES: Record<string, string> = {
   未登录: '请先登录',
   Token无效: '登录信息无效，请重新登录',
@@ -254,11 +260,15 @@ export function removeToken(): void {
 }
 
 export const userApi = {
-  login: (email: string, password: string) => postJson<AuthResponse>('/user/login', { email, password }),
+  login: (email: string, password: string, captchaId: string, captchaCode: string) =>
+    postJson<AuthResponse>('/user/login', { email, password, captchaId, captchaCode }),
   register: (name: string, email: string, password: string, code: string) =>
     postJson<AuthResponse>('/user/register', { name, email, password, code }),
   logout: () => postFlag('/user/logout'),
+  getCaptcha: () => request<CaptchaResponse>('/user/captcha-image'),
   sendCode: (email: string) => postWithQuery<boolean>('/user/send-code', { email }),
+  resetPassword: (email: string, code: string, newPassword: string) =>
+    postFlag('/user/reset-password', { email, code, newPassword }),
   getUser: (id: string) => request<User>(`/user/${id}`),
   getUserByName: (name: string) => request<User>(`/user/name/${encodeURIComponent(name)}`),
   getCurrentUser: () => request<User>('/user/profile/current'),

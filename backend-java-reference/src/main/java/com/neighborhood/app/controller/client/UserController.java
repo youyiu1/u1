@@ -3,14 +3,17 @@ package com.neighborhood.app.controller.client;
 import com.neighborhood.app.common.Result;
 import com.neighborhood.app.common.ResultUtils;
 import com.neighborhood.app.dto.user.AuthResponse;
+import com.neighborhood.app.dto.user.CaptchaResponse;
 import com.neighborhood.app.dto.user.ChangePasswordRequest;
 import com.neighborhood.app.dto.user.FollowRequest;
 import com.neighborhood.app.dto.user.NotificationSettings;
 import com.neighborhood.app.dto.user.PrivacySettings;
 import com.neighborhood.app.dto.user.RegisterRequest;
+import com.neighborhood.app.dto.user.ResetPasswordRequest;
 import com.neighborhood.app.dto.user.UserLoginRequest;
 import com.neighborhood.app.dto.user.UserProfileUpdateRequest;
 import com.neighborhood.app.entity.user.User;
+import com.neighborhood.app.service.CaptchaService;
 import com.neighborhood.app.service.EmailService;
 import com.neighborhood.app.service.UserService;
 import com.neighborhood.app.util.JwtUtil;
@@ -41,6 +44,7 @@ public class UserController {
     private static final String OPERATION_FAILED_MESSAGE = "操作失败，请稍后重试";
 
     private final UserService userService;
+    private final CaptchaService captchaService;
     private final EmailService emailService;
     private final JwtUtil jwtUtil;
     private final AuthTokenStore authTokenStore;
@@ -85,9 +89,32 @@ public class UserController {
         }
     }
 
+    /** 获取图形验证码。 */
+    @GetMapping("/captcha-image")
+    public Result<CaptchaResponse> getCaptcha(HttpServletRequest request) {
+        try {
+            return ResultUtils.ok(captchaService.generateCaptcha(resolveClientKey(request)));
+        } catch (RuntimeException exception) {
+            return ResultUtils.fail(exception.getMessage());
+        }
+    }
+
     /** 用户登录。 */
     @PostMapping("/login")
-    public Result<AuthResponse> login(@RequestBody UserLoginRequest request) {
+    public Result<AuthResponse> login(@RequestBody UserLoginRequest request, HttpServletRequest httpRequest) {
+        if (request == null
+                || isBlank(request.getEmail())
+                || isBlank(request.getPassword())
+                || isBlank(request.getCaptchaId())
+                || isBlank(request.getCaptchaCode())) {
+            return ResultUtils.fail("邮箱、密码和图形验证码不能为空");
+        }
+        if (request.getCaptchaCode().trim().length() != 4) {
+            return ResultUtils.fail("图形验证码格式不正确");
+        }
+        if (!captchaService.validateCaptcha(resolveClientKey(httpRequest), request.getCaptchaId(), request.getCaptchaCode())) {
+            return ResultUtils.fail("图形验证码错误或已过期");
+        }
         User loggedIn = userService.login(request.getEmail(), request.getPassword());
         if (loggedIn == null) {
             return ResultUtils.fail("用户名或密码错误");
@@ -172,6 +199,27 @@ public class UserController {
         return ResultUtils.bool(userService.changePassword(userId, request.getOldPassword(), request.getNewPassword()));
     }
 
+    /** 通过邮箱验证码重置密码。 */
+    @PostMapping("/reset-password")
+    public Result<Boolean> resetPassword(@RequestBody ResetPasswordRequest request) {
+        if (request == null
+                || isBlank(request.getEmail())
+                || isBlank(request.getCode())
+                || isBlank(request.getNewPassword())) {
+            return ResultUtils.fail("邮箱、验证码和新密码不能为空");
+        }
+        if (request.getNewPassword().length() < 6) {
+            return ResultUtils.fail("新密码至少 6 位");
+        }
+        if (!emailService.verifyCode(request.getEmail(), request.getCode())) {
+            return ResultUtils.fail("验证码错误或已过期");
+        }
+        if (!userService.resetPasswordByEmail(request.getEmail(), request.getNewPassword())) {
+            return ResultUtils.fail("未找到对应用户");
+        }
+        return ResultUtils.bool(true);
+    }
+
     /** 更新隐私设置。 */
     @PostMapping("/privacy")
     public Result<Boolean> updatePrivacy(@RequestAttribute String userId, @RequestBody PrivacySettings settings) {
@@ -216,5 +264,16 @@ public class UserController {
 
     private boolean cacheToken(String userId, String token) {
         return authTokenStore.storeToken(userId, token, jwtUtil.getExpiration());
+    }
+
+    private String resolveClientKey(HttpServletRequest request) {
+        String forwarded = request.getHeader("X-Forwarded-For");
+        String ip = isBlank(forwarded) ? request.getRemoteAddr() : forwarded.split(",")[0].trim();
+        String userAgent = request.getHeader("User-Agent");
+        return (ip == null ? "unknown" : ip) + "|" + (userAgent == null ? "unknown" : userAgent);
+    }
+
+    private boolean isBlank(String value) {
+        return value == null || value.trim().isEmpty();
     }
 }

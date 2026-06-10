@@ -25,7 +25,7 @@ const TERMS_SECTIONS = [
 
 export default function TermsPage() {
   return (
-    <div className="min-h-screen bg-white">
+    <div className="min-h-screen bg-surface-bright">
       <div className="mx-auto max-w-[900px] px-6 py-14 md:px-10 md:py-20">
         <div className="mb-10">
           <p className="mb-3 text-[11px] font-black uppercase tracking-[0.28em] text-primary">Agreement</p>

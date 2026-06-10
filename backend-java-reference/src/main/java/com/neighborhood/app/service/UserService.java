@@ -21,6 +21,7 @@ public interface UserService extends IService<User> {
     boolean updateById(User user);
     boolean updateProfile(String userId, UserProfileUpdateRequest request);
     boolean changePassword(String userId, String oldPassword, String newPassword);
+    boolean resetPasswordByEmail(String email, String newPassword);
     boolean updatePrivacy(String userId, PrivacySettings settings);
     boolean updateNotificationSettings(String userId, NotificationSettings settings);
 }

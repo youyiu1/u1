@@ -174,6 +174,18 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements Us
     }
 
     @Override
+    public boolean resetPasswordByEmail(String email, String newPassword) {
+        User user = lambdaQuery()
+                .eq(User::getEmail, email)
+                .one();
+        if (user == null) {
+            return false;
+        }
+        user.setPassword(passwordCodec.encode(newPassword));
+        return updateAndEvict(user, user.getId());
+    }
+
+    @Override
     public List<User> getFollowingList(String userId) {
         List<String> followingIds = listFollowingIds(userId);
         if (followingIds.isEmpty()) {

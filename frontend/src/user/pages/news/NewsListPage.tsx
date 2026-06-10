@@ -33,7 +33,7 @@ interface SuggestedUser {
 }
 
 type ComposerAction = {
-  key: 'topic' | 'image' | 'location';
+  key: 'image' | 'location';
   label: string;
   icon: React.ReactNode;
   onClick: () => void;
@@ -215,12 +215,6 @@ export default function NewsListPage() {
 
   const composerActions: ComposerAction[] = [
     {
-      key: 'topic',
-      label: '#',
-      icon: <span className="text-xs font-bold text-muted">#</span>,
-      onClick: () => setPostText((current) => `${current}#社区话题# `),
-    },
-    {
       key: 'image',
       label: '图片',
       icon: isUploading ? <Loader2 className="h-4 w-4 animate-spin text-green-500" /> : <ImageIcon className="h-4 w-4 text-green-500" />,
@@ -236,196 +230,227 @@ export default function NewsListPage() {
   ];
 
   return (
-    <div className="min-h-screen bg-surface-soft/30 pb-20">
-      <div className="mx-auto max-w-[1280px] px-6 py-12 md:px-20">
-        <div className="grid gap-10 lg:grid-cols-12">
-          <div className="space-y-8 lg:col-span-8">
-            <header className="mb-10 text-left">
-              <h1 className="mb-2 text-3xl font-extrabold text-ink">同城动态</h1>
-              <p className="font-medium italic text-secondary">记录社区新鲜事，分享身边生活和此刻心情。</p>
-            </header>
-
-            <div className="rounded-3xl border border-hairline bg-white p-6 shadow-sm">
-              <div className="flex gap-4">
-                <div className="h-12 w-12 shrink-0 overflow-hidden rounded-2xl border border-hairline bg-surface-soft">
-                  {currentUser?.avatar ? (
-                    <img src={currentUser.avatar} className="h-full w-full object-cover" alt="用户头像" />
-                  ) : (
-                    <div className="flex h-full w-full items-center justify-center bg-primary/10 text-lg font-black text-primary">
-                      {(currentUser?.name || '?')[0]}
-                    </div>
-                  )}
+    <div className="min-h-screen pb-20">
+      <div className="pb-8 pt-10 sm:pt-12">
+        <div className="mx-auto max-w-[1280px] px-4 sm:px-6 lg:px-20">
+          <div className="px-1 py-3 sm:px-2 sm:py-4">
+            <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
+              <div className="min-w-0">
+                <div className="inline-flex items-center gap-2 rounded-full bg-primary/5 px-3 py-1.5 text-[11px] font-semibold tracking-[0.16em] text-primary">
+                  <TrendingUp className="h-3.5 w-3.5" />
+                  同城动态
                 </div>
-
-                <div className="flex-1 space-y-4">
-                  <textarea
-                    value={postText}
-                    onChange={(event) => setPostText(event.target.value)}
-                    placeholder="说说今天的社区见闻、生活分享，或者带上 #话题# 一起交流。"
-                    className="min-h-[80px] w-full resize-none border-none bg-transparent p-2 text-sm font-medium text-ink placeholder:text-muted/60 focus:ring-0"
-                  />
-
-                  {postImages.length > 0 && (
-                    <div className="flex flex-wrap gap-2">
-                      {postImages.map((url, index) => (
-                        <div key={index} className="relative h-20 w-20 overflow-hidden rounded-xl border border-hairline">
-                          <img src={url} className="h-full w-full object-cover" alt="预览图片" />
-                          <button
-                            onClick={() => removeImage(index)}
-                            className="absolute right-1 top-1 rounded-full bg-ink/60 p-1 text-white transition-colors hover:bg-red-500"
-                          >
-                            <X className="h-3 w-3" />
-                          </button>
-                        </div>
-                      ))}
-                    </div>
-                  )}
-
-                  {postLocation && (
-                    <div className="flex items-center gap-2 rounded-xl bg-surface-soft px-3 py-2">
-                      <MapPin className="h-4 w-4 text-primary" />
-                      <span className="flex-1 text-xs font-medium text-ink">{postLocation}</span>
-                      <button onClick={() => setPostLocation('')} className="rounded-full p-1 transition-colors hover:bg-white">
-                        <X className="h-3 w-3 text-muted" />
-                      </button>
-                    </div>
-                  )}
-
-                  <div className="flex items-center justify-between border-t border-hairline pt-4">
-                    <div className="flex items-center gap-3">
-                      <input ref={imageInputRef} type="file" accept="image/*" onChange={handleImageUpload} className="hidden" />
-                      {composerActions.map((action) => (
-                        <button
-                          key={action.key}
-                          onClick={action.onClick}
-                          disabled={action.disabled}
-                          className="flex items-center gap-1.5 rounded-xl p-2 transition-all hover:bg-surface-soft disabled:opacity-50"
-                        >
-                          {action.icon}
-                          <span className="text-xs font-bold text-muted">{action.label}</span>
-                        </button>
-                      ))}
-                    </div>
-
-                    <button
-                      onClick={handleCreatePost}
-                      disabled={!postText.trim()}
-                      className={`rounded-2xl px-6 py-2.5 text-xs font-bold transition-all ${
-                        postText.trim() ? 'bg-primary text-white shadow-lg shadow-primary/20 hover:bg-primary-hover' : 'cursor-not-allowed bg-surface-soft text-muted'
-                      }`}
-                    >
-                      立即发布
-                    </button>
-                  </div>
-                </div>
+                <h1 className="mt-4 text-[26px] font-semibold tracking-[-0.03em] text-ink sm:text-[32px]">看看附近新鲜事，也分享你的此刻</h1>
               </div>
+
+              <button
+                onClick={() => document.getElementById('news-composer')?.scrollIntoView({ behavior: 'smooth', block: 'start' })}
+                className="flex items-center justify-center rounded-2xl bg-primary px-5 py-3 text-sm font-black text-white shadow-lg shadow-primary/15 transition-all hover:bg-primary-hover"
+              >
+                发布动态
+              </button>
             </div>
 
-            <div className="space-y-6">
-              {loading ? (
-                Array.from({ length: 3 }).map((_, index) => <div key={index} className="h-48 animate-pulse rounded-3xl bg-stone-200" />)
-              ) : error ? (
-                <div className="py-8 text-center text-red-500">{error}</div>
-              ) : posts.length === 0 ? (
-                <div className="py-16 text-center text-muted">暂时还没有动态</div>
-              ) : (
-                posts.map((post) => (
-                  <React.Fragment key={post.id}>
-                    <NewsPostCard
-                      post={post}
-                      currentUserId={currentUser?.id}
-                      onOpen={() => navigate(`/news/${post.id}`)}
-                      onOpenProfile={(profileId, profileName, profileAvatar) =>
-                        navigate(buildProfilePath(profileId, profileName), {
-                          state: buildProfileRouteState({
-                            id: profileId,
-                            name: profileName,
-                            avatar: profileAvatar,
-                          }),
-                        })
-                      }
-                      onFollowChange={(authorId, nextState) => {
-                        setPosts((current) =>
-                          current.map((currentPost) =>
-                            currentPost.authorId === authorId || currentPost.author?.id === authorId
-                              ? { ...currentPost, isFollowing: nextState }
-                              : currentPost
-                          )
-                        );
-                      }}
-                      onDelete={async (postId) => {
-                        if (!window.confirm('确认删除这条动态吗？')) {
-                          return;
-                        }
-                        await newsApi.delete(postId);
-                        if (posts.length === 1 && currentPage > 1) {
-                          setCurrentPage((page) => page - 1);
-                        } else {
-                          await refreshPosts();
-                        }
-                      }}
-                      onReport={async () => {
-                        if (!window.confirm('确认举报这条动态吗？')) {
-                          return;
-                        }
-                        showToast('举报已提交，平台会尽快处理', 'success');
-                      }}
-                      onShare={handleShare}
-                    />
-                  </React.Fragment>
-                ))
-              )}
+            <div className="mt-2.5">
+              <p className="max-w-2xl text-[14px] font-normal leading-6 text-secondary sm:text-[15px]">
+                记录社区里的新鲜事、生活感受和身边消息。
+              </p>
             </div>
-            <Pagination
-              currentPage={currentPage}
-              totalPages={totalPages}
-              totalItems={totalItems}
-              pageSize={pageSize}
-              onPageChange={setCurrentPage}
-              onPageSizeChange={(size) => {
-                setPageSize(size);
-                setCurrentPage(1);
-              }}
-            />
           </div>
-
-          <aside className="space-y-8 lg:col-span-4">
-            <SidebarPanel title="热门话题" icon={<TrendingUp className="h-5 w-5 text-primary" />}>
-              <div className="space-y-4">
-                {trending.map((item, index) => (
-                  <div key={item.id || index} className="group flex cursor-pointer items-start gap-3">
-                    <span className="text-xs font-bold text-muted">#{index + 1}</span>
-                    <div>
-                      <p className="text-sm font-bold text-ink transition-colors group-hover:text-primary">#{item.name}</p>
-                      <p className="text-[11px] font-medium text-muted">{item.posts} 条讨论</p>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </SidebarPanel>
-
-            <SidebarPanel title="推荐关注" icon={<Users className="h-5 w-5 text-primary" />}>
-              <div className="space-y-6">
-                {suggestedUsers.map((user) => (
-                  <React.Fragment key={user.id}>
-                    <SuggestedUserRow
-                      user={user}
-                      onOpen={() => navigate(buildProfilePath(user.id, user.name), {
-                        state: buildProfileRouteState(user),
-                      })}
-                      onFollowChange={(nextState) => {
-                        setSuggestedUsers((current) =>
-                          current.map((currentUser) => (currentUser.id === user.id ? { ...currentUser, isFollowing: nextState } : currentUser))
-                        );
-                      }}
-                    />
-                  </React.Fragment>
-                ))}
-              </div>
-            </SidebarPanel>
-          </aside>
+        </div>
+        <div className="mx-auto mt-2 max-w-[1280px] px-4 sm:px-6 lg:px-20">
+          <div className="h-px w-full bg-stone-200/80" />
         </div>
       </div>
+
+      <main className="mx-auto max-w-[1280px] px-4 py-8 sm:px-6 sm:py-10 lg:px-20">
+        <div className="rounded-[24px] border border-stone-200/80 bg-white/90 px-3 py-5 shadow-[0_12px_32px_rgba(15,23,42,0.04)] sm:px-5 sm:py-6">
+          <div className="grid gap-8 lg:grid-cols-12">
+            <div className="space-y-6 lg:col-span-8">
+              <div id="news-composer" className="rounded-3xl border border-hairline bg-white p-5 shadow-sm sm:p-6">
+                <div className="flex gap-4">
+                  <div className="h-11 w-11 shrink-0 overflow-hidden rounded-2xl border border-hairline bg-surface-soft">
+                    {currentUser?.avatar ? (
+                      <img src={currentUser.avatar} className="h-full w-full object-cover" alt="用户头像" />
+                    ) : (
+                      <div className="flex h-full w-full items-center justify-center bg-primary/10 text-base font-black text-primary">
+                        {(currentUser?.name || '?')[0]}
+                      </div>
+                    )}
+                  </div>
+
+                  <div className="flex-1 space-y-4">
+                    <textarea
+                      value={postText}
+                      onChange={(event) => setPostText(event.target.value)}
+                      placeholder="说说身边的新鲜事，或分享你的此刻。"
+                      className="min-h-[72px] w-full resize-none border-none bg-transparent p-1 text-sm font-medium text-ink placeholder:text-muted/60 focus:ring-0"
+                    />
+
+                    {postImages.length > 0 ? (
+                      <div className="flex flex-wrap gap-2">
+                        {postImages.map((url, index) => (
+                          <div key={index} className="relative h-20 w-20 overflow-hidden rounded-xl border border-hairline">
+                            <img src={url} className="h-full w-full object-cover" alt="预览图片" />
+                            <button
+                              onClick={() => removeImage(index)}
+                              className="absolute right-1 top-1 rounded-full bg-ink/60 p-1 text-white transition-colors hover:bg-red-500"
+                            >
+                              <X className="h-3 w-3" />
+                            </button>
+                          </div>
+                        ))}
+                      </div>
+                    ) : null}
+
+                    {postLocation ? (
+                      <div className="flex items-center gap-2 rounded-xl bg-surface-soft px-3 py-2">
+                        <MapPin className="h-4 w-4 text-primary" />
+                        <span className="flex-1 text-xs font-medium text-ink">{postLocation}</span>
+                        <button onClick={() => setPostLocation('')} className="rounded-full p-1 transition-colors hover:bg-white">
+                          <X className="h-3 w-3 text-muted" />
+                        </button>
+                      </div>
+                    ) : null}
+
+                    <div className="flex flex-col gap-3 border-t border-hairline pt-4 sm:flex-row sm:items-center sm:justify-between">
+                      <div className="flex items-center gap-3">
+                        <input ref={imageInputRef} type="file" accept="image/*" onChange={handleImageUpload} className="hidden" />
+                        {composerActions.map((action) => (
+                          <button
+                            key={action.key}
+                            onClick={action.onClick}
+                            disabled={action.disabled}
+                            className="flex items-center gap-1.5 rounded-xl px-2 py-1.5 transition-all hover:bg-surface-soft disabled:opacity-50"
+                          >
+                            {action.icon}
+                            <span className="text-xs font-bold text-muted">{action.label}</span>
+                          </button>
+                        ))}
+                      </div>
+
+                      <button
+                        onClick={handleCreatePost}
+                        disabled={!postText.trim()}
+                        className={`rounded-2xl px-5 py-2.5 text-xs font-bold transition-all ${
+                          postText.trim() ? 'bg-primary text-white shadow-lg shadow-primary/20 hover:bg-primary-hover' : 'cursor-not-allowed bg-surface-soft text-muted'
+                        }`}
+                      >
+                        立即发布
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <div className="space-y-5">
+                {loading ? (
+                  Array.from({ length: 3 }).map((_, index) => <div key={index} className="h-44 animate-pulse rounded-3xl bg-stone-200" />)
+                ) : error ? (
+                  <div className="py-8 text-center text-red-500">{error}</div>
+                ) : posts.length === 0 ? (
+                  <div className="py-16 text-center text-muted">暂时还没有动态</div>
+                ) : (
+                  posts.map((post) => (
+                    <React.Fragment key={post.id}>
+                      <NewsPostCard
+                        post={post}
+                        currentUserId={currentUser?.id}
+                        onOpen={() => navigate(`/news/${post.id}`)}
+                        onOpenProfile={(profileId, profileName, profileAvatar) =>
+                          navigate(buildProfilePath(profileId, profileName), {
+                            state: buildProfileRouteState({
+                              id: profileId,
+                              name: profileName,
+                              avatar: profileAvatar,
+                            }),
+                          })
+                        }
+                        onFollowChange={(authorId, nextState) => {
+                          setPosts((current) =>
+                            current.map((currentPost) =>
+                              currentPost.authorId === authorId || currentPost.author?.id === authorId
+                                ? { ...currentPost, isFollowing: nextState }
+                                : currentPost
+                            )
+                          );
+                        }}
+                        onDelete={async (postId) => {
+                          if (!window.confirm('确认删除这条动态吗？')) {
+                            return;
+                          }
+                          await newsApi.delete(postId);
+                          if (posts.length === 1 && currentPage > 1) {
+                            setCurrentPage((page) => page - 1);
+                          } else {
+                            await refreshPosts();
+                          }
+                        }}
+                        onReport={async () => {
+                          if (!window.confirm('确认举报这条动态吗？')) {
+                            return;
+                          }
+                          showToast('举报已提交，平台会尽快处理', 'success');
+                        }}
+                        onShare={handleShare}
+                      />
+                    </React.Fragment>
+                  ))
+                )}
+              </div>
+              <Pagination
+                currentPage={currentPage}
+                totalPages={totalPages}
+                totalItems={totalItems}
+                pageSize={pageSize}
+                onPageChange={setCurrentPage}
+                onPageSizeChange={(size) => {
+                  setPageSize(size);
+                  setCurrentPage(1);
+                }}
+              />
+            </div>
+
+            <aside className="space-y-5 lg:col-span-4">
+              <SidebarPanel title="推荐关注" icon={<Users className="h-5 w-5 text-primary" />}>
+                <div className="space-y-5">
+                  {suggestedUsers.map((user) => (
+                    <React.Fragment key={user.id}>
+                      <SuggestedUserRow
+                        user={user}
+                        onOpen={() =>
+                          navigate(buildProfilePath(user.id, user.name), {
+                            state: buildProfileRouteState(user),
+                          })
+                        }
+                        onFollowChange={(nextState) => {
+                          setSuggestedUsers((current) =>
+                            current.map((currentUser) => (currentUser.id === user.id ? { ...currentUser, isFollowing: nextState } : currentUser))
+                          );
+                        }}
+                      />
+                    </React.Fragment>
+                  ))}
+                </div>
+              </SidebarPanel>
+
+              <SidebarPanel title="热门话题" icon={<TrendingUp className="h-5 w-5 text-primary" />}>
+                <div className="space-y-3">
+                  {trending.map((item, index) => (
+                    <div key={item.id || index} className="group flex cursor-pointer items-start gap-3">
+                      <span className="text-xs font-bold text-muted">#{index + 1}</span>
+                      <div>
+                        <p className="text-sm font-bold text-ink transition-colors group-hover:text-primary">#{item.name}</p>
+                        <p className="text-[11px] font-medium text-muted">{item.posts} 条讨论</p>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </SidebarPanel>
+            </aside>
+          </div>
+        </div>
+      </main>
 
       <BackToTop />
       <LocationPicker isOpen={showLocationPicker} onClose={() => setShowLocationPicker(false)} onSelect={(location) => setPostLocation(location.name)} />
@@ -443,8 +468,8 @@ function SidebarPanel({
   children: React.ReactNode;
 }) {
   return (
-    <div className="rounded-3xl border border-hairline bg-white p-6 shadow-sm">
-      <h3 className="mb-6 flex items-center gap-2 text-lg font-bold text-ink">
+    <div className="rounded-3xl border border-hairline bg-white p-5 shadow-sm sm:p-6">
+      <h3 className="mb-5 flex items-center gap-2 text-base font-bold text-ink">
         {icon} {title}
       </h3>
       {children}
@@ -516,8 +541,7 @@ function NewsPostCard({
   const authorAvatar = post.author?.avatar || post.authorAvatar || '';
   const postTime = formatDateTime(post.time || post.createTime, '刚刚');
   const postImagesList = parseImages(post.images);
-  const isOwner = Boolean(currentUserId && currentUserId === authorId);
-  const reviewState = isOwner
+  const reviewState = currentUserId && currentUserId === authorId
     ? getPendingReviewState(post.status, {
         label: '待平台审核，通过后才会公开展示',
       }) ||
@@ -529,7 +553,7 @@ function NewsPostCard({
 
   return (
     <article
-      className={`cursor-pointer rounded-3xl border bg-white p-6 shadow-sm transition-shadow hover:shadow-md ${
+      className={`cursor-pointer rounded-3xl border bg-white p-5 shadow-sm transition-shadow hover:shadow-md sm:p-6 ${
         reviewState?.status === 'pending'
           ? 'border-amber-100 bg-amber-50/30'
           : reviewState

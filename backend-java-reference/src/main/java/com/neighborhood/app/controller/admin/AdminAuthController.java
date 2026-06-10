@@ -1,7 +1,9 @@
 package com.neighborhood.app.controller.admin;
 
 import com.neighborhood.app.common.Result;
+import com.neighborhood.app.dto.user.CaptchaResponse;
 import com.neighborhood.app.dto.admin.AdminAuthRequests.LoginRequest;
+import com.neighborhood.app.service.CaptchaService;
 import jakarta.servlet.http.HttpServletRequest;
 import java.util.Map;
 import lombok.RequiredArgsConstructor;
@@ -19,6 +21,17 @@ import org.springframework.web.bind.annotation.RestController;
 public class AdminAuthController {
 
     private final AdminSupport support;
+    private final CaptchaService captchaService;
+
+    /** 获取管理端图形验证码。 */
+    @GetMapping("/captcha-image")
+    public Result<CaptchaResponse> getCaptcha(HttpServletRequest request) {
+        try {
+            return Result.ok(captchaService.generateCaptcha(resolveClientKey(request)));
+        } catch (RuntimeException exception) {
+            return Result.fail(exception.getMessage());
+        }
+    }
 
     @PostMapping("/login")
     public Result<Map<String, Object>> login(@RequestBody LoginRequest body, HttpServletRequest request) {
@@ -33,5 +46,12 @@ public class AdminAuthController {
     @GetMapping("/me")
     public Result<Map<String, Object>> me(@RequestAttribute String userId) {
         return support.me(userId);
+    }
+
+    private String resolveClientKey(HttpServletRequest request) {
+        String forwarded = request.getHeader("X-Forwarded-For");
+        String ip = forwarded == null || forwarded.isBlank() ? request.getRemoteAddr() : forwarded.split(",")[0].trim();
+        String userAgent = request.getHeader("User-Agent");
+        return (ip == null ? "unknown" : ip) + "|" + (userAgent == null ? "unknown" : userAgent);
     }
 }

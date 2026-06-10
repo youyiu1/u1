@@ -5,7 +5,7 @@ import { AUTH_STATE_EVENT, getStoredUser, removeStoredUser, setStoredUser } from
 
 interface AuthContextType {
   user: User | null;
-  login: (email: string, password: string) => Promise<void>;
+  login: (email: string, password: string, captchaId: string, captchaCode: string) => Promise<void>;
   register: (name: string, email: string, password: string, code: string) => Promise<void>;
   logout: () => Promise<void>;
   updateUser: (user: User) => void;
@@ -113,8 +113,8 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     };
   }, []);
 
-  const login = async (email: string, password: string) => {
-    const res = await userApi.login(email, password);
+  const login = async (email: string, password: string, captchaId: string, captchaCode: string) => {
+    const res = await userApi.login(email, password, captchaId, captchaCode);
     setToken(res.token);
     setUser(res.user);
     setStoredUser(res.user);

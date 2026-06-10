@@ -4,7 +4,7 @@
  */
 
 import React, { useEffect, useState } from 'react';
-import { Brush, CheckCircle2, Dumbbell, MapPin, Plus, Scissors, Search, Sparkles, Star, Wrench } from 'lucide-react';
+import { Brush, CheckCircle2, Dumbbell, MapPin, Plus, Scissors, Sparkles, Star, Wrench } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { BackToTop } from '../../components/common/BackToTop';
 import { FavoriteButton } from '../../components/common/FavoriteButton';
@@ -50,7 +50,6 @@ export default function ServiceListPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [activeCategory, setActiveCategory] = useState('all');
-  const [searchQuery, setSearchQuery] = useState('');
   const [nearbyEnabled, setNearbyEnabled] = useState(false);
   const [locating, setLocating] = useState(false);
   const [locationTip, setLocationTip] = useState('');
@@ -75,7 +74,6 @@ export default function ServiceListPage() {
         setError(null);
         const result = await serviceApi.list({
           category: activeCategory,
-          keyword: searchQuery.trim(),
           lat: locationCoords?.latitude,
           lng: locationCoords?.longitude,
           pageNum: currentPage,
@@ -91,7 +89,7 @@ export default function ServiceListPage() {
     };
 
     void fetchServices();
-  }, [activeCategory, currentPage, locationCoords, pageSize, searchQuery]);
+  }, [activeCategory, currentPage, locationCoords, pageSize]);
 
   const enableNearbySort = async () => {
     if (locating) {
@@ -134,127 +132,123 @@ export default function ServiceListPage() {
   }, [currentPage, totalPages]);
 
   return (
-    <div className="min-h-screen bg-white pb-20">
-      <div className="bg-primary/5 pb-8 pt-10 sm:pt-12">
+    <div className="min-h-screen pb-20">
+      <div className="pb-8 pt-10 sm:pt-12">
         <div className="mx-auto max-w-[1280px] px-4 sm:px-6 lg:px-20">
-          <div className="flex flex-col items-stretch justify-between gap-4 sm:gap-6 md:flex-row md:items-end">
-            <div className="max-w-2xl flex-1">
-              <h1 className="mb-4 text-2xl font-bold text-ink sm:mb-6 sm:text-3xl">发现身边的专业服务</h1>
-              <div className="group relative">
-                <div className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-4">
-                  <Search className="h-5 w-5 text-muted transition-colors group-focus-within:text-primary" />
+          <div className="px-1 py-3 sm:px-2 sm:py-4">
+            <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
+              <div className="min-w-0">
+                <div className="inline-flex items-center gap-2 rounded-full bg-primary/5 px-3 py-1.5 text-[11px] font-semibold tracking-[0.16em] text-primary">
+                  <Sparkles className="h-3.5 w-3.5" />
+                  生活服务
                 </div>
-                <input
-                  type="text"
-                  placeholder="搜索服务名称、关键词..."
-                  value={searchQuery}
-                  onChange={(event) => {
-                    setSearchQuery(event.target.value);
-                    setCurrentPage(1);
-                  }}
-                  onKeyDown={(event) => {
-                    if (event.key === 'Enter') {
-                      event.preventDefault();
-                    }
-                  }}
-                  className="w-full rounded-2xl border border-hairline bg-white py-3.5 pl-12 pr-4 text-sm font-medium outline-none transition-all focus:ring-2 focus:ring-primary/10 sm:py-4"
-                />
+                <h1 className="mt-4 text-[26px] font-semibold tracking-[-0.03em] text-ink sm:text-[32px]">找同城服务，直接按分类挑</h1>
+              </div>
+
+              <div className="flex flex-col gap-3 sm:flex-row lg:justify-end">
+                <button
+                  onClick={enableNearbySort}
+                  disabled={locating}
+                  className={`flex items-center justify-center gap-2 rounded-2xl px-5 py-3 text-sm font-black transition-all ${
+                    nearbyEnabled
+                      ? 'border border-primary/15 bg-primary/5 text-primary'
+                      : 'border border-hairline bg-white text-secondary hover:border-primary/30 hover:text-primary'
+                  } disabled:opacity-60`}
+                >
+                  <MapPin className="h-4 w-4" />
+                  {locating ? '定位中...' : nearbyEnabled ? '已按附近优先展示' : '开启附近优先'}
+                </button>
+
+                <button
+                  onClick={() => requireAuth(() => openPublish())}
+                  className="flex items-center justify-center gap-2 rounded-2xl bg-primary px-5 py-3 text-sm font-black text-white shadow-lg shadow-primary/15 transition-all hover:bg-primary-hover"
+                >
+                  <Plus className="h-4 w-4" />
+                  发布服务
+                </button>
               </div>
             </div>
 
-            <button
-              onClick={() => requireAuth(() => openPublish())}
-              className="flex w-full items-center justify-center gap-2 rounded-2xl bg-primary px-6 py-3.5 font-bold text-white shadow-lg shadow-primary/10 transition-all hover:bg-primary-hover md:w-auto sm:px-8 sm:py-4"
-            >
-              <Plus className="h-5 w-5" />
-              发布服务
-            </button>
-          </div>
+            <div className="mt-2.5">
+              <p className="max-w-2xl text-[14px] font-normal leading-6 text-secondary sm:text-[15px]">
+                附近优先、预约留痕、沟通更直接。
+              </p>
+              <p className="mt-2 text-[14px] font-semibold text-ink">{nearbyEnabled ? '已按附近优先展示' : '默认同城优先展示'}</p>
+              {locationTip ? <p className="mt-1 text-xs font-medium text-primary">{locationTip}</p> : <p className="mt-1 text-xs text-muted">需要时可开启附近优先。</p>}
+            </div>
 
-          <div className="no-scrollbar mt-6 flex items-center gap-3 overflow-x-auto pb-2 sm:mt-8 sm:gap-4">
-            {CATEGORIES.map((category) => (
-              <button
-                key={category.id}
-                onClick={() => {
-                  setActiveCategory(category.id);
-                  setCurrentPage(1);
-                }}
-                className={`flex shrink-0 items-center gap-2 rounded-xl px-6 py-2.5 text-sm font-bold transition-all ${
-                  activeCategory === category.id
-                    ? 'bg-primary text-white shadow-md'
-                    : 'border border-hairline bg-white text-secondary hover:border-primary/20'
-                }`}
-              >
-                {category.icon}
-                {category.name}
-              </button>
-            ))}
+            <div className="no-scrollbar mt-5 flex items-center gap-3 overflow-x-auto pb-3 sm:gap-4">
+              {CATEGORIES.map((category) => (
+                <button
+                  key={category.id}
+                  onClick={() => {
+                    setActiveCategory(category.id);
+                    setCurrentPage(1);
+                  }}
+                  className={`flex shrink-0 items-center gap-2 rounded-2xl px-5 py-3 text-sm font-bold transition-all ${
+                    activeCategory === category.id
+                      ? 'bg-primary text-white'
+                      : 'border border-hairline bg-[#fcfaf7] text-secondary hover:border-primary/20 hover:bg-white'
+                  }`}
+                >
+                  {category.icon}
+                  {category.name}
+                </button>
+              ))}
+            </div>
           </div>
+        </div>
+        <div className="mx-auto mt-2 max-w-[1280px] px-4 sm:px-6 lg:px-20">
+          <div className="h-px w-full bg-stone-200/80" />
         </div>
       </div>
 
       <main className="mx-auto max-w-[1280px] px-4 py-10 sm:px-6 sm:py-12 lg:px-20">
-        <div className="mb-6 flex flex-col justify-between gap-4 sm:mb-8 md:flex-row md:items-center">
-          <div>
-            <h2 className="text-lg font-bold text-ink sm:text-xl">精选服务商</h2>
-            <p className="mt-1 text-xs text-muted">
-              {nearbyEnabled ? '已按你的位置优先展示附近服务' : '默认按同城服务展示，不会自动获取定位'}
-            </p>
+        <div className="rounded-[28px] border border-stone-200/80 bg-white/90 px-4 py-6 shadow-[0_12px_32px_rgba(15,23,42,0.04)] sm:px-6 sm:py-8">
+          <div className="mb-6 flex flex-col justify-between gap-4 sm:mb-8 md:flex-row md:items-end">
+            <div>
+              <h2 className="text-lg font-bold text-ink sm:text-xl">精选服务商</h2>
+              <p className="mt-1 text-xs text-muted">按分类查看本地服务，进入详情后可以继续预约或收藏。</p>
+            </div>
           </div>
 
-          <div className="flex w-full flex-col gap-2 md:w-auto md:items-end">
-            <button
-              onClick={enableNearbySort}
-              disabled={locating}
-              className={`flex w-full items-center justify-center gap-2 rounded-xl px-5 py-2.5 text-xs font-black transition-all md:w-auto ${
-                nearbyEnabled
-                  ? 'border border-primary/10 bg-primary/5 text-primary'
-                  : 'border border-hairline bg-white text-secondary hover:border-primary/30 hover:text-primary'
-              } disabled:opacity-60`}
-            >
-              <MapPin className="h-4 w-4" />
-              {locating ? '定位中...' : nearbyEnabled ? '附近排序已开启' : '开启附近排序'}
-            </button>
-            {locationTip ? <span className="text-[10px] font-bold text-muted">{locationTip}</span> : null}
+          {error ? <div className="py-8 text-center text-red-500">{error}</div> : null}
+
+          <div className="grid grid-cols-1 gap-x-4 gap-y-8 xs:grid-cols-2 sm:gap-x-6 sm:gap-y-10 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5">
+            {loading ? (
+              Array.from({ length: 10 }).map((_, index) => (
+                <div key={index} className="space-y-3">
+                  <div className="aspect-square animate-pulse rounded-2xl bg-stone-200" />
+                  <div className="h-4 animate-pulse rounded bg-stone-200" />
+                  <div className="h-3 w-1/2 animate-pulse rounded bg-stone-200" />
+                </div>
+              ))
+            ) : totalItems === 0 ? (
+              <div className="col-span-full py-16 text-center text-muted">暂无服务</div>
+            ) : (
+              services.map((service) => (
+                <ServiceCard
+                  key={service.id}
+                  service={service}
+                  categoryLabel={getCategoryLabel(service.category)}
+                  distanceLabel={getDistanceLabel(service.distance)}
+                  onClick={() => navigate(`/service/${service.id}`)}
+                />
+              ))
+            )}
           </div>
+          <Pagination
+            currentPage={currentPage}
+            totalPages={totalPages}
+            totalItems={totalItems}
+            pageSize={pageSize}
+            onPageChange={setCurrentPage}
+            onPageSizeChange={(size) => {
+              setPageSize(size);
+              setCurrentPage(1);
+            }}
+          />
         </div>
-
-        {error ? <div className="py-8 text-center text-red-500">{error}</div> : null}
-
-        <div className="grid grid-cols-1 gap-x-4 gap-y-8 xs:grid-cols-2 sm:gap-x-6 sm:gap-y-10 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5">
-          {loading ? (
-            Array.from({ length: 10 }).map((_, index) => (
-              <div key={index} className="space-y-3">
-                <div className="aspect-square animate-pulse rounded-2xl bg-stone-200" />
-                <div className="h-4 animate-pulse rounded bg-stone-200" />
-                <div className="h-3 w-1/2 animate-pulse rounded bg-stone-200" />
-              </div>
-            ))
-          ) : totalItems === 0 ? (
-            <div className="col-span-full py-16 text-center text-muted">暂无服务</div>
-          ) : (
-            services.map((service) => (
-              <ServiceCard
-                key={service.id}
-                service={service}
-                categoryLabel={getCategoryLabel(service.category)}
-                distanceLabel={getDistanceLabel(service.distance)}
-                onClick={() => navigate(`/service/${service.id}`)}
-              />
-            ))
-          )}
-        </div>
-        <Pagination
-          currentPage={currentPage}
-          totalPages={totalPages}
-          totalItems={totalItems}
-          pageSize={pageSize}
-          onPageChange={setCurrentPage}
-          onPageSizeChange={(size) => {
-            setPageSize(size);
-            setCurrentPage(1);
-          }}
-        />
       </main>
 
       <BackToTop />

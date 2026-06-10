@@ -370,7 +370,7 @@ export default function ProfilePage() {
 
   if (error) {
     return (
-      <div className="flex min-h-screen flex-col items-center justify-center gap-4 bg-white px-6 text-center">
+      <div className="flex min-h-screen flex-col items-center justify-center gap-4 bg-surface-bright px-6 text-center">
         <p className="text-sm font-bold text-red-500">{error}</p>
         <button onClick={() => navigate('/news')} className="rounded-2xl bg-primary px-6 py-3 text-xs font-black text-white">
           返回社区首页
@@ -380,7 +380,7 @@ export default function ProfilePage() {
   }
 
   return (
-    <div className="min-h-screen bg-white pb-12">
+    <div className="min-h-screen bg-surface-bright pb-12">
       <div className="relative h-48 overflow-hidden bg-surface-soft md:h-64">
         <div className="absolute inset-0 bg-gradient-to-b from-primary/5 to-transparent" />
         <button

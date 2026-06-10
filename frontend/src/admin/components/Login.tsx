@@ -5,85 +5,81 @@
 
 import React, { useEffect, useRef, useState } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { Shield, Store } from 'lucide-react';
+import { RefreshCw, Shield, Store } from 'lucide-react';
 import { adminApi } from '../services/adminApi';
 
 interface LoginProps {
   onLoginSuccess: (username: string) => void;
 }
 
+type CaptchaState = {
+  captchaId: string;
+  imageBase64: string;
+};
+
 export default function Login({ onLoginSuccess }: LoginProps) {
+  const captchaRequestRef = useRef(0);
+
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [errorMessage, setErrorMessage] = useState('');
   const [captchaInput, setCaptchaInput] = useState('');
-  const [generatedCaptcha, setGeneratedCaptcha] = useState('');
-  const canvasRef = useRef<HTMLCanvasElement | null>(null);
+  const [captchaLoading, setCaptchaLoading] = useState(false);
+  const [captcha, setCaptcha] = useState<CaptchaState>({ captchaId: '', imageBase64: '' });
 
-  const generateCaptcha = () => {
-    const pool = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
-    let code = '';
-    for (let i = 0; i < 4; i += 1) {
-      code += pool.charAt(Math.floor(Math.random() * pool.length));
-    }
-    setGeneratedCaptcha(code);
-    drawCaptcha(code);
-  };
+  const loadCaptcha = async (options?: { clearInput?: boolean; silent?: boolean }) => {
+    const requestId = captchaRequestRef.current + 1;
+    captchaRequestRef.current = requestId;
 
-  const drawCaptcha = (code: string) => {
-    const canvas = canvasRef.current;
-    if (!canvas) return;
-    const ctx = canvas.getContext('2d');
-    if (!ctx) return;
-
-    ctx.fillStyle = '#f8fafc';
-    ctx.fillRect(0, 0, canvas.width, canvas.height);
-
-    for (let i = 0; i < 6; i += 1) {
-      ctx.strokeStyle = `rgba(${Math.floor(Math.random() * 150)}, ${Math.floor(Math.random() * 150)}, ${Math.floor(Math.random() * 150)}, 0.4)`;
-      ctx.beginPath();
-      ctx.moveTo(Math.random() * canvas.width, Math.random() * canvas.height);
-      ctx.lineTo(Math.random() * canvas.width, Math.random() * canvas.height);
-      ctx.lineWidth = 1 + Math.random() * 1.5;
-      ctx.stroke();
+    if (!options?.silent) {
+      setCaptchaLoading(true);
     }
 
-    for (let i = 0; i < 36; i += 1) {
-      ctx.fillStyle = `rgba(${Math.floor(Math.random() * 180)}, ${Math.floor(Math.random() * 180)}, ${Math.floor(Math.random() * 180)}, 0.3)`;
-      ctx.beginPath();
-      ctx.arc(Math.random() * canvas.width, Math.random() * canvas.height, 1 + Math.random(), 0, 2 * Math.PI);
-      ctx.fill();
-    }
+    try {
+      const res = await adminApi.getCaptcha();
+      if (captchaRequestRef.current !== requestId) {
+        return;
+      }
 
-    const colors = ['#4f46e5', '#2563eb', '#0891b2', '#059669', '#d97706', '#dc2626'];
-    ctx.textBaseline = 'middle';
+      if (!res.success || !res.data) {
+        setCaptcha({ captchaId: '', imageBase64: '' });
+        if (!options?.silent) {
+          setErrorMessage(res.msg || res.message || '验证码加载失败，请稍后重试');
+        }
+        return;
+      }
 
-    for (let i = 0; i < code.length; i += 1) {
-      const char = code[i];
-      const fontSize = 23 + Math.floor(Math.random() * 4);
-      ctx.font = `bold ${fontSize}px "JetBrains Mono", monospace`;
-      ctx.fillStyle = colors[Math.floor(Math.random() * colors.length)];
+      setCaptcha({
+        captchaId: res.data.captchaId,
+        imageBase64: res.data.imageBase64,
+      });
 
-      const x = 15 + i * 23 + Math.random() * 4;
-      const y = canvas.height / 2 + (Math.random() * 8 - 4);
-      const angle = (Math.random() * 28 - 14) * Math.PI / 180;
-
-      ctx.save();
-      ctx.translate(x, y);
-      ctx.rotate(angle);
-      ctx.fillText(char, -8, 0);
-      ctx.restore();
+      if (options?.clearInput) {
+        setCaptchaInput('');
+      }
+    } catch {
+      if (captchaRequestRef.current !== requestId) {
+        return;
+      }
+      setCaptcha({ captchaId: '', imageBase64: '' });
+      if (!options?.silent) {
+        setErrorMessage('验证码加载失败，请稍后重试');
+      }
+    } finally {
+      if (captchaRequestRef.current === requestId) {
+        setCaptchaLoading(false);
+      }
     }
   };
 
   useEffect(() => {
-    generateCaptcha();
+    void loadCaptcha();
   }, []);
 
-  const handleLogin = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const handleLogin = async (event: React.FormEvent) => {
+    event.preventDefault();
     setErrorMessage('');
 
     if (!username.trim() || !password.trim()) {
@@ -96,31 +92,32 @@ export default function Login({ onLoginSuccess }: LoginProps) {
       return;
     }
 
-    if (captchaInput.trim().toUpperCase() !== generatedCaptcha.toUpperCase()) {
-      setErrorMessage('验证码错误，请重新输入');
-      setCaptchaInput('');
-      generateCaptcha();
+    if (captchaInput.trim().length !== 4) {
+      setErrorMessage('图形验证码长度应为 4 位');
+      return;
+    }
+
+    if (!captcha.captchaId) {
+      setErrorMessage('验证码未准备好，请刷新后重试');
       return;
     }
 
     setIsLoading(true);
     try {
-      const res = await adminApi.login(username.trim(), password);
+      const res = await adminApi.login(username.trim(), password, captcha.captchaId, captchaInput.trim());
       if (res.success && res.code === 200) {
         setIsLoading(false);
-        onLoginSuccess(username.trim());
+        onLoginSuccess(res.data?.username || username.trim());
         return;
       }
 
       setIsLoading(false);
       setErrorMessage(res.msg || res.message || '登录失败，请检查账号和密码');
-      setCaptchaInput('');
-      generateCaptcha();
+      void loadCaptcha({ clearInput: true, silent: true });
     } catch {
       setIsLoading(false);
       setErrorMessage('登录失败，请稍后重试');
-      setCaptchaInput('');
-      generateCaptcha();
+      void loadCaptcha({ clearInput: true, silent: true });
     }
   };
 
@@ -167,7 +164,7 @@ export default function Login({ onLoginSuccess }: LoginProps) {
                   id="username"
                   type="text"
                   value={username}
-                  onChange={(e) => setUsername(e.target.value)}
+                  onChange={(event) => setUsername(event.target.value)}
                   className="block w-full pl-10 pr-3 py-2.5 border border-outline-variant rounded-lg font-body-md text-body-md text-on-surface bg-surface-background focus:ring-2 focus:ring-primary focus:border-primary transition-all outline-none"
                   placeholder="请输入管理员用户名或邮箱"
                   autoComplete="username"
@@ -188,7 +185,7 @@ export default function Login({ onLoginSuccess }: LoginProps) {
                   id="password"
                   type={showPassword ? 'text' : 'password'}
                   value={password}
-                  onChange={(e) => setPassword(e.target.value)}
+                  onChange={(event) => setPassword(event.target.value)}
                   className="block w-full pl-10 pr-10 py-2.5 border border-outline-variant rounded-lg font-body-md text-body-md text-on-surface bg-surface-background focus:ring-2 focus:ring-primary focus:border-primary transition-all outline-none"
                   placeholder="请输入登录密码"
                   autoComplete="current-password"
@@ -196,7 +193,7 @@ export default function Login({ onLoginSuccess }: LoginProps) {
                 />
                 <button
                   type="button"
-                  onClick={() => setShowPassword(!showPassword)}
+                  onClick={() => setShowPassword((current) => !current)}
                   className="absolute inset-y-0 right-0 pr-3 flex items-center text-outline hover:text-on-surface transition-colors focus:outline-none"
                 >
                   <span className="material-symbols-outlined text-[20px]">{showPassword ? 'visibility_off' : 'visibility'}</span>
@@ -217,7 +214,7 @@ export default function Login({ onLoginSuccess }: LoginProps) {
                     id="captcha"
                     type="text"
                     value={captchaInput}
-                    onChange={(e) => setCaptchaInput(e.target.value)}
+                    onChange={(event) => setCaptchaInput(event.target.value.toUpperCase())}
                     className="block w-full pl-10 pr-3 py-2.5 border border-outline-variant rounded-lg font-body-md text-body-md text-on-surface bg-surface-background focus:ring-2 focus:ring-primary focus:border-primary transition-all outline-none"
                     placeholder="请输入右侧验证码"
                     maxLength={4}
@@ -225,16 +222,26 @@ export default function Login({ onLoginSuccess }: LoginProps) {
                     required
                   />
                 </div>
-                <div
-                  onClick={generateCaptcha}
-                  className="relative group cursor-pointer border border-outline-variant rounded-lg overflow-hidden bg-slate-50 transition-colors hover:border-primary shrink-0 h-[45px] w-[110px]"
+                <button
+                  type="button"
+                  onClick={() => void loadCaptcha({ clearInput: true })}
+                  disabled={captchaLoading}
+                  className="relative group shrink-0 h-[45px] w-[110px] overflow-hidden rounded-lg border border-outline-variant bg-slate-50 transition-colors hover:border-primary disabled:cursor-not-allowed"
                   title="点击刷新验证码"
                 >
-                  <canvas ref={canvasRef} width={110} height={43} className="w-full h-full block" />
-                  <div className="absolute inset-0 bg-black/5 group-hover:bg-black/10 transition-colors flex items-center justify-center opacity-0 group-hover:opacity-100">
-                    <span className="material-symbols-outlined text-white text-[16px] bg-indigo-600 p-1 rounded-full shadow-md">refresh</span>
+                  {captcha.imageBase64 ? (
+                    <img src={captcha.imageBase64} alt="图形验证码" className="block h-full w-full object-cover" />
+                  ) : (
+                    <div className="flex h-full w-full items-center justify-center text-[12px] font-bold text-outline">
+                      加载中
+                    </div>
+                  )}
+                  <div className="absolute inset-0 flex items-center justify-center bg-black/5 opacity-0 transition-colors group-hover:bg-black/10 group-hover:opacity-100">
+                    <span className="rounded-full bg-indigo-600 p-1 text-white shadow-md">
+                      <RefreshCw className={`h-4 w-4 ${captchaLoading ? 'animate-spin' : ''}`} />
+                    </span>
                   </div>
-                </div>
+                </button>
               </div>
             </div>
 

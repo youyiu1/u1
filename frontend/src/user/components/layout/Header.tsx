@@ -10,6 +10,7 @@ import { AnimatePresence, motion } from 'motion/react';
 import { useChat } from '../../context/ChatContext';
 import { useAuthCheck } from '../../context/useAuthCheck';
 import { usePublish } from '../../context/PublishContext';
+import { useTheme } from '../../context/ThemeContext';
 import { createSectionPathRegex, matchPathByRegex } from '../../utils/pathMatch';
 import { HeaderNotifications } from './HeaderNotifications';
 import { HeaderSearch } from './HeaderSearch';
@@ -37,6 +38,7 @@ export default function Header() {
   const { openChat, unreadCount } = useChat();
   const { isPublishOpen, openPublish, closePublish } = usePublish();
   const { requireAuth } = useAuthCheck();
+  const { isNight } = useTheme();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [shouldRenderPublish, setShouldRenderPublish] = useState(false);
 
@@ -85,8 +87,20 @@ export default function Header() {
 
   return (
     <>
-      <header className="fixed inset-x-0 top-0 z-50 w-full border-b border-white/35 bg-white/55 shadow-[0_10px_30px_rgba(15,23,42,0.08)] backdrop-blur-2xl supports-[backdrop-filter]:bg-white/45">
-        <div className="pointer-events-none absolute inset-0 bg-gradient-to-b from-white/35 via-white/10 to-white/25" />
+      <header
+        className={`fixed inset-x-0 top-0 z-50 w-full border-b shadow-[0_10px_30px_rgba(15,23,42,0.08)] backdrop-blur-2xl transition-colors duration-500 ${
+          isNight
+            ? 'border-slate-800/80 bg-slate-950/76 supports-[backdrop-filter]:bg-slate-950/68'
+            : 'border-white/35 bg-white/55 supports-[backdrop-filter]:bg-white/45'
+        }`}
+      >
+        <div
+          className={`pointer-events-none absolute inset-0 ${
+            isNight
+              ? 'bg-gradient-to-b from-slate-900/55 via-slate-950/10 to-slate-900/35'
+              : 'bg-gradient-to-b from-white/35 via-white/10 to-white/25'
+          }`}
+        />
         <div className="mx-auto flex h-16 max-w-[1440px] items-center justify-between gap-4 px-4 md:h-20 md:gap-8 md:px-12">
           <div className="flex min-w-0 shrink items-center gap-4 md:gap-8">
             <Link to="/" className="flex min-w-0 shrink items-center gap-2 font-bold text-primary">
@@ -172,7 +186,9 @@ export default function Header() {
                 animate={{ opacity: 1, y: 0 }}
                 exit={{ opacity: 0, y: -20 }}
                 transition={{ type: 'spring', stiffness: 300, damping: 30 }}
-                className="absolute left-0 right-0 top-full z-50 border-t border-hairline bg-white shadow-2xl lg:hidden"
+                className={`absolute left-0 right-0 top-full z-50 border-t shadow-2xl lg:hidden ${
+                  isNight ? 'border-slate-800 bg-slate-950 text-white' : 'border-hairline bg-white'
+                }`}
               >
                 <nav className="space-y-1 p-4 md:p-6">
                   {NAV_ITEMS.map((item, index) => (
@@ -187,7 +203,9 @@ export default function Header() {
                       animate={{ opacity: 1, scale: 1 }}
                       transition={{ delay: 0.2 }}
                       onClick={handleOpenChat}
-                      className="flex flex-col items-center justify-center gap-2 rounded-2xl bg-surface-soft p-4 transition-colors hover:bg-hairline active:scale-95"
+                      className={`flex flex-col items-center justify-center gap-2 rounded-2xl p-4 transition-colors active:scale-95 ${
+                        isNight ? 'bg-slate-900 hover:bg-slate-800' : 'bg-surface-soft hover:bg-hairline'
+                      }`}
                     >
                       <MessageSquare className="h-5 w-5 text-secondary" />
                       <span className="text-[10px] font-black uppercase tracking-widest text-secondary">消息</span>
@@ -197,7 +215,9 @@ export default function Header() {
                       initial={{ opacity: 0, scale: 0.9 }}
                       animate={{ opacity: 1, scale: 1 }}
                       transition={{ delay: 0.25 }}
-                      className="flex flex-col items-center justify-center gap-2 rounded-2xl bg-surface-soft p-4 transition-colors hover:bg-hairline"
+                      className={`flex flex-col items-center justify-center gap-2 rounded-2xl p-4 transition-colors ${
+                        isNight ? 'bg-slate-900 hover:bg-slate-800' : 'bg-surface-soft hover:bg-hairline'
+                      }`}
                     >
                       <HeaderNotifications />
                       <span className="text-[10px] font-black uppercase tracking-widest text-secondary">通知中心</span>

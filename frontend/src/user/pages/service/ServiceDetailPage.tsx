@@ -635,10 +635,10 @@ export default function ServiceDetailPage() {
         </div>
       </div>
 
-      <div className="mx-auto max-w-[1200px] px-6 py-10 md:py-16">
-        <div className="grid grid-cols-1 items-start gap-12 lg:grid-cols-12 lg:gap-16">
-          <div className="space-y-12 lg:col-span-8">
-            <div className="space-y-6">
+      <div className="mx-auto max-w-[1120px] px-5 py-8 md:py-12">
+        <div className="grid grid-cols-1 items-start gap-10 lg:grid-cols-12 lg:gap-12">
+          <div className="space-y-10 lg:col-span-8">
+            <div className="space-y-5">
               <div className="flex items-center gap-3">
                 <span className="rounded-lg border border-primary/10 bg-primary/5 px-3 py-1 text-[10px] font-black uppercase tracking-widest text-primary">
                   {categoryName}
@@ -647,8 +647,8 @@ export default function ServiceDetailPage() {
                   <ShieldCheck className="h-4 w-4" /> 认证服务
                 </div>
               </div>
-              <h1 className="text-4xl font-black leading-tight tracking-tight text-ink md:text-5xl">{service.title}</h1>
-              <div className="flex flex-wrap items-center gap-6 text-sm font-bold text-muted">
+              <h1 className="text-3xl font-black leading-tight tracking-tight text-ink md:text-4xl">{service.title}</h1>
+              <div className="flex flex-wrap items-center gap-5 text-[13px] font-bold text-muted">
                 <div className="flex items-center gap-1.5 rounded-full border border-hairline bg-white px-3 py-1 shadow-sm">
                   <Star className="h-4 w-4 fill-current text-yellow-400" />
                   <span className="text-ink">{service.rating}</span>
@@ -661,38 +661,38 @@ export default function ServiceDetailPage() {
               </div>
             </div>
 
-            <div className="relative z-0 grid grid-cols-1 gap-4 md:grid-cols-12">
-              <div className="aspect-[9/10] overflow-hidden rounded-[48px] border border-hairline bg-surface-soft shadow-2xl shadow-ink/5 md:col-span-8">
+            <div className="relative z-0 grid grid-cols-1 gap-3 md:grid-cols-12">
+              <div className="aspect-[9/10] overflow-hidden rounded-[40px] border border-hairline bg-surface-soft shadow-2xl shadow-ink/5 md:col-span-8">
                 {serviceImages[0] ? <img src={serviceImages[0]} className="h-full w-full object-cover" alt={service.title} /> : null}
               </div>
-              <div className="grid grid-cols-2 gap-4 md:col-span-4 md:grid-cols-1">
-                <div className="aspect-[9/10] overflow-hidden rounded-[32px] border border-hairline bg-surface-soft">
+              <div className="grid grid-cols-2 gap-3 md:col-span-4 md:grid-cols-1">
+                <div className="aspect-[9/10] overflow-hidden rounded-[28px] border border-hairline bg-surface-soft">
                   {serviceImages[1] || serviceImages[0] ? (
                     <img src={serviceImages[1] || serviceImages[0]} className="h-full w-full object-cover" alt={`${service.title} 图片 2`} />
                   ) : null}
                 </div>
-                <div className="relative aspect-[9/10] overflow-hidden rounded-[32px] border border-hairline bg-surface-soft">
+                <div className="relative aspect-[9/10] overflow-hidden rounded-[28px] border border-hairline bg-surface-soft">
                   {serviceImages[2] || serviceImages[0] ? (
                     <img src={serviceImages[2] || serviceImages[0]} className="h-full w-full object-cover" alt={`${service.title} 图片 3`} />
                   ) : null}
-                  <div className="absolute inset-x-4 bottom-4 flex items-center justify-center gap-2 rounded-2xl bg-white/90 px-4 py-3 text-xs font-black shadow-xl backdrop-blur-md">
+                  <div className="absolute inset-x-3 bottom-3 flex items-center justify-center gap-2 rounded-2xl bg-white/90 px-3 py-2.5 text-[11px] font-black shadow-xl backdrop-blur-md">
                     <Sparkles className="h-4 w-4" /> 更多服务图片
                   </div>
                 </div>
               </div>
             </div>
 
-            <div className="group relative z-10 flex flex-col items-center gap-8 rounded-[40px] border border-hairline bg-white p-8 shadow-sm md:flex-row">
+            <div className="group relative z-10 flex flex-col items-center gap-6 rounded-[32px] border border-hairline bg-white p-6 shadow-sm md:flex-row">
               <button type="button" onClick={handleOpenSellerProfile} className="relative shrink-0">
                 {service.seller?.avatar ? (
                   <img
                     src={service.seller.avatar}
                     alt={service.seller?.name || '服务者头像'}
-                    className="h-24 w-24 rounded-[32px] border-4 border-white object-cover shadow-xl transition-transform group-hover:rotate-6"
+                    className="h-20 w-20 rounded-[28px] border-4 border-white object-cover shadow-xl transition-transform group-hover:rotate-6"
                   />
                 ) : (
-                  <div className="flex h-24 w-24 items-center justify-center rounded-[32px] border-4 border-white bg-surface-soft shadow-xl">
-                    <User className="h-10 w-10 text-muted" />
+                  <div className="flex h-20 w-20 items-center justify-center rounded-[28px] border-4 border-white bg-surface-soft shadow-xl">
+                    <User className="h-8 w-8 text-muted" />
                   </div>
                 )}
                 {service.seller?.isVerified ? (
@@ -728,10 +728,10 @@ export default function ServiceDetailPage() {
                     />
                   ) : null}
                 </div>
-                <p className="mb-4 max-w-lg leading-relaxed text-secondary">
+                <p className="mb-4 max-w-lg text-sm leading-relaxed text-secondary">
                   {fallbackText(service.seller?.bio, '服务者暂未填写个人简介。')}
                 </p>
-                <div className="flex items-center justify-center gap-8 md:justify-start">
+                <div className="flex items-center justify-center gap-6 md:justify-start">
                   {sellerStats.map((stat) => (
                     <React.Fragment key={stat.label}>
                       <MetricValue label={stat.label} value={stat.value} />
@@ -743,14 +743,14 @@ export default function ServiceDetailPage() {
                 <button
                   type="button"
                   onClick={handleOpenChat}
-                  className="rounded-2xl bg-surface-soft px-6 py-3 text-xs font-black transition-all hover:bg-hairline"
+                  className="rounded-2xl bg-surface-soft px-5 py-2.5 text-xs font-black transition-all hover:bg-hairline"
                 >
                   立即沟通
                 </button>
               ) : null}
             </div>
 
-            <div className="space-y-16 px-2">
+            <div className="space-y-12 px-1">
               <div>
                 <h2 className="mb-6 text-3xl font-black text-ink">服务详情</h2>
                 <div className="whitespace-pre-line text-lg font-medium leading-relaxed text-secondary">{service.description}</div>
@@ -769,12 +769,12 @@ export default function ServiceDetailPage() {
           </div>
 
           <aside className="sticky top-28 lg:col-span-4">
-            <div className="space-y-8 rounded-[48px] border border-hairline bg-white p-8 shadow-2xl shadow-ink/5 md:p-10">
+            <div className="space-y-6 rounded-[40px] border border-hairline bg-white p-6 shadow-2xl shadow-ink/5 md:p-8">
               <div className="flex items-end justify-between">
                 <div>
                   <span className="mb-2 block text-xs font-black uppercase tracking-widest text-muted">预约价格</span>
                   <div className="flex items-baseline gap-1">
-                    <span className="text-5xl font-black tracking-tighter text-ink">{formatCurrency(service.price)}</span>
+                    <span className="text-4xl font-black tracking-tighter text-ink">{formatCurrency(service.price)}</span>
                     <span className="text-sm font-bold text-muted">/{service.unit}</span>
                   </div>
                 </div>
@@ -784,7 +784,7 @@ export default function ServiceDetailPage() {
                 </div>
               </div>
 
-              <div className="space-y-6 rounded-3xl bg-surface-soft p-6">
+              <div className="space-y-5 rounded-3xl bg-surface-soft p-5">
                 <div className="space-y-2">
                   <label className="ml-1 flex items-center gap-1.5 text-[10px] font-black uppercase tracking-widest text-muted">
                     <Calendar className="h-3.5 w-3.5" />
@@ -795,7 +795,7 @@ export default function ServiceDetailPage() {
                     value={bookingDate}
                     min={formatDateValue(new Date())}
                     onChange={(event) => setBookingDate(event.target.value)}
-                    className="w-full rounded-2xl border border-white bg-white px-4 py-3 text-sm font-bold text-ink outline-none transition-all focus:border-primary/30 focus:ring-4 focus:ring-primary/5"
+                    className="w-full rounded-2xl border border-white bg-white px-4 py-2.5 text-sm font-bold text-ink outline-none transition-all focus:border-primary/30 focus:ring-4 focus:ring-primary/5"
                   />
                 </div>
 
@@ -808,7 +808,7 @@ export default function ServiceDetailPage() {
                     type="time"
                     value={bookingTime}
                     onChange={(event) => setBookingTime(event.target.value)}
-                    className="w-full rounded-2xl border border-white bg-white px-4 py-3 text-sm font-bold text-ink outline-none transition-all focus:border-primary/30 focus:ring-4 focus:ring-primary/5"
+                    className="w-full rounded-2xl border border-white bg-white px-4 py-2.5 text-sm font-bold text-ink outline-none transition-all focus:border-primary/30 focus:ring-4 focus:ring-primary/5"
                   />
                 </div>
 
@@ -818,7 +818,7 @@ export default function ServiceDetailPage() {
                     <select
                       value={duration}
                       onChange={(event) => setDuration(Number(event.target.value))}
-                      className="w-full cursor-pointer appearance-none rounded-xl border border-white bg-white px-4 py-3 text-xs font-black outline-none transition-all focus:border-primary/20 focus:ring-4 focus:ring-primary/5"
+                      className="w-full cursor-pointer appearance-none rounded-xl border border-white bg-white px-4 py-2.5 text-xs font-black outline-none transition-all focus:border-primary/20 focus:ring-4 focus:ring-primary/5"
                     >
                       {DURATION_OPTIONS.map((option) => (
                         <option key={option.value} value={option.value}>
@@ -838,7 +838,7 @@ export default function ServiceDetailPage() {
                   whileTap={{ scale: 0.98 }}
                   onClick={handleStartBooking}
                   disabled={isBooking || isBooked || isOwnService}
-                  className="group flex h-16 w-full items-center justify-center gap-3 rounded-[24px] bg-ink font-black text-white shadow-xl shadow-ink/20 transition-all disabled:cursor-not-allowed disabled:opacity-60"
+                    className="group flex h-14 w-full items-center justify-center gap-3 rounded-[22px] bg-ink font-black text-white shadow-xl shadow-ink/20 transition-all disabled:cursor-not-allowed disabled:opacity-60"
                 >
                   {isBooked ? (
                     <>
@@ -862,7 +862,7 @@ export default function ServiceDetailPage() {
                 </p>
               </div>
 
-              <div className="mt-6 space-y-4 border-t border-hairline pt-6">
+              <div className="mt-4 space-y-4 border-t border-hairline pt-5">
                 {bookingSummary.map((row) => (
                   <React.Fragment key={row.label}>
                     <SummaryRow label={row.label} value={row.value} accentClassName={row.accentClassName} />
@@ -870,12 +870,12 @@ export default function ServiceDetailPage() {
                 ))}
                 <div className="flex items-center justify-between pt-6">
                   <span className="text-lg font-black text-ink">合计金额</span>
-                  <span className="text-3xl font-black text-primary">{formatCurrency(totalPrice)}</span>
+                  <span className="text-2xl font-black text-primary">{formatCurrency(totalPrice)}</span>
                 </div>
               </div>
             </div>
 
-            <div className="mt-8 flex items-center gap-4 rounded-3xl border border-hairline bg-surface-soft p-6">
+            <div className="mt-6 flex items-center gap-4 rounded-3xl border border-hairline bg-surface-soft p-5">
               <div className="rounded-2xl bg-white p-3 text-primary shadow-sm">
                 <ShieldCheck className="h-6 w-6" />
               </div>
@@ -903,7 +903,7 @@ export default function ServiceDetailPage() {
 
 function FeatureCard({ icon, title, desc }: { icon: React.ReactNode; title: string; desc: string }) {
   return (
-    <div className="flex gap-4 rounded-3xl border border-hairline bg-white p-6 shadow-sm transition-all hover:border-primary/20">
+    <div className="flex gap-4 rounded-3xl border border-hairline bg-white p-5 shadow-sm transition-all hover:border-primary/20">
       <div className="shrink-0">{icon}</div>
       <div>
         <h4 className="mb-1 font-black text-ink">{title}</h4>

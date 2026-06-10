@@ -48,6 +48,12 @@ export interface AdminSessionResponse {
   menuIds: string[];
 }
 
+interface CaptchaResponse {
+  captchaId: string;
+  imageBase64: string;
+  expiresInSeconds: number;
+}
+
 const BASE_URL = '/api/admin';
 const TOKEN_KEY = 'admin_token';
 const USERNAME_KEY = 'admin_username';
@@ -139,13 +145,17 @@ function successResult<T>(data: T): Result<T> {
 }
 
 export const adminApi = {
-  async login(username: string, password: string): Promise<Result<AdminSessionResponse>> {
-    const res = await post<AdminSessionResponse>('/login', { username, password });
+  async login(username: string, password: string, captchaId: string, captchaCode: string): Promise<Result<AdminSessionResponse>> {
+    const res = await post<AdminSessionResponse>('/login', { username, password, captchaId, captchaCode });
     if (res.success && res.data?.token) {
       setAuth(res.data.token, res.data.username || username);
       setSessionMeta(res.data);
     }
     return res;
+  },
+
+  async getCaptcha(): Promise<Result<CaptchaResponse>> {
+    return get<CaptchaResponse>('/captcha-image');
   },
 
   async logout(): Promise<Result<void>> {

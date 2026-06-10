@@ -338,11 +338,11 @@ export default function ItemDetailPage() {
         </div>
       </div>
 
-      <div className="mx-auto max-w-[1280px] px-6 py-8 md:px-12">
-        <div className="grid grid-cols-1 items-start gap-12 lg:grid-cols-12">
-          <div className="space-y-10 lg:col-span-8">
-            <div className="grid grid-cols-1 gap-4 md:grid-cols-12">
-              <div className="relative aspect-[16/10] overflow-hidden rounded-[40px] border border-hairline shadow-2xl shadow-ink/5 md:col-span-12">
+      <div className="mx-auto max-w-[1180px] px-5 py-6 md:px-10">
+        <div className="grid grid-cols-1 items-start gap-10 lg:grid-cols-12">
+          <div className="space-y-8 lg:col-span-8">
+            <div className="grid grid-cols-1 gap-3 md:grid-cols-12">
+              <div className="relative aspect-[16/10] overflow-hidden rounded-[32px] border border-hairline shadow-2xl shadow-ink/5 md:col-span-12">
                 {activeImage ? (
                   <AnimatePresence mode="wait">
                     <motion.img
@@ -359,20 +359,20 @@ export default function ItemDetailPage() {
                 ) : (
                   <div className="flex h-full w-full items-center justify-center bg-surface-soft text-sm font-bold text-muted">暂无图片</div>
                 )}
-                <div className="absolute left-6 top-6 flex flex-wrap items-center gap-2">
-                  <span className="rounded-2xl bg-black/60 px-4 py-2 text-[10px] font-black uppercase tracking-widest text-white backdrop-blur-md">
+                <div className="absolute left-5 top-5 flex flex-wrap items-center gap-2">
+                  <span className="rounded-2xl bg-black/60 px-3 py-1.5 text-[10px] font-black uppercase tracking-widest text-white backdrop-blur-md">
                     {itemCondition}
                   </span>
                   <MarketStatusBadge status={item.status} rejectReason={item.rejectReason} />
                 </div>
               </div>
               {images.length > 1 ? (
-                <div className="mt-2 flex items-center gap-4 md:col-span-12">
+                <div className="mt-2 flex items-center gap-3 md:col-span-12">
                   {images.slice(0, 4).map((image, index) => (
                     <button
                       key={image + index}
                       onClick={() => setActiveImg(index)}
-                      className={`relative h-24 w-24 overflow-hidden rounded-2xl border-2 transition-all ${
+                      className={`relative h-20 w-20 overflow-hidden rounded-2xl border-2 transition-all ${
                         activeImg === index
                           ? 'scale-105 border-primary shadow-lg shadow-primary/20'
                           : 'border-transparent opacity-60 hover:opacity-100'
@@ -385,7 +385,7 @@ export default function ItemDetailPage() {
               ) : null}
             </div>
 
-            <div className="grid grid-cols-2 gap-4 md:grid-cols-3">
+            <div className="grid grid-cols-2 gap-3 md:grid-cols-3">
               {ITEM_BENEFITS.map((benefit) => (
                 <React.Fragment key={benefit.title}>
                   <InfoFeatureCard {...benefit} />
@@ -393,8 +393,8 @@ export default function ItemDetailPage() {
               ))}
             </div>
 
-            <div className="rounded-[40px] border border-hairline bg-white p-8 md:p-12">
-              <div className="mb-8 flex items-center justify-between">
+            <div className="rounded-[32px] border border-hairline bg-white p-6 md:p-8">
+              <div className="mb-6 flex items-center justify-between">
                 <h2 className="text-2xl font-black text-ink">商品详情</h2>
                 <div className="flex items-center gap-1.5 rounded-full bg-primary/5 px-3 py-1.5 text-xs font-black text-primary">
                   <Sparkles className="h-3 w-3" />
@@ -403,30 +403,30 @@ export default function ItemDetailPage() {
               </div>
 
               {statusNotice ? (
-                <div className={`mb-8 rounded-3xl border px-5 py-4 ${statusNotice.className}`}>
+                <div className={`mb-6 rounded-3xl border px-4 py-3.5 ${statusNotice.className}`}>
                   <p className="text-sm font-black">{statusNotice.title}</p>
                   <p className="mt-1 text-sm font-medium opacity-90">{statusNotice.description}</p>
                 </div>
               ) : null}
 
-              <div className="space-y-4 whitespace-pre-line text-lg font-medium leading-relaxed text-secondary">{item.description}</div>
+              <div className="space-y-3 whitespace-pre-line text-base font-medium leading-relaxed text-secondary">{item.description}</div>
 
-              <div className="mt-12 grid grid-cols-2 gap-6 border-t border-hairline pt-12 md:grid-cols-3">
+              <div className="mt-8 grid grid-cols-2 gap-5 border-t border-hairline pt-8 md:grid-cols-3">
                 <DetailInfoItem label="成色" value={itemCondition} />
                 <DetailInfoItem label="运费" value={item.freeShipping ? '包邮' : '与卖家协商'} />
                 <DetailInfoItem label="当面验货" value="支持" />
               </div>
             </div>
 
-            <div className="relative overflow-hidden rounded-[40px] border border-hairline bg-white p-8 md:p-12">
-              <div className="mb-8 flex items-center justify-between">
+            <div className="relative overflow-hidden rounded-[32px] border border-hairline bg-white p-6 md:p-8">
+              <div className="mb-6 flex items-center justify-between">
                 <h2 className="text-2xl font-black text-ink">商品位置</h2>
                 <span className="flex items-center gap-1 text-sm font-bold text-muted">
                   <MapPin className="h-4 w-4" />
                   {locationLabel}
                 </span>
               </div>
-              <div className="h-80 w-full overflow-hidden rounded-3xl border border-hairline opacity-90 grayscale contrast-[0.9]">
+              <div className="h-72 w-full overflow-hidden rounded-3xl border border-hairline opacity-90 grayscale contrast-[0.9]">
                 <div className="flex h-full w-full items-center justify-center bg-[radial-gradient(circle_at_20%_30%,_rgba(255,56,92,0.18),_transparent_35%),radial-gradient(circle_at_80%_20%,_rgba(74,144,226,0.18),_transparent_35%),radial-gradient(circle_at_70%_75%,_rgba(80,195,142,0.2),_transparent_40%),linear-gradient(135deg,_#f7f7f7_0%,_#ececec_100%)]">
                   <div className="text-center">
                     <MapPin className="mx-auto mb-2 h-8 w-8 text-primary" />
@@ -439,7 +439,7 @@ export default function ItemDetailPage() {
           </div>
 
           <div className="sticky top-28 lg:col-span-4">
-            <div className="space-y-10 rounded-[40px] border border-hairline bg-white p-8 shadow-2xl shadow-ink/5">
+            <div className="space-y-8 rounded-[32px] border border-hairline bg-white p-6 shadow-2xl shadow-ink/5">
               <div className="flex flex-col gap-1">
                 <div className="flex items-center justify-between gap-3">
                   <span className="text-xs font-black uppercase tracking-widest text-muted">转让价格</span>
@@ -452,25 +452,25 @@ export default function ItemDetailPage() {
                   </div>
                 </div>
                 <div className="flex items-end gap-3">
-                  <span className="text-5xl font-black tracking-tighter text-ink">{formatCurrency(item.price)}</span>
+                  <span className="text-4xl font-black tracking-tighter text-ink">{formatCurrency(item.price)}</span>
                   {item.originalPrice ? (
-                    <span className="mb-1.5 text-lg font-bold text-muted opacity-50 line-through">{formatCurrency(item.originalPrice)}</span>
+                    <span className="mb-1 text-base font-bold text-muted opacity-50 line-through">{formatCurrency(item.originalPrice)}</span>
                   ) : null}
                 </div>
               </div>
 
-              <div className="space-y-6 rounded-3xl bg-surface-soft p-6">
+              <div className="space-y-5 rounded-3xl bg-surface-soft p-5">
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-4">
                     <div className="group relative cursor-pointer" onClick={handleOpenSellerProfile}>
                       {sellerAvatar ? (
                         <img
                           src={sellerAvatar}
-                          className="h-14 w-14 rounded-2xl border-2 border-white object-cover shadow-md transition-transform group-hover:scale-105"
+                          className="h-12 w-12 rounded-2xl border-2 border-white object-cover shadow-md transition-transform group-hover:scale-105"
                           alt={sellerName}
                         />
                       ) : (
-                        <div className="flex h-14 w-14 items-center justify-center rounded-2xl border-2 border-white bg-white text-sm font-black text-primary shadow-md">
+                        <div className="flex h-12 w-12 items-center justify-center rounded-2xl border-2 border-white bg-white text-sm font-black text-primary shadow-md">
                           {(sellerName || '?')[0]}
                         </div>
                       )}
@@ -534,7 +534,7 @@ export default function ItemDetailPage() {
                       whileTap={{ scale: canPurchase ? 0.98 : 1 }}
                       onClick={handleStartPurchase}
                       disabled={!canPurchase}
-                      className="group flex h-16 w-full items-center justify-center gap-3 rounded-2xl bg-primary font-black text-white shadow-xl shadow-primary/20 disabled:cursor-not-allowed disabled:opacity-60"
+                      className="group flex h-14 w-full items-center justify-center gap-3 rounded-2xl bg-primary font-black text-white shadow-xl shadow-primary/20 disabled:cursor-not-allowed disabled:opacity-60"
                     >
                       <div className="rounded-xl bg-white/10 p-2 transition-colors group-hover:bg-white/20">
                         <ArrowRightLeft className="h-5 w-5" />
@@ -545,7 +545,7 @@ export default function ItemDetailPage() {
                       whileHover={{ scale: 1.02 }}
                       whileTap={{ scale: 0.98 }}
                       onClick={handleOpenChat}
-                      className="group flex h-16 w-full items-center justify-center gap-3 rounded-2xl bg-ink font-black text-white shadow-xl shadow-ink/20"
+                      className="group flex h-14 w-full items-center justify-center gap-3 rounded-2xl bg-ink font-black text-white shadow-xl shadow-ink/20"
                     >
                       <div className="rounded-xl bg-white/10 p-2 transition-colors group-hover:bg-primary">
                         <MessageCircle className="h-5 w-5" />
@@ -561,7 +561,7 @@ export default function ItemDetailPage() {
                 </div>
               ) : null}
 
-              <div className="flex items-center gap-3 rounded-2xl border border-primary/10 bg-primary/5 p-4">
+              <div className="flex items-center gap-3 rounded-2xl border border-primary/10 bg-primary/5 p-3.5">
                 <ShieldCheck className="h-6 w-6 shrink-0 text-primary" />
                 <p className="text-[10px] font-black uppercase tracking-wider text-primary">
                   同城生活担保 · 本地实名交易记录 · 支持先沟通后成交
@@ -619,7 +619,7 @@ function getStatusNotice(item: Item | null, isOwnItem: boolean) {
 
 function InfoFeatureCard({ icon, title, desc }: { icon: React.ReactNode; title: string; desc: string }) {
   return (
-    <div className="group flex flex-col rounded-3xl border border-hairline bg-white p-5 transition-colors hover:border-primary/20">
+    <div className="group flex flex-col rounded-3xl border border-hairline bg-white p-4 transition-colors hover:border-primary/20">
       <div className="mb-3 w-fit rounded-xl bg-primary/5 p-2.5 text-primary transition-transform group-hover:scale-110">{icon}</div>
       <h4 className="mb-1 text-sm font-black text-ink">{title}</h4>
       <p className="text-[11px] font-bold text-muted">{desc}</p>
