@@ -5,6 +5,7 @@ import com.neighborhood.app.dto.user.CaptchaResponse;
 import com.neighborhood.app.dto.admin.AdminAuthRequests.LoginRequest;
 import com.neighborhood.app.service.CaptchaService;
 import jakarta.servlet.http.HttpServletRequest;
+import jakarta.validation.Valid;
 import java.util.Map;
 import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -34,7 +35,7 @@ public class AdminAuthController {
     }
 
     @PostMapping("/login")
-    public Result<Map<String, Object>> login(@RequestBody LoginRequest body, HttpServletRequest request) {
+    public Result<Map<String, Object>> login(@Valid @RequestBody LoginRequest body, HttpServletRequest request) {
         return support.login(body, request);
     }
 

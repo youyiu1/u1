@@ -18,6 +18,7 @@ import com.neighborhood.app.utils.RequestValueUtil;
 import com.neighborhood.app.utils.ServiceReviewResponseUtil;
 import com.neighborhood.app.vo.service.ServiceDetailVO;
 import jakarta.servlet.http.HttpServletRequest;
+import jakarta.validation.Valid;
 import java.util.List;
 import java.util.Map;
 import lombok.RequiredArgsConstructor;
@@ -90,7 +91,7 @@ public class ServiceController {
 
     /** 新增服务评价。 */
     @PostMapping("/{id}/review")
-    public Result<Boolean> addReview(@PathVariable Long id, @RequestBody AddReviewRequest request, HttpServletRequest httpRequest) {
+    public Result<Boolean> addReview(@PathVariable Long id, @Valid @RequestBody AddReviewRequest request, HttpServletRequest httpRequest) {
         User user = userService.getById(RequestUserUtil.currentUserId(httpRequest));
         if (user == null) {
             return ResultUtils.fail("用户不存在");
@@ -141,7 +142,7 @@ public class ServiceController {
 
     /** 提交服务预约。 */
     @PostMapping("/book")
-    public Result<Boolean> book(@RequestBody BookingRequest request, HttpServletRequest httpRequest) {
+    public Result<Boolean> book(@Valid @RequestBody BookingRequest request, HttpServletRequest httpRequest) {
         Long serviceId = Long.parseLong(request.getServiceId());
         ServiceEntity service = serviceModuleService.getById(serviceId);
         if (service == null) {

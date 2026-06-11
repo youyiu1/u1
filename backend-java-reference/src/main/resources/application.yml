@@ -48,6 +48,12 @@ spring:
       - hotData
       - stateData
 
+  flyway:
+    enabled: ${APP_FLYWAY_ENABLED:false}
+    locations: classpath:db/migration
+    baseline-on-migrate: true
+    validate-on-migrate: true
+
   rabbitmq:
     host: ${RABBITMQ_HOST:localhost}
     port: ${RABBITMQ_PORT:5672}
@@ -163,3 +169,13 @@ management:
     metrics:
       export:
         enabled: ${MANAGEMENT_PROMETHEUS_ENABLED:true}
+
+springdoc:
+  api-docs:
+    enabled: ${SPRINGDOC_API_DOCS_ENABLED:true}
+    path: /v3/api-docs
+  swagger-ui:
+    enabled: ${SPRINGDOC_SWAGGER_UI_ENABLED:true}
+    path: /swagger-ui.html
+    operations-sorter: method
+    tags-sorter: alpha

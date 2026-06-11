@@ -4,6 +4,7 @@ import com.neighborhood.app.common.Result;
 import com.neighborhood.app.dto.admin.AdminSystemRequests.CategoryCreateRequest;
 import com.neighborhood.app.dto.admin.AdminSystemRequests.NotificationCreateRequest;
 import com.neighborhood.app.dto.admin.AdminSystemRequests.RoleUpdateRequest;
+import jakarta.validation.Valid;
 import java.util.List;
 import java.util.Map;
 import lombok.RequiredArgsConstructor;
@@ -30,7 +31,7 @@ public class AdminSystemController {
     }
 
     @PostMapping("/categories")
-    public Result<Void> addCategory(@RequestBody CategoryCreateRequest body) {
+    public Result<Void> addCategory(@Valid @RequestBody CategoryCreateRequest body) {
         return module.addCategory(body);
     }
 
@@ -45,7 +46,7 @@ public class AdminSystemController {
     }
 
     @PostMapping("/notifications")
-    public Result<Void> addNotification(@RequestBody NotificationCreateRequest body) {
+    public Result<Void> addNotification(@Valid @RequestBody NotificationCreateRequest body) {
         return module.addNotification(body);
     }
 
@@ -85,7 +86,7 @@ public class AdminSystemController {
     }
 
     @PostMapping("/roles/{id}")
-    public Result<Void> updateRole(@PathVariable String id, @RequestBody RoleUpdateRequest body, @RequestAttribute String userId) {
+    public Result<Void> updateRole(@PathVariable String id, @Valid @RequestBody RoleUpdateRequest body, @RequestAttribute String userId) {
         return module.updateRole(id, body, userId);
     }
 }

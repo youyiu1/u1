@@ -3,6 +3,7 @@ package com.neighborhood.app.controller.admin;
 import com.neighborhood.app.common.Result;
 import com.neighborhood.app.dto.admin.AdminSecurityRequests.OperationLogCreateRequest;
 import com.neighborhood.app.dto.admin.AdminSecurityRequests.OperationLogRetentionRequest;
+import jakarta.validation.Valid;
 import java.util.List;
 import java.util.Map;
 import lombok.RequiredArgsConstructor;
@@ -31,12 +32,12 @@ public class AdminSecurityController {
     }
 
     @PostMapping("/operation-logs")
-    public Result<Void> addOperationLog(@RequestBody OperationLogCreateRequest body) {
+    public Result<Void> addOperationLog(@Valid @RequestBody OperationLogCreateRequest body) {
         return module.addOperationLog(body);
     }
 
     @PostMapping("/operation-logs/retention")
-    public Result<Map<String, Object>> operationLogRetention(@RequestBody OperationLogRetentionRequest body) {
+    public Result<Map<String, Object>> operationLogRetention(@Valid @RequestBody OperationLogRetentionRequest body) {
         return module.operationLogRetention(body);
     }
 }

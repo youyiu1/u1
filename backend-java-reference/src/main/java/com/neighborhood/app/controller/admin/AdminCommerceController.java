@@ -4,6 +4,7 @@ import com.neighborhood.app.common.Result;
 import com.neighborhood.app.dto.admin.AdminCommerceRequests.CancelOrderRequest;
 import com.neighborhood.app.dto.admin.AdminCommerceRequests.ServiceCreateRequest;
 import com.neighborhood.app.dto.admin.AdminCommonRequests.StatusRequest;
+import jakarta.validation.Valid;
 import java.util.List;
 import java.util.Map;
 import lombok.RequiredArgsConstructor;
@@ -29,7 +30,7 @@ public class AdminCommerceController {
     }
 
     @PostMapping("/goods/{id}/status")
-    public Result<Void> updateGoodsStatus(@PathVariable Long id, @RequestBody StatusRequest body) {
+    public Result<Void> updateGoodsStatus(@PathVariable Long id, @Valid @RequestBody StatusRequest body) {
         return module.updateGoodsStatus(id, body);
     }
 
@@ -39,12 +40,12 @@ public class AdminCommerceController {
     }
 
     @PostMapping("/services")
-    public Result<Void> addService(@RequestBody ServiceCreateRequest body, @RequestAttribute String userId) {
+    public Result<Void> addService(@Valid @RequestBody ServiceCreateRequest body, @RequestAttribute String userId) {
         return module.addService(body, userId);
     }
 
     @PostMapping("/services/{id}/status")
-    public Result<Void> updateServiceStatus(@PathVariable Long id, @RequestBody StatusRequest body) {
+    public Result<Void> updateServiceStatus(@PathVariable Long id, @Valid @RequestBody StatusRequest body) {
         return module.updateServiceStatus(id, body);
     }
 
@@ -54,7 +55,7 @@ public class AdminCommerceController {
     }
 
     @PostMapping("/orders/{id}/cancel")
-    public Result<Void> cancelOrder(@PathVariable Long id, @RequestBody CancelOrderRequest body) {
+    public Result<Void> cancelOrder(@PathVariable Long id, @Valid @RequestBody CancelOrderRequest body) {
         return module.cancelOrder(id, body);
     }
 }

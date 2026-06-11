@@ -13,6 +13,7 @@ import com.neighborhood.app.utils.RequestUserUtil;
 import com.neighborhood.app.utils.RequestValueUtil;
 import com.neighborhood.app.vo.content.NewsVO;
 import jakarta.servlet.http.HttpServletRequest;
+import jakarta.validation.Valid;
 import java.util.List;
 import java.util.Map;
 import lombok.RequiredArgsConstructor;
@@ -125,7 +126,7 @@ public class NewsController {
     }
 
     @PostMapping("/{id}/comment")
-    public Result<Void> addComment(@PathVariable Long id, @RequestBody CommentRequest request, HttpServletRequest httpRequest) {
+    public Result<Void> addComment(@PathVariable Long id, @Valid @RequestBody CommentRequest request, HttpServletRequest httpRequest) {
         String userId = RequestUserUtil.currentUserId(httpRequest);
         if (userId == null || userId.isBlank()) {
             return Result.fail("请先登录");

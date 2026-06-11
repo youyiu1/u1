@@ -4,6 +4,7 @@ import com.neighborhood.app.common.Result;
 import com.neighborhood.app.common.ResultUtils;
 import com.neighborhood.app.dto.ai.AiChatRequest;
 import com.neighborhood.app.service.AiChatService;
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -22,7 +23,7 @@ public class AiController {
 
     /** 发送 AI 对话请求。 */
     @PostMapping("/chat")
-    public Result<String> chat(@RequestBody AiChatRequest request) {
+    public Result<String> chat(@Valid @RequestBody AiChatRequest request) {
         if (request == null || request.message() == null || request.message().isBlank()) {
             return ResultUtils.fail("消息不能为空");
         }

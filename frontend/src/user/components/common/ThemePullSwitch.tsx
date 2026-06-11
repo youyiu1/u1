@@ -59,7 +59,7 @@ export function ThemePullSwitch() {
   };
 
   return (
-    <div className="group fixed left-1/2 top-0 z-[90] flex -translate-x-1/2 justify-center">
+    <div className="group fixed right-0 top-24 z-[90] flex translate-x-[46%] justify-center sm:left-1/2 sm:right-auto sm:top-0 sm:-translate-x-1/2">
       <motion.button
         type="button"
         aria-label={isNight ? '切换到白天模式' : '切换到黑夜模式'}

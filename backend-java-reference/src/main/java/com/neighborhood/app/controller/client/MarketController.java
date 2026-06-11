@@ -19,6 +19,7 @@ import com.neighborhood.app.utils.RequestUserUtil;
 import com.neighborhood.app.utils.StringValueUtil;
 import com.neighborhood.app.vo.market.MarketItemVO;
 import jakarta.servlet.http.HttpServletRequest;
+import jakarta.validation.Valid;
 import java.util.List;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -77,7 +78,7 @@ public class MarketController {
 
     /** 提交闲置商品购买请求。 */
     @PostMapping("/purchase")
-    public Result<Boolean> purchase(@RequestBody MarketPurchaseRequest request, HttpServletRequest httpRequest) {
+    public Result<Boolean> purchase(@Valid @RequestBody MarketPurchaseRequest request, HttpServletRequest httpRequest) {
         String buyerId = RequestUserUtil.currentUserId(httpRequest);
         if (buyerId == null || buyerId.isBlank() || request == null || request.getItemId() == null || request.getItemId().isBlank()) {
             return ResultUtils.fail("购买请求参数无效");

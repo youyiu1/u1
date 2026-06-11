@@ -5,6 +5,7 @@ import com.neighborhood.app.common.ResultUtils;
 import com.neighborhood.app.dto.message.SendMessageRequest;
 import com.neighborhood.app.entity.message.Message;
 import com.neighborhood.app.service.MessageService;
+import jakarta.validation.Valid;
 import java.util.List;
 import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -41,7 +42,7 @@ public class MessageController {
     @PostMapping("/send")
     public Result<Message> send(
             @RequestAttribute String userId,
-            @RequestBody SendMessageRequest request) {
+            @Valid @RequestBody SendMessageRequest request) {
         Message message = messageService.sendMessage(
                 userId,
                 request.getReceiverId(),

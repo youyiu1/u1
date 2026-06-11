@@ -6,6 +6,7 @@ import com.neighborhood.app.dto.admin.AdminContentRequests.CommentStatusRequest;
 import com.neighborhood.app.dto.admin.AdminContentRequests.DynamicCommentRequest;
 import com.neighborhood.app.dto.admin.AdminContentRequests.ImageDeleteRequest;
 import com.neighborhood.app.dto.admin.AdminContentRequests.ImageStatusRequest;
+import jakarta.validation.Valid;
 import java.util.List;
 import java.util.Map;
 import lombok.RequiredArgsConstructor;
@@ -32,12 +33,12 @@ public class AdminContentController {
     }
 
     @PostMapping("/dynamics/{id}/status")
-    public Result<Void> updateDynamicStatus(@PathVariable Long id, @RequestBody StatusRequest body) {
+    public Result<Void> updateDynamicStatus(@PathVariable Long id, @Valid @RequestBody StatusRequest body) {
         return module.updateDynamicStatus(id, body);
     }
 
     @PostMapping("/dynamics/{id}/comments")
-    public Result<Void> addComment(@PathVariable Long id, @RequestBody DynamicCommentRequest body, @RequestAttribute String userId) {
+    public Result<Void> addComment(@PathVariable Long id, @Valid @RequestBody DynamicCommentRequest body, @RequestAttribute String userId) {
         return module.addComment(id, body, userId);
     }
 
@@ -52,7 +53,7 @@ public class AdminContentController {
     }
 
     @PostMapping("/comments/{id}/status")
-    public Result<Void> updateCommentStatus(@PathVariable String id, @RequestBody CommentStatusRequest body) {
+    public Result<Void> updateCommentStatus(@PathVariable String id, @Valid @RequestBody CommentStatusRequest body) {
         return module.updateCommentStatus(id, body);
     }
 
@@ -67,12 +68,12 @@ public class AdminContentController {
     }
 
     @PostMapping("/images/status")
-    public Result<Void> updateImageStatus(@RequestBody ImageStatusRequest body) {
+    public Result<Void> updateImageStatus(@Valid @RequestBody ImageStatusRequest body) {
         return module.updateImageStatus(body);
     }
 
     @DeleteMapping("/images")
-    public Result<Void> deleteImage(@RequestBody ImageDeleteRequest body) {
+    public Result<Void> deleteImage(@Valid @RequestBody ImageDeleteRequest body) {
         return module.deleteImage(body);
     }
 }

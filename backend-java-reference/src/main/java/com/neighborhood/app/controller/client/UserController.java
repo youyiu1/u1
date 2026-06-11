@@ -23,6 +23,7 @@ import com.neighborhood.app.utils.RequestUserUtil;
 import com.neighborhood.app.vo.user.PublicUserVO;
 import com.neighborhood.app.vo.user.UserVO;
 import jakarta.servlet.http.HttpServletRequest;
+import jakarta.validation.Valid;
 import java.util.List;
 import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -70,7 +71,7 @@ public class UserController {
 
     /** 用户注册。 */
     @PostMapping("/register")
-    public Result<AuthResponse> register(@RequestBody RegisterRequest request) {
+    public Result<AuthResponse> register(@Valid @RequestBody RegisterRequest request) {
         if (!emailService.verifyCode(request.getEmail(), request.getCode())) {
             return ResultUtils.fail("验证码错误或已过期");
         }
@@ -101,7 +102,7 @@ public class UserController {
 
     /** 用户登录。 */
     @PostMapping("/login")
-    public Result<AuthResponse> login(@RequestBody UserLoginRequest request, HttpServletRequest httpRequest) {
+    public Result<AuthResponse> login(@Valid @RequestBody UserLoginRequest request, HttpServletRequest httpRequest) {
         if (request == null
                 || isBlank(request.getEmail())
                 || isBlank(request.getPassword())
@@ -189,7 +190,7 @@ public class UserController {
 
     /** 修改密码。 */
     @PostMapping("/change-password")
-    public Result<Boolean> changePassword(@RequestAttribute String userId, @RequestBody ChangePasswordRequest request) {
+    public Result<Boolean> changePassword(@RequestAttribute String userId, @Valid @RequestBody ChangePasswordRequest request) {
         if (request.getOldPassword() == null || request.getNewPassword() == null) {
             return ResultUtils.fail("旧密码和新密码不能为空");
         }
@@ -201,7 +202,7 @@ public class UserController {
 
     /** 通过邮箱验证码重置密码。 */
     @PostMapping("/reset-password")
-    public Result<Boolean> resetPassword(@RequestBody ResetPasswordRequest request) {
+    public Result<Boolean> resetPassword(@Valid @RequestBody ResetPasswordRequest request) {
         if (request == null
                 || isBlank(request.getEmail())
                 || isBlank(request.getCode())
