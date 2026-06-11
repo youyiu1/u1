@@ -236,38 +236,46 @@ public class AuthInterceptor implements HandlerInterceptor {
     }
 
     private boolean isPublicPath(String path, String method) {
-        return path.equals("/api/user/register")
-                || path.equals("/api/user/login")
-                || path.equals("/api/user/captcha-image")
-                || path.equals("/api/user/reset-password")
-                || path.equals("/api/admin/login")
-                || path.equals("/api/admin/captcha-image")
-                || path.equals("/api/user/send-code")
-                || path.startsWith("/api/user/name")
-                || path.matches("/api/user/[^/]+")
-                || path.matches("/api/user/[^/]+/following")
-                || path.startsWith("/api/user/isfollowing")
-                || path.equals("/api/user/suggested")
-                || path.startsWith("/api/home")
-                || path.equals("/api/search")
-                || path.startsWith("/api/category")
-                || path.equals("/api/news/list")
-                || path.matches("/api/news/user/[^/]+")
-                || path.matches("/api/news/\\d+")
-                || path.matches("/api/news/\\d+/comments")
-                || path.equals("/api/news/trending")
-                || path.equals("/api/market/list")
-                || path.matches("/api/market/user/[^/]+")
-                || path.matches("/api/market/\\d+")
-                || path.equals("/api/service/list")
-                || path.matches("/api/service/user/[^/]+")
-                || path.matches("/api/service/\\d+")
-                || path.matches("/api/service/\\d+/reviews")
+        return (isPost(method) && path.equals("/api/user/register"))
+                || (isPost(method) && path.equals("/api/user/login"))
+                || (isGet(method) && path.equals("/api/user/captcha-image"))
+                || (isPost(method) && path.equals("/api/user/reset-password"))
+                || (isPost(method) && path.equals("/api/admin/login"))
+                || (isGet(method) && path.equals("/api/admin/captcha-image"))
+                || (isPost(method) && path.equals("/api/user/send-code"))
+                || (isGet(method) && path.startsWith("/api/user/name/"))
+                || (isGet(method) && path.matches("/api/user/[^/]+"))
+                || (isGet(method) && path.matches("/api/user/[^/]+/following"))
+                || (isGet(method) && path.equals("/api/user/isfollowing"))
+                || (isGet(method) && path.equals("/api/user/suggested"))
+                || (isGet(method) && path.startsWith("/api/home"))
+                || (isGet(method) && path.equals("/api/search"))
+                || (isGet(method) && path.startsWith("/api/category"))
+                || (isGet(method) && path.equals("/api/news/list"))
+                || (isGet(method) && path.matches("/api/news/user/[^/]+"))
+                || (isGet(method) && path.matches("/api/news/\\d+"))
+                || (isGet(method) && path.matches("/api/news/\\d+/comments"))
+                || (isGet(method) && path.equals("/api/news/trending"))
+                || (isGet(method) && path.equals("/api/market/list"))
+                || (isGet(method) && path.matches("/api/market/user/[^/]+"))
+                || (isGet(method) && path.matches("/api/market/\\d+"))
+                || (isGet(method) && path.equals("/api/service/list"))
+                || (isGet(method) && path.matches("/api/service/user/[^/]+"))
+                || (isGet(method) && path.matches("/api/service/\\d+"))
+                || (isGet(method) && path.matches("/api/service/\\d+/reviews"))
                 || isPublicFileReadPath(path, method);
     }
 
+    private boolean isGet(String method) {
+        return "GET".equalsIgnoreCase(method) || "HEAD".equalsIgnoreCase(method);
+    }
+
+    private boolean isPost(String method) {
+        return "POST".equalsIgnoreCase(method);
+    }
+
     private boolean isPublicFileReadPath(String path, String method) {
-        if (!("GET".equalsIgnoreCase(method) || "HEAD".equalsIgnoreCase(method))) {
+        if (!isGet(method)) {
             return false;
         }
         return path.matches("/api/file/public/.+")

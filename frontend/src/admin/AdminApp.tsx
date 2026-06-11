@@ -45,6 +45,8 @@ import OperationLogView from './components/OperationLogView';
 import MenuManagementView from './components/MenuManagementView';
 import RoleManagementView from './components/RoleManagementView';
 import PermissionManagementView from './components/PermissionManagementView';
+import AdminToast from './components/common/AdminToast';
+import { useToast } from './hooks/useToast';
 
 const EMPTY_STATS: DashboardStats = {
   totalUsers: 0,
@@ -93,8 +95,16 @@ function isUnauthorized(res: Result<unknown>) {
   return !res.success && res.code === 401;
 }
 
+function isForbidden(res: Result<unknown>) {
+  return !res.success && res.code === 403;
+}
+
 function toAlertMessage(res: Result<unknown>) {
   return res.message || '操作失败';
+}
+
+function toFeedbackMessage(res: Result<unknown>, fallbackMessage = '操作失败，请稍后重试') {
+  return res.message || fallbackMessage;
 }
 
 function normalizeAdminPath(pathname: string) {
@@ -242,6 +252,7 @@ export default function AdminApp() {
   const [exteriorTabFilter, setExteriorTabFilter] = useState<string | undefined>();
   const [initialSelectedOrderId, setInitialSelectedOrderId] = useState<string | undefined>();
   const [isTabTransitioning, setIsTabTransitioning] = useState(false);
+  const { toast, showToast } = useToast(3200);
 
   const handleUnauthorized = () => {
     void adminApi.logout();
@@ -263,6 +274,28 @@ export default function AdminApp() {
     setIsReadonlyAdmin(readonly);
   };
 
+  const handleFailedResponse = (
+    res: Result<unknown>,
+    options?: {
+      forbiddenMessage?: string;
+      fallbackMessage?: string;
+    }
+  ) => {
+    if (isUnauthorized(res)) {
+      handleUnauthorized();
+      return true;
+    }
+    if (isForbidden(res)) {
+      showToast(options?.forbiddenMessage || '当前账号没有权限执行这个操作', 'error');
+      return true;
+    }
+    if (!ok(res)) {
+      showToast(toFeedbackMessage(res, options?.fallbackMessage), 'error');
+      return true;
+    }
+    return false;
+  };
+
   const applyEnrichedData = <K extends keyof EnrichPayload>(
     key: K,
     data: NonNullable<EnrichPayload[K]>,
@@ -279,43 +312,38 @@ export default function AdminApp() {
     setter: (value: NonNullable<EnrichPayload[K]>) => void
   ) => {
     const [res, userRes] = await Promise.all([request, adminApi.getUsers()]);
-    if ([res, userRes].some(isUnauthorized)) {
-      handleUnauthorized();
+    if (handleFailedResponse(res, { forbiddenMessage: '你没有查看当前页面内容的权限' })) {
+      return;
+    }
+    if (handleFailedResponse(userRes, { forbiddenMessage: '缺少用户资料读取权限，当前页面信息无法完整展示' })) {
       return;
     }
     const userList = syncUsersFromResult(userRes);
-    if (ok(res)) {
-      applyEnrichedData(key, res.data as NonNullable<EnrichPayload[K]>, userList, setter);
-    }
+    applyEnrichedData(key, res.data as NonNullable<EnrichPayload[K]>, userList, setter);
   };
 
   const loadSimpleData = async <T,>(request: Promise<Result<T>>, setter: (value: T) => void) => {
     const res = await request;
-    if (isUnauthorized(res)) {
-      handleUnauthorized();
+    if (handleFailedResponse(res, { forbiddenMessage: '你没有查看当前页面内容的权限' })) {
       return;
     }
-    if (ok(res)) {
-      setter(res.data);
-    }
+    setter(res.data);
   };
 
   const loadAdminShellData = async () => {
     const [sessionRes, menuRes] = await Promise.all([adminApi.getAdminInfo(), adminApi.getMenus()]);
-    if (isUnauthorized(sessionRes) || isUnauthorized(menuRes)) {
-      handleUnauthorized();
+    if (handleFailedResponse(sessionRes, { forbiddenMessage: '当前账号无法读取管理端会话信息' })) {
       return;
     }
-    if (ok(sessionRes)) {
-      applySessionState(
-        sessionRes.data.username || adminApi.getStoredUsername(),
-        sessionRes.data.adminRole || adminApi.getStoredAdminRole(),
-        sessionRes.data.readonly === 'true'
-      );
+    if (handleFailedResponse(menuRes, { forbiddenMessage: '当前账号无法读取管理端菜单配置' })) {
+      return;
     }
-    if (ok(menuRes)) {
-      setSystemMenus(menuRes.data);
-    }
+    applySessionState(
+      sessionRes.data.username || adminApi.getStoredUsername(),
+      sessionRes.data.adminRole || adminApi.getStoredAdminRole(),
+      sessionRes.data.readonly === 'true'
+    );
+    setSystemMenus(menuRes.data);
   };
 
   useEffect(() => {
@@ -388,13 +416,18 @@ export default function AdminApp() {
             adminApi.getServices(),
             adminApi.getUsers(),
           ]);
-          if ([resStats, resDyn, resGoods, resOrders, resServices, userRes].some(isUnauthorized)) return handleUnauthorized();
+          if (handleFailedResponse(resStats, { forbiddenMessage: '你没有查看仪表盘统计的权限' })) return;
+          if (handleFailedResponse(resDyn, { forbiddenMessage: '缺少动态查看权限，仪表盘内容无法完整展示' })) return;
+          if (handleFailedResponse(resGoods, { forbiddenMessage: '缺少商品查看权限，仪表盘内容无法完整展示' })) return;
+          if (handleFailedResponse(resOrders, { forbiddenMessage: '缺少订单查看权限，仪表盘内容无法完整展示' })) return;
+          if (handleFailedResponse(resServices, { forbiddenMessage: '缺少服务查看权限，仪表盘内容无法完整展示' })) return;
+          if (handleFailedResponse(userRes, { forbiddenMessage: '缺少用户资料读取权限，仪表盘内容无法完整展示' })) return;
           const userList = syncUsersFromResult(userRes);
-          if (ok(resStats)) setDashboardStats(resStats.data);
-          if (ok(resDyn)) applyEnrichedData('dynamics', resDyn.data, userList, setDynamics);
-          if (ok(resGoods)) applyEnrichedData('goods', resGoods.data, userList, setGoods);
-          if (ok(resOrders)) applyEnrichedData('orders', resOrders.data, userList, setOrders);
-          if (ok(resServices)) applyEnrichedData('services', resServices.data, userList, setServices);
+          setDashboardStats(resStats.data);
+          applyEnrichedData('dynamics', resDyn.data, userList, setDynamics);
+          applyEnrichedData('goods', resGoods.data, userList, setGoods);
+          applyEnrichedData('orders', resOrders.data, userList, setOrders);
+          applyEnrichedData('services', resServices.data, userList, setServices);
           break;
         }
         case '/admin/users': {
@@ -454,6 +487,7 @@ export default function AdminApp() {
       }
     } catch (err) {
       console.error('Admin API request failed:', err);
+      showToast('页面数据加载失败，请刷新后重试', 'error');
     } finally {
       setIsTabTransitioning(false);
     }
@@ -503,15 +537,14 @@ export default function AdminApp() {
 
   const runAction = async (action: Promise<Result<void>>) => {
     if (isReadonlyAdmin) {
-      alert('只读账号无权执行该操作');
+      showToast('只读账号没有权限执行该操作', 'error');
       return;
     }
     const res = await action;
-    if (ok(res)) {
-      fetchActivePageData(currentPath);
+    if (!handleFailedResponse(res)) {
+      void fetchActivePageData(currentPath);
       return;
     }
-    alert(toAlertMessage(res));
   };
 
   const handleAddOperationLog = async (action: string, target: string, details?: string) => {
@@ -552,16 +585,11 @@ export default function AdminApp() {
             onBanUser={async (dynamic) => {
               const targetId = dynamic.userId || users.find((u) => u.name === dynamic.author)?.id;
               if (!targetId) {
-                alert('未找到对应用户，无法封禁');
+                showToast('未找到对应用户，无法封禁', 'error');
                 return false;
               }
               const res = await adminApi.updateUserStatus(targetId, 'disabled');
-              if (isUnauthorized(res)) {
-                handleUnauthorized();
-                return false;
-              }
-              if (!ok(res)) {
-                alert(toAlertMessage(res));
+              if (handleFailedResponse(res)) {
                 return false;
               }
               const [userRes, dynamicRes, blacklistRes] = await Promise.all([
@@ -569,17 +597,18 @@ export default function AdminApp() {
                 adminApi.getDynamics(),
                 adminApi.getBlacklist(),
               ]);
-              if ([userRes, dynamicRes, blacklistRes].some(isUnauthorized)) {
-                handleUnauthorized();
+              if (handleFailedResponse(userRes, { forbiddenMessage: '缺少用户资料读取权限，封禁后的关联信息无法刷新' })) {
+                return false;
+              }
+              if (handleFailedResponse(dynamicRes, { forbiddenMessage: '缺少动态查看权限，封禁后的动态列表无法刷新' })) {
+                return false;
+              }
+              if (handleFailedResponse(blacklistRes, { forbiddenMessage: '缺少黑名单查看权限，封禁后的黑名单数据无法刷新' })) {
                 return false;
               }
               const userList = syncUsersFromResult(userRes);
-              if (ok(dynamicRes)) {
-                applyEnrichedData('dynamics', dynamicRes.data, userList, setDynamics);
-              }
-              if (ok(blacklistRes)) {
-                setBlacklist(blacklistRes.data);
-              }
+              applyEnrichedData('dynamics', dynamicRes.data, userList, setDynamics);
+              setBlacklist(blacklistRes.data);
               return true;
             }}
             onAddComment={(id, commenter, content) => runAction(adminApi.addComment(id, commenter, content))}
@@ -646,6 +675,7 @@ export default function AdminApp() {
 
   return (
     <div className="admin-shell flex bg-surface-background min-h-screen text-on-surface font-sans antialiased overflow-x-hidden">
+      <AdminToast toast={toast} />
       <Sidebar
         currentTab={currentPath}
         onTabChange={handleNavigateWithFilters}

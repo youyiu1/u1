@@ -74,19 +74,19 @@ const SETTINGS_ACTIONS = [
     key: 'password',
     icon: <Lock className="h-4 w-4" />,
     title: '修改登录密码',
-    description: '定期更新密码，提升账号安全性。',
+    description: '更新密码，提升账号安全',
   },
   {
     key: 'notification',
     icon: <Bell className="h-4 w-4" />,
     title: '通知设置',
-    description: '管理消息提醒、关注提醒和系统通知。',
+    description: '管理私信、评论和系统提醒',
   },
   {
     key: 'privacy',
     icon: <Eye className="h-4 w-4" />,
     title: '隐私设置',
-    description: '调整资料可见范围和动态展示方式。',
+    description: '控制资料、动态和地区可见范围',
   },
 ] as const;
 
@@ -380,9 +380,8 @@ export default function ProfilePage() {
   }
 
   return (
-    <div className="min-h-screen bg-surface-bright pb-12">
-      <div className="relative h-48 overflow-hidden bg-surface-soft md:h-64">
-        <div className="absolute inset-0 bg-gradient-to-b from-primary/5 to-transparent" />
+    <div className="min-h-screen pb-12">
+      <div className="relative h-48 overflow-hidden md:h-64">
         <button
           onClick={() => navigate('/news', { replace: true })}
           className="absolute left-6 top-6 z-10 rounded-full bg-white/80 p-2 shadow-sm backdrop-blur-md transition-colors hover:bg-white"
@@ -731,27 +730,50 @@ function SettingsTab({
 }) {
   return (
     <div className="col-span-2 space-y-4">
-      <div className="rounded-[32px] border border-hairline bg-stone-50 p-8">
-        <h4 className="mb-6 text-sm font-black uppercase tracking-widest text-ink">账号与安全</h4>
+      <div className="rounded-[32px] border border-hairline bg-white p-6 shadow-sm">
+        <div className="mb-5">
+          <h4 className="text-sm font-black uppercase tracking-widest text-ink">资料与提醒</h4>
+          <p className="mt-2 text-xs text-muted">保留常用设置入口，减少来回切换。</p>
+        </div>
         <div className="space-y-3">
-          {SETTINGS_ACTIONS.map((action) => (
+          {SETTINGS_ACTIONS.filter((action) => action.key !== 'password').map((action) => (
             <SettingsButton
               key={action.key}
               icon={action.icon}
               title={action.title}
               description={action.description}
-              onClick={action.key === 'password' ? openPassword : action.key === 'notification' ? openNotification : openPrivacy}
+              onClick={action.key === 'notification' ? openNotification : openPrivacy}
             />
           ))}
         </div>
       </div>
-      <div className="rounded-[32px] border border-red-100 bg-red-50/30 p-8">
-        <h4 className="mb-6 text-sm font-black uppercase tracking-widest text-red-600">退出登录</h4>
+
+      <div className="rounded-[32px] border border-hairline bg-stone-50 p-6">
+        <div className="mb-5">
+          <h4 className="text-sm font-black uppercase tracking-widest text-ink">账号与安全</h4>
+          <p className="mt-2 text-xs text-muted">密码修改单独放置，和普通设置分开。</p>
+        </div>
+        <div className="space-y-3">
+          {SETTINGS_ACTIONS.filter((action) => action.key === 'password').map((action) => (
+            <SettingsButton
+              key={action.key}
+              icon={action.icon}
+              title={action.title}
+              description={action.description}
+              onClick={openPassword}
+            />
+          ))}
+        </div>
+      </div>
+
+      <div className="rounded-[32px] border border-red-100 bg-red-50/40 p-6">
+        <h4 className="mb-2 text-sm font-black uppercase tracking-widest text-red-600">退出登录</h4>
+        <p className="mb-5 text-xs text-red-500/80">当前设备将清除登录状态，需要重新登录后继续使用。</p>
         <button
           onClick={() => {
             void logout();
           }}
-          className="flex w-full items-center justify-center gap-3 rounded-3xl bg-red-500 p-5 text-[10px] font-black uppercase tracking-[0.3em] text-white shadow-xl shadow-red-500/20 transition-all hover:bg-red-600 active:scale-95"
+          className="flex w-full items-center justify-center gap-3 rounded-3xl bg-red-500 p-4 text-[11px] font-black uppercase tracking-[0.26em] text-white shadow-xl shadow-red-500/20 transition-all hover:bg-red-600 active:scale-95"
         >
           <LogOut className="h-4 w-4" />
           安全退出
@@ -774,12 +796,12 @@ function SettingsButton({
   onClick: () => void;
 }) {
   return (
-    <button onClick={onClick} className="group flex w-full items-center justify-between rounded-2xl border border-hairline bg-white p-4 transition-all hover:border-primary/30">
+    <button onClick={onClick} className="group flex w-full items-center justify-between rounded-2xl border border-hairline bg-white p-4 transition-all hover:border-primary/30 hover:bg-primary/[0.02]">
       <div className="flex items-center gap-4">
         <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-surface-soft text-secondary transition-colors group-hover:text-primary">{icon}</div>
         <div className="text-left">
           <p className="text-xs font-black text-ink">{title}</p>
-          <p className="text-[10px] font-medium text-muted">{description}</p>
+          <p className="text-[11px] font-medium text-muted">{description}</p>
         </div>
       </div>
       <ChevronLeft className="h-4 w-4 rotate-180 text-muted" />

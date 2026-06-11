@@ -144,6 +144,22 @@ function clampPosition(position: FloatingPosition, size: SurfaceSize): FloatingP
   };
 }
 
+function clampButtonPosition(position: FloatingPosition, size: SurfaceSize): FloatingPosition {
+  if (typeof window === 'undefined') {
+    return position;
+  }
+
+  const margin = getViewportMargin();
+  const visibleWidth = Math.max(44, Math.round(size.width * (window.innerWidth < 640 ? 0.52 : 0.48)));
+  const maxX = Math.max(margin, window.innerWidth - visibleWidth);
+  const maxY = Math.max(margin, window.innerHeight - size.height - margin);
+
+  return {
+    x: Math.min(Math.max(position.x, margin), maxX),
+    y: Math.min(Math.max(position.y, margin), maxY),
+  };
+}
+
 function getDefaultPosition(isOpen: boolean): FloatingPosition {
   if (typeof window === 'undefined') {
     return { x: 0, y: 0 };
@@ -154,22 +170,38 @@ function getDefaultPosition(isOpen: boolean): FloatingPosition {
   const isMobile = window.innerWidth < 640;
 
   if (isMobile) {
-    return clampPosition(
-      {
-        x: window.innerWidth - size.width - margin,
-        y: window.innerHeight - size.height - 112,
-      },
-      size
-    );
+    return isOpen
+      ? clampPosition(
+          {
+            x: window.innerWidth - size.width - margin,
+            y: window.innerHeight - size.height - 112,
+          },
+          size
+        )
+      : clampButtonPosition(
+          {
+            x: window.innerWidth - Math.round(size.width * 0.52),
+            y: window.innerHeight - size.height - 112,
+          },
+          size
+        );
   }
 
-  return clampPosition(
-    {
-      x: window.innerWidth - size.width - margin,
-      y: window.innerHeight * 0.68 - size.height / 2,
-    },
-    size
-  );
+  return isOpen
+    ? clampPosition(
+      {
+        x: window.innerWidth - size.width - margin,
+        y: window.innerHeight * 0.68 - size.height / 2,
+      },
+      size
+    )
+    : clampButtonPosition(
+        {
+          x: window.innerWidth - Math.round(size.width * 0.48),
+          y: window.innerHeight * 0.68 - size.height / 2,
+        },
+        size
+      );
 }
 
 function AssistantBubble({ content }: { content: string }) {
@@ -265,7 +297,7 @@ export function AiAssistantWidget() {
 
   const closePanel = () => {
     if (panelMovedRef.current && panelPosition) {
-      setButtonPosition(clampPosition(panelPosition, getCurrentSurfaceSize(false)));
+      setButtonPosition(clampButtonPosition(panelPosition, getCurrentSurfaceSize(false)));
     }
     panelMovedRef.current = false;
     setIsOpen(false);
@@ -292,7 +324,7 @@ export function AiAssistantWidget() {
     }
 
     const handleResize = () => {
-      setButtonPosition((current) => clampPosition(current, getCurrentSurfaceSize(false)));
+      setButtonPosition((current) => clampButtonPosition(current, getCurrentSurfaceSize(false)));
       setPanelPosition((current) => (current ? clampPosition(current, getCurrentSurfaceSize(true)) : current));
     };
 
@@ -391,7 +423,7 @@ export function AiAssistantWidget() {
       suppressToggleRef.current = true;
     }
 
-    const nextPosition = clampPosition(
+    const nextPosition = (openState ? clampPosition : clampButtonPosition)(
       {
         x: event.clientX - dragState.offsetX,
         y: event.clientY - dragState.offsetY,
@@ -503,7 +535,6 @@ export function AiAssistantWidget() {
                     <Sparkles className="h-3.5 w-3.5 text-amber-300" />
                     {panelTitle}
                   </div>
-                  <h3 className="text-base font-black tracking-tight">更懂当前项目内容的 AI 助手</h3>
                 </div>
                 <div className="flex items-center gap-1">
                   <button

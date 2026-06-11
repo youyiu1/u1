@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { AnimatePresence, motion } from 'motion/react';
-import { Bell, CheckCircle2, Eye, Loader2, Lock, ShieldCheck, X } from 'lucide-react';
+import { Bell, CheckCircle2, Eye, Loader2, Lock, MapPin, ShieldCheck, X } from 'lucide-react';
 import { userApi } from '../../services/api';
 import { useAuth } from '../../context/AuthContext';
 import { User } from '../../types';
@@ -12,6 +12,80 @@ interface ChangePasswordOverlayProps {
   onSuccess?: () => void;
 }
 
+interface NotificationSettingsOverlayProps {
+  isOpen: boolean;
+  onClose: () => void;
+}
+
+interface PrivacySettingsOverlayProps {
+  isOpen: boolean;
+  onClose: () => void;
+}
+
+type NotificationSettings = {
+  pushEnabled: boolean;
+  messageNotify: boolean;
+  followNotify: boolean;
+  likeNotify: boolean;
+  commentNotify: boolean;
+  systemNotify: boolean;
+};
+
+type PrivacySettings = {
+  profileVisible: string;
+  postsVisible: string;
+  showLocation: boolean;
+};
+
+type ToggleOption = {
+  key: keyof NotificationSettings;
+  label: string;
+  desc: string;
+};
+
+const defaultNotificationSettings: NotificationSettings = {
+  pushEnabled: true,
+  messageNotify: true,
+  followNotify: true,
+  likeNotify: true,
+  commentNotify: true,
+  systemNotify: false,
+};
+
+const defaultPrivacySettings: PrivacySettings = {
+  profileVisible: 'public',
+  postsVisible: 'public',
+  showLocation: true,
+};
+
+const NOTIFICATION_OPTIONS: ToggleOption[] = [
+  { key: 'messageNotify', label: '私信提醒', desc: '有新消息时提醒我' },
+  { key: 'followNotify', label: '关注提醒', desc: '有人关注我时提醒' },
+  { key: 'likeNotify', label: '点赞提醒', desc: '内容收到点赞时提醒' },
+  { key: 'commentNotify', label: '评论提醒', desc: '内容收到评论时提醒' },
+  { key: 'systemNotify', label: '系统提醒', desc: '接收系统公告和服务通知' },
+];
+
+const VISIBILITY_OPTIONS = [
+  { value: 'public', label: '公开' },
+  { value: 'friends', label: '仅好友' },
+];
+
+function hasNotificationChanges(current: NotificationSettings, initial: NotificationSettings) {
+  return Object.keys(current).some((key) => current[key as keyof NotificationSettings] !== initial[key as keyof NotificationSettings]);
+}
+
+function hasPrivacyChanges(current: PrivacySettings, initial: PrivacySettings) {
+  return Object.keys(current).some((key) => current[key as keyof PrivacySettings] !== initial[key as keyof PrivacySettings]);
+}
+
+function confirmDiscardIfNeeded(dirty: boolean) {
+  if (!dirty) {
+    return true;
+  }
+  return window.confirm('当前有未保存的修改，确定要关闭吗？');
+}
+
 export const ChangePasswordOverlay: React.FC<ChangePasswordOverlayProps> = ({ isOpen, onClose, onSuccess }) => {
   const [oldPassword, setOldPassword] = useState('');
   const [newPassword, setNewPassword] = useState('');
@@ -21,17 +95,31 @@ export const ChangePasswordOverlay: React.FC<ChangePasswordOverlayProps> = ({ is
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    if (isOpen) {
-      setError(null);
-      setIsSuccess(false);
+    if (!isOpen) {
+      return;
     }
+    setOldPassword('');
+    setNewPassword('');
+    setConfirmPassword('');
+    setError(null);
+    setIsSuccess(false);
+    setIsSubmitting(false);
   }, [isOpen]);
+
+  const dirty = Boolean(oldPassword || newPassword || confirmPassword);
+  const canSubmit = !isSubmitting && Boolean(oldPassword && newPassword && confirmPassword);
+
+  const handleClose = () => {
+    if (isSuccess || confirmDiscardIfNeeded(dirty)) {
+      onClose();
+    }
+  };
 
   const handleSubmit = async () => {
     setError(null);
 
     if (!oldPassword || !newPassword || !confirmPassword) {
-      setError('请填写所有密码字段');
+      setError('请填写完整密码信息');
       return;
     }
     if (newPassword.length < 6) {
@@ -51,16 +139,12 @@ export const ChangePasswordOverlay: React.FC<ChangePasswordOverlayProps> = ({ is
         return;
       }
       setIsSuccess(true);
-      setTimeout(() => {
-        setOldPassword('');
-        setNewPassword('');
-        setConfirmPassword('');
-        setIsSuccess(false);
+      window.setTimeout(() => {
         onClose();
         onSuccess?.();
       }, 900);
     } catch (err: unknown) {
-      setError(getErrorMessage(err, '修改失败'));
+      setError(getErrorMessage(err, '修改失败，请稍后重试'));
     } finally {
       setIsSubmitting(false);
     }
@@ -69,108 +153,108 @@ export const ChangePasswordOverlay: React.FC<ChangePasswordOverlayProps> = ({ is
   return (
     <ModalShell
       isOpen={isOpen}
-      onClose={onClose}
-      icon={<Lock className="w-6 h-6" />}
+      onClose={handleClose}
+      icon={<Lock className="h-5 w-5" />}
       iconClass="bg-primary/10 text-primary"
       title="修改登录密码"
+      description="只保留必要项，改完立即生效。"
     >
       {isSuccess ? (
-        <SuccessPanel title="密码修改成功" description="请使用新密码重新登录" />
+        <SuccessPanel title="密码修改成功" description="下次登录请使用新密码。" />
       ) : (
-        <div className="space-y-5">
-          <PasswordField label="当前密码" value={oldPassword} onChange={setOldPassword} placeholder="输入当前密码" />
-          <PasswordField label="新密码" value={newPassword} onChange={setNewPassword} placeholder="输入新密码（至少 6 位）" />
-          <PasswordField label="确认新密码" value={confirmPassword} onChange={setConfirmPassword} placeholder="再次输入新密码" />
-          {error && <p className="text-red-500 text-xs font-medium">{error}</p>}
-          <ActionButtons onCancel={onClose} onSave={handleSubmit} isSubmitting={isSubmitting} saveText="确认修改" />
+        <div className="space-y-4">
+          <PasswordField
+            label="当前密码"
+            value={oldPassword}
+            onChange={setOldPassword}
+            placeholder="请输入当前密码"
+            autoComplete="current-password"
+          />
+          <PasswordField
+            label="新密码"
+            value={newPassword}
+            onChange={setNewPassword}
+            placeholder="请输入不少于 6 位的新密码"
+            autoComplete="new-password"
+          />
+          <PasswordField
+            label="确认新密码"
+            value={confirmPassword}
+            onChange={setConfirmPassword}
+            placeholder="请再次输入新密码"
+            autoComplete="new-password"
+          />
+          {error ? <InlineError message={error} /> : null}
+          <ActionButtons
+            onCancel={handleClose}
+            onSave={handleSubmit}
+            isSubmitting={isSubmitting}
+            disabled={!canSubmit}
+            saveText="确认修改"
+          />
         </div>
       )}
     </ModalShell>
   );
 };
 
-interface NotificationSettingsOverlayProps {
-  isOpen: boolean;
-  onClose: () => void;
-}
-
-type NotificationSettings = {
-  pushEnabled: boolean;
-  messageNotify: boolean;
-  followNotify: boolean;
-  likeNotify: boolean;
-  commentNotify: boolean;
-  systemNotify: boolean;
-};
-
-type ToggleOption = {
-  key: keyof NotificationSettings;
-  label: string;
-  desc: string;
-};
-
-type VisibilityOption = {
-  value: string;
-  label: string;
-};
-
-const defaultNotificationSettings: NotificationSettings = {
-  pushEnabled: true,
-  messageNotify: true,
-  followNotify: true,
-  likeNotify: true,
-  commentNotify: true,
-  systemNotify: false,
-};
-
-const NOTIFICATION_OPTIONS: ToggleOption[] = [
-  { key: 'pushEnabled', label: '总通知开关', desc: '关闭后不再接收站内提醒' },
-  { key: 'messageNotify', label: '私信通知', desc: '收到新私信时接收提醒' },
-  { key: 'followNotify', label: '关注通知', desc: '有新粉丝时接收提醒' },
-  { key: 'likeNotify', label: '点赞通知', desc: '动态被点赞时接收提醒' },
-  { key: 'commentNotify', label: '评论通知', desc: '收到评论时接收提醒' },
-  { key: 'systemNotify', label: '系统通知', desc: '接收系统公告和更新通知' },
-];
-
-const VISIBILITY_OPTIONS: VisibilityOption[] = [
-  { value: 'public', label: '公开' },
-  { value: 'friends', label: '仅好友' },
-];
-
 export const NotificationSettingsOverlay: React.FC<NotificationSettingsOverlayProps> = ({ isOpen, onClose }) => {
   const { user, updateUser } = useAuth();
   const [settings, setSettings] = useState<NotificationSettings>(defaultNotificationSettings);
+  const [initialSettings, setInitialSettings] = useState<NotificationSettings>(defaultNotificationSettings);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    if (isOpen && user) {
-      setSettings({
-        pushEnabled: user.pushEnabled !== false,
-        messageNotify: user.messageNotify !== false,
-        followNotify: user.followNotify !== false,
-        likeNotify: user.likeNotify !== false,
-        commentNotify: user.commentNotify !== false,
-        systemNotify: user.systemNotify === true,
-      });
-      setError(null);
+    if (!isOpen || !user) {
+      return;
     }
+    const nextSettings = {
+      pushEnabled: user.pushEnabled !== false,
+      messageNotify: user.messageNotify !== false,
+      followNotify: user.followNotify !== false,
+      likeNotify: user.likeNotify !== false,
+      commentNotify: user.commentNotify !== false,
+      systemNotify: user.systemNotify === true,
+    };
+    setSettings(nextSettings);
+    setInitialSettings(nextSettings);
+    setIsSubmitting(false);
+    setError(null);
   }, [isOpen, user]);
 
+  const dirty = hasNotificationChanges(settings, initialSettings);
+
+  const handleClose = () => {
+    if (confirmDiscardIfNeeded(dirty)) {
+      onClose();
+    }
+  };
+
   const handleToggle = (key: keyof NotificationSettings) => {
-    setSettings(prev => {
-      const next = { ...prev, [key]: !prev[key] };
-      if (key === 'pushEnabled' && prev.pushEnabled) {
+    setSettings((current) => {
+      if (key === 'pushEnabled') {
+        if (current.pushEnabled) {
+          return {
+            pushEnabled: false,
+            messageNotify: false,
+            followNotify: false,
+            likeNotify: false,
+            commentNotify: false,
+            systemNotify: false,
+          };
+        }
         return {
-          ...next,
-          messageNotify: false,
-          followNotify: false,
-          likeNotify: false,
-          commentNotify: false,
-          systemNotify: false,
+          ...current,
+          pushEnabled: true,
         };
       }
-      if (key !== 'pushEnabled' && !prev[key]) {
+
+      const next = {
+        ...current,
+        [key]: !current[key],
+      };
+      if (!current[key]) {
         next.pushEnabled = true;
       }
       return next;
@@ -189,6 +273,7 @@ export const NotificationSettingsOverlay: React.FC<NotificationSettingsOverlayPr
       if (user) {
         updateUser({ ...user, ...settings } as User);
       }
+      setInitialSettings(settings);
       onClose();
     } catch (err: unknown) {
       setError(getErrorMessage(err, '保存通知设置失败'));
@@ -200,55 +285,74 @@ export const NotificationSettingsOverlay: React.FC<NotificationSettingsOverlayPr
   return (
     <ModalShell
       isOpen={isOpen}
-      onClose={onClose}
-      icon={<Bell className="w-6 h-6" />}
-      iconClass="bg-accent-blue/10 text-accent-blue"
-      title="消息通知设置"
+      onClose={handleClose}
+      icon={<Bell className="h-5 w-5" />}
+      iconClass="bg-sky-100 text-sky-600"
+      title="通知设置"
+      description="先控制总开关，再按类型细分提醒。"
     >
-      <div className="space-y-4">
+      <div className="space-y-3">
+        <SectionLabel title="接收通知" />
+        <ToggleCard
+          label="站内通知"
+          desc="关闭后，不再接收任何提醒"
+          checked={settings.pushEnabled}
+          onClick={() => handleToggle('pushEnabled')}
+        />
+        <SectionLabel title="提醒类型" />
         {NOTIFICATION_OPTIONS.map((option) => (
-          <ToggleRow
+          <ToggleCard
             key={option.key}
-            settingsKey={option.key}
             label={option.label}
             desc={option.desc}
-            settings={settings}
-            onToggle={handleToggle}
-            disabled={option.key !== 'pushEnabled' && !settings.pushEnabled}
+            checked={settings[option.key]}
+            onClick={() => handleToggle(option.key)}
+            disabled={!settings.pushEnabled}
           />
         ))}
       </div>
-      {error && <p className="mt-4 text-red-500 text-xs font-medium">{error}</p>}
-      <ActionButtons onCancel={onClose} onSave={handleSave} isSubmitting={isSubmitting} className="pt-6" />
+      {error ? <InlineError className="mt-4" message={error} /> : null}
+      <ActionButtons
+        onCancel={handleClose}
+        onSave={handleSave}
+        isSubmitting={isSubmitting}
+        disabled={!dirty || isSubmitting}
+        saveText="保存设置"
+        className="pt-5"
+      />
     </ModalShell>
   );
 };
 
-interface PrivacySettingsOverlayProps {
-  isOpen: boolean;
-  onClose: () => void;
-}
-
 export const PrivacySettingsOverlay: React.FC<PrivacySettingsOverlayProps> = ({ isOpen, onClose }) => {
   const { user, updateUser } = useAuth();
-  const [settings, setSettings] = useState({
-    profileVisible: 'public',
-    postsVisible: 'public',
-    showLocation: true,
-  });
+  const [settings, setSettings] = useState<PrivacySettings>(defaultPrivacySettings);
+  const [initialSettings, setInitialSettings] = useState<PrivacySettings>(defaultPrivacySettings);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    if (isOpen && user) {
-      setSettings({
-        profileVisible: user.profileVisible || 'public',
-        postsVisible: user.postsVisible || 'public',
-        showLocation: user.showLocation !== false,
-      });
-      setError(null);
+    if (!isOpen || !user) {
+      return;
     }
+    const nextSettings = {
+      profileVisible: user.profileVisible || 'public',
+      postsVisible: user.postsVisible || 'public',
+      showLocation: user.showLocation !== false,
+    };
+    setSettings(nextSettings);
+    setInitialSettings(nextSettings);
+    setIsSubmitting(false);
+    setError(null);
   }, [isOpen, user]);
+
+  const dirty = hasPrivacyChanges(settings, initialSettings);
+
+  const handleClose = () => {
+    if (confirmDiscardIfNeeded(dirty)) {
+      onClose();
+    }
+  };
 
   const handleSave = async () => {
     setIsSubmitting(true);
@@ -262,6 +366,7 @@ export const PrivacySettingsOverlay: React.FC<PrivacySettingsOverlayProps> = ({ 
       if (user) {
         updateUser({ ...user, ...settings } as User);
       }
+      setInitialSettings(settings);
       onClose();
     } catch (err: unknown) {
       setError(getErrorMessage(err, '保存隐私设置失败'));
@@ -273,35 +378,40 @@ export const PrivacySettingsOverlay: React.FC<PrivacySettingsOverlayProps> = ({ 
   return (
     <ModalShell
       isOpen={isOpen}
-      onClose={onClose}
-      icon={<Eye className="w-6 h-6" />}
-      iconClass="bg-accent-purple/10 text-accent-purple"
-      title="隐私权限设置"
+      onClose={handleClose}
+      icon={<ShieldCheck className="h-5 w-5" />}
+      iconClass="bg-emerald-100 text-emerald-600"
+      title="隐私设置"
+      description="保持选项简单，只控制资料、动态和地区。"
     >
-      <div className="space-y-6">
+      <div className="space-y-5">
         <VisibilityGroup
-          label="个人资料可见性"
+          label="谁可以看到我的资料"
           value={settings.profileVisible}
-          onChange={(value) => setSettings(prev => ({ ...prev, profileVisible: value }))}
+          onChange={(value) => setSettings((current) => ({ ...current, profileVisible: value }))}
         />
         <VisibilityGroup
-          label="动态可见性"
+          label="谁可以看到我的动态"
           value={settings.postsVisible}
-          onChange={(value) => setSettings(prev => ({ ...prev, postsVisible: value }))}
+          onChange={(value) => setSettings((current) => ({ ...current, postsVisible: value }))}
         />
-        <div className="flex items-center justify-between p-4 bg-stone-50 rounded-2xl">
-          <div className="flex items-center gap-3">
-            <ShieldCheck className="w-5 h-5 text-muted" />
-            <div>
-              <p className="text-sm font-bold text-ink">显示位置信息</p>
-              <p className="text-xs text-muted">在个人资料和动态中展示你的地区</p>
-            </div>
-          </div>
-          <SwitchButton checked={settings.showLocation} onClick={() => setSettings(prev => ({ ...prev, showLocation: !prev.showLocation }))} />
-        </div>
+        <ToggleCard
+          icon={<MapPin className="h-4 w-4" />}
+          label="显示我的地区"
+          desc="在主页和内容里显示所在地区"
+          checked={settings.showLocation}
+          onClick={() => setSettings((current) => ({ ...current, showLocation: !current.showLocation }))}
+        />
       </div>
-      {error && <p className="mt-4 text-red-500 text-xs font-medium">{error}</p>}
-      <ActionButtons onCancel={onClose} onSave={handleSave} isSubmitting={isSubmitting} className="pt-6" />
+      {error ? <InlineError className="mt-4" message={error} /> : null}
+      <ActionButtons
+        onCancel={handleClose}
+        onSave={handleSave}
+        isSubmitting={isSubmitting}
+        disabled={!dirty || isSubmitting}
+        saveText="保存设置"
+        className="pt-5"
+      />
     </ModalShell>
   );
 };
@@ -312,6 +422,7 @@ function ModalShell({
   icon,
   iconClass,
   title,
+  description,
   children,
 }: {
   isOpen: boolean;
@@ -319,46 +430,58 @@ function ModalShell({
   icon: React.ReactNode;
   iconClass: string;
   title: string;
+  description: string;
   children: React.ReactNode;
 }) {
   return (
     <AnimatePresence>
-      {isOpen && (
-        <div className="fixed inset-0 z-[110] flex items-center justify-center p-4 md:p-6 overflow-y-auto">
-          <motion.div
+      {isOpen ? (
+        <div className="fixed inset-0 z-[110] flex items-center justify-center p-4 md:p-6">
+          <motion.button
+            type="button"
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
             transition={{ duration: 0.12 }}
             onClick={onClose}
-            className="fixed inset-0 bg-ink/55"
+            className="absolute inset-0 bg-ink/45"
+            aria-label="关闭弹层"
           />
           <motion.div
-            initial={{ opacity: 0, y: 8, scale: 0.985 }}
+            initial={{ opacity: 0, y: 10, scale: 0.985 }}
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={{ opacity: 0, y: 6, scale: 0.985 }}
-            transition={{ duration: 0.14, ease: 'easeOut' }}
-            className="relative w-full max-w-md my-auto z-10 will-change-transform"
+            transition={{ duration: 0.16, ease: 'easeOut' }}
+            className="relative z-10 w-full max-w-[440px] rounded-[28px] bg-white shadow-2xl"
           >
-            <div className="bg-white rounded-[40px] overflow-hidden shadow-2xl">
-              <div className="p-8">
-                <div className="flex items-center justify-between mb-8">
-                  <div className="flex items-center gap-3">
-                    <div className={`w-12 h-12 rounded-2xl flex items-center justify-center ${iconClass}`}>{icon}</div>
-                    <h2 className="text-2xl font-black text-ink">{title}</h2>
+            <div className="border-b border-hairline px-6 py-5">
+              <div className="flex items-start justify-between gap-4">
+                <div className="flex items-start gap-3">
+                  <div className={`flex h-11 w-11 items-center justify-center rounded-2xl ${iconClass}`}>{icon}</div>
+                  <div>
+                    <h2 className="text-[20px] font-black text-ink">{title}</h2>
+                    <p className="mt-1 text-[13px] text-muted">{description}</p>
                   </div>
-                  <button onClick={onClose} className="p-3 hover:bg-stone-100 rounded-full transition-all">
-                    <X className="w-5 h-5 text-ink" />
-                  </button>
                 </div>
-                {children}
+                <button
+                  type="button"
+                  onClick={onClose}
+                  className="rounded-xl p-2 text-muted transition-colors hover:bg-stone-100 hover:text-ink"
+                >
+                  <X className="h-4 w-4" />
+                </button>
               </div>
             </div>
+            <div className="px-6 py-5">{children}</div>
           </motion.div>
         </div>
-      )}
+      ) : null}
     </AnimatePresence>
   );
+}
+
+function SectionLabel({ title }: { title: string }) {
+  return <div className="text-[11px] font-black uppercase tracking-[0.18em] text-muted">{title}</div>;
 }
 
 function PasswordField({
@@ -366,34 +489,103 @@ function PasswordField({
   value,
   onChange,
   placeholder,
+  autoComplete,
 }: {
   label: string;
   value: string;
   onChange: (value: string) => void;
   placeholder: string;
+  autoComplete: string;
 }) {
   return (
-    <div>
-      <label className="block text-xs font-black text-muted uppercase tracking-widest mb-2">{label}</label>
+    <div className="space-y-1.5">
+      <label className="ml-1 text-sm font-bold text-ink">{label}</label>
       <input
         type="password"
         value={value}
-        onChange={(e) => onChange(e.target.value)}
+        onChange={(event) => onChange(event.target.value)}
         placeholder={placeholder}
-        className="w-full px-4 py-3.5 bg-stone-50 border border-hairline rounded-2xl text-sm font-medium placeholder:text-muted/40 focus:ring-2 focus:ring-primary/10 focus:border-primary/30 outline-none transition-all"
+        autoComplete={autoComplete}
+        className="w-full rounded-2xl border border-transparent bg-stone-100/85 px-4 py-3 text-sm text-ink outline-none transition-all placeholder:text-muted/50 focus:border-primary/20 focus:bg-white focus:ring-4 focus:ring-primary/8"
       />
     </div>
   );
 }
 
+function ToggleCard({
+  icon,
+  label,
+  desc,
+  checked,
+  onClick,
+  disabled = false,
+}: {
+  key?: React.Key;
+  icon?: React.ReactNode;
+  label: string;
+  desc: string;
+  checked: boolean;
+  onClick: () => void;
+  disabled?: boolean;
+}) {
+  return (
+    <div className={`flex items-center justify-between rounded-2xl border border-hairline bg-stone-50 px-4 py-3 ${disabled ? 'opacity-50' : ''}`}>
+      <div className="flex items-start gap-3">
+        {icon ? <div className="mt-0.5 text-muted">{icon}</div> : null}
+        <div>
+          <p className="text-sm font-bold text-ink">{label}</p>
+          <p className="text-xs text-muted">{desc}</p>
+        </div>
+      </div>
+      <SwitchButton checked={checked} onClick={onClick} disabled={disabled} />
+    </div>
+  );
+}
+
+function VisibilityGroup({
+  label,
+  value,
+  onChange,
+}: {
+  label: string;
+  value: string;
+  onChange: (value: string) => void;
+}) {
+  return (
+    <div className="space-y-2.5">
+      <label className="ml-1 text-sm font-bold text-ink">{label}</label>
+      <div className="grid grid-cols-2 gap-3">
+        {VISIBILITY_OPTIONS.map((option) => (
+          <button
+            key={option.value}
+            type="button"
+            onClick={() => onChange(option.value)}
+            className={`rounded-2xl border px-4 py-3 text-sm font-bold transition-all ${
+              value === option.value
+                ? 'border-primary bg-primary text-white'
+                : 'border-hairline bg-stone-50 text-ink hover:border-primary/25'
+            }`}
+          >
+            {option.label}
+          </button>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function InlineError({ message, className = '' }: { message: string; className?: string }) {
+  return <p className={`text-xs font-medium text-red-500 ${className}`}>{message}</p>;
+}
+
 function SuccessPanel({ title, description }: { title: string; description: string }) {
   return (
-    <motion.div initial={{ opacity: 0, scale: 0.96 }} animate={{ opacity: 1, scale: 1 }} className="text-center py-12">
-      <div className="w-20 h-20 bg-accent-green/10 text-accent-green rounded-full flex items-center justify-center mx-auto mb-6">
-        <CheckCircle2 className="w-10 h-10" />
+    <motion.div initial={{ opacity: 0, scale: 0.97 }} animate={{ opacity: 1, scale: 1 }} className="py-8 text-center">
+      <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-emerald-100 text-emerald-600">
+        <CheckCircle2 className="h-8 w-8" />
       </div>
-      <h3 className="text-2xl font-black text-ink mb-2">{title}</h3>
-      <p className="text-secondary font-medium">{description}</p>
+      <h3 className="text-xl font-black text-ink">{title}</h3>
+      <p className="mt-2 text-sm text-muted">{description}</p>
     </motion.div>
   );
 }
@@ -402,87 +594,64 @@ function ActionButtons({
   onCancel,
   onSave,
   isSubmitting,
-  saveText = '保存设置',
+  disabled,
+  saveText,
   className = 'pt-4',
 }: {
   onCancel: () => void;
   onSave: () => void;
   isSubmitting: boolean;
-  saveText?: string;
+  disabled: boolean;
+  saveText: string;
   className?: string;
 }) {
   return (
     <div className={`flex gap-3 ${className}`}>
-      <button onClick={onCancel} className="flex-1 py-3.5 bg-stone-100 text-ink rounded-2xl text-sm font-bold hover:bg-stone-200 transition-colors">
+      <button
+        type="button"
+        onClick={onCancel}
+        className="flex-1 rounded-2xl bg-stone-100 py-3 text-sm font-bold text-ink transition-colors hover:bg-stone-200"
+      >
         取消
       </button>
-      <button onClick={onSave} disabled={isSubmitting} className="flex-1 py-3.5 bg-primary text-white rounded-2xl text-sm font-bold hover:bg-primary-hover transition-colors disabled:opacity-50 flex items-center justify-center gap-2">
-        {isSubmitting ? <><Loader2 className="w-4 h-4 animate-spin" />保存中...</> : saveText}
+      <button
+        type="button"
+        onClick={onSave}
+        disabled={disabled}
+        className="flex flex-1 items-center justify-center gap-2 rounded-2xl bg-primary py-3 text-sm font-bold text-white transition-colors hover:bg-primary-hover disabled:cursor-not-allowed disabled:opacity-45"
+      >
+        {isSubmitting ? (
+          <>
+            <Loader2 className="h-4 w-4 animate-spin" />
+            保存中...
+          </>
+        ) : (
+          saveText
+        )}
       </button>
     </div>
   );
 }
 
-function ToggleRow({
-  settingsKey,
-  label,
-  desc,
-  settings,
-  onToggle,
+function SwitchButton({
+  checked,
+  onClick,
   disabled = false,
 }: {
-  key?: React.Key;
-  settingsKey: keyof NotificationSettings;
-  label: string;
-  desc: string;
-  settings: NotificationSettings;
-  onToggle: (key: keyof NotificationSettings) => void;
+  checked: boolean;
+  onClick: () => void;
   disabled?: boolean;
 }) {
-  return (
-    <div className={`flex items-center justify-between p-4 bg-stone-50 rounded-2xl ${disabled ? 'opacity-50' : ''}`}>
-      <div>
-        <p className="text-sm font-bold text-ink">{label}</p>
-        <p className="text-xs text-muted">{desc}</p>
-      </div>
-      <SwitchButton checked={settings[settingsKey]} onClick={() => onToggle(settingsKey)} disabled={disabled} />
-    </div>
-  );
-}
-
-function SwitchButton({ checked, onClick, disabled = false }: { checked: boolean; onClick: () => void; disabled?: boolean }) {
   return (
     <button
       type="button"
       onClick={onClick}
       disabled={disabled}
-      className={`w-12 h-7 rounded-full transition-all relative disabled:cursor-not-allowed ${checked ? 'bg-primary' : 'bg-stone-300'}`}
+      className={`relative h-7 w-12 rounded-full transition-all ${
+        checked ? 'bg-primary' : 'bg-stone-300'
+      } disabled:cursor-not-allowed`}
     >
-      <div className={`absolute top-0.5 w-6 h-6 bg-white rounded-full shadow transition-all ${checked ? 'left-6' : 'left-0.5'}`} />
+      <div className={`absolute top-0.5 h-6 w-6 rounded-full bg-white shadow transition-all ${checked ? 'left-[22px]' : 'left-0.5'}`} />
     </button>
-  );
-}
-
-function VisibilityGroup({ label, value, onChange }: { label: string; value: string; onChange: (value: string) => void }) {
-  return (
-    <div>
-      <label className="block text-xs font-black text-muted uppercase tracking-widest mb-3">{label}</label>
-      <div className="grid grid-cols-2 gap-3">
-        {VISIBILITY_OPTIONS.map((option) => (
-          <button
-            key={option.value}
-            type="button"
-            onClick={() => onChange(option.value)}
-            className={`p-4 rounded-2xl text-sm font-bold border transition-all ${
-              value === option.value
-                ? 'bg-primary text-white border-primary'
-                : 'bg-stone-50 text-ink border-hairline hover:border-primary/30'
-            }`}
-          >
-            {option.label}
-          </button>
-        ))}
-      </div>
-    </div>
   );
 }

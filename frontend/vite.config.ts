@@ -27,7 +27,7 @@ export default defineConfig(({mode}) => {
             if (id.includes('motion')) {
               return 'vendor-motion';
             }
-            if (id.includes('leaflet') || id.includes('react-leaflet')) {
+            if (id.includes('leaflet')) {
               return 'vendor-map';
             }
             if (id.includes('recharts')) {

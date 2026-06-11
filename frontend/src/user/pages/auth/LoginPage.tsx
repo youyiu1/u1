@@ -11,7 +11,6 @@ import { readStorageJson, removeStorageValue, writeStorageJson } from '../../uti
 
 type RememberedLogin = {
   email: string;
-  password: string;
 };
 
 type CaptchaState = {
@@ -93,9 +92,8 @@ export default function LoginPage() {
 
   useEffect(() => {
     const remembered = readStorageJson<RememberedLogin | null>(localStorage, REMEMBERED_LOGIN_KEY, null);
-    if (remembered?.email && remembered?.password) {
+    if (remembered?.email) {
       setEmail(remembered.email);
-      setPassword(remembered.password);
       setRememberPassword(true);
       setForgotEmail(remembered.email);
     }
@@ -146,7 +144,7 @@ export default function LoginPage() {
     try {
       await login(email, password, captcha.captchaId, captchaInput.trim());
       if (rememberPassword) {
-        writeStorageJson(localStorage, REMEMBERED_LOGIN_KEY, { email, password });
+        writeStorageJson(localStorage, REMEMBERED_LOGIN_KEY, { email });
       } else {
         removeStorageValue(localStorage, REMEMBERED_LOGIN_KEY);
       }
