@@ -120,6 +120,9 @@ app:
   security:
     cors:
       allowed-origin-patterns: ${CORS_ALLOWED_ORIGIN_PATTERNS:http://localhost:5173,http://localhost:8080}
+  perf:
+    slow-threshold-ms: ${APP_SLOW_REQUEST_THRESHOLD_MS:400}
+    slow-method-threshold-ms: ${APP_SLOW_METHOD_THRESHOLD_MS:600}
   cache:
     caffeine:
       initial-capacity: 256
