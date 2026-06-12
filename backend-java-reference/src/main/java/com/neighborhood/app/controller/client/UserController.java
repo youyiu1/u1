@@ -15,9 +15,11 @@ import com.neighborhood.app.dto.user.UserProfileUpdateRequest;
 import com.neighborhood.app.entity.user.User;
 import com.neighborhood.app.service.CaptchaService;
 import com.neighborhood.app.service.EmailService;
+import com.neighborhood.app.service.SecurityRateLimitService;
 import com.neighborhood.app.service.UserService;
 import com.neighborhood.app.util.JwtUtil;
 import com.neighborhood.app.utils.AuthTokenStore;
+import com.neighborhood.app.utils.RequestClientUtil;
 import com.neighborhood.app.utils.RequestUserResolver;
 import com.neighborhood.app.utils.RequestUserUtil;
 import com.neighborhood.app.vo.user.PublicUserVO;
@@ -47,14 +49,15 @@ public class UserController {
     private final UserService userService;
     private final CaptchaService captchaService;
     private final EmailService emailService;
+    private final SecurityRateLimitService securityRateLimitService;
     private final JwtUtil jwtUtil;
     private final AuthTokenStore authTokenStore;
     private final RequestUserResolver requestUserResolver;
 
     /** 获取用户详情。 */
     @GetMapping("/{id}")
-    public Result<UserVO> getById(@PathVariable String id) {
-        return userResult(userService.getById(id));
+    public Result<PublicUserVO> getById(@PathVariable String id) {
+        return publicUserResult(userService.getById(id));
     }
 
     /** 获取当前登录用户信息。 */
@@ -65,8 +68,8 @@ public class UserController {
 
     /** 根据用户名获取用户信息。 */
     @GetMapping("/name/{name}")
-    public Result<UserVO> getByName(@PathVariable String name) {
-        return userResult(userService.getByName(name));
+    public Result<PublicUserVO> getByName(@PathVariable String name) {
+        return publicUserResult(userService.getByName(name));
     }
 
     /** 用户注册。 */
@@ -81,9 +84,12 @@ public class UserController {
 
     /** 发送注册验证码。 */
     @PostMapping("/send-code")
-    public Result<Boolean> sendCode(@RequestParam String email) {
+    public Result<Boolean> sendCode(@RequestParam String email, HttpServletRequest request) {
         try {
-            emailService.sendVerificationCode(email);
+            if (userService.emailExists(email)) {
+                return ResultUtils.fail("邮箱已注册");
+            }
+            emailService.sendVerificationCode(email, resolveClientKey(request));
             return ResultUtils.bool(true);
         } catch (RuntimeException exception) {
             return ResultUtils.fail(exception.getMessage());
@@ -103,6 +109,7 @@ public class UserController {
     /** 用户登录。 */
     @PostMapping("/login")
     public Result<AuthResponse> login(@Valid @RequestBody UserLoginRequest request, HttpServletRequest httpRequest) {
+        String clientKey = resolveClientKey(httpRequest);
         if (request == null
                 || isBlank(request.getEmail())
                 || isBlank(request.getPassword())
@@ -113,13 +120,16 @@ public class UserController {
         if (request.getCaptchaCode().trim().length() != 4) {
             return ResultUtils.fail("图形验证码格式不正确");
         }
-        if (!captchaService.validateCaptcha(resolveClientKey(httpRequest), request.getCaptchaId(), request.getCaptchaCode())) {
+        if (!captchaService.validateCaptcha(clientKey, request.getCaptchaId(), request.getCaptchaCode())) {
             return ResultUtils.fail("图形验证码错误或已过期");
         }
+        securityRateLimitService.checkUserLogin(clientKey, request.getEmail());
         User loggedIn = userService.login(request.getEmail(), request.getPassword());
         if (loggedIn == null) {
+            securityRateLimitService.recordUserLoginFailure(clientKey, request.getEmail());
             return ResultUtils.fail("用户名或密码错误");
         }
+        securityRateLimitService.recordUserLoginSuccess(clientKey, request.getEmail());
         return authResult(loggedIn);
     }
 
@@ -169,11 +179,11 @@ public class UserController {
     @GetMapping("/suggested")
     public Result<List<PublicUserVO>> getSuggestedUsers(
             @RequestParam(required = false) String currentUserId,
-            @RequestParam(defaultValue = "5") int limit,
+            @RequestParam(defaultValue = "5") String limit,
             HttpServletRequest request) {
         return ResultUtils.ok(userService.getSuggestedUsers(
                 effectiveUserId(request, currentUserId),
-                limit
+                safeLimit(limit, 5, 20)
         ).stream()
                 .map(PublicUserVO::fromUser)
                 .toList());
@@ -202,7 +212,7 @@ public class UserController {
 
     /** 通过邮箱验证码重置密码。 */
     @PostMapping("/reset-password")
-    public Result<Boolean> resetPassword(@Valid @RequestBody ResetPasswordRequest request) {
+    public Result<Boolean> resetPassword(@Valid @RequestBody ResetPasswordRequest request, HttpServletRequest httpRequest) {
         if (request == null
                 || isBlank(request.getEmail())
                 || isBlank(request.getCode())
@@ -212,12 +222,17 @@ public class UserController {
         if (request.getNewPassword().length() < 6) {
             return ResultUtils.fail("新密码至少 6 位");
         }
+        String clientKey = resolveClientKey(httpRequest);
+        securityRateLimitService.checkResetPassword(clientKey, request.getEmail());
         if (!emailService.verifyCode(request.getEmail(), request.getCode())) {
+            securityRateLimitService.recordResetPasswordFailure(clientKey, request.getEmail());
             return ResultUtils.fail("验证码错误或已过期");
         }
         if (!userService.resetPasswordByEmail(request.getEmail(), request.getNewPassword())) {
+            securityRateLimitService.recordResetPasswordFailure(clientKey, request.getEmail());
             return ResultUtils.fail("未找到对应用户");
         }
+        securityRateLimitService.recordResetPasswordSuccess(clientKey, request.getEmail());
         return ResultUtils.bool(true);
     }
 
@@ -238,6 +253,13 @@ public class UserController {
             return ResultUtils.fail(USER_NOT_FOUND_MESSAGE);
         }
         return ResultUtils.ok(buildUserVO(user));
+    }
+
+    private Result<PublicUserVO> publicUserResult(User user) {
+        if (user == null) {
+            return ResultUtils.fail(USER_NOT_FOUND_MESSAGE);
+        }
+        return ResultUtils.ok(PublicUserVO.fromUser(user));
     }
 
     private Result<AuthResponse> authResult(User user) {
@@ -268,13 +290,22 @@ public class UserController {
     }
 
     private String resolveClientKey(HttpServletRequest request) {
-        String forwarded = request.getHeader("X-Forwarded-For");
-        String ip = isBlank(forwarded) ? request.getRemoteAddr() : forwarded.split(",")[0].trim();
-        String userAgent = request.getHeader("User-Agent");
-        return (ip == null ? "unknown" : ip) + "|" + (userAgent == null ? "unknown" : userAgent);
+        return RequestClientUtil.clientKey(request);
     }
 
     private boolean isBlank(String value) {
         return value == null || value.trim().isEmpty();
+    }
+
+    private int safeLimit(String rawLimit, int defaultLimit, int maxLimit) {
+        if (rawLimit == null || rawLimit.trim().isEmpty()) {
+            return defaultLimit;
+        }
+        try {
+            int parsed = Integer.parseInt(rawLimit.trim());
+            return Math.min(Math.max(1, parsed), maxLimit);
+        } catch (NumberFormatException exception) {
+            return defaultLimit;
+        }
     }
 }

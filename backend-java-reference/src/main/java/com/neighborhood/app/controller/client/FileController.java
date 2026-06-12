@@ -59,8 +59,12 @@ public class FileController {
 
     /** 获取文件公共地址，配置 CDN 时优先返回 CDN 地址。 */
     @GetMapping("/public/{*filename}")
-    public Result<String> getPublicUrl(@PathVariable String filename) {
-        return Result.ok(fileService.buildPublicUrl(cleanKey(filename)));
+    public ResponseEntity<Result<String>> getPublicUrl(@PathVariable String filename) {
+        try {
+            return ResponseEntity.ok(Result.ok(fileService.buildPublicUrl(cleanKey(filename))));
+        } catch (IllegalArgumentException exception) {
+            return ResponseEntity.badRequest().body(Result.fail(exception.getMessage()));
+        }
     }
 
     /** 通过后端代理访问对象存储文件。 */
@@ -68,7 +72,7 @@ public class FileController {
     public ResponseEntity<?> getFile(@PathVariable String filename) {
         try {
             String key = cleanKey(filename);
-            byte[] data = fileService.getFile(key);
+            byte[] data = fileService.getPublicFile(key);
             appMetricsService.recordFileAccess("proxy_read", "success");
             return ResponseEntity.ok()
                     .contentType(getMediaType(key))

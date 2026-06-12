@@ -2,7 +2,15 @@ package com.neighborhood.app.service.impl;
 
 import com.neighborhood.app.config.S3Config;
 import com.neighborhood.app.service.FileService;
+import java.awt.Color;
+import java.awt.Font;
+import java.awt.GradientPaint;
+import java.awt.Graphics2D;
+import java.awt.RenderingHints;
+import java.awt.geom.Ellipse2D;
+import java.awt.image.BufferedImage;
 import java.io.ByteArrayInputStream;
+import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
@@ -11,6 +19,7 @@ import java.util.Date;
 import java.util.Locale;
 import java.util.Set;
 import java.util.UUID;
+import javax.imageio.ImageIO;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
@@ -25,13 +34,16 @@ import software.amazon.awssdk.services.s3.model.PutObjectRequest;
 import software.amazon.awssdk.services.s3.presigner.S3Presigner;
 import software.amazon.awssdk.services.s3.presigner.model.GetObjectPresignRequest;
 
-/** 文件作用：文件服务实现。 */
+/** 文件服务实现。 */
 @Slf4j
 @Service
 @RequiredArgsConstructor
 public class FileServiceImpl implements FileService {
 
     private static final String FILE_PROXY_PREFIX = "/api/file/";
+    private static final String DEFAULT_AVATAR_KEY = "system/default-avatar.png";
+    private static final int DEFAULT_AVATAR_SIZE = 256;
+    private static final Set<String> PUBLIC_FILE_PREFIXES = Set.of("images/", "system/");
     private static final int MAX_PRESIGNED_EXPIRE_MINUTES = 60;
     private static final String DEFAULT_CONTENT_TYPE = "application/octet-stream";
     private static final String DEFAULT_IMAGE_CONTENT_TYPE = "image/jpeg";
@@ -80,10 +92,20 @@ public class FileServiceImpl implements FileService {
 
     @Override
     public byte[] getFile(String key) throws IOException {
-        log.info("获取文件: bucket={}, key={}", s3Config.getBucket(), key);
-        try (var response = s3Client.getObject(buildGetRequest(key))) {
+        String normalizedKey = normalizeKey(key);
+        log.info("获取文件: bucket={}, key={}", s3Config.getBucket(), normalizedKey);
+        try (var response = s3Client.getObject(buildGetRequest(normalizedKey))) {
             return response.readAllBytes();
         }
+    }
+
+    @Override
+    public byte[] getPublicFile(String key) throws IOException {
+        String normalizedKey = normalizeKey(key);
+        if (!isPublicReadable(normalizedKey)) {
+            throw new IllegalArgumentException("该文件不支持公开访问");
+        }
+        return getFile(normalizedKey);
     }
 
     @Override
@@ -105,30 +127,47 @@ public class FileServiceImpl implements FileService {
         try {
             s3Client.headObject(HeadObjectRequest.builder()
                     .bucket(s3Config.getBucket())
-                    .key(key)
+                    .key(normalizeKey(key))
                     .build());
             return true;
-        } catch (Exception e) {
+        } catch (Exception exception) {
             return false;
         }
     }
 
     @Override
+    public String ensureDefaultAvatar() {
+        if (!fileExists(DEFAULT_AVATAR_KEY)) {
+            try {
+                byte[] avatar = renderDefaultAvatar();
+                putObject(DEFAULT_AVATAR_KEY, new ByteArrayInputStream(avatar), avatar.length, "image/png");
+            } catch (IOException exception) {
+                throw new IllegalStateException("默认头像创建失败", exception);
+            }
+        }
+        return FILE_PROXY_PREFIX + DEFAULT_AVATAR_KEY;
+    }
+
+    @Override
     public String generatePresignedUrl(String key, int expirationMinutes) {
+        String normalizedKey = normalizeKey(key);
+        requirePublicReadable(normalizedKey);
         int safeExpirationMinutes = Math.max(1, Math.min(expirationMinutes, MAX_PRESIGNED_EXPIRE_MINUTES));
         String presignedUrl = s3Presigner.presignGetObject(GetObjectPresignRequest.builder()
                         .signatureDuration(Duration.ofMinutes(safeExpirationMinutes))
-                        .getObjectRequest(buildGetRequest(key))
+                        .getObjectRequest(buildGetRequest(normalizedKey))
                         .build())
                 .url()
                 .toString();
-        return s3Config.getEndpoint() + "/" + s3Config.getBucket() + "/" + key
+        return s3Config.getEndpoint() + "/" + s3Config.getBucket() + "/" + normalizedKey
                 + presignedUrl.substring(presignedUrl.indexOf("?"));
     }
 
     @Override
     public String buildPublicUrl(String key) {
-        return joinPath(preferredPublicBaseUrl(), normalizeKey(key));
+        String normalizedKey = normalizeKey(key);
+        requirePublicReadable(normalizedKey);
+        return joinPath(preferredPublicBaseUrl(), normalizedKey);
     }
 
     private String generateKey(String extension) {
@@ -143,7 +182,7 @@ public class FileServiceImpl implements FileService {
     private PutObjectRequest buildPutRequest(String key, String contentType) {
         return PutObjectRequest.builder()
                 .bucket(s3Config.getBucket())
-                .key(key)
+                .key(normalizeKey(key))
                 .contentType(contentType)
                 .build();
     }
@@ -151,7 +190,7 @@ public class FileServiceImpl implements FileService {
     private GetObjectRequest buildGetRequest(String key) {
         return GetObjectRequest.builder()
                 .bucket(s3Config.getBucket())
-                .key(key)
+                .key(normalizeKey(key))
                 .build();
     }
 
@@ -201,12 +240,47 @@ public class FileServiceImpl implements FileService {
         };
     }
 
+    private byte[] renderDefaultAvatar() throws IOException {
+        BufferedImage image = new BufferedImage(DEFAULT_AVATAR_SIZE, DEFAULT_AVATAR_SIZE, BufferedImage.TYPE_INT_ARGB);
+        Graphics2D graphics = image.createGraphics();
+        try {
+            graphics.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+            graphics.setRenderingHint(RenderingHints.KEY_TEXT_ANTIALIASING, RenderingHints.VALUE_TEXT_ANTIALIAS_ON);
+
+            Color primary = new Color(0xEF4444);
+            Color secondary = new Color(0xF97316);
+            graphics.setPaint(new GradientPaint(0, 0, primary, DEFAULT_AVATAR_SIZE, DEFAULT_AVATAR_SIZE, secondary));
+            graphics.fillRect(0, 0, DEFAULT_AVATAR_SIZE, DEFAULT_AVATAR_SIZE);
+
+            graphics.setColor(new Color(255, 255, 255, 42));
+            graphics.fill(new Ellipse2D.Double(28, 28, 98, 98));
+            graphics.fill(new Ellipse2D.Double(144, 138, 76, 76));
+
+            graphics.setColor(new Color(255, 255, 255, 224));
+            graphics.fill(new Ellipse2D.Double(52, 50, 152, 152));
+
+            graphics.setColor(primary.darker());
+            graphics.setFont(new Font(Font.SANS_SERIF, Font.BOLD, 72));
+            String text = "邻";
+            var metrics = graphics.getFontMetrics();
+            int x = (DEFAULT_AVATAR_SIZE - metrics.stringWidth(text)) / 2;
+            int y = ((DEFAULT_AVATAR_SIZE - metrics.getHeight()) / 2) + metrics.getAscent();
+            graphics.drawString(text, x, y);
+        } finally {
+            graphics.dispose();
+        }
+
+        ByteArrayOutputStream output = new ByteArrayOutputStream();
+        ImageIO.write(image, "png", output);
+        return output.toByteArray();
+    }
+
     private boolean startsWith(byte[] data, byte... signature) {
         if (data.length < signature.length) {
             return false;
         }
-        for (int i = 0; i < signature.length; i++) {
-            if (data[i] != signature[i]) {
+        for (int index = 0; index < signature.length; index += 1) {
+            if (data[index] != signature[index]) {
                 return false;
             }
         }
@@ -222,8 +296,8 @@ public class FileServiceImpl implements FileService {
         if (data.length < offset + bytes.length) {
             return false;
         }
-        for (int i = 0; i < bytes.length; i++) {
-            if (data[offset + i] != bytes[i]) {
+        for (int index = 0; index < bytes.length; index += 1) {
+            if (data[offset + index] != bytes[index]) {
                 return false;
             }
         }
@@ -265,7 +339,24 @@ public class FileServiceImpl implements FileService {
         if (key == null || key.isBlank()) {
             return "";
         }
-        return key.startsWith("/") ? key.substring(1) : key;
+        String normalized = key.trim().replace('\\', '/');
+        while (normalized.startsWith("/")) {
+            normalized = normalized.substring(1);
+        }
+        if (normalized.contains("../") || normalized.contains("/..") || normalized.equals("..")) {
+            throw new IllegalArgumentException("文件路径不合法");
+        }
+        return normalized;
+    }
+
+    private boolean isPublicReadable(String key) {
+        return PUBLIC_FILE_PREFIXES.stream().anyMatch(key::startsWith);
+    }
+
+    private void requirePublicReadable(String key) {
+        if (!isPublicReadable(key)) {
+            throw new IllegalArgumentException("该文件不支持公开访问");
+        }
     }
 
     private String joinPath(String baseUrl, String key) {

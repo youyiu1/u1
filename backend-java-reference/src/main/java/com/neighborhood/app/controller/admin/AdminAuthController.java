@@ -4,6 +4,7 @@ import com.neighborhood.app.common.Result;
 import com.neighborhood.app.dto.user.CaptchaResponse;
 import com.neighborhood.app.dto.admin.AdminAuthRequests.LoginRequest;
 import com.neighborhood.app.service.CaptchaService;
+import com.neighborhood.app.utils.RequestClientUtil;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
 import java.util.Map;
@@ -50,9 +51,6 @@ public class AdminAuthController {
     }
 
     private String resolveClientKey(HttpServletRequest request) {
-        String forwarded = request.getHeader("X-Forwarded-For");
-        String ip = forwarded == null || forwarded.isBlank() ? request.getRemoteAddr() : forwarded.split(",")[0].trim();
-        String userAgent = request.getHeader("User-Agent");
-        return (ip == null ? "unknown" : ip) + "|" + (userAgent == null ? "unknown" : userAgent);
+        return RequestClientUtil.clientKey(request);
     }
 }

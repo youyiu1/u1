@@ -6,6 +6,7 @@
 package com.neighborhood.app.service.impl;
 
 import com.neighborhood.app.service.EmailService;
+import com.neighborhood.app.service.SecurityRateLimitService;
 import jakarta.mail.Session;
 import jakarta.mail.Transport;
 import jakarta.mail.internet.InternetAddress;
@@ -18,7 +19,7 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.stereotype.Service;
 
-/** 邮件服务实现 */
+/** 邮件服务实现。 */
 @Slf4j
 @Service
 public class EmailServiceImpl implements EmailService {
@@ -30,6 +31,7 @@ public class EmailServiceImpl implements EmailService {
     private static final String EMAIL_CONFIG_MISSING_MESSAGE = "邮箱服务未配置，请先检查邮箱账号和授权码";
 
     private final StringRedisTemplate stringRedisTemplate;
+    private final SecurityRateLimitService securityRateLimitService;
 
     @Value("${spring.mail.username:}")
     private String username;
@@ -43,13 +45,15 @@ public class EmailServiceImpl implements EmailService {
     @Value("${spring.mail.port:587}")
     private String port;
 
-    public EmailServiceImpl(StringRedisTemplate stringRedisTemplate) {
+    public EmailServiceImpl(StringRedisTemplate stringRedisTemplate, SecurityRateLimitService securityRateLimitService) {
         this.stringRedisTemplate = stringRedisTemplate;
+        this.securityRateLimitService = securityRateLimitService;
     }
 
     @Override
-    public void sendVerificationCode(String to) {
+    public void sendVerificationCode(String to, String clientKey) {
         validateMailConfig();
+        securityRateLimitService.checkEmailSend(clientKey, to);
         String code = String.format("%06d", RANDOM.nextInt(1000000));
         try {
             MimeMessage message = new MimeMessage(createSession());
@@ -59,6 +63,7 @@ public class EmailServiceImpl implements EmailService {
             message.setContent(buildHtmlEmail(code), "text/html;charset=UTF-8");
             Transport.send(message);
             stringRedisTemplate.opsForValue().set(CODE_PREFIX + to, code, CODE_TTL, TimeUnit.MINUTES);
+            securityRateLimitService.recordEmailSend(clientKey, to);
             log.info("验证码已发送至: {}", to);
         } catch (Exception exception) {
             stringRedisTemplate.delete(CODE_PREFIX + to);
@@ -70,13 +75,18 @@ public class EmailServiceImpl implements EmailService {
     @Override
     public boolean verifyCode(String email, String code) {
         String key = CODE_PREFIX + email;
+        securityRateLimitService.checkEmailCodeVerify(email);
         String cached = stringRedisTemplate.opsForValue().get(key);
         if (cached == null) {
+            securityRateLimitService.recordEmailCodeVerifyFailure(email);
             return false;
         }
         boolean valid = code.equals(cached);
         if (valid) {
             stringRedisTemplate.delete(key);
+            securityRateLimitService.recordEmailCodeVerifySuccess(email);
+        } else {
+            securityRateLimitService.recordEmailCodeVerifyFailure(email);
         }
         return valid;
     }

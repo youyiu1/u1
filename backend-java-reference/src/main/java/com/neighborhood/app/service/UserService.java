@@ -13,6 +13,8 @@ public interface UserService extends IService<User> {
     User login(String email, String password);
     User getById(String id);
     User getByName(String name);
+    boolean emailExists(String email);
+    boolean nameExists(String name);
     boolean follow(String followerId, String followingId);
     boolean unfollow(String followerId, String followingId);
     boolean isFollowing(String followerId, String followingId);

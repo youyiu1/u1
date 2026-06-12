@@ -244,7 +244,7 @@ public class AuthInterceptor implements HandlerInterceptor {
                 || (isGet(method) && path.equals("/api/admin/captcha-image"))
                 || (isPost(method) && path.equals("/api/user/send-code"))
                 || (isGet(method) && path.startsWith("/api/user/name/"))
-                || (isGet(method) && path.matches("/api/user/[^/]+"))
+                || (isGet(method) && isPublicUserDetailPath(path))
                 || (isGet(method) && path.matches("/api/user/[^/]+/following"))
                 || (isGet(method) && path.equals("/api/user/isfollowing"))
                 || (isGet(method) && path.equals("/api/user/suggested"))
@@ -272,6 +272,32 @@ public class AuthInterceptor implements HandlerInterceptor {
 
     private boolean isPost(String method) {
         return "POST".equalsIgnoreCase(method);
+    }
+
+    private boolean isPublicUserDetailPath(String path) {
+        if (!path.matches("/api/user/[^/]+")) {
+            return false;
+        }
+        String id = path.substring("/api/user/".length());
+        return !List.of(
+                "profile",
+                "name",
+                "register",
+                "send-code",
+                "captcha-image",
+                "login",
+                "logout",
+                "follow",
+                "unfollow",
+                "isfollowing",
+                "suggested",
+                "update",
+                "change-password",
+                "reset-password",
+                "privacy",
+                "notification-settings",
+                "me"
+        ).contains(id);
     }
 
     private boolean isPublicFileReadPath(String path, String method) {

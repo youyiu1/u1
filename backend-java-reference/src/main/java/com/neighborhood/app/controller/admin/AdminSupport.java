@@ -26,11 +26,13 @@ import com.neighborhood.app.service.AdminLogDispatchService;
 import com.neighborhood.app.service.AdminRoleConfigService;
 import com.neighborhood.app.service.CacheService;
 import com.neighborhood.app.service.CaptchaService;
+import com.neighborhood.app.service.SecurityRateLimitService;
 import com.neighborhood.app.service.UserService;
 import com.neighborhood.app.util.JwtUtil;
 import com.neighborhood.app.utils.AuthTokenStore;
 import com.neighborhood.app.utils.CollectionStringUtil;
 import com.neighborhood.app.utils.PasswordCodec;
+import com.neighborhood.app.utils.RequestClientUtil;
 import com.neighborhood.app.utils.RequestUserUtil;
 import com.neighborhood.app.utils.StringValueUtil;
 import jakarta.annotation.PostConstruct;
@@ -106,6 +108,7 @@ public class AdminSupport {
     private final UserService userService;
     private final PasswordCodec passwordCodec;
     private final CaptchaService captchaService;
+    private final SecurityRateLimitService securityRateLimitService;
 
     @Value("${app.migration.auto-run:false}")
     private boolean migrationAutoRun;
@@ -243,29 +246,34 @@ public class AdminSupport {
         String password = body == null ? "" : empty(body.password());
         String captchaId = safeTrim(body == null ? null : body.captchaId());
         String captchaCode = safeTrim(body == null ? null : body.captchaCode());
+        String clientKey = resolveClientKey(request);
         if (account.isEmpty() || password.isEmpty() || captchaId.isEmpty() || captchaCode.isEmpty()) {
             return Result.fail("账号、密码和图形验证码不能为空");
         }
         if (captchaCode.length() != 4) {
             return Result.fail("图形验证码格式不正确");
         }
-        if (!captchaService.validateCaptcha(resolveClientKey(request), captchaId, captchaCode)) {
+        if (!captchaService.validateCaptcha(clientKey, captchaId, captchaCode)) {
             saveLoginLog("", account, requestIp(request), request.getHeader("User-Agent"), "failed", "图形验证码错误或已过期");
             return Result.fail("图形验证码错误或已过期");
         }
+        securityRateLimitService.checkAdminLogin(clientKey, account);
         User user = findUserByAccount(account);
         if (user == null || !passwordCodec.matches(password, user.getPassword())) {
+            securityRateLimitService.recordAdminLoginFailure(clientKey, account);
             saveLoginLog("", account, requestIp(request), request.getHeader("User-Agent"), "failed", "\u8d26\u53f7\u6216\u5bc6\u7801\u9519\u8bef");
             return Result.fail("\u8d26\u53f7\u6216\u5bc6\u7801\u9519\u8bef");
         }
         upgradePasswordIfNeeded(user, password);
         String adminRole = normalizeAdminRole(user.getAdminRole());
         if (ROLE_USER.equals(adminRole)) {
+            securityRateLimitService.recordAdminLoginFailure(clientKey, account);
             saveLoginLog(user.getId(), user.getName(), requestIp(request), request.getHeader("User-Agent"), "failed", "\u666e\u901a\u7528\u6237\u4e0d\u80fd\u8bbf\u95ee\u7ba1\u7406\u7aef");
             return Result.fail("\u666e\u901a\u7528\u6237\u4e0d\u80fd\u8bbf\u95ee\u7ba1\u7406\u7aef");
         }
         AdminRoleConfig roleConfig = loadAdminRoleConfig(adminRole);
         if (!isAdminRoleEnabled(roleConfig)) {
+            securityRateLimitService.recordAdminLoginFailure(clientKey, account);
             saveLoginLog(user.getId(), user.getName(), requestIp(request), request.getHeader("User-Agent"), "failed", "\u5f53\u524d\u7ba1\u7406\u5458\u89d2\u8272\u5df2\u505c\u7528");
             return Result.fail("\u5f53\u524d\u7ba1\u7406\u5458\u89d2\u8272\u5df2\u505c\u7528");
         }
@@ -274,6 +282,7 @@ public class AdminSupport {
             saveLoginLog(user.getId(), user.getName(), requestIp(request), request.getHeader("User-Agent"), "failed", "\u767b\u5f55\u72b6\u6001\u5199\u5165\u5931\u8d25");
             return Result.fail("\u64cd\u4f5c\u5931\u8d25\uff0c\u8bf7\u7a0d\u540e\u91cd\u8bd5");
         }
+        securityRateLimitService.recordAdminLoginSuccess(clientKey, account);
         saveLoginLog(user.getId(), user.getName(), requestIp(request), request.getHeader("User-Agent"), "success", "");
         return Result.ok(Map.of(
                 "token", token,
@@ -914,8 +923,7 @@ public class AdminSupport {
     }
 
     private String requestIp(HttpServletRequest request) {
-        String forwarded = request.getHeader("X-Forwarded-For");
-        return forwarded == null || forwarded.isBlank() ? request.getRemoteAddr() : forwarded.split(",")[0].trim();
+        return RequestClientUtil.clientIp(request);
     }
 
     private String resolveClientKey(HttpServletRequest request) {

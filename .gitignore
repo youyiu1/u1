@@ -15,3 +15,10 @@ backend-java-reference/application-secret.properties
 runtime-logs/
 frontend/dist/
 uploads/
+.idea/
+.claude/settings.local.json
+deploy/exports/
+backend-java-reference/sql/backup_*.sql
+backend-java-reference/sql/neighborhood_db_*.sql
+deploy/certs/*.key
+deploy/certs/*.crt
