@@ -7,6 +7,8 @@ import com.neighborhood.app.mapper.service.BookingMapper;
 import com.neighborhood.app.mapper.service.NotificationMapper;
 import com.neighborhood.app.service.CacheService;
 import com.neighborhood.app.service.NotificationWriteService;
+import com.neighborhood.app.service.RealtimePushService;
+import com.neighborhood.app.utils.TransactionCommitUtil;
 import java.time.LocalDateTime;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -20,6 +22,7 @@ public class NotificationWriteServiceImpl implements NotificationWriteService {
     private final NotificationMapper notificationMapper;
     private final BookingMapper bookingMapper;
     private final CacheService cacheService;
+    private final RealtimePushService realtimePushService;
 
     @Override
     @Transactional
@@ -77,6 +80,7 @@ public class NotificationWriteServiceImpl implements NotificationWriteService {
             updateBookingNotificationId(bookingId, notification.getId());
         }
         cacheService.evictNotificationList(userId);
+        TransactionCommitUtil.runAfterCommitOrNow(() -> realtimePushService.pushNotification(notification));
     }
 
     private Notification createNotification(

@@ -5,15 +5,20 @@ import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.neighborhood.app.entity.message.Message;
 import com.neighborhood.app.mapper.message.MessageMapper;
 import com.neighborhood.app.service.MessageService;
+import com.neighborhood.app.service.RealtimePushService;
+import com.neighborhood.app.utils.TransactionCommitUtil;
 import java.time.LocalDateTime;
 import java.util.List;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 /** 文件作用：消息服务实现。 */
 @Service
 @RequiredArgsConstructor
 public class MessageServiceImpl extends ServiceImpl<MessageMapper, Message> implements MessageService {
+
+    private final RealtimePushService realtimePushService;
 
     @Override
     public List<Message> getConversation(String userId1, String userId2) {
@@ -30,9 +35,11 @@ public class MessageServiceImpl extends ServiceImpl<MessageMapper, Message> impl
     }
 
     @Override
+    @Transactional
     public Message sendMessage(String senderId, String receiverId, String content, String messageType, String mediaUrl) {
         Message message = buildMessage(senderId, receiverId, content, messageType, mediaUrl);
         save(message);
+        TransactionCommitUtil.runAfterCommitOrNow(() -> realtimePushService.pushMessage(message));
         return message;
     }
 

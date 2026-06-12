@@ -2,7 +2,7 @@
 
 # 同城生活社区平台
 
-现代化同城社区系统｜生活服务｜闲置交易｜同城动态｜即时沟通｜后台管理
+现代化同城社区系统｜生活服务｜闲置交易｜同城动态｜实时沟通｜后台管理
 
 ![Spring Boot](https://img.shields.io/badge/Spring%20Boot-3.5.11-6DB33F?style=flat-square&logo=springboot&logoColor=white)
 ![React](https://img.shields.io/badge/React-19-61DAFB?style=flat-square&logo=react&logoColor=111)
@@ -34,7 +34,8 @@
 - **账号安全**：JWT + Redis 登录态、图形验证码、邮箱验证码、登录限流、重置密码限流。
 - **文件存储**：图片上传走后端统一代理，默认头像自动托管到 RustFS/S3。
 - **后台治理**：管理用户、服务、闲置、订单、动态、评论、图片、通知、角色和权限。
-- **性能优化**：Spring Cache + Caffeine 缓存热点数据，RabbitMQ 异步处理通知和管理日志。
+- **实时通知**：WebSocket/STOMP 推送私信与通知，RabbitMQ 异步处理通知和管理日志。
+- **性能优化**：Spring Cache + Caffeine 缓存热点数据，Spring AOP 记录管理操作和慢方法。
 - **部署完整**：提供 Docker Compose、Nginx、Prometheus、Grafana、RustFS、RabbitMQ 等部署配置。
 
 ---
@@ -48,9 +49,12 @@
 | MyBatis-Plus 3.5.6 | ORM 与数据访问 |
 | MySQL 8.0 | 主业务数据库 |
 | Redis 7 | 登录态、验证码、缓存、限流 |
+| Spring Security | 无状态安全配置、安全响应头，与现有拦截器鉴权逻辑配合 |
+| Spring AOP | 管理端操作审计、慢方法日志 |
 | Spring Cache + Caffeine | 本地缓存与业务缓存 |
 | RabbitMQ | 异步通知、管理日志写入 |
 | JWT + Redis | Token 签发与登录态双校验 |
+| WebSocket/STOMP | 私信和通知实时推送 |
 | Spring Mail | 邮箱验证码发送 |
 | S3 SDK + RustFS | 对象存储与图片访问 |
 | Actuator + Micrometer | 应用指标暴露 |
@@ -86,7 +90,7 @@
                                │
 ┌──────────────────────────────▼─────────────────────────────┐
 │                         应用层                              │
-│        Spring Boot REST API：认证、用户、服务、交易、动态、管理 │
+│        Spring Boot REST API + WebSocket：认证、用户、服务、交易、动态、管理 │
 └──────────────┬───────────────┬───────────────┬─────────────┘
                │               │               │
 ┌──────────────▼──────┐ ┌──────▼────────┐ ┌────▼────────────┐
@@ -110,7 +114,8 @@ neighborhood/
 │  ├─ sql/                                         # 数据库初始化、迁移、索引脚本
 │  ├─ src/main/java/com/neighborhood/app/          # 后端主代码
 │  │  ├─ common/                                   # 统一响应、异常处理、上下文工具
-│  │  ├─ config/                                   # Web、Redis、缓存、RabbitMQ、S3、监控配置
+│  │  ├─ config/                                   # Web、安全、WebSocket、Redis、缓存、RabbitMQ、S3、监控配置
+│  │  ├─ aspect/                                   # 管理操作审计与慢方法日志切面
 │  │  ├─ controller/                               # REST 接口层
 │  │  │  ├─ client/                                # 用户端接口
 │  │  │  ├─ admin/                                 # 管理端接口
@@ -136,6 +141,7 @@ neighborhood/
 │  │  ├─ service/                                  # 业务服务接口
 │  │  │  └─ impl/                                  # 业务服务实现
 │  │  ├─ messaging/                                # RabbitMQ 消息模型与监听器
+│  │  ├─ realtime/                                 # WebSocket 实时通信身份、事件与握手认证
 │  │  ├─ interceptor/                              # 鉴权、性能拦截器
 │  │  ├─ handler/                                  # 自定义类型处理器
 │  │  ├─ util/                                     # 兼容工具类
