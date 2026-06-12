@@ -1,0 +1,181 @@
+server:
+  port: 8080
+  compression:
+    enabled: true
+    mime-types: application/json,text/html,text/xml,text/plain,text/css,text/javascript,application/javascript
+    min-response-size: 2048
+
+spring:
+  application:
+    name: neighborhood-app
+  config:
+    import: optional:file:./application-secret.yml,optional:file:./application-secret.yaml,optional:file:./application-secret.properties
+
+  servlet:
+    multipart:
+      max-file-size: 10MB
+      max-request-size: 20MB
+
+  datasource:
+    driver-class-name: com.mysql.cj.jdbc.Driver
+    url: ${DB_URL:jdbc:mysql://localhost:3306/neighborhood_db?useUnicode=true&characterEncoding=utf8&useSSL=false&serverTimezone=Asia/Shanghai&allowPublicKeyRetrieval=true}
+    username: ${DB_USERNAME:root}
+    password: ${DB_PASSWORD:root}
+    hikari:
+      minimum-idle: 5
+      maximum-pool-size: 20
+      idle-timeout: 30000
+      pool-name: NeighborhoodHikariCP
+      max-lifetime: 1800000
+      connection-timeout: 30000
+
+  data:
+    redis:
+      host: ${REDIS_HOST:localhost}
+      port: ${REDIS_PORT:6379}
+      database: ${REDIS_DATABASE:0}
+      timeout: ${REDIS_TIMEOUT:3000ms}
+      lettuce:
+        pool:
+          max-active: 8
+          max-idle: 8
+          min-idle: 0
+          max-wait: -1ms
+
+  cache:
+    type: caffeine
+    cache-names:
+      - hotData
+      - stateData
+
+  flyway:
+    enabled: ${APP_FLYWAY_ENABLED:false}
+    locations: classpath:db/migration
+    baseline-on-migrate: true
+    validate-on-migrate: true
+
+  rabbitmq:
+    host: ${RABBITMQ_HOST:localhost}
+    port: ${RABBITMQ_PORT:5672}
+    username: ${RABBITMQ_USERNAME:guest}
+    password: ${RABBITMQ_PASSWORD:guest}
+    listener:
+      simple:
+        default-requeue-rejected: false
+        retry:
+          enabled: true
+          initial-interval: 1000ms
+          max-attempts: 3
+          max-interval: 5000ms
+          multiplier: 2
+
+  mail:
+    host: ${MAIL_HOST:smtp.qq.com}
+    port: ${MAIL_PORT:587}
+    username: ${MAIL_USERNAME:}
+    password: ${MAIL_PASSWORD:}
+
+  ai:
+    model:
+      chat: zhipuai
+    zhipuai:
+      api-key: ${ZHIPUAI_API_KEY:}
+      chat:
+        options:
+          model: ${ZHIPUAI_MODEL:glm-4.7-flash}
+          temperature: ${ZHIPUAI_TEMPERATURE:0.7}
+
+mybatis-plus:
+  type-aliases-package: com.neighborhood.app.entity
+  type-handler-strategy: other
+  auto-result-map: true
+  type-handlers-package: com.neighborhood.app.handler
+  configuration:
+    map-underscore-to-camel-case: true
+    log-impl: ${MYBATIS_LOG_IMPL:org.apache.ibatis.logging.nologging.NoLoggingImpl}
+
+cache:
+  user:
+    ttl: 1800
+  list:
+    ttl: 600
+  detail:
+    ttl: 900
+  hot:
+    ttl: 300
+
+jwt:
+  secret: ${JWT_SECRET:change-this-jwt-secret-before-production}
+  expiration: ${JWT_EXPIRATION:86400000}
+
+rustfs:
+  endpoint: ${RUSTFS_ENDPOINT:http://localhost:9000}
+  access-key: ${RUSTFS_ACCESS_KEY:}
+  secret-key: ${RUSTFS_SECRET_KEY:}
+  bucket: ${RUSTFS_BUCKET:neighborhood}
+
+app:
+  migration:
+    auto-run: ${APP_MIGRATION_AUTO_RUN:false}
+  security:
+    cors:
+      allowed-origin-patterns: ${CORS_ALLOWED_ORIGIN_PATTERNS:http://localhost:5173,http://localhost:8080}
+  cache:
+    caffeine:
+      initial-capacity: 256
+      maximum-size: 5000
+      expire-after-write-seconds: 45
+  file:
+    public-base-url: ${PUBLIC_FILE_BASE_URL:http://localhost:5173/api/file}
+    cdn-base-url: ${CDN_BASE_URL:}
+  messaging:
+    rabbit:
+      enabled: ${APP_RABBIT_ENABLED:false}
+      notification-queue: ${RABBIT_NOTIFICATION_QUEUE:neighborhood.notification.write}
+      notification-exchange: ${RABBIT_NOTIFICATION_EXCHANGE:neighborhood.notification.exchange}
+      notification-routing-key: ${RABBIT_NOTIFICATION_ROUTING_KEY:notification.write}
+      admin-log-queue: ${RABBIT_ADMIN_LOG_QUEUE:neighborhood.admin.log.write}
+      admin-log-exchange: ${RABBIT_ADMIN_LOG_EXCHANGE:neighborhood.admin.log.exchange}
+      admin-log-routing-key: ${RABBIT_ADMIN_LOG_ROUTING_KEY:admin.log.write}
+  ai:
+    enabled: ${APP_AI_ENABLED:false}
+    system-prompt: ${APP_AI_SYSTEM_PROMPT:你是同城生活社区平台的 AI 助手，请使用简洁、友好、实用的中文回答，优先围绕生活服务、闲置交易、同城动态、消息沟通和个人主页等场景提供可直接使用的内容。}
+
+test:
+  rustfs:
+    enabled: ${TEST_RUSTFS_ENABLED:false}
+
+management:
+  health:
+    mail:
+      enabled: false
+    rabbit:
+      enabled: ${APP_RABBIT_ENABLED:false}
+  endpoints:
+    web:
+      base-path: /actuator
+      exposure:
+        include: ${MANAGEMENT_EXPOSED_ENDPOINTS:health,info}
+  endpoint:
+    health:
+      show-details: ${MANAGEMENT_HEALTH_SHOW_DETAILS:never}
+  metrics:
+    tags:
+      application: ${spring.application.name}
+    distribution:
+      percentiles-histogram:
+        http.server.requests: true
+  prometheus:
+    metrics:
+      export:
+        enabled: ${MANAGEMENT_PROMETHEUS_ENABLED:true}
+
+springdoc:
+  api-docs:
+    enabled: ${SPRINGDOC_API_DOCS_ENABLED:true}
+    path: /v3/api-docs
+  swagger-ui:
+    enabled: ${SPRINGDOC_SWAGGER_UI_ENABLED:true}
+    path: /swagger-ui.html
+    operations-sorter: method
+    tags-sorter: alpha

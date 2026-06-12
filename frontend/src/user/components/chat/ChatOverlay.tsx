@@ -1,0 +1,488 @@
+import React, { useState, useEffect, useRef, useContext, useMemo } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { motion, AnimatePresence } from 'motion/react';
+import {
+  X,
+  Send,
+  Smile,
+  Image as ImageIcon,
+  Search,
+  MessageSquare,
+  ChevronLeft,
+  Plus
+} from 'lucide-react';
+import { useChat } from '../../context/ChatContext';
+import { AuthContext } from '../../context/AuthContext';
+import { fileApi } from '../../services/api';
+import { useToast } from '../../context/ToastContext';
+import { getErrorMessage } from '../../utils/error';
+import { buildProfilePath, buildProfileRouteState } from '../../utils/profileRoute';
+
+const EMOJIS = ['😀', '😁', '😂', '🥹', '😍', '😘', '😎', '😡', '👍', '🙏', '🎉', '❤️', '🌟', '🔥'];
+const CONTACT_EMPTY_STATE = {
+  title: '暂无消息',
+  description: '点击沟通按钮即可开始对话',
+};
+const SEARCH_EMPTY_STATE = {
+  title: '未找到匹配联系人',
+  description: '试试搜索昵称或最近一条消息内容',
+};
+const MESSAGE_EMPTY_STATE = {
+  switching: '加载对话中...',
+  empty: '暂无聊天记录',
+};
+
+export const ChatOverlay: React.FC = () => {
+  const navigate = useNavigate();
+  const { isChatOpen, closeChat, activePartner, partners, messages, sendMessage, openChat, unreadMessages, chatOpenTick } = useChat();
+  const { user } = useContext(AuthContext);
+  const { showToast } = useToast();
+  const [inputText, setInputText] = useState('');
+  const [searchText, setSearchText] = useState('');
+  const [showContacts, setShowContacts] = useState(true);
+  const [showEmojiPicker, setShowEmojiPicker] = useState(false);
+  const [uploadingImage, setUploadingImage] = useState(false);
+  const [pendingImageUrl, setPendingImageUrl] = useState('');
+  const [pendingImagePreview, setPendingImagePreview] = useState('');
+  const [switchingPartnerId, setSwitchingPartnerId] = useState<string | null>(null);
+  const messagesEndRef = useRef<HTMLDivElement>(null);
+  const imageInputRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    if (isChatOpen) {
+      setShowContacts(!activePartner);
+    }
+  }, [isChatOpen, activePartner?.id, chatOpenTick]);
+
+  useEffect(() => {
+    if (activePartner?.id && switchingPartnerId === activePartner.id && Object.prototype.hasOwnProperty.call(messages, activePartner.id)) {
+      setSwitchingPartnerId(null);
+    }
+  }, [activePartner?.id, messages, switchingPartnerId]);
+
+  const currentMessages = useMemo(
+    () => (activePartner ? (messages[activePartner.id] || []) : []),
+    [activePartner, messages]
+  );
+
+  const filteredPartners = useMemo(() => {
+    const keyword = searchText.trim().toLowerCase();
+    if (!keyword) {
+      return partners;
+    }
+    return partners.filter((partner) => {
+      const name = (partner.name || '').toLowerCase();
+      const lastMessage = (partner.lastMessage || '').toLowerCase();
+      return name.includes(keyword) || lastMessage.includes(keyword);
+    });
+  }, [partners, searchText]);
+
+  useEffect(() => {
+    if (isChatOpen) {
+      messagesEndRef.current?.scrollIntoView({ behavior: 'auto' });
+    }
+  }, [currentMessages.length, isChatOpen]);
+
+  const handleSend = async () => {
+    if (!activePartner) return;
+    if (!inputText.trim() && !pendingImageUrl) return;
+    const text = inputText.trim();
+    const content = pendingImageUrl && !text ? '[图片]' : text;
+    const messageType = pendingImageUrl ? 'image' : 'text';
+    const mediaUrl = pendingImageUrl;
+    setInputText('');
+    setPendingImageUrl('');
+    setPendingImagePreview('');
+    setShowEmojiPicker(false);
+    await sendMessage(activePartner.id, content, messageType, mediaUrl);
+  };
+
+  const handleSelectContact = (partner: typeof partners[0]) => {
+    setSwitchingPartnerId(partner.id);
+    openChat(partner);
+    setShowContacts(false);
+    setShowEmojiPicker(false);
+  };
+
+  const handleBack = () => {
+    setShowContacts(true);
+    setShowEmojiPicker(false);
+  };
+
+  const handleOpenPartnerProfile = () => {
+    if (!activePartner?.id) return;
+    closeChat();
+    navigate(buildProfilePath(activePartner.id, activePartner.name), {
+      state: buildProfileRouteState({
+        id: activePartner.id,
+        name: activePartner.name,
+        avatar: activePartner.avatar,
+      }),
+    });
+  };
+
+  const handleEmojiPick = (emoji: string) => {
+    setInputText(prev => `${prev}${emoji}`);
+  };
+
+  const handleImageSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    e.target.value = '';
+    if (!file) return;
+    if (!file.type.startsWith('image/')) {
+      showToast('请选择图片文件', 'warning');
+      return;
+    }
+    setUploadingImage(true);
+    try {
+      const preview = URL.createObjectURL(file);
+      const url = await fileApi.upload(file);
+      setPendingImagePreview(preview);
+      setPendingImageUrl(url);
+      setShowEmojiPicker(false);
+    } catch (err: unknown) {
+      showToast(getErrorMessage(err, '图片上传失败'), 'error');
+    } finally {
+      setUploadingImage(false);
+    }
+  };
+
+  useEffect(() => {
+    return () => {
+      if (pendingImagePreview) URL.revokeObjectURL(pendingImagePreview);
+    };
+  }, [pendingImagePreview]);
+
+  const composerButtons = [
+    {
+      key: 'image',
+      icon: <ImageIcon className="w-4 h-4" />,
+      onClick: () => imageInputRef.current?.click(),
+      disabled: uploadingImage,
+    },
+    {
+      key: 'emoji',
+      icon: <Smile className="w-4 h-4" />,
+      onClick: () => setShowEmojiPicker((prev) => !prev),
+    },
+    {
+      key: 'space',
+      icon: <Plus className="w-4 h-4" />,
+      onClick: () => setInputText((prev) => `${prev} `),
+    },
+  ];
+
+  const emptyState = partners.length === 0 ? CONTACT_EMPTY_STATE : SEARCH_EMPTY_STATE;
+
+  return (
+    <AnimatePresence>
+      {isChatOpen && (
+        <div className="fixed inset-0 z-[60] flex items-end sm:items-center justify-end p-3 sm:p-4">
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.16 }}
+            className="absolute inset-0 bg-ink/25"
+            onClick={closeChat}
+          />
+
+          <motion.div
+            initial={{ x: '100%' }}
+            animate={{ x: 0 }}
+            exit={{ x: '100%' }}
+            transition={{ type: 'tween', duration: 0.22, ease: [0.22, 1, 0.36, 1] }}
+            className="relative w-full sm:max-w-md h-[72vh] max-h-[580px] sm:h-[560px] bg-white rounded-[32px] sm:rounded-[40px] shadow-2xl overflow-hidden pointer-events-auto border border-hairline flex flex-col transform-gpu will-change-transform contain-layout"
+          >
+            <header className="p-6 border-b border-hairline flex items-center justify-between bg-white/90 backdrop-blur-md">
+              <div className="flex items-center gap-3">
+                {(!showContacts && activePartner) && (
+                  <button
+                    onClick={handleBack}
+                    className="p-2 hover:bg-surface-soft rounded-xl transition-colors"
+                  >
+                    <ChevronLeft className="w-5 h-5" />
+                  </button>
+                )}
+                {activePartner && !showContacts && (
+                  <button
+                    type="button"
+                    onClick={handleOpenPartnerProfile}
+                    className="rounded-xl transition-transform hover:scale-105"
+                  >
+                    <img
+                      src={activePartner.avatar || undefined}
+                      className="w-8 h-8 rounded-xl object-cover border border-hairline"
+                      alt={activePartner.name}
+                    />
+                  </button>
+                )}
+                <div>
+                  <h3 className="text-xl font-black text-ink">
+                    {showContacts ? '消息' : activePartner?.name}
+                  </h3>
+                  {!showContacts && activePartner && (
+                    <p className={`text-[10px] font-black uppercase tracking-widest ${activePartner.isOnline ? 'text-green-500' : 'text-muted'}`}>
+                      {activePartner.isOnline ? '当前在线' : '离线'}
+                    </p>
+                  )}
+                </div>
+              </div>
+              <button
+                onClick={closeChat}
+                className="p-2 hover:bg-surface-soft rounded-full transition-colors"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </header>
+
+            {showContacts ? (
+              <>
+                <div className="p-4">
+                  <div className="relative">
+                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted" />
+                    <input
+                      type="text"
+                      value={searchText}
+                      onChange={(e) => setSearchText(e.target.value)}
+                      placeholder="搜索联系人..."
+                      className="w-full bg-stone-50 border-none rounded-2xl py-2.5 pl-10 pr-4 text-xs font-medium focus:ring-1 focus:ring-primary/20"
+                    />
+                  </div>
+                </div>
+
+                <div className="flex-1 overflow-y-auto no-scrollbar p-2 space-y-1 overscroll-contain">
+                  {filteredPartners.length === 0 ? (
+                    <OverlayEmptyState
+                      icon={<MessageSquare className="w-8 h-8 text-muted" />}
+                      title={emptyState.title}
+                      description={emptyState.description}
+                    />
+                  ) : (
+                    filteredPartners.slice(0, 60).map((partner) => (
+                      <ContactRow
+                        key={partner.id}
+                        partner={partner}
+                        unreadCount={unreadMessages[partner.id] || 0}
+                        onClick={() => handleSelectContact(partner)}
+                      />
+                    ))
+                  )}
+                </div>
+              </>
+            ) : (
+              <>
+                <div className="flex-1 overflow-y-auto no-scrollbar p-5 sm:p-6 space-y-5 overscroll-contain relative">
+                  {switchingPartnerId ? (
+                    <CenteredHint text={MESSAGE_EMPTY_STATE.switching} />
+                  ) : currentMessages.length === 0 ? (
+                    <CenteredHint text={MESSAGE_EMPTY_STATE.empty} />
+                  ) : currentMessages.slice(-80).map((msg) => {
+                    const isMe = msg.senderId === user?.id;
+                    const type = msg.messageType || 'text';
+                    const text = msg.content || msg.text || '';
+                    return (
+                      <MessageBubble
+                        key={msg.id}
+                        isMe={isMe}
+                        messageType={type}
+                        text={text}
+                        mediaUrl={msg.mediaUrl}
+                        timeLabel={msg.createTime ? new Date(msg.createTime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : msg.timestamp}
+                      />
+                    );
+                  })}
+                  <div ref={messagesEndRef} />
+                </div>
+
+                {showEmojiPicker && (
+                  <div className="px-4 pb-2">
+                    <div className="grid grid-cols-7 gap-2 bg-stone-50 border border-hairline rounded-3xl p-3 max-h-44 overflow-y-auto">
+                      {EMOJIS.map(emoji => (
+                        <button
+                          key={emoji}
+                          onClick={() => handleEmojiPick(emoji)}
+                          className="h-9 rounded-xl hover:bg-white transition-colors text-lg"
+                        >
+                          {emoji}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                <footer className="p-4 sm:p-6 pt-2">
+                  {pendingImagePreview && (
+                    <PendingImageCard
+                      preview={pendingImagePreview}
+                      onRemove={() => {
+                        setPendingImageUrl('');
+                        setPendingImagePreview('');
+                      }}
+                    />
+                  )}
+                  <div className="bg-stone-50 rounded-[32px] border border-hairline focus-within:bg-white focus-within:shadow-premium focus-within:border-primary/20 transition-all p-4">
+                    <div className="flex items-center gap-2 mb-2 px-2">
+                      {composerButtons.map((button) => (
+                        <button
+                          key={button.key}
+                          onClick={button.onClick}
+                          disabled={button.disabled}
+                          className="p-2 text-muted hover:text-primary transition-colors disabled:opacity-50"
+                        >
+                          {button.icon}
+                        </button>
+                      ))}
+                      <input
+                        ref={imageInputRef}
+                        type="file"
+                        accept="image/*"
+                        className="hidden"
+                        onChange={handleImageSelect}
+                      />
+                    </div>
+                    <div className="flex items-end gap-3">
+                      <textarea
+                        value={inputText}
+                        onChange={(e) => setInputText(e.target.value)}
+                        onKeyDown={(e) => {
+                          if (e.key === 'Enter' && !e.shiftKey) {
+                            e.preventDefault();
+                            handleSend();
+                          }
+                        }}
+                        placeholder="发送消息..."
+                        className="flex-1 bg-transparent border-none p-2 focus:ring-0 text-sm font-medium placeholder:text-muted/40 min-h-[44px] max-h-32 resize-none no-scrollbar"
+                      />
+                      <button
+                        onClick={handleSend}
+                        disabled={(!inputText.trim() && !pendingImageUrl) || uploadingImage}
+                        className={`w-11 h-11 rounded-full flex items-center justify-center transition-all ${
+                          (inputText.trim() || pendingImageUrl) && !uploadingImage
+                            ? 'bg-primary text-white shadow-lg shadow-primary/20'
+                            : 'bg-hairline text-muted opacity-50'
+                        }`}
+                      >
+                        <Send className="w-5 h-5 ml-0.5" />
+                      </button>
+                    </div>
+                  </div>
+                </footer>
+              </>
+            )}
+          </motion.div>
+        </div>
+      )}
+    </AnimatePresence>
+  );
+};
+
+function OverlayEmptyState({
+  icon,
+  title,
+  description,
+}: {
+  icon: React.ReactNode;
+  title: string;
+  description: string;
+}) {
+  return (
+    <div className="flex h-full flex-col items-center justify-center px-6 py-12 text-center">
+      <div className="mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-surface-soft">{icon}</div>
+      <p className="mb-1 text-sm font-black text-ink">{title}</p>
+      <p className="text-[11px] font-medium text-muted">{description}</p>
+    </div>
+  );
+}
+
+function CenteredHint({ text }: { text: string }) {
+  return <div className="flex h-full items-center justify-center text-xs font-bold text-muted">{text}</div>;
+}
+
+function ContactRow({
+  partner,
+  unreadCount,
+  onClick,
+}: {
+  key?: React.Key;
+  partner: {
+    id: string;
+    avatar?: string;
+    isOnline?: boolean;
+    name: string;
+    lastMessage?: string;
+  };
+  unreadCount: number;
+  onClick: () => void;
+}) {
+  return (
+    <button onClick={onClick} className="w-full flex items-center gap-4 p-4 rounded-3xl transition-all hover:bg-stone-50">
+      <div className="relative">
+        <img src={partner.avatar || undefined} className="w-12 h-12 rounded-2xl object-cover border border-hairline" alt="" />
+        {partner.isOnline ? <div className="absolute -bottom-1 -right-1 w-4 h-4 bg-green-500 border-2 border-white rounded-full" /> : null}
+      </div>
+      <div className="text-left flex-1 min-w-0">
+        <p className="text-sm font-black truncate">{partner.name}</p>
+        <p className="text-[10px] text-muted font-medium truncate mt-0.5">{partner.lastMessage}</p>
+      </div>
+      {unreadCount > 0 ? (
+        <span className="w-5 h-5 bg-accent-green text-white text-[10px] flex items-center justify-center rounded-full font-bold">
+          {unreadCount}
+        </span>
+      ) : null}
+    </button>
+  );
+}
+
+function MessageBubble({
+  isMe,
+  messageType,
+  text,
+  mediaUrl,
+  timeLabel,
+}: {
+  key?: React.Key;
+  isMe: boolean;
+  messageType: string;
+  text: string;
+  mediaUrl?: string;
+  timeLabel?: string;
+}) {
+  return (
+    <div className={`flex ${isMe ? 'justify-end' : 'justify-start'}`}>
+      <div className={`max-w-[80%] space-y-1 flex flex-col ${isMe ? 'items-end' : 'items-start'}`}>
+        <div
+          className={`px-4 py-3 rounded-[24px] text-sm font-medium shadow-sm leading-relaxed ${
+            isMe ? 'bg-primary text-white rounded-tr-none' : 'bg-stone-100 text-ink rounded-tl-none'
+          }`}
+        >
+          {messageType === 'image' && mediaUrl ? <img src={mediaUrl} alt="chat" className="max-w-full rounded-2xl" /> : <span className="whitespace-pre-wrap">{text}</span>}
+        </div>
+        <span className="px-2 text-[9px] font-black uppercase tracking-widest text-muted">{timeLabel}</span>
+      </div>
+    </div>
+  );
+}
+
+function PendingImageCard({
+  preview,
+  onRemove,
+}: {
+  preview: string;
+  onRemove: () => void;
+}) {
+  return (
+    <div className="mb-3 flex items-center justify-between gap-3 rounded-3xl border border-hairline bg-surface-soft p-3">
+      <div className="flex items-center gap-3 min-w-0">
+        <img src={preview} alt="preview" className="w-14 h-14 rounded-2xl object-cover shrink-0" />
+        <div className="min-w-0">
+          <p className="text-xs font-black text-ink truncate">图片已准备发送</p>
+          <p className="text-[10px] text-muted font-medium truncate">发送前可继续输入文字</p>
+        </div>
+      </div>
+      <button onClick={onRemove} className="p-2 rounded-full hover:bg-white">
+        <X className="w-4 h-4" />
+      </button>
+    </div>
+  );
+}

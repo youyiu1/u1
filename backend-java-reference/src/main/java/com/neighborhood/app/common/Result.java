@@ -1,0 +1,38 @@
+/**
+ * @license
+ * SPDX-License-Identifier: Apache-2.0
+ */
+
+package com.neighborhood.app.common;
+
+import java.util.List;
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+
+/** 文件作用：统一返回结果封装。 */
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
+public class Result<T> {
+    private Boolean success;
+    private String message;
+    private T data;
+    private Long total;
+
+    public static <T> Result<T> ok() {
+        return new Result<>(true, "success", null, null);
+    }
+
+    public static <T> Result<T> ok(T data) {
+        return new Result<>(true, "success", data, null);
+    }
+
+    public static <T> Result<List<T>> ok(List<T> data, Long total) {
+        return new Result<>(true, "success", data, total);
+    }
+
+    public static <T> Result<T> fail(String message) {
+        return new Result<>(false, message, null, null);
+    }
+}

@@ -1,0 +1,265 @@
+/**
+ * @license
+ * SPDX-License-Identifier: Apache-2.0
+ */
+
+import React, { useEffect, useState } from 'react';
+import { Bike, MapPin, MoreHorizontal, Plus, Smartphone, Sofa, Sparkles, Shirt } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
+import { BackToTop } from '../../components/common/BackToTop';
+import { FavoriteButton } from '../../components/common/FavoriteButton';
+import { MarketStatusBadge } from '../../components/common/MarketStatusBadge';
+import { Pagination } from '../../components/common/Pagination';
+import { PublishOverlay } from '../../components/publish/PublishOverlay';
+import { useAuthCheck } from '../../context/useAuthCheck';
+import { marketApi } from '../../services/api';
+import { Item } from '../../types';
+import { fallbackText, formatCurrency } from '../../utils/display';
+import { getErrorMessage } from '../../utils/error';
+import { getItemPrimaryImage } from '../../utils/images';
+
+type MarketCategory = {
+  id: string;
+  name: string;
+  icon: React.ReactNode;
+};
+
+const CATEGORIES: MarketCategory[] = [
+  { id: 'all', name: '全部', icon: <Sparkles className="h-4 w-4" /> },
+  { id: 'tech', name: '数码', icon: <Smartphone className="h-4 w-4" /> },
+  { id: 'home', name: '家居', icon: <Sofa className="h-4 w-4" /> },
+  { id: 'fashion', name: '美妆', icon: <Sparkles className="h-4 w-4" /> },
+  { id: 'clothing', name: '穿搭', icon: <Shirt className="h-4 w-4" /> },
+  { id: 'sports', name: '户外', icon: <Bike className="h-4 w-4" /> },
+  { id: 'others', name: '其他', icon: <MoreHorizontal className="h-4 w-4" /> },
+];
+
+const DEFAULT_PAGE_SIZE = 10;
+
+function getConditionLabel(item: Item) {
+  return fallbackText(item.itemCondition || item.condition, '全新');
+}
+
+function getLocationLabel(item: Item) {
+  return fallbackText(item.location, '附近');
+}
+
+function getSellerName(item: Item) {
+  return fallbackText(item.seller?.name || item.sellerName, '本地卖家');
+}
+
+function getSellerAvatar(item: Item) {
+  return item.seller?.avatar || item.sellerAvatar || '';
+}
+
+export default function MarketListPage() {
+  const navigate = useNavigate();
+  const { requireAuth } = useAuthCheck();
+
+  const [items, setItems] = useState<Item[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [activeCategory, setActiveCategory] = useState('all');
+  const [isPublishOpen, setIsPublishOpen] = useState(false);
+  const [currentPage, setCurrentPage] = useState(1);
+  const [pageSize, setPageSize] = useState(DEFAULT_PAGE_SIZE);
+  const [totalItems, setTotalItems] = useState(0);
+
+  useEffect(() => {
+    const fetchItems = async () => {
+      try {
+        setLoading(true);
+        setError(null);
+        const result = await marketApi.list({
+          category: activeCategory,
+          pageNum: currentPage,
+          pageSize,
+        });
+        setItems(result.data);
+        setTotalItems(result.total);
+      } catch (fetchError: unknown) {
+        setError(getErrorMessage(fetchError, '加载失败'));
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    void fetchItems();
+  }, [activeCategory, currentPage, pageSize]);
+
+  const totalPages = Math.max(1, Math.ceil(totalItems / pageSize));
+
+  useEffect(() => {
+    if (currentPage > totalPages) {
+      setCurrentPage(totalPages);
+    }
+  }, [currentPage, totalPages]);
+
+  return (
+    <div className="min-h-screen pb-20">
+      <div className="pb-8 pt-10 sm:pt-12">
+        <div className="mx-auto max-w-[1280px] px-4 sm:px-6 lg:px-20">
+          <div className="px-1 py-3 sm:px-2 sm:py-4">
+            <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
+              <div className="min-w-0">
+                <div className="inline-flex items-center gap-2 rounded-full bg-primary/5 px-3 py-1.5 text-[11px] font-semibold tracking-[0.16em] text-primary">
+                  <Sparkles className="h-3.5 w-3.5" />
+                  闲置交易
+                </div>
+                <h1 className="mt-4 text-[26px] font-semibold tracking-[-0.03em] text-ink sm:text-[32px]">找同城好物，直接按分类挑</h1>
+              </div>
+
+              <div className="flex flex-col gap-3 sm:flex-row lg:justify-end">
+                <button
+                  type="button"
+                  className="flex items-center justify-center gap-2 rounded-2xl border border-hairline bg-white px-5 py-3 text-sm font-black text-secondary transition-all hover:border-primary/30 hover:text-primary"
+                >
+                  <MapPin className="h-4 w-4" />
+                  默认同城展示
+                </button>
+
+                <button
+                  onClick={() => requireAuth(() => setIsPublishOpen(true))}
+                  className="flex items-center justify-center gap-2 rounded-2xl bg-primary px-5 py-3 text-sm font-black text-white shadow-lg shadow-primary/15 transition-all hover:bg-primary-hover"
+                >
+                  <Plus className="h-4 w-4" />
+                  发布闲置
+                </button>
+              </div>
+            </div>
+
+            <div className="mt-2.5">
+              <p className="max-w-2xl text-[14px] font-normal leading-6 text-secondary sm:text-[15px]">
+                同城见面更方便，价格更透明，沟通更直接。
+              </p>
+              <p className="mt-2 text-[14px] font-semibold text-ink">默认同城优先展示</p>
+              <p className="mt-1 text-xs text-muted">可按分类快速筛选附近闲置好物。</p>
+            </div>
+          </div>
+
+          <div className="mt-4 px-1 sm:px-2">
+            <div className="no-scrollbar mt-5 flex items-center gap-3 overflow-x-auto pb-3 sm:gap-4">
+              {CATEGORIES.map((category) => (
+                <button
+                  key={category.id}
+                  onClick={() => {
+                    setActiveCategory(category.id);
+                    setCurrentPage(1);
+                  }}
+                  className={`flex shrink-0 items-center gap-2 rounded-2xl px-5 py-3 text-sm font-bold transition-all ${
+                    activeCategory === category.id
+                      ? 'bg-primary text-white'
+                      : 'border border-hairline bg-[#fcfaf7] text-secondary hover:border-primary/20 hover:bg-white'
+                  }`}
+                >
+                  {category.icon}
+                  {category.name}
+                </button>
+              ))}
+            </div>
+          </div>
+        </div>
+        <div className="mx-auto mt-2 max-w-[1280px] px-4 sm:px-6 lg:px-20">
+          <div className="h-px w-full bg-stone-200/80" />
+        </div>
+      </div>
+
+      <main className="mx-auto max-w-[1280px] px-4 py-8 sm:px-6 sm:py-10 lg:px-20">
+        <div className="rounded-[24px] border border-stone-200/80 bg-white/90 px-3 py-5 shadow-[0_12px_32px_rgba(15,23,42,0.04)] sm:px-5 sm:py-6">
+          <div className="mb-6 flex items-center justify-between sm:mb-8">
+            <h2 className="text-lg font-bold text-ink sm:text-xl">附近好物</h2>
+          </div>
+
+          {error ? <div className="py-8 text-center text-red-500">{error}</div> : null}
+
+          <div className="grid grid-cols-1 gap-x-4 gap-y-8 xs:grid-cols-2 sm:gap-x-6 sm:gap-y-10 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5">
+            {loading ? (
+              Array.from({ length: 10 }).map((_, index) => (
+                <div key={index} className="space-y-3">
+                  <div className="aspect-square animate-pulse rounded-2xl bg-stone-200" />
+                  <div className="h-4 animate-pulse rounded bg-stone-200" />
+                  <div className="h-3 w-1/2 animate-pulse rounded bg-stone-200" />
+                </div>
+              ))
+            ) : totalItems === 0 ? (
+              <div className="col-span-full py-16 text-center text-muted">暂无商品</div>
+            ) : (
+              items.map((item) => (
+                <React.Fragment key={item.id}>
+                  <MarketItemCard item={item} onClick={() => navigate(`/item/${item.id}`)} />
+                </React.Fragment>
+              ))
+            )}
+          </div>
+          <Pagination
+            currentPage={currentPage}
+            totalPages={totalPages}
+            totalItems={totalItems}
+            pageSize={pageSize}
+            onPageChange={setCurrentPage}
+            onPageSizeChange={(size) => {
+              setPageSize(size);
+              setCurrentPage(1);
+            }}
+          />
+        </div>
+      </main>
+
+      <BackToTop />
+      <PublishOverlay isOpen={isPublishOpen} onClose={() => setIsPublishOpen(false)} defaultSelectedId="market" />
+    </div>
+  );
+}
+
+function MarketItemCard({ item, onClick }: { item: Item; onClick: () => void }) {
+  const primaryImage = getItemPrimaryImage(item);
+  const sellerAvatar = getSellerAvatar(item);
+
+  return (
+    <div className="group cursor-pointer" onClick={onClick}>
+      <div className="relative mb-3 aspect-square overflow-hidden rounded-2xl bg-surface-soft">
+        {primaryImage ? (
+          <img
+            src={primaryImage}
+            className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-105"
+            alt={item.title}
+          />
+        ) : (
+          <div className="flex h-full w-full items-center justify-center text-xs text-stone-400">暂无图片</div>
+        )}
+
+        <div className="absolute left-3 top-3 rounded bg-red-400/90 px-2 py-1 text-[10px] font-bold text-white backdrop-blur-md">
+          {getConditionLabel(item)}
+        </div>
+        <div className="absolute right-3 top-14 z-[1]">
+          <MarketStatusBadge status={item.status} rejectReason={item.rejectReason} />
+        </div>
+        <FavoriteButton targetId={item.id} targetType="market" />
+      </div>
+
+      <h3 className="mb-1 line-clamp-1 text-sm font-bold text-ink transition-colors group-hover:text-primary">{item.title}</h3>
+
+      <div className="mb-2 flex items-center gap-2">
+        <MapPin className="h-3 w-3 text-muted" />
+        <span className="text-[10px] text-muted">{getLocationLabel(item)}</span>
+      </div>
+
+      <div className="flex items-center justify-between">
+        <div>
+          <span className="text-lg font-bold text-ink">{formatCurrency(item.price)}</span>
+          {item.originalPrice ? <span className="ml-1 text-[10px] text-muted line-through">{formatCurrency(item.originalPrice)}</span> : null}
+        </div>
+        <div className="flex items-center gap-1 opacity-0 transition-opacity group-hover:opacity-100">
+          {sellerAvatar ? (
+            <img src={sellerAvatar} className="h-4 w-4 rounded-full border border-hairline object-cover" alt={getSellerName(item)} />
+          ) : (
+            <div className="flex h-4 w-4 items-center justify-center rounded-full border border-hairline bg-surface-soft text-[8px] text-muted">
+              {getSellerName(item).slice(0, 1)}
+            </div>
+          )}
+          <span className="text-[9px] font-medium text-secondary">{getSellerName(item)}</span>
+        </div>
+      </div>
+    </div>
+  );
+}
