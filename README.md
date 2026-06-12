@@ -104,180 +104,92 @@
 
 ```text
 neighborhood/
-├─ backend-java-reference/                              # 后端 Spring Boot 项目
-│  ├─ Dockerfile                                        # 后端镜像构建文件
-│  ├─ pom.xml                                           # Maven 依赖与插件配置
-│  ├─ application-secret.example.yml                    # 私有配置示例
-│  ├─ sql/                                              # 数据库脚本
-│  │  ├─ init.sql                                       # 完整初始化脚本
-│  │  ├─ schema.sql                                     # 基础表结构脚本
-│  │  ├─ performance_indexes.sql                        # 性能索引脚本
-│  │  ├─ booking_order_notification_migration.sql       # 预约、订单、通知迁移脚本
-│  │  └─ update_booking_order.sql                       # 订单字段更新脚本
-│  └─ src/
-│     ├─ main/java/com/neighborhood/app/
-│     │  ├─ Application.java                            # 后端启动入口
-│     │  ├─ common/                                     # 通用响应与异常处理
-│     │  │  ├─ Result.java                              # 统一响应结构
-│     │  │  ├─ ResultUtils.java                         # 响应构造工具
-│     │  │  └─ GlobalExceptionHandler.java              # 全局异常处理
-│     │  ├─ config/                                     # 基础设施配置
-│     │  │  ├─ WebConfig.java                           # Web 与拦截器配置
-│     │  │  ├─ RedisConfig.java                         # Redis 配置
-│     │  │  ├─ CaffeineConfig.java                      # 本地缓存配置
-│     │  │  ├─ RabbitMqConfig.java                      # RabbitMQ 队列配置
-│     │  │  ├─ S3Config.java                            # RustFS/S3 配置
-│     │  │  ├─ JacksonConfig.java                       # JSON 序列化配置
-│     │  │  ├─ OpenApiConfig.java                       # OpenAPI 配置
-│     │  │  └─ SecurityStartupValidator.java            # 生产安全配置检查
-│     │  ├─ controller/                                 # REST 控制器
-│     │  │  ├─ client/                                  # 用户端接口
-│     │  │  │  ├─ UserController.java                   # 登录、注册、用户资料
-│     │  │  │  ├─ ServiceController.java                # 生活服务、预约、评价
-│     │  │  │  ├─ MarketController.java                 # 闲置交易
-│     │  │  │  ├─ NewsController.java                   # 同城动态、评论、点赞
-│     │  │  │  ├─ MessageController.java                # 消息会话
-│     │  │  │  ├─ NotificationController.java           # 通知中心
-│     │  │  │  ├─ FileController.java                   # 文件上传与访问
-│     │  │  │  ├─ FavoriteController.java               # 收藏功能
-│     │  │  │  ├─ OrderController.java                  # 订单管理
-│     │  │  │  ├─ CategoryController.java               # 分类读取
-│     │  │  │  ├─ HomeController.java                   # 首页聚合数据
-│     │  │  │  ├─ SearchController.java                 # 搜索接口
-│     │  │  │  └─ AiController.java                     # AI 对话接口
-│     │  │  └─ admin/                                   # 管理端接口
-│     │  │     ├─ AdminAuthController.java              # 管理员认证
-│     │  │     ├─ AdminDashboardController.java         # 仪表盘统计
-│     │  │     ├─ AdminUserController.java              # 用户与黑名单管理
-│     │  │     ├─ AdminCommerceController.java          # 服务、商品、订单管理
-│     │  │     ├─ AdminContentController.java           # 动态、评论、图片审核
-│     │  │     ├─ AdminSystemController.java            # 分类、通知、菜单、角色
-│     │  │     ├─ AdminSecurityController.java          # 登录日志、操作日志
-│     │  │     └─ module/                               # 管理端模块化查询逻辑
-│     │  ├─ dto/                                        # 请求参数对象
-│     │  │  ├─ user/                                    # 登录、注册、资料、密码请求
-│     │  │  ├─ service/                                 # 服务预约、评价请求
-│     │  │  ├─ market/                                  # 闲置交易请求
-│     │  │  ├─ message/                                 # 消息发送请求
-│     │  │  ├─ notification/                            # 通知处理请求
-│     │  │  ├─ interaction/                             # 收藏、评论请求
-│     │  │  └─ admin/                                   # 管理端请求对象
-│     │  ├─ entity/                                     # 数据库实体
-│     │  │  ├─ user/                                    # 用户、关注
-│     │  │  ├─ service/                                 # 服务、预约、订单、评价、通知
-│     │  │  ├─ market/                                  # 闲置商品、收藏
-│     │  │  ├─ content/                                 # 动态、评论、评论点赞
-│     │  │  ├─ message/                                 # 私信消息
-│     │  │  ├─ system/                                  # 分类、搜索结果
-│     │  │  └─ admin/                                   # 管理角色、日志、黑名单、图片状态
-│     │  ├─ mapper/                                     # MyBatis-Plus Mapper
-│     │  │  ├─ user/                                    # 用户与关注 Mapper
-│     │  │  ├─ service/                                 # 服务、订单、通知 Mapper
-│     │  │  ├─ market/                                  # 闲置与收藏 Mapper
-│     │  │  ├─ content/                                 # 动态、评论 Mapper
-│     │  │  ├─ message/                                 # 消息 Mapper
-│     │  │  ├─ system/                                  # 分类 Mapper
-│     │  │  └─ admin/                                   # 管理端 Mapper
-│     │  ├─ service/                                    # 业务服务接口
-│     │  │  ├─ impl/                                    # 业务服务实现
-│     │  │  ├─ UserService.java                         # 用户业务
-│     │  │  ├─ ServiceModuleService.java                # 生活服务业务
-│     │  │  ├─ MarketService.java                       # 闲置交易业务
-│     │  │  ├─ NewsService.java                         # 动态业务
-│     │  │  ├─ MessageService.java                      # 消息业务
-│     │  │  ├─ NotificationService.java                 # 通知业务
-│     │  │  ├─ FileService.java                         # 文件业务
-│     │  │  ├─ CaptchaService.java                      # 图形验证码
-│     │  │  └─ SecurityRateLimitService.java            # 安全限流
-│     │  ├─ messaging/                                  # RabbitMQ 消息模型与监听器
-│     │  ├─ interceptor/                                # 鉴权与性能拦截器
-│     │  ├─ handler/                                    # MySQL JSON 类型处理
-│     │  ├─ util/                                       # JWT 等兼容工具
-│     │  ├─ utils/                                      # 通用工具类
-│     │  └─ vo/                                         # 返回视图对象
-│     └─ test/                                          # 测试目录
+├─ backend-java-reference/                         # 后端 Spring Boot 项目
+│  ├─ sql/                                         # 数据库初始化、迁移、索引脚本
+│  ├─ src/main/java/com/neighborhood/app/          # 后端主代码
+│  │  ├─ common/                                   # 统一响应、异常处理、上下文工具
+│  │  ├─ config/                                   # Web、Redis、缓存、RabbitMQ、S3、监控配置
+│  │  ├─ controller/                               # REST 接口层
+│  │  │  ├─ client/                                # 用户端接口
+│  │  │  ├─ admin/                                 # 管理端接口
+│  │  │  └─ admin/module/                          # 管理端模块化查询与处理逻辑
+│  │  ├─ dto/                                      # 请求参数对象
+│  │  │  ├─ user/                                  # 用户、登录、注册、设置相关请求
+│  │  │  ├─ service/                               # 服务预约与评价请求
+│  │  │  ├─ market/                                # 闲置交易请求
+│  │  │  ├─ content/                               # 内容相关扩展请求
+│  │  │  ├─ interaction/                           # 评论、收藏等互动请求
+│  │  │  ├─ message/                               # 消息发送请求
+│  │  │  ├─ notification/                          # 通知处理请求
+│  │  │  └─ admin/                                 # 管理端请求对象
+│  │  ├─ entity/                                   # 数据库实体
+│  │  │  ├─ user/                                  # 用户与关注
+│  │  │  ├─ service/                               # 服务、预约、订单、评价、通知
+│  │  │  ├─ market/                                # 闲置商品与收藏
+│  │  │  ├─ content/                               # 动态、评论、点赞
+│  │  │  ├─ message/                               # 私信消息
+│  │  │  ├─ system/                                # 分类、搜索
+│  │  │  └─ admin/                                 # 管理角色、日志、黑名单、审核状态
+│  │  ├─ mapper/                                   # MyBatis-Plus 数据访问层
+│  │  ├─ service/                                  # 业务服务接口
+│  │  │  └─ impl/                                  # 业务服务实现
+│  │  ├─ messaging/                                # RabbitMQ 消息模型与监听器
+│  │  ├─ interceptor/                              # 鉴权、性能拦截器
+│  │  ├─ handler/                                  # 自定义类型处理器
+│  │  ├─ util/                                     # 兼容工具类
+│  │  ├─ utils/                                    # 通用业务工具类
+│  │  └─ vo/                                       # 返回视图对象
+│  ├─ src/test/                                    # 后端测试目录
+│  └─ 项目配置                                      # 后端依赖、镜像、私有配置示例
 │
-├─ frontend/                                            # 前端 React 项目
-│  ├─ Dockerfile                                        # 前端镜像构建文件
-│  ├─ package.json                                      # 前端依赖与脚本
-│  ├─ vite.config.ts                                    # Vite 配置
-│  ├─ tsconfig.json                                     # TypeScript 配置
-│  ├─ index.html                                        # 前端入口 HTML
-│  ├─ public/                                           # 静态资源
-│  │  └─ favicon.svg                                    # 站点图标
-│  ├─ docker-entrypoint.d/                              # Nginx 容器启动脚本
-│  └─ src/
-│     ├─ main.tsx                                      # React 挂载入口
-│     ├─ App.tsx                                       # 根应用与路由入口
-│     ├─ index.css                                     # 全局样式
-│     ├─ admin/                                        # 管理端
-│     │  ├─ AdminApp.tsx                               # 管理端应用入口
-│     │  ├─ admin.css                                  # 管理端样式
-│     │  ├─ components/                                # 管理端页面组件
-│     │  │  ├─ DashboardView.tsx                       # 仪表盘
-│     │  │  ├─ UserManagementView.tsx                  # 用户管理
-│     │  │  ├─ GoodsManagementView.tsx                 # 闲置管理
-│     │  │  ├─ ServiceManagementView.tsx               # 服务管理
-│     │  │  ├─ OrderManagementView.tsx                 # 订单管理
-│     │  │  ├─ DynamicManagementView.tsx               # 动态管理
-│     │  │  ├─ CommentManagementView.tsx               # 评论管理
-│     │  │  ├─ ImageManagementView.tsx                 # 图片审核
-│     │  │  ├─ MessageManagementView.tsx               # 消息管理
-│     │  │  ├─ RoleManagementView.tsx                  # 角色管理
-│     │  │  ├─ PermissionManagementView.tsx            # 权限管理
-│     │  │  └─ common/                                 # 管理端通用组件
-│     │  ├─ hooks/                                     # Toast、延迟忙碌状态等 Hooks
-│     │  ├─ services/                                  # 管理端 API 封装
-│     │  ├─ utils/                                     # 管理端搜索、分组、图片工具
-│     │  └─ types.ts                                   # 管理端类型定义
-│     └─ user/                                         # 用户端
-│        ├─ assets/                                    # 用户端资源
-│        ├─ components/                                # 用户端组件
-│        │  ├─ auth/                                   # 登录注册动画与表单组件
-│        │  ├─ chat/                                   # 聊天窗口
-│        │  ├─ common/                                 # 按钮、弹窗、收藏、点赞等通用组件
-│        │  ├─ home/                                   # 首页模块
-│        │  ├─ layout/                                 # 顶部栏、底部栏、整体布局
-│        │  ├─ profile/                                # 个人主页与编辑资料
-│        │  ├─ publish/                                # 发布入口
-│        │  └─ settings/                               # 设置弹层
-│        ├─ context/                                   # Auth、Chat、Notification、Theme 等上下文
-│        ├─ hooks/                                     # 关注、点赞收藏等业务 Hooks
-│        ├─ pages/                                     # 用户端页面
-│        │  ├─ auth/                                   # 登录、注册
-│        │  ├─ home/                                   # 首页
-│        │  ├─ market/                                 # 闲置列表与详情
-│        │  ├─ news/                                   # 动态列表与详情
-│        │  ├─ profile/                                # 个人主页
-│        │  ├─ service/                                # 服务列表与详情
-│        │  ├─ search/                                 # 搜索页
-│        │  └─ legal/                                  # 协议与隐私
-│        ├─ services/                                  # 用户端 API 封装
-│        ├─ utils/                                     # 图片、路由、缓存、展示等工具
-│        ├─ constants.ts                               # 用户端常量
-│        └─ types.ts                                   # 用户端类型定义
+├─ frontend/                                      # 前端 React 项目
+│  ├─ src/                                       # 前端源码
+│  │  ├─ admin/                                 # 管理端
+│  │  │  ├─ components/                         # 管理端页面与通用组件
+│  │  │  ├─ hooks/                              # 管理端 Hooks
+│  │  │  ├─ services/                           # 管理端 API 封装
+│  │  │  └─ utils/                              # 管理端工具函数
+│  │  └─ user/                                  # 用户端
+│  │     ├─ assets/                             # 用户端资源
+│  │     ├─ components/                         # 用户端组件
+│  │     │  ├─ auth/                            # 登录注册相关组件
+│  │     │  ├─ chat/                            # 聊天组件
+│  │     │  ├─ common/                          # 通用组件
+│  │     │  ├─ home/                            # 首页组件
+│  │     │  ├─ layout/                          # 页面布局组件
+│  │     │  ├─ profile/                         # 个人主页组件
+│  │     │  ├─ publish/                         # 发布相关组件
+│  │     │  └─ settings/                        # 设置弹层组件
+│  │     ├─ context/                            # 登录、主题、聊天、通知等上下文
+│  │     ├─ hooks/                              # 关注、点赞、收藏等业务 Hooks
+│  │     ├─ pages/                              # 页面目录
+│  │     │  ├─ auth/                            # 登录注册页
+│  │     │  ├─ home/                            # 首页
+│  │     │  ├─ market/                          # 闲置交易页
+│  │     │  ├─ news/                            # 同城动态页
+│  │     │  ├─ profile/                         # 个人主页
+│  │     │  ├─ service/                         # 生活服务页
+│  │     │  ├─ search/                          # 搜索页
+│  │     │  └─ legal/                           # 协议与隐私页
+│  │     ├─ services/                           # 用户端 API 封装
+│  │     └─ utils/                              # 用户端工具函数
+│  ├─ public/                                   # 静态资源
+│  ├─ docker-entrypoint.d/                      # 前端容器启动脚本
+│  └─ 项目配置                                   # 前端依赖、构建、类型检查、镜像配置
 │
-├─ deploy/                                              # 部署与监控配置
-│  ├─ docker-compose.ps1                                # Docker Compose 启动封装
-│  ├─ nginx-docker.conf                                 # 容器 Nginx 配置
-│  ├─ nginx-neighborhood.conf                           # 传统 Nginx 配置
-│  ├─ prometheus.yml                                    # Prometheus 配置
-│  ├─ docker-prometheus.yml                             # Docker Prometheus 配置
-│  ├─ grafana-dashboard-neighborhood.json               # Grafana 仪表盘
-│  ├─ grafana-dashboard-provider.yml                    # Grafana 仪表盘加载配置
-│  ├─ grafana-datasource.yml                            # Grafana 数据源配置
-│  └─ certs/                                            # 证书挂载目录，仅保留 .gitkeep
+├─ deploy/                                       # 部署与监控配置
+│  ├─ certs/                                    # 证书挂载目录
+│  ├─ nginx/                                    # Nginx 反向代理与静态资源配置
+│  ├─ prometheus/                               # Prometheus 指标采集配置
+│  ├─ grafana/                                  # Grafana 数据源与仪表盘配置
+│  └─ scripts/                                  # 容器启动与部署辅助脚本
 │
-├─ docs/                                                # 项目文档
-│  └─ prompts/                                          # 需求与开发提示词记录
-├─ docker-compose.yml                                   # 本地/服务器容器编排
-├─ install_rustfs.sh                                    # RustFS 安装辅助脚本
-├─ .dockerignore                                        # Docker 构建忽略规则
-├─ .gitignore                                           # Git 忽略规则
-├─ .env.docker.example                                  # Docker 环境变量示例
-├─ AGENTS.md                                            # Codex 协作规则
-├─ CLAUDE.md                                            # Claude 协作说明
-└─ README.md                                            # 项目介绍
+├─ docs/                                         # 项目文档
+│  └─ prompts/                                  # 需求与提示词记录
+├─ 容器编排配置                                  # Docker Compose 与服务编排
+├─ 环境变量示例                                  # Docker、本地运行示例配置
+├─ 协作规则文档                                  # AI 协作与项目约束说明
+└─ 项目说明文档                                  # README 项目介绍
 ```
 
 ---
