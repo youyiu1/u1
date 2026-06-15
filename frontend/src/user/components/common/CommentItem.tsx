@@ -21,6 +21,7 @@ interface CommentItemProps {
   onAfterLike?: () => void | Promise<void>;
   onReply?: (comment: Comment) => void;
   compact?: boolean;
+  children?: React.ReactNode;
 }
 
 export const CommentItem: React.FC<CommentItemProps> = ({
@@ -30,6 +31,7 @@ export const CommentItem: React.FC<CommentItemProps> = ({
   onAfterLike,
   onReply,
   compact = false,
+  children,
 }) => {
   const navigate = useNavigate();
   const { showToast } = useToast();
@@ -80,7 +82,9 @@ export const CommentItem: React.FC<CommentItemProps> = ({
       animate={{ opacity: 1 }}
       onClick={() => onReply?.(comment)}
       className={`group cursor-pointer border border-transparent text-left transition-all hover:border-hairline ${
-        compact ? 'flex gap-2.5 rounded-xl p-2.5 hover:bg-surface-soft/70' : 'flex gap-5 rounded-[32px] px-6 pb-2 pt-5 hover:bg-surface-soft'
+        compact
+          ? 'flex gap-2.5 rounded-2xl bg-surface-soft/70 px-3 py-2.5 hover:border-primary/10 hover:bg-white'
+          : 'flex gap-5 rounded-[32px] px-6 pb-2 pt-5 hover:bg-surface-soft'
       }`}
     >
       <div
@@ -97,7 +101,7 @@ export const CommentItem: React.FC<CommentItemProps> = ({
       >
         <img
           src={avatar}
-          className={`${compact ? 'h-7 w-7 rounded-md' : 'h-12 w-12'} border border-hairline object-cover transition-transform group-hover:scale-110`}
+          className={`${compact ? 'h-7 w-7 rounded-lg' : 'h-12 w-12'} border border-hairline object-cover transition-transform group-hover:scale-110`}
           alt={userName}
         />
       </div>
@@ -137,7 +141,12 @@ export const CommentItem: React.FC<CommentItemProps> = ({
             </button>
           </div>
         </div>
-        <p className={`${compact ? 'mb-1 text-[11px] leading-snug' : 'mb-1.5 text-sm leading-relaxed'} font-medium text-secondary`}>{content}</p>
+        <p className={`${compact ? 'mb-0.5 text-[12px] leading-5 text-secondary/90' : 'mb-1.5 text-sm leading-relaxed text-secondary'} font-medium`}>{content}</p>
+        {children ? (
+          <div className={compact ? 'mt-2' : 'mt-3'} onClick={(event) => event.stopPropagation()}>
+            {children}
+          </div>
+        ) : null}
       </div>
     </motion.div>
   );

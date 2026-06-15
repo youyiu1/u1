@@ -35,6 +35,7 @@ type SurfaceSize = {
 
 const STORAGE_KEY = 'ai_assistant_messages';
 const POSITION_STORAGE_KEY = 'ai_assistant_position';
+const POSITION_CUSTOM_KEY = 'ai_assistant_position_custom';
 const MAX_MESSAGES = 24;
 const DRAG_THRESHOLD = 6;
 const DEFAULT_SYSTEM_PROMPT =
@@ -88,6 +89,10 @@ function readStoredPosition(): FloatingPosition | null {
   }
 
   try {
+    if (window.localStorage.getItem(POSITION_CUSTOM_KEY) !== '1') {
+      return null;
+    }
+
     const raw = window.localStorage.getItem(POSITION_STORAGE_KEY);
     if (!raw) {
       return null;
@@ -102,6 +107,14 @@ function readStoredPosition(): FloatingPosition | null {
   } catch {
     return null;
   }
+}
+
+function hasStoredCustomPosition(): boolean {
+  if (typeof window === 'undefined') {
+    return false;
+  }
+
+  return readStoredPosition() !== null;
 }
 
 function getViewportMargin() {
@@ -251,6 +264,7 @@ export function AiAssistantWidget() {
   const [isSending, setIsSending] = useState(false);
   const [messages, setMessages] = useState<AiMessage[]>(() => readStoredMessages());
   const [buttonPosition, setButtonPosition] = useState<FloatingPosition>(() => readStoredPosition() ?? getDefaultPosition(false));
+  const [hasCustomPosition, setHasCustomPosition] = useState(hasStoredCustomPosition);
   const [panelPosition, setPanelPosition] = useState<FloatingPosition | null>(null);
   const [isDragging, setIsDragging] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
@@ -277,8 +291,12 @@ export function AiAssistantWidget() {
     if (typeof window === 'undefined') {
       return;
     }
+    if (!hasCustomPosition) {
+      return;
+    }
     window.localStorage.setItem(POSITION_STORAGE_KEY, JSON.stringify(buttonPosition));
-  }, [buttonPosition]);
+    window.localStorage.setItem(POSITION_CUSTOM_KEY, '1');
+  }, [buttonPosition, hasCustomPosition]);
 
   useEffect(() => {
     if (!scrollRef.current) {
@@ -324,8 +342,8 @@ export function AiAssistantWidget() {
     }
 
     const handleResize = () => {
-      setButtonPosition((current) => clampButtonPosition(current, getCurrentSurfaceSize(false)));
-      setPanelPosition((current) => (current ? clampPosition(current, getCurrentSurfaceSize(true)) : current));
+      setButtonPosition(getDefaultPosition(false));
+      setPanelPosition((current) => (current ? getDefaultPosition(true) : current));
     };
 
     window.addEventListener('resize', handleResize);
@@ -421,6 +439,7 @@ export function AiAssistantWidget() {
     const movedY = Math.abs(event.clientY - dragState.startY);
     if (movedX > DRAG_THRESHOLD || movedY > DRAG_THRESHOLD) {
       suppressToggleRef.current = true;
+      setHasCustomPosition(true);
     }
 
     const nextPosition = (openState ? clampPosition : clampButtonPosition)(

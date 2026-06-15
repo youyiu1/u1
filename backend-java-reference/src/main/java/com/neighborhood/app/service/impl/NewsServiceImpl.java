@@ -192,6 +192,9 @@ public class NewsServiceImpl extends ServiceImpl<NewsMapper, News> implements Ne
             }
         }
         commentMapper.insert(comment);
+        lambdaUpdate().eq(News::getId, newsId)
+                .setSql(CounterSqlUtil.nonNegativeCoalescedDelta("comments_count", 1))
+                .update();
         evictNewsDetailAndHome(newsId);
     }
 

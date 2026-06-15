@@ -9,6 +9,8 @@ import { AuthProvider } from './user/context/AuthContext';
 import { ChatProvider } from './user/context/ChatContext';
 import { NotificationProvider } from './user/context/NotificationContext';
 import { PublishProvider } from './user/context/PublishContext';
+import { AppQueryProvider } from './user/context/QueryProvider';
+import { RealtimeProvider } from './user/context/RealtimeContext';
 import { ThemeProvider } from './user/context/ThemeContext';
 import { ToastProvider } from './user/context/ToastContext';
 import Layout from './user/components/layout/Layout';
@@ -38,41 +40,45 @@ function PageFallback() {
 
 export default function App() {
   return (
-    <ThemeProvider>
-      <AuthProvider>
-        <ToastProvider>
-          <NotificationProvider>
-            <ChatProvider>
-              <PublishProvider>
-                <BrowserRouter>
-                  <Suspense fallback={<PageFallback />}>
-                    <Routes>
-                      <Route path="/admin/*" element={<AdminApp />} />
-                      <Route path="/" element={<Layout />}>
-                        <Route index element={<Home />} />
-                        <Route path="service" element={<ServiceList />} />
-                        <Route path="service/:id" element={<ServiceDetail />} />
-                        <Route path="market" element={<MarketList />} />
-                        <Route path="item/:id" element={<ItemDetail />} />
-                        <Route path="news" element={<News />} />
-                        <Route path="news/:id" element={<NewsDetail />} />
-                        <Route path="profile" element={<Profile />} />
-                        <Route path="profile/:username" element={<Profile />} />
-                        <Route path="search" element={<Search />} />
-                        <Route path="login" element={<Login />} />
-                        <Route path="register" element={<Register />} />
-                        <Route path="terms" element={<Terms />} />
-                        <Route path="privacy" element={<Privacy />} />
-                        <Route path="*" element={<Home />} />
-                      </Route>
-                    </Routes>
-                  </Suspense>
-                </BrowserRouter>
-              </PublishProvider>
-            </ChatProvider>
-          </NotificationProvider>
-        </ToastProvider>
-      </AuthProvider>
-    </ThemeProvider>
+    <AppQueryProvider>
+      <ThemeProvider>
+        <AuthProvider>
+          <ToastProvider>
+            <NotificationProvider>
+              <ChatProvider>
+                <RealtimeProvider>
+                  <PublishProvider>
+                    <BrowserRouter>
+                      <Suspense fallback={<PageFallback />}>
+                        <Routes>
+                          <Route path="/admin/*" element={<AdminApp />} />
+                          <Route path="/" element={<Layout />}>
+                            <Route index element={<Home />} />
+                            <Route path="service" element={<ServiceList />} />
+                            <Route path="service/:id" element={<ServiceDetail />} />
+                            <Route path="market" element={<MarketList />} />
+                            <Route path="item/:id" element={<ItemDetail />} />
+                            <Route path="news" element={<News />} />
+                            <Route path="news/:id" element={<NewsDetail />} />
+                            <Route path="profile" element={<Profile />} />
+                            <Route path="profile/:username" element={<Profile />} />
+                            <Route path="search" element={<Search />} />
+                            <Route path="login" element={<Login />} />
+                            <Route path="register" element={<Register />} />
+                            <Route path="terms" element={<Terms />} />
+                            <Route path="privacy" element={<Privacy />} />
+                            <Route path="*" element={<Home />} />
+                          </Route>
+                        </Routes>
+                      </Suspense>
+                    </BrowserRouter>
+                  </PublishProvider>
+                </RealtimeProvider>
+              </ChatProvider>
+            </NotificationProvider>
+          </ToastProvider>
+        </AuthProvider>
+      </ThemeProvider>
+    </AppQueryProvider>
   );
 }

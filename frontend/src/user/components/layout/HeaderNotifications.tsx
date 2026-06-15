@@ -1,8 +1,9 @@
 import React, { useContext, useEffect, useRef, useState } from 'react';
+import { useQuery } from '@tanstack/react-query';
 import { Bell, Check, X } from 'lucide-react';
 import { AnimatePresence, motion } from 'motion/react';
 import { notificationApi } from '../../services/api';
-import { Notification } from '../../types';
+import type { Notification } from '../../types';
 import { AuthContext } from '../../context/AuthContext';
 import { useNotification } from '../../context/NotificationContext';
 import { ConfirmDialog } from '../common/ConfirmDialog';
@@ -44,13 +45,28 @@ function getProcessErrorMessage(notification: Notification, accept: boolean) {
 
 export const HeaderNotifications: React.FC = () => {
   const { user, isAuthenticated, authReady } = useContext(AuthContext);
-  const { clearUnread, refreshTrigger } = useNotification();
+  const { clearUnread, refreshTrigger, setUnreadCount } = useNotification();
   const [showNotifications, setShowNotifications] = useState(false);
-  const [notifications, setNotifications] = useState<Notification[]>([]);
-  const [loading, setLoading] = useState(false);
   const [showConfirm, setShowConfirm] = useState(false);
   const [processingId, setProcessingId] = useState<string | null>(null);
   const containerRef = useRef<HTMLDivElement>(null);
+
+  const {
+    data: notifications = [],
+    isLoading: loading,
+    refetch: refetchNotifications,
+  } = useQuery({
+    queryKey: ['notifications', user?.id],
+    queryFn: async () => {
+      if (!user?.id) {
+        return [] as Notification[];
+      }
+      return notificationApi.list(user.id);
+    },
+    enabled: authReady && isAuthenticated && !!user?.id,
+    staleTime: 15_000,
+  });
+
   const unreadCount = notifications.filter((notification) => !notification.isRead).length;
 
   useEffect(() => {
@@ -63,42 +79,20 @@ export const HeaderNotifications: React.FC = () => {
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, [showNotifications]);
 
-  const refreshNotifications = async (userId: string, withLoading = false) => {
-    if (withLoading) {
-      setLoading(true);
-    }
-    try {
-      const data = await notificationApi.list(userId);
-      setNotifications(data);
-    } catch (error) {
-      console.error(getErrorMessage(error, '通知加载失败'));
-    } finally {
-      if (withLoading) {
-        setLoading(false);
-      }
-    }
-  };
-
   useEffect(() => {
     if (!authReady) {
       return;
     }
     if (!isAuthenticated || !user?.id) {
-      setNotifications([]);
+      setUnreadCount(0);
       return;
     }
-    void refreshNotifications(user.id, true);
-  }, [authReady, isAuthenticated, refreshTrigger, user?.id]);
+    void refetchNotifications();
+  }, [authReady, isAuthenticated, refetchNotifications, refreshTrigger, setUnreadCount, user?.id]);
 
   useEffect(() => {
-    if (!authReady || !showNotifications || !isAuthenticated || !user?.id) {
-      return;
-    }
-    const timer = window.setTimeout(() => {
-      void refreshNotifications(user.id);
-    }, 80);
-    return () => window.clearTimeout(timer);
-  }, [authReady, isAuthenticated, showNotifications, user?.id]);
+    setUnreadCount(unreadCount);
+  }, [setUnreadCount, unreadCount]);
 
   const handleMarkAllRead = () => {
     setShowConfirm(true);
@@ -111,7 +105,7 @@ export const HeaderNotifications: React.FC = () => {
     setShowConfirm(false);
     try {
       await notificationApi.markAllRead(user.id);
-      setNotifications((current) => current.map((notification) => ({ ...notification, isRead: true })));
+      await refetchNotifications();
       clearUnread();
     } catch (error) {
       console.error(getErrorMessage(error, '全部已读操作失败'));
@@ -129,7 +123,7 @@ export const HeaderNotifications: React.FC = () => {
         accept,
         sellerId: user.id,
       });
-      await refreshNotifications(user.id);
+      await refetchNotifications();
     } catch (error) {
       console.error(getErrorMessage(error, getProcessErrorMessage(notification, accept)));
     } finally {
@@ -143,9 +137,7 @@ export const HeaderNotifications: React.FC = () => {
     }
     try {
       await notificationApi.markRead(notification.id);
-      setNotifications((current) =>
-        current.map((item) => (item.id === notification.id ? { ...item, isRead: true } : item))
-      );
+      await refetchNotifications();
     } catch (error) {
       console.error(getErrorMessage(error, '通知已读更新失败'));
     }

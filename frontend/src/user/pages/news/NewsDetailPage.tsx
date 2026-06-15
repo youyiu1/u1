@@ -19,32 +19,57 @@ import { getPendingReviewState, getRejectedReviewState } from '../../utils/revie
 const COMMENT_FETCH_LIMIT = 200;
 const DETAIL_ACTION_BUTTON_CLASS = 'flex items-center gap-2 text-secondary transition-all hover:text-primary';
 
-function buildCommentMap(comments: Comment[]) {
+interface CommentThread {
+  root: Comment;
+  replies: Comment[];
+}
+
+function buildCommentThreads(comments: Comment[]): CommentThread[] {
   const commentById = new Map<string, Comment>();
-  const repliesByParentId = new Map<string, Comment[]>();
+  const threadsByRootId = new Map<string, CommentThread>();
 
   comments.forEach((comment) => {
     commentById.set(String(comment.id), comment);
   });
 
   comments.forEach((comment) => {
-    const rawParentId = comment.parentId ?? comment.parent_id;
-    const parentId = rawParentId ? String(rawParentId) : '0';
+    const parentId = getCommentParentId(comment);
+    if (parentId === '0' || !commentById.has(parentId)) {
+      threadsByRootId.set(String(comment.id), { root: comment, replies: [] });
+    }
+  });
+
+  comments.forEach((comment) => {
+    const parentId = getCommentParentId(comment);
     if (parentId === '0' || !commentById.has(parentId)) {
       return;
     }
-    if (!repliesByParentId.has(parentId)) {
-      repliesByParentId.set(parentId, []);
+
+    const rootParentId = getRootCommentId(commentById.get(parentId)!, commentById);
+    const thread = threadsByRootId.get(rootParentId);
+    if (thread) {
+      thread.replies.push(comment);
     }
-    repliesByParentId.get(parentId)?.push(comment);
   });
 
-  return { commentById, repliesByParentId };
+  return Array.from(threadsByRootId.values());
 }
 
 function getCommentParentId(comment: Comment): string {
   const rawParentId = comment.parentId ?? comment.parent_id;
   return rawParentId ? String(rawParentId) : '0';
+}
+
+function getRootCommentId(comment: Comment, commentById: Map<string, Comment>): string {
+  let current = comment;
+  let parentId = getCommentParentId(current);
+
+  while (parentId !== '0' && commentById.has(parentId)) {
+    current = commentById.get(parentId)!;
+    parentId = getCommentParentId(current);
+  }
+
+  return String(current.id);
 }
 
 export default function NewsDetailPage() {
@@ -102,17 +127,8 @@ export default function NewsDetailPage() {
   const postImages = useMemo(() => parseImages(post?.images), [post?.images]);
   const locationLabel = fallbackText(post?.location, '同城社区');
 
-  const commentTree = useMemo(() => buildCommentMap(comments), [comments]);
-
-  const rootComments = useMemo(() => {
-    const { commentById } = commentTree;
-    return comments.filter((comment) => {
-      const parentId = getCommentParentId(comment);
-      return parentId === '0' || !commentById.has(parentId);
-    });
-  }, [commentTree, comments]);
-
-  const { repliesByParentId } = commentTree;
+  const commentById = useMemo(() => new Map(comments.map((comment) => [String(comment.id), comment])), [comments]);
+  const commentThreads = useMemo(() => buildCommentThreads(comments), [comments]);
 
   const handleBack = () => {
     if (fromProfile) {
@@ -177,7 +193,7 @@ export default function NewsDetailPage() {
       return;
     }
 
-    const replyParentId = replyTarget ? String(replyTarget.id) : undefined;
+    const replyParentId = replyTarget ? getRootCommentId(replyTarget, commentById) : undefined;
 
     try {
       await newsApi.addComment(id, {
@@ -199,8 +215,7 @@ export default function NewsDetailPage() {
     }
   };
 
-  const renderReplies = (parentId: string): React.ReactNode => {
-    const replies = repliesByParentId.get(parentId) || [];
+  const renderReplies = (parentId: string, replies: Comment[]): React.ReactNode => {
     if (replies.length === 0) {
       return null;
     }
@@ -208,17 +223,19 @@ export default function NewsDetailPage() {
     const isExpanded = expandedReplies[parentId] ?? false;
 
     return (
-      <div className="mt-1">
+      <div className="mt-2">
         <button
           onClick={() => setExpandedReplies((current) => ({ ...current, [parentId]: !isExpanded }))}
-          className="mx-auto block text-[11px] font-bold text-primary transition-opacity hover:opacity-70"
+          className="inline-flex items-center gap-2 rounded-full px-3 py-1.5 text-xs font-black text-primary transition-all hover:bg-primary/5"
         >
-          {isExpanded ? '收起回复' : `展开回复 (${replies.length})`}
+          <span>{isExpanded ? '收起回复' : `查看更多回复`}</span>
+          <span className="rounded-full bg-primary/10 px-2 py-0.5 text-[10px] text-primary">{replies.length}</span>
         </button>
         {isExpanded ? (
-          <div className="mt-1 space-y-2">
+          <div className="mt-2 space-y-2 border-l-2 border-primary/10 pl-3">
             {replies.map((reply) => (
-              <div key={reply.id} className="ml-4 border-l border-hairline/70 pl-2">
+              <div key={reply.id} className="relative">
+                <span className="absolute -left-3 top-5 h-px w-3 bg-primary/10" />
                 <CommentItem
                   comment={reply}
                   currentUserId={user?.id}
@@ -337,17 +354,17 @@ export default function NewsDetailPage() {
               <h3 className="mb-6 text-base font-black text-ink">评论区 ({comments.length})</h3>
               <div className="space-y-4">
                 {comments.length > 0 ? (
-                  rootComments.map((comment) => (
-                    <div key={comment.id}>
-                      <CommentItem
-                        comment={comment}
-                        currentUserId={user?.id}
-                        onLikeChange={handleCommentLikeChange}
-                        onAfterLike={fetchComments}
-                        onReply={handleReply}
-                      />
-                      {renderReplies(String(comment.id))}
-                    </div>
+                  commentThreads.map((thread) => (
+                    <CommentItem
+                      key={thread.root.id}
+                      comment={thread.root}
+                      currentUserId={user?.id}
+                      onLikeChange={handleCommentLikeChange}
+                      onAfterLike={fetchComments}
+                      onReply={handleReply}
+                    >
+                      {renderReplies(String(thread.root.id), thread.replies)}
+                    </CommentItem>
                   ))
                 ) : <EmptyCommentState />}
               </div>

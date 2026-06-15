@@ -13,6 +13,7 @@ export default defineConfig(({mode}) => {
     resolve: {
       alias: {
         '@': path.resolve(__dirname, '.'),
+        'leaflet/dist/leaflet.css': path.resolve(__dirname, 'node_modules/leaflet/dist/leaflet.css'),
       },
     },
     build: {
@@ -42,6 +43,11 @@ export default defineConfig(({mode}) => {
       proxy: {
         '/api': {
           target: 'http://localhost:8080',
+          changeOrigin: true,
+        },
+        '/ws': {
+          target: 'ws://localhost:8080',
+          ws: true,
           changeOrigin: true,
         },
       },

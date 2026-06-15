@@ -3,7 +3,8 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import React, { useEffect, useState } from 'react';
+import React from 'react';
+import { keepPreviousData, useQuery } from '@tanstack/react-query';
 import { Bike, MapPin, MoreHorizontal, Plus, Smartphone, Sofa, Sparkles, Shirt } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { BackToTop } from '../../components/common/BackToTop';
@@ -35,6 +36,11 @@ const CATEGORIES: MarketCategory[] = [
 ];
 
 const DEFAULT_PAGE_SIZE = 10;
+const MARKET_LIST_QUERY_KEY = ['market', 'list'] as const;
+
+function getMarketListQueryKey(activeCategory: string, pageSize: number, currentPage: number) {
+  return [...MARKET_LIST_QUERY_KEY, { activeCategory, pageSize, currentPage }] as const;
+}
 
 function getConditionLabel(item: Item) {
   return fallbackText(item.itemCondition || item.condition, '全新');
@@ -56,40 +62,31 @@ export default function MarketListPage() {
   const navigate = useNavigate();
   const { requireAuth } = useAuthCheck();
 
-  const [items, setItems] = useState<Item[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-  const [activeCategory, setActiveCategory] = useState('all');
-  const [isPublishOpen, setIsPublishOpen] = useState(false);
-  const [currentPage, setCurrentPage] = useState(1);
-  const [pageSize, setPageSize] = useState(DEFAULT_PAGE_SIZE);
-  const [totalItems, setTotalItems] = useState(0);
+  const [activeCategory, setActiveCategory] = React.useState('all');
+  const [isPublishOpen, setIsPublishOpen] = React.useState(false);
+  const [currentPage, setCurrentPage] = React.useState(1);
+  const [pageSize, setPageSize] = React.useState(DEFAULT_PAGE_SIZE);
 
-  useEffect(() => {
-    const fetchItems = async () => {
-      try {
-        setLoading(true);
-        setError(null);
-        const result = await marketApi.list({
-          category: activeCategory,
-          pageNum: currentPage,
-          pageSize,
-        });
-        setItems(result.data);
-        setTotalItems(result.total);
-      } catch (fetchError: unknown) {
-        setError(getErrorMessage(fetchError, '加载失败'));
-      } finally {
-        setLoading(false);
-      }
-    };
+  const listQueryKey = getMarketListQueryKey(activeCategory, pageSize, currentPage);
+  const { data, error: listError, isPending: loading } = useQuery({
+    queryKey: listQueryKey,
+    queryFn: () =>
+      marketApi.list({
+        category: activeCategory,
+        pageNum: currentPage,
+        pageSize,
+      }),
+    staleTime: 60_000,
+    placeholderData: keepPreviousData,
+  });
 
-    void fetchItems();
-  }, [activeCategory, currentPage, pageSize]);
+  const items = data?.data ?? [];
+  const totalItems = data?.total ?? 0;
+  const error = listError ? getErrorMessage(listError, '加载失败') : null;
 
   const totalPages = Math.max(1, Math.ceil(totalItems / pageSize));
 
-  useEffect(() => {
+  React.useEffect(() => {
     if (currentPage > totalPages) {
       setCurrentPage(totalPages);
     }

@@ -16,6 +16,7 @@ interface ChatContextType {
   unreadMessages: Record<string, number>;
   markChatRead: (partnerId: string) => void;
   refreshConversations: () => void;
+  receiveMessage: (message: Message) => void;
   chatOpenTick: number;
 }
 
@@ -123,6 +124,68 @@ export const ChatProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     }
   }, [buildLastMessagePreview, user?.id]);
 
+  const receiveMessage = useCallback((message: Message) => {
+    if (!user?.id) {
+      return;
+    }
+
+    const partnerId = message.senderId === user.id ? message.receiverId : message.senderId;
+    if (!partnerId) {
+      return;
+    }
+
+    setMessages((prev) => {
+      const current = prev[partnerId] || [];
+      if (current.some((item) => item.id === message.id)) {
+        return prev;
+      }
+      return {
+        ...prev,
+        [partnerId]: [...current, message],
+      };
+    });
+
+    if (message.receiverId === user.id) {
+      const isActiveConversation = isChatOpen && activePartner?.id === partnerId;
+      if (!isActiveConversation) {
+        setUnreadMessages((prev) => ({
+          ...prev,
+          [partnerId]: (prev[partnerId] || 0) + 1,
+        }));
+      } else {
+        void chatApi.markConversationRead(partnerId).catch(() => {
+          // Ignore mark-read failures; the message is still visible locally.
+        });
+      }
+    }
+
+    setPartners((prev) => {
+      const preview = buildLastMessagePreview(message);
+      const existing = prev.find((partner) => partner.id === partnerId);
+      if (existing) {
+        return [
+          {
+            ...existing,
+            lastMessage: preview,
+          },
+          ...prev.filter((partner) => partner.id !== partnerId),
+        ];
+      }
+      return [
+        {
+          id: partnerId,
+          name: partnerId,
+          avatar: '',
+          isOnline: true,
+          lastMessage: preview,
+        },
+        ...prev,
+      ];
+    });
+
+    void refreshConversations();
+  }, [activePartner?.id, buildLastMessagePreview, isChatOpen, refreshConversations, user?.id]);
+
   const getOrCreateConversation = useCallback(async (partner: ChatPartner): Promise<ChatPartner | null> => {
     if (!user?.id) return null;
     try {
@@ -215,6 +278,7 @@ export const ChatProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       unreadMessages,
       markChatRead,
       refreshConversations,
+      receiveMessage,
       chatOpenTick,
     }}>
       {children}

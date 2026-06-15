@@ -1,9 +1,10 @@
-﻿/**
+/**
  * @license
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import React, { useEffect, useState } from 'react';
+import React from 'react';
+import { keepPreviousData, useQuery } from '@tanstack/react-query';
 import { Brush, CheckCircle2, Dumbbell, MapPin, Plus, Scissors, Sparkles, Star, Wrench } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { BackToTop } from '../../components/common/BackToTop';
@@ -32,6 +33,11 @@ const CATEGORIES: ServiceCategory[] = [
 ];
 
 const DEFAULT_PAGE_SIZE = 10;
+const SERVICE_LIST_QUERY_KEY = ['service', 'list'] as const;
+
+function getServiceListQueryKey(activeCategory: string, pageSize: number, currentPage: number, locationCoords: { latitude: number; longitude: number } | null) {
+  return [...SERVICE_LIST_QUERY_KEY, { activeCategory, pageSize, currentPage, latitude: locationCoords?.latitude ?? null, longitude: locationCoords?.longitude ?? null }] as const;
+}
 
 function getDistanceLabel(distance?: string) {
   return distance?.trim() ? distance : '距离未知';
@@ -46,19 +52,15 @@ export default function ServiceListPage() {
   const { requireAuth } = useAuthCheck();
   const { openPublish } = usePublish();
 
-  const [services, setServices] = useState<Service[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-  const [activeCategory, setActiveCategory] = useState('all');
-  const [nearbyEnabled, setNearbyEnabled] = useState(false);
-  const [locating, setLocating] = useState(false);
-  const [locationTip, setLocationTip] = useState('');
-  const [currentPage, setCurrentPage] = useState(1);
-  const [pageSize, setPageSize] = useState(DEFAULT_PAGE_SIZE);
-  const [totalItems, setTotalItems] = useState(0);
-  const [locationCoords, setLocationCoords] = useState<{ latitude: number; longitude: number } | null>(null);
+  const [activeCategory, setActiveCategory] = React.useState('all');
+  const [nearbyEnabled, setNearbyEnabled] = React.useState(false);
+  const [locating, setLocating] = React.useState(false);
+  const [locationTip, setLocationTip] = React.useState('');
+  const [currentPage, setCurrentPage] = React.useState(1);
+  const [pageSize, setPageSize] = React.useState(DEFAULT_PAGE_SIZE);
+  const [locationCoords, setLocationCoords] = React.useState<{ latitude: number; longitude: number } | null>(null);
 
-  useEffect(() => {
+  React.useEffect(() => {
     const cachedLocation = readCachedLocation();
     if (!cachedLocation) {
       return;
@@ -67,29 +69,24 @@ export default function ServiceListPage() {
     setLocationCoords(cachedLocation);
   }, []);
 
-  useEffect(() => {
-    const fetchServices = async () => {
-      try {
-        setLoading(true);
-        setError(null);
-        const result = await serviceApi.list({
-          category: activeCategory,
-          lat: locationCoords?.latitude,
-          lng: locationCoords?.longitude,
-          pageNum: currentPage,
-          pageSize,
-        });
-        setServices(result.data);
-        setTotalItems(result.total);
-      } catch (fetchError: unknown) {
-        setError(getErrorMessage(fetchError, '加载失败'));
-      } finally {
-        setLoading(false);
-      }
-    };
+  const listQueryKey = getServiceListQueryKey(activeCategory, pageSize, currentPage, locationCoords);
+  const { data, error: listError, isPending: loading } = useQuery({
+    queryKey: listQueryKey,
+    queryFn: () =>
+      serviceApi.list({
+        category: activeCategory,
+        lat: locationCoords?.latitude,
+        lng: locationCoords?.longitude,
+        pageNum: currentPage,
+        pageSize,
+      }),
+    staleTime: 60_000,
+    placeholderData: keepPreviousData,
+  });
 
-    void fetchServices();
-  }, [activeCategory, currentPage, locationCoords, pageSize]);
+  const services = data?.data ?? [];
+  const totalItems = data?.total ?? 0;
+  const error = listError ? getErrorMessage(listError, '加载失败') : null;
 
   const enableNearbySort = async () => {
     if (locating) {
@@ -125,7 +122,7 @@ export default function ServiceListPage() {
 
   const totalPages = Math.max(1, Math.ceil(totalItems / pageSize));
 
-  useEffect(() => {
+  React.useEffect(() => {
     if (currentPage > totalPages) {
       setCurrentPage(totalPages);
     }
@@ -323,3 +320,4 @@ function ServiceCard({
     </div>
   );
 }
+
