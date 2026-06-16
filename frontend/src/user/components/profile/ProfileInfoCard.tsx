@@ -42,6 +42,8 @@ export const ProfileInfoCard: React.FC<ProfileInfoCardProps> = ({
 
   const locationText = userData.region || userData.tag || '未设置地区';
   const joinText = userData.createdAt ? formatDateTime(userData.createdAt).split(' ')[0] : '未知';
+  const followingCount = userData.followingCount || 0;
+  const followersCount = stats.followers || userData.followersCount || 0;
 
   const handleOpenChat = () => {
     if (!userData?.id) return;
@@ -89,6 +91,17 @@ export const ProfileInfoCard: React.FC<ProfileInfoCardProps> = ({
           {userData.bio && (
             <p className="text-xs text-secondary leading-5 mb-6 line-clamp-3">{userData.bio}</p>
           )}
+
+          <div className="mb-5 grid grid-cols-2 gap-3 rounded-2xl bg-surface-soft/70 px-4 py-3">
+            <div className="text-center">
+              <p className="text-[10px] font-black uppercase tracking-widest text-muted">关注</p>
+              <p className="mt-1 text-lg font-black text-ink">{followingCount}</p>
+            </div>
+            <div className="text-center">
+              <p className="text-[10px] font-black uppercase tracking-widest text-muted">粉丝</p>
+              <p className="mt-1 text-lg font-black text-ink">{followersCount}</p>
+            </div>
+          </div>
 
           <div className="grid grid-cols-2 gap-3 mb-2 md:mb-6">
             {!isOwnProfile && (
