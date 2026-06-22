@@ -31,7 +31,7 @@ export const GlobalCard: React.FC<CardProps> = ({ type, data, size = 'default' }
     <div className="group h-full cursor-pointer content-visibility-auto">
       <div className="flex h-full flex-col" onClick={() => navigate(`/${isService ? 'service' : 'item'}/${data.id}`, { state: { from: '/' } })}>
         <div
-          className={`relative aspect-[4/5] overflow-hidden rounded-[16px] bg-stone-100 transition-shadow duration-300 ease-out ${
+          className={`theme-surface-panel-muted relative aspect-[4/5] overflow-hidden rounded-[16px] transition-shadow duration-300 ease-out ${
             isHomeCompact ? 'mb-2.5 shadow-[0_8px_18px_rgba(15,23,42,0.06)]' : 'mb-6 rounded-[32px] shadow-inner'
           }`}
         >
@@ -51,7 +51,7 @@ export const GlobalCard: React.FC<CardProps> = ({ type, data, size = 'default' }
             }`}
           >
             <div
-              className={`rounded-full bg-white/85 backdrop-blur-md font-black uppercase tracking-widest text-ink shadow-sm ${
+              className={`theme-card-soft rounded-full backdrop-blur-md font-black uppercase tracking-widest text-ink shadow-sm ${
                 isHomeCompact ? 'px-2 py-0.5 text-[6px]' : 'px-4 py-2 text-[10px]'
               }`}
             >
@@ -60,7 +60,7 @@ export const GlobalCard: React.FC<CardProps> = ({ type, data, size = 'default' }
           </div>
 
           <div
-            className={`absolute rounded-full bg-white/85 shadow-lg opacity-0 transition-opacity duration-200 hover:bg-white group-hover:opacity-100 ${
+            className={`theme-card-soft absolute rounded-full shadow-lg opacity-0 transition-opacity duration-200 group-hover:opacity-100 ${
               isHomeCompact ? 'right-2 top-2 p-1.5' : 'right-6 top-6 p-4'
             }`}
           >

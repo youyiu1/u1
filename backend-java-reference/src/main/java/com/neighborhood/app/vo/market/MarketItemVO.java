@@ -9,6 +9,7 @@ import com.fasterxml.jackson.databind.annotation.JsonSerialize;
 import com.fasterxml.jackson.databind.ser.std.ToStringSerializer;
 import com.neighborhood.app.entity.market.MarketItem;
 import com.neighborhood.app.entity.user.User;
+import com.neighborhood.app.utils.MarketCategoryUtil;
 import java.math.BigDecimal;
 import java.util.List;
 import lombok.Data;
@@ -52,7 +53,7 @@ public class MarketItemVO {
         vo.setPrice(item.getPrice());
         vo.setItemCondition(item.getItemCondition());
         vo.setImages(item.getImages());
-        vo.setCategory(item.getCategory());
+        vo.setCategory(MarketCategoryUtil.normalize(item.getCategory()));
         vo.setOriginalPrice(item.getOriginalPrice());
         vo.setLocation(item.getLocation());
         vo.setStatus(item.getStatus());

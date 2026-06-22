@@ -13,6 +13,7 @@ import { AppQueryProvider } from './user/context/QueryProvider';
 import { RealtimeProvider } from './user/context/RealtimeContext';
 import { ThemeProvider } from './user/context/ThemeContext';
 import { ToastProvider } from './user/context/ToastContext';
+import { AuthShell } from './user/components/auth/AuthShell';
 import Layout from './user/components/layout/Layout';
 import Login from './user/pages/auth/LoginPage';
 import Register from './user/pages/auth/RegisterPage';
@@ -63,8 +64,10 @@ export default function App() {
                             <Route path="profile" element={<Profile />} />
                             <Route path="profile/:username" element={<Profile />} />
                             <Route path="search" element={<Search />} />
-                            <Route path="login" element={<Login />} />
-                            <Route path="register" element={<Register />} />
+                            <Route element={<AuthShell />}>
+                              <Route path="login" element={<Login />} />
+                              <Route path="register" element={<Register />} />
+                            </Route>
                             <Route path="terms" element={<Terms />} />
                             <Route path="privacy" element={<Privacy />} />
                             <Route path="*" element={<Home />} />

@@ -1,9 +1,8 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { Link, useLocation, useNavigate } from 'react-router-dom';
+import { Link, useLocation, useNavigate, useOutletContext } from 'react-router-dom';
 import { Eye, EyeOff, RefreshCw } from 'lucide-react';
-import { motion } from 'motion/react';
-import { AuthSplitLayout } from '../../components/auth/AuthSplitLayout';
-import { AUTH_INPUT_CLASS, AuthErrorBanner, AuthField, AuthPanelHeader } from '../../components/auth/AuthFormElements';
+import { AUTH_INPUT_CLASS, AUTH_PRIMARY_ACTION_CLASS, AuthErrorBanner, AuthField, AuthPanelHeader } from '../../components/auth/AuthFormElements';
+import type { AuthOutletContext } from '../../components/auth/AuthShell';
 import { useAuth } from '../../context/AuthContext';
 import { userApi } from '../../services/api';
 import { getErrorMessage } from '../../utils/error';
@@ -29,6 +28,7 @@ function isEmail(value: string) {
 export default function LoginPage() {
   const navigate = useNavigate();
   const location = useLocation();
+  const { setAnimationState, setHeroBadge } = useOutletContext<AuthOutletContext>();
   const { login } = useAuth();
   const captchaRequestRef = useRef(0);
 
@@ -110,6 +110,19 @@ export default function LoginPage() {
     const timer = window.setTimeout(() => setHasErrorExpression(false), 1200);
     return () => window.clearTimeout(timer);
   }, [error]);
+
+  useEffect(() => {
+    setAnimationState({
+      isTyping,
+      showPassword,
+      passwordLength: password.length,
+      hasError: hasErrorExpression,
+    });
+  }, [hasErrorExpression, isTyping, password.length, setAnimationState, showPassword]);
+
+  useEffect(() => {
+    setHeroBadge(forgotOpen ? { label: '找回密码', to: '/login' } : { label: '账号登录', to: '/' });
+  }, [forgotOpen, setHeroBadge]);
 
   const handleRememberPasswordChange = (checked: boolean) => {
     setRememberPassword(checked);
@@ -214,18 +227,9 @@ export default function LoginPage() {
   };
 
   return (
-    <AuthSplitLayout
-      sideAction={null}
-      animationState={{
-        isTyping,
-        showPassword,
-        passwordLength: password.length,
-        hasError: hasErrorExpression,
-      }}
-    >
-      <motion.div initial={{ opacity: 0, scale: 0.98 }} animate={{ opacity: 1, scale: 1 }} className="w-full">
-        {!forgotOpen ? (
-          <>
+    <div className="w-full">
+      {!forgotOpen ? (
+        <>
             <AuthPanelHeader caption="请输入账号密码登录系统" title="欢迎登录" description="登录后即可继续发布、收藏、预约和互动。" />
 
             <AuthErrorBanner message={error} />
@@ -287,7 +291,7 @@ export default function LoginPage() {
                     type="button"
                     onClick={() => void loadCaptcha({ clearInput: true })}
                     disabled={captchaLoading}
-                    className="relative flex h-[45px] w-[110px] shrink-0 items-center justify-center overflow-hidden rounded-2xl border border-slate-200 bg-slate-50 transition-all hover:border-primary/20 hover:bg-white disabled:cursor-not-allowed"
+                    className="theme-action-secondary relative flex h-[45px] w-[110px] shrink-0 items-center justify-center overflow-hidden rounded-2xl disabled:cursor-not-allowed"
                     title="点击刷新验证码"
                   >
                     {captcha.imageBase64 ? (
@@ -330,7 +334,7 @@ export default function LoginPage() {
               <button
                 type="submit"
                 disabled={isLoading}
-                className="flex h-12 w-full items-center justify-center gap-2 rounded-2xl bg-primary text-[15px] font-black text-white transition-all hover:bg-primary-hover disabled:opacity-70"
+                className={AUTH_PRIMARY_ACTION_CLASS}
               >
                 {isLoading ? <div className="h-5 w-5 animate-spin rounded-full border-2 border-white/30 border-t-white" /> : '立即登录'}
               </button>
@@ -342,9 +346,9 @@ export default function LoginPage() {
                 </Link>
               </div>
             </form>
-          </>
-        ) : (
-          <>
+        </>
+      ) : (
+        <>
             <div className="mb-8 flex items-center justify-between">
               <AuthPanelHeader caption="通过邮箱验证码找回密码" title="忘记密码" description="填写注册邮箱、验证码和新密码后即可完成重置。" />
               <button
@@ -353,7 +357,7 @@ export default function LoginPage() {
                   setForgotOpen(false);
                   setForgotMessage('');
                 }}
-                className="shrink-0 rounded-2xl bg-slate-100 px-4 py-2 text-[13px] font-bold text-ink transition-colors hover:bg-slate-200"
+                className="theme-action-secondary shrink-0 rounded-2xl px-4 py-2 text-[13px] font-bold"
               >
                 返回登录
               </button>
@@ -384,7 +388,7 @@ export default function LoginPage() {
                     type="button"
                     onClick={handleSendCode}
                     disabled={sendingCode}
-                    className="shrink-0 rounded-2xl bg-slate-100 px-4 text-[13px] font-bold text-primary transition-colors hover:bg-primary/5 disabled:cursor-not-allowed disabled:text-muted"
+                    className="theme-action-secondary shrink-0 rounded-2xl px-4 text-[13px] font-bold text-primary hover:bg-primary/5 disabled:cursor-not-allowed disabled:text-muted"
                   >
                     {sendingCode ? '发送中...' : '发送验证码'}
                   </button>
@@ -427,14 +431,13 @@ export default function LoginPage() {
                 type="button"
                 onClick={handleResetPassword}
                 disabled={forgotLoading}
-                className="flex h-12 w-full items-center justify-center rounded-2xl bg-primary text-[15px] font-black text-white transition-all hover:bg-primary-hover disabled:opacity-70"
+                className={AUTH_PRIMARY_ACTION_CLASS}
               >
                 {forgotLoading ? '提交中...' : '确认重置密码'}
               </button>
             </div>
-          </>
-        )}
-      </motion.div>
-    </AuthSplitLayout>
+        </>
+      )}
+    </div>
   );
 }

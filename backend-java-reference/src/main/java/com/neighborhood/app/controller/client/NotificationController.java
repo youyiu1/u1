@@ -18,7 +18,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
-/** 文件作用：用户端通知接口。 */
+/** 用户端通知接口。 */
 @RestController
 @RequestMapping("/api/notification")
 @RequiredArgsConstructor
@@ -27,11 +27,8 @@ public class NotificationController {
     private final NotificationService notificationService;
 
     @GetMapping("/list")
-    public Result<List<Notification>> list(
-            @RequestParam(required = false) String userId,
-            HttpServletRequest request
-    ) {
-        return Result.ok(notificationService.listByUserId(effectiveUserId(request, userId)));
+    public Result<List<Notification>> list(HttpServletRequest request) {
+        return Result.ok(notificationService.listByUserId(RequestUserUtil.currentUserId(request)));
     }
 
     @PostMapping("/{id}/read")
@@ -43,14 +40,10 @@ public class NotificationController {
     }
 
     @PostMapping("/read-all")
-    public Result<Boolean> markAllRead(
-            @RequestParam(required = false) String userId,
-            HttpServletRequest request
-    ) {
+    public Result<Boolean> markAllRead(HttpServletRequest request) {
         return ResultUtils.bool(notificationService.markAllRead(RequestUserUtil.currentUserId(request)));
     }
 
-    /** 发送通知给当前登录用户。 */
     @PostMapping("/send")
     public Result<Boolean> send(@RequestBody SendNotificationRequest request, HttpServletRequest httpRequest) {
         String userId = RequestUserUtil.currentUserId(httpRequest);
@@ -66,7 +59,6 @@ public class NotificationController {
         return ResultUtils.bool(true);
     }
 
-    /** 处理预约通知，仅允许通知接收方处理真实预约通知。 */
     @PostMapping("/process")
     public Result<Boolean> process(@RequestBody ProcessNotificationRequest request, HttpServletRequest httpRequest) {
         String userId = RequestUserUtil.currentUserId(httpRequest);
@@ -86,10 +78,6 @@ public class NotificationController {
                 request.getBookingTime(),
                 request.getDuration()
         ));
-    }
-
-    private String effectiveUserId(HttpServletRequest request, String userId) {
-        return RequestUserUtil.getEffectiveUserId(request, userId);
     }
 
     private boolean ownsNotification(Long notificationId, String userId) {

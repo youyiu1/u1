@@ -22,7 +22,7 @@ function SectionAction({
   const defaultClassName =
     'group flex items-center gap-1 text-[9px] font-black uppercase tracking-[0.12em] text-primary transition-all hover:text-ink';
   const highlightClassName =
-    'group inline-flex h-8 items-center gap-1 rounded-full border border-stone-900 bg-stone-900 px-3.5 text-[9px] font-black text-white transition-all hover:bg-stone-800';
+    'group inline-flex h-8 items-center gap-1 rounded-full border border-ink bg-ink px-3.5 text-[9px] font-black text-white transition-all hover:opacity-90';
   const className = highlightAction ? highlightClassName : defaultClassName;
 
   if (isButton) {
@@ -51,7 +51,7 @@ export const SectionHeader: React.FC<SectionHeaderProps> = ({
   isButton,
   highlightAction,
 }) => (
-  <div className="mb-3 flex flex-col justify-between gap-2.5 border-b border-stone-200 pb-3 md:mb-4 md:flex-row md:items-end md:pb-3.5">
+  <div className="mb-3 flex flex-col justify-between gap-2.5 border-b border-hairline pb-3 md:mb-4 md:flex-row md:items-end md:pb-3.5">
     <div className="max-w-md space-y-1">
       <div className="flex items-center gap-2">
         <motion.div

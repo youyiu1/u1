@@ -17,7 +17,7 @@ import java.util.function.Consumer;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
 
-/** 文件作用：管理端用户模块封装。 */
+/** 管理端用户模块封装。 */
 @Component
 @RequiredArgsConstructor
 public class AdminUserModule {
@@ -61,7 +61,7 @@ public class AdminUserModule {
             if ("disabled".equalsIgnoreCase(nextStatus)) {
                 adminBlacklistService.addUserBanItemIfAbsent(
                         support.emptyTo(user.getName(), user.getId()),
-                        "管理端封禁发布账户",
+                        "管理端封禁发布账号",
                         "admin-system"
                 );
             }
@@ -90,7 +90,9 @@ public class AdminUserModule {
             }
         }
         user.setAdminRole(nextRole);
-        userService.updateById(user);
+        if (!userService.updateById(user)) {
+            return Result.fail("用户角色更新失败");
+        }
         return Result.ok();
     }
 
@@ -120,7 +122,9 @@ public class AdminUserModule {
             return Result.fail("用户不存在");
         }
         updater.accept(user);
-        userService.updateById(user);
+        if (!userService.updateById(user)) {
+            return Result.fail("用户更新失败");
+        }
         return Result.ok();
     }
 
@@ -130,7 +134,7 @@ public class AdminUserModule {
                 .list()
                 .forEach(user -> adminBlacklistService.addUserBanItemIfAbsent(
                         support.emptyTo(user.getName(), user.getId()),
-                        "管理端封禁发布账户",
+                        "管理端封禁发布账号",
                         "admin-system"
                 ));
     }

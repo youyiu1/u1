@@ -40,7 +40,6 @@ import { formatCurrency, fallbackText } from '../../utils/display';
 import { getErrorMessage } from '../../utils/error';
 import { resolveFollowState } from '../../utils/followStorage';
 import { resolveFavoriteState } from '../../utils/interactionStorage';
-import { readStorageValue, writeStorageJson, writeStorageValue } from '../../utils/jsonStorage';
 import { readCachedLocation } from '../../utils/location';
 import { buildProfilePath, buildProfileRouteState } from '../../utils/profileRoute';
 
@@ -223,10 +222,10 @@ function ReviewSection({ serviceId, rating }: { serviceId: string; rating: numbe
           <div className="py-12 text-center text-muted">暂时还没有评价</div>
         ) : (
           visibleReviews.map((review) => (
-            <div key={review.id} className="space-y-6 rounded-[32px] border border-hairline bg-white p-8 shadow-sm">
+            <div key={review.id} className="theme-card space-y-6 rounded-[32px] p-8 shadow-sm">
               <div className="flex items-start justify-between gap-4">
                 <div className="flex items-center gap-4">
-                  <div className="flex h-14 w-14 items-center justify-center overflow-hidden rounded-2xl border-2 border-white bg-surface-soft shadow-sm">
+                  <div className="theme-card-soft flex h-14 w-14 items-center justify-center overflow-hidden rounded-2xl border-2 shadow-sm">
                     {review.userAvatar ? (
                       <img src={review.userAvatar} alt={review.userName} className="h-full w-full object-cover" />
                     ) : (
@@ -278,7 +277,7 @@ function ReviewSection({ serviceId, rating }: { serviceId: string; rating: numbe
           <button
             type="button"
             onClick={() => setShowAllReviews((current) => !current)}
-            className="rounded-2xl border border-hairline bg-white px-6 py-3 text-sm font-black text-ink transition-all hover:border-primary/20 hover:text-primary"
+            className="theme-card rounded-2xl px-6 py-3 text-sm font-black text-ink transition-all hover:border-primary/20 hover:text-primary"
           >
             {showAllReviews ? '收起评价' : '更多评价'}
           </button>
@@ -304,7 +303,7 @@ export default function ServiceDetailPage() {
   const [isLiked, setIsLiked] = useState(false);
   const [isFollowing, setIsFollowing] = useState(false);
   const [isBooking, setIsBooking] = useState(false);
-  const [isBooked, setIsBooked] = useState(() => localStorage.getItem(`booked_${id}`) === 'true');
+  const [isBooked, setIsBooked] = useState(false);
   const [showConfirm, setShowConfirm] = useState(false);
   const [bookingSuccess, setBookingSuccess] = useState(false);
   const [bookingDate, setBookingDate] = useState(() => formatDateValue(new Date()));
@@ -314,10 +313,6 @@ export default function ServiceDetailPage() {
   const fromProfile = routeLocation.state?.from;
   const sellerId = service?.seller?.id || service?.sellerId || '';
   const isOwnService = Boolean(user?.id && sellerId && user.id === sellerId);
-
-  useEffect(() => {
-    setIsBooked(localStorage.getItem(`booked_${id}`) === 'true');
-  }, [id]);
 
   useEffect(() => {
     let mounted = true;
@@ -345,6 +340,18 @@ export default function ServiceDetailPage() {
           if (mounted) {
             setIsFollowing(following);
           }
+          try {
+            const booked = await serviceApi.getBookingStatus(id);
+            if (mounted) {
+              setIsBooked(booked);
+            }
+          } catch {
+            if (mounted) {
+              setIsBooked(false);
+            }
+          }
+        } else if (mounted) {
+          setIsBooked(false);
         }
 
         if (currentUser?.id && getToken()) {
@@ -385,10 +392,16 @@ export default function ServiceDetailPage() {
     return () => {
       mounted = false;
     };
-  }, [id]);
+  }, [id, user?.id]);
 
   const serviceImages = useMemo(() => (service ? getServiceImages(service) : []), [service]);
-  const categoryName = service ? CATEGORY_NAMES[service.category] || service.category || '生活服务' : '生活服务';
+  const categoryName = service
+    ? CATEGORY_NAMES[service.category]
+      || (service.category === 'pet' ? CATEGORY_NAMES.pets : undefined)
+      || (service.category === 'other' ? '其他服务' : undefined)
+      || service.category
+      || '生活服务'
+    : '生活服务';
   const selectedDateLabel = bookingDate;
   const endTime = useMemo(() => getEndTime(bookingTime, duration), [bookingTime, duration]);
   const serviceFee = service ? getServiceFee(service.price, duration) : 0;
@@ -474,7 +487,7 @@ export default function ServiceDetailPage() {
   };
 
   const handleStartBooking = () => {
-    if (isOwnService) {
+    if (isOwnService || isBooked || isBooking) {
       return;
     }
     requireAuth(() => setShowConfirm(true));
@@ -489,6 +502,13 @@ export default function ServiceDetailPage() {
     setIsBooking(true);
 
     try {
+      const booked = await serviceApi.getBookingStatus(id);
+      if (booked) {
+        setIsBooked(true);
+        showToast('你已经预约过这个服务了，请等待处理', 'warning');
+        return;
+      }
+
       await serviceApi.book({
         serviceId: id,
         buyerId: user.id,
@@ -499,18 +519,6 @@ export default function ServiceDetailPage() {
       });
 
       setIsBooked(true);
-      localStorage.setItem(`booked_${id}`, 'true');
-      localStorage.setItem(
-        `booking_${id}`,
-        JSON.stringify({
-          serviceId: id,
-          serviceTitle: service.title,
-          price: service.price,
-          bookingDate,
-          bookingTime,
-          duration,
-        })
-      );
       setBookingSuccess(true);
       increaseUnread();
       window.dispatchEvent(new Event('notification-created'));
@@ -552,7 +560,7 @@ export default function ServiceDetailPage() {
   }
 
   return (
-    <div className="min-h-screen bg-[#fcfdff] pb-20">
+    <div className="theme-surface-panel-soft min-h-screen pb-20">
       <AnimatePresence>
         {bookingSuccess ? (
           <div className="fixed inset-0 z-[100] flex items-center justify-center px-6">
@@ -567,7 +575,7 @@ export default function ServiceDetailPage() {
               initial={{ opacity: 0, scale: 0.9, y: 30 }}
               animate={{ opacity: 1, scale: 1, y: 0 }}
               exit={{ opacity: 0, scale: 0.9, y: 30 }}
-              className="relative w-full max-w-sm rounded-[48px] border border-white bg-white p-10 text-center shadow-2xl"
+              className="theme-card relative w-full max-w-sm rounded-[48px] p-10 text-center shadow-2xl"
             >
               <div className="mx-auto mb-8 flex h-24 w-24 items-center justify-center rounded-full bg-green-50 text-green-500 shadow-inner">
                 <CheckCircle2 className="h-12 w-12" />
@@ -589,7 +597,7 @@ export default function ServiceDetailPage() {
         ) : null}
       </AnimatePresence>
 
-      <div className="sticky top-0 z-30 flex items-center justify-between border-b border-hairline bg-white/80 px-6 py-4 backdrop-blur-md md:hidden">
+      <div className="theme-topbar sticky top-0 z-30 flex items-center justify-between border-b px-6 py-4 backdrop-blur-md md:hidden">
         <button type="button" onClick={handleBack} className="rounded-xl bg-surface-soft p-2">
           <ChevronLeft className="h-5 w-5 text-ink" />
         </button>
@@ -603,7 +611,7 @@ export default function ServiceDetailPage() {
         </div>
       </div>
 
-      <div className="hidden border-b border-hairline bg-white py-6 md:block">
+      <div className="theme-topbar hidden border-b py-6 md:block">
         <div className="mx-auto flex max-w-[1200px] items-center justify-between px-6">
           <div className="flex items-center gap-3">
             <button type="button" onClick={handleBack} className="rounded-xl p-2 transition-colors hover:bg-surface-soft">
@@ -649,7 +657,7 @@ export default function ServiceDetailPage() {
               </div>
               <h1 className="text-3xl font-black leading-tight tracking-tight text-ink md:text-4xl">{service.title}</h1>
               <div className="flex flex-wrap items-center gap-5 text-[13px] font-bold text-muted">
-                <div className="flex items-center gap-1.5 rounded-full border border-hairline bg-white px-3 py-1 shadow-sm">
+                <div className="theme-card-soft flex items-center gap-1.5 rounded-full px-3 py-1 shadow-sm">
                   <Star className="h-4 w-4 fill-current text-yellow-400" />
                   <span className="text-ink">{service.rating}</span>
                   <span className="opacity-50">({service.reviews} 条评价)</span>
@@ -675,14 +683,14 @@ export default function ServiceDetailPage() {
                   {serviceImages[2] || serviceImages[0] ? (
                     <img src={serviceImages[2] || serviceImages[0]} className="h-full w-full object-cover" alt={`${service.title} 图片 3`} />
                   ) : null}
-                  <div className="absolute inset-x-3 bottom-3 flex items-center justify-center gap-2 rounded-2xl bg-white/90 px-3 py-2.5 text-[11px] font-black shadow-xl backdrop-blur-md">
+                  <div className="theme-card-soft absolute inset-x-3 bottom-3 flex items-center justify-center gap-2 rounded-2xl px-3 py-2.5 text-[11px] font-black shadow-xl backdrop-blur-md">
                     <Sparkles className="h-4 w-4" /> 更多服务图片
                   </div>
                 </div>
               </div>
             </div>
 
-            <div className="group relative z-10 flex flex-col items-center gap-6 rounded-[32px] border border-hairline bg-white p-6 shadow-sm md:flex-row">
+            <div className="theme-card group relative z-10 flex flex-col items-center gap-6 rounded-[32px] p-6 shadow-sm md:flex-row">
               <button type="button" onClick={handleOpenSellerProfile} className="relative shrink-0">
                 {service.seller?.avatar ? (
                   <img
@@ -769,7 +777,7 @@ export default function ServiceDetailPage() {
           </div>
 
           <aside className="sticky top-28 lg:col-span-4">
-            <div className="space-y-6 rounded-[40px] border border-hairline bg-white p-6 shadow-2xl shadow-ink/5 md:p-8">
+            <div className="theme-card space-y-6 rounded-[40px] p-6 shadow-2xl shadow-ink/5 md:p-8">
               <div className="flex items-end justify-between">
                 <div>
                   <span className="mb-2 block text-xs font-black uppercase tracking-widest text-muted">预约价格</span>
@@ -784,7 +792,7 @@ export default function ServiceDetailPage() {
                 </div>
               </div>
 
-              <div className="space-y-5 rounded-3xl bg-surface-soft p-5">
+              <div className="space-y-6 rounded-3xl bg-surface-soft p-6">
                 <div className="space-y-2">
                   <label className="ml-1 flex items-center gap-1.5 text-[10px] font-black uppercase tracking-widest text-muted">
                     <Calendar className="h-3.5 w-3.5" />
@@ -795,7 +803,7 @@ export default function ServiceDetailPage() {
                     value={bookingDate}
                     min={formatDateValue(new Date())}
                     onChange={(event) => setBookingDate(event.target.value)}
-                    className="w-full rounded-2xl border border-white bg-white px-4 py-2.5 text-sm font-bold text-ink outline-none transition-all focus:border-primary/30 focus:ring-4 focus:ring-primary/5"
+                    className="w-full rounded-2xl border border-white bg-white px-4 py-3 text-sm font-bold text-ink outline-none transition-all focus:border-primary/30 focus:ring-4 focus:ring-primary/5"
                   />
                 </div>
 
@@ -808,7 +816,7 @@ export default function ServiceDetailPage() {
                     type="time"
                     value={bookingTime}
                     onChange={(event) => setBookingTime(event.target.value)}
-                    className="w-full rounded-2xl border border-white bg-white px-4 py-2.5 text-sm font-bold text-ink outline-none transition-all focus:border-primary/30 focus:ring-4 focus:ring-primary/5"
+                    className="w-full rounded-2xl border border-white bg-white px-4 py-3 text-sm font-bold text-ink outline-none transition-all focus:border-primary/30 focus:ring-4 focus:ring-primary/5"
                   />
                 </div>
 
@@ -818,7 +826,7 @@ export default function ServiceDetailPage() {
                     <select
                       value={duration}
                       onChange={(event) => setDuration(Number(event.target.value))}
-                      className="w-full cursor-pointer appearance-none rounded-xl border border-white bg-white px-4 py-2.5 text-xs font-black outline-none transition-all focus:border-primary/20 focus:ring-4 focus:ring-primary/5"
+                      className="w-full cursor-pointer appearance-none rounded-xl border border-white bg-white px-4 py-3 text-xs font-black outline-none transition-all focus:border-primary/20 focus:ring-4 focus:ring-primary/5"
                     >
                       {DURATION_OPTIONS.map((option) => (
                         <option key={option.value} value={option.value}>
@@ -875,7 +883,7 @@ export default function ServiceDetailPage() {
               </div>
             </div>
 
-            <div className="mt-6 flex items-center gap-4 rounded-3xl border border-hairline bg-surface-soft p-5">
+            <div className="mt-8 flex items-center gap-4 rounded-3xl border border-hairline bg-surface-soft p-6">
               <div className="rounded-2xl bg-white p-3 text-primary shadow-sm">
                 <ShieldCheck className="h-6 w-6" />
               </div>
@@ -903,7 +911,7 @@ export default function ServiceDetailPage() {
 
 function FeatureCard({ icon, title, desc }: { icon: React.ReactNode; title: string; desc: string }) {
   return (
-    <div className="flex gap-4 rounded-3xl border border-hairline bg-white p-5 shadow-sm transition-all hover:border-primary/20">
+    <div className="theme-card flex gap-4 rounded-3xl p-5 shadow-sm transition-all hover:border-primary/20">
       <div className="shrink-0">{icon}</div>
       <div>
         <h4 className="mb-1 font-black text-ink">{title}</h4>

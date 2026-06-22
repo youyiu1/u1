@@ -452,7 +452,7 @@ function ModalShell({
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={{ opacity: 0, y: 6, scale: 0.985 }}
             transition={{ duration: 0.16, ease: 'easeOut' }}
-            className="relative z-10 w-full max-w-[440px] rounded-[28px] bg-white shadow-2xl"
+            className="theme-card relative z-10 w-full max-w-[440px] rounded-[28px] shadow-2xl"
           >
             <div className="border-b border-hairline px-6 py-5">
               <div className="flex items-start justify-between gap-4">
@@ -466,7 +466,7 @@ function ModalShell({
                 <button
                   type="button"
                   onClick={onClose}
-                  className="rounded-xl p-2 text-muted transition-colors hover:bg-stone-100 hover:text-ink"
+                  className="theme-action-secondary rounded-xl p-2 text-muted transition-colors hover:text-ink"
                 >
                   <X className="h-4 w-4" />
                 </button>
@@ -506,7 +506,7 @@ function PasswordField({
         onChange={(event) => onChange(event.target.value)}
         placeholder={placeholder}
         autoComplete={autoComplete}
-        className="w-full rounded-2xl border border-transparent bg-stone-100/85 px-4 py-3 text-sm text-ink outline-none transition-all placeholder:text-muted/50 focus:border-primary/20 focus:bg-white focus:ring-4 focus:ring-primary/8"
+        className="theme-input-surface w-full rounded-2xl border border-transparent px-4 py-3 text-sm text-ink outline-none transition-all focus:border-primary/20 focus:ring-4 focus:ring-primary/8"
       />
     </div>
   );
@@ -529,7 +529,7 @@ function ToggleCard({
   disabled?: boolean;
 }) {
   return (
-    <div className={`flex items-center justify-between rounded-2xl border border-hairline bg-stone-50 px-4 py-3 ${disabled ? 'opacity-50' : ''}`}>
+    <div className={`theme-card-muted flex items-center justify-between rounded-2xl px-4 py-3 ${disabled ? 'opacity-50' : ''}`}>
       <div className="flex items-start gap-3">
         {icon ? <div className="mt-0.5 text-muted">{icon}</div> : null}
         <div>
@@ -563,7 +563,7 @@ function VisibilityGroup({
             className={`rounded-2xl border px-4 py-3 text-sm font-bold transition-all ${
               value === option.value
                 ? 'border-primary bg-primary text-white'
-                : 'border-hairline bg-stone-50 text-ink hover:border-primary/25'
+                : 'theme-action-secondary text-ink hover:border-primary/25'
             }`}
           >
             {option.label}
@@ -610,7 +610,7 @@ function ActionButtons({
       <button
         type="button"
         onClick={onCancel}
-        className="flex-1 rounded-2xl bg-stone-100 py-3 text-sm font-bold text-ink transition-colors hover:bg-stone-200"
+        className="theme-action-secondary flex-1 rounded-2xl py-3 text-sm font-bold transition-colors"
       >
         取消
       </button>
@@ -648,10 +648,10 @@ function SwitchButton({
       onClick={onClick}
       disabled={disabled}
       className={`relative h-7 w-12 rounded-full transition-all ${
-        checked ? 'bg-primary' : 'bg-stone-300'
+        checked ? 'bg-primary' : 'bg-[var(--color-hairline-strong)]'
       } disabled:cursor-not-allowed`}
     >
-      <div className={`absolute top-0.5 h-6 w-6 rounded-full bg-white shadow transition-all ${checked ? 'left-[22px]' : 'left-0.5'}`} />
+      <div className={`absolute top-0.5 h-6 w-6 rounded-full bg-[var(--color-surface-panel)] shadow transition-all ${checked ? 'left-[22px]' : 'left-0.5'}`} />
     </button>
   );
 }

@@ -94,9 +94,9 @@ const NEWS_TYPE_OPTIONS = ['生活记录', '同城发现', '探店动态', '邻�
 
 const choiceButtonClassName = 'px-3 py-1 rounded-lg text-[10px] font-bold transition-all';
 const selectedChoiceClassName = 'text-white shadow-md';
-const unselectedChoiceClassName = 'bg-white text-muted border border-hairline';
+const unselectedChoiceClassName = 'theme-action-secondary text-muted';
 const fieldLabelClassName = 'text-[10px] font-black text-muted uppercase tracking-widest';
-const locationButtonClassName = 'flex items-center gap-2 px-3 py-1 rounded-lg text-[10px] font-bold bg-white border border-hairline hover:border-primary/30 transition-all';
+const locationButtonClassName = 'theme-card flex items-center gap-2 rounded-lg px-3 py-1 text-[10px] font-bold transition-all hover:border-primary/30';
 
 interface PublishOverlayProps {
   isOpen: boolean;
@@ -209,6 +209,8 @@ export const PublishOverlay: React.FC<PublishOverlayProps> = ({ isOpen, onClose,
           images: uploadedUrls,
           highlights: serviceHighlights,
           distance: publishLocation,
+          area: publishLocation,
+          phone: user.phone?.trim() || undefined,
         };
         await serviceApi.create(servicePayload);
       } else if (selectedId === 'snap') {
@@ -287,8 +289,8 @@ export const PublishOverlay: React.FC<PublishOverlayProps> = ({ isOpen, onClose,
             transition={{ type: 'spring', damping: 25, stiffness: 300 }}
             className="relative w-full max-w-5xl my-auto z-10"
           >
-            <div className="bg-white rounded-[48px] overflow-hidden shadow-2xl p-8 md:p-16 relative min-h-[600px] flex flex-col justify-center">
-              <button onClick={onClose} className="absolute top-8 right-8 p-4 hover:bg-stone-100 rounded-full transition-all group z-20">
+            <div className="theme-card relative min-h-[600px] flex flex-col justify-center overflow-hidden rounded-[48px] p-8 shadow-2xl md:p-16">
+              <button onClick={onClose} className="group absolute right-8 top-8 z-20 rounded-full border border-hairline bg-white p-4 transition-all hover:bg-stone-50">
                 <X className="w-6 h-6 text-ink group-hover:rotate-90 transition-transform duration-300" />
               </button>
 
@@ -319,7 +321,7 @@ export const PublishOverlay: React.FC<PublishOverlayProps> = ({ isOpen, onClose,
                           onClick={() => setSelectedId(option.id)}
                           className="group"
                         >
-                          <div className="bg-stone-50 p-8 rounded-[40px] border border-hairline hover:bg-white hover:shadow-premium transition-all duration-500 h-full flex flex-col items-center text-center cursor-pointer">
+                          <div className="theme-card flex h-full cursor-pointer flex-col items-center rounded-[40px] p-8 text-center transition-all duration-500 hover:border-primary/15 hover:shadow-premium">
                             <div className={`w-16 h-16 ${option.lightColor} text-white rounded-3xl flex items-center justify-center mb-8`}>
                               <div className={`${option.color} p-4 rounded-2xl shadow-lg group-hover:scale-110 transition-transform duration-500`}>
                                 {React.cloneElement(option.icon, { className: 'w-6 h-6' })}
@@ -327,7 +329,7 @@ export const PublishOverlay: React.FC<PublishOverlayProps> = ({ isOpen, onClose,
                             </div>
                             <h3 className="text-xl font-black text-ink mb-3 tracking-tight">{option.title}</h3>
                             <p className="text-secondary text-sm font-medium mb-8 leading-relaxed opacity-70">{option.desc}</p>
-                            <div className="mt-auto p-4 rounded-full bg-white border border-hairline text-ink group-hover:bg-primary group-hover:text-white group-hover:border-primary transition-all duration-500">
+                            <div className="theme-card mt-auto rounded-full p-4 text-ink transition-all duration-500 group-hover:border-primary group-hover:bg-primary group-hover:text-white">
                               <ArrowRight className="w-5 h-5" />
                             </div>
                           </div>
@@ -354,7 +356,7 @@ export const PublishOverlay: React.FC<PublishOverlayProps> = ({ isOpen, onClose,
                     </div>
 
                     <div className="space-y-6">
-                      <div className="bg-stone-50 rounded-[32px] p-8 border border-hairline focus-within:bg-white focus-within:shadow-premium focus-within:border-primary/20 transition-all space-y-6">
+                      <div className="theme-card space-y-6 rounded-[32px] p-8 transition-all focus-within:border-primary/20 focus-within:bg-white focus-within:shadow-premium">
                         {(selectedId === 'market' || selectedId === 'service' || selectedId === 'news') && (
                           <div className="border-b border-hairline pb-4">
                             <input
@@ -461,7 +463,7 @@ export const PublishOverlay: React.FC<PublishOverlayProps> = ({ isOpen, onClose,
                             id="image-upload"
                             onChange={handleImageChange}
                           />
-                          <label htmlFor="image-upload" className="p-4 bg-stone-50 rounded-2xl border border-hairline hover:bg-stone-100 transition-colors text-secondary cursor-pointer">
+                          <label htmlFor="image-upload" className="theme-card cursor-pointer rounded-2xl p-4 text-secondary transition-colors hover:bg-stone-50">
                             <Camera className="w-5 h-5" />
                           </label>
                           <div className="flex flex-col">
@@ -616,7 +618,7 @@ function DropdownSelector({
           <ChevronDown className="w-3 h-3" />
         </button>
         {open && (
-          <div className="absolute top-full left-0 mt-1 bg-white rounded-xl shadow-lg border border-hairline z-10 overflow-hidden">
+          <div className="theme-card absolute top-full left-0 z-10 mt-1 overflow-hidden rounded-xl shadow-lg">
             {options.map((option, index) => (
               <button
                 key={`${label}-${option.value || 'empty'}-${index}`}

@@ -9,17 +9,29 @@ export function dispatchAuthStateChange(): void {
 }
 
 export function getStoredUser(): User | null {
-  return readStorageJson<User | null>(localStorage, AUTH_USER_KEY, null);
+  const sessionUser = readStorageJson<User | null>(sessionStorage, AUTH_USER_KEY, null);
+  if (sessionUser) {
+    return sessionUser;
+  }
+  const legacyUser = readStorageJson<User | null>(localStorage, AUTH_USER_KEY, null);
+  if (legacyUser) {
+    writeStorageJson(sessionStorage, AUTH_USER_KEY, legacyUser);
+    removeStorageValue(localStorage, AUTH_USER_KEY);
+    return legacyUser;
+  }
+  return null;
 }
 
 export function setStoredUser(user: User): void {
-  writeStorageJson(localStorage, AUTH_USER_KEY, user);
+  writeStorageJson(sessionStorage, AUTH_USER_KEY, user);
+  removeStorageValue(localStorage, AUTH_USER_KEY);
 }
 
 export function removeStoredUser(): void {
   if (!getStoredUser()) {
     return;
   }
+  removeStorageValue(sessionStorage, AUTH_USER_KEY);
   removeStorageValue(localStorage, AUTH_USER_KEY);
   dispatchAuthStateChange();
 }

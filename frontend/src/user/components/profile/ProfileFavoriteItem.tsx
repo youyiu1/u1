@@ -81,7 +81,7 @@ export const ProfileFavoriteItem: React.FC<ProfileFavoriteItemProps> = ({ favori
     return (
       <div
         onClick={handleClick}
-        className="group cursor-pointer overflow-hidden rounded-2xl border border-hairline bg-white transition-all hover:border-primary/20 hover:shadow-lg"
+        className="theme-card group cursor-pointer overflow-hidden rounded-2xl transition-all hover:border-primary/20 hover:shadow-lg"
       >
         {images.length > 0 && (
           <div className="aspect-video bg-surface-soft">
@@ -116,7 +116,7 @@ export const ProfileFavoriteItem: React.FC<ProfileFavoriteItemProps> = ({ favori
   return (
     <div
       onClick={handleClick}
-      className="group cursor-pointer overflow-hidden rounded-2xl border border-hairline bg-white transition-all hover:border-primary/20 hover:shadow-lg"
+      className="theme-card group cursor-pointer overflow-hidden rounded-2xl transition-all hover:border-primary/20 hover:shadow-lg"
     >
       <div className="relative aspect-square bg-surface-soft">
         {primaryImage ? (

@@ -57,8 +57,10 @@ export interface Service {
   rating: number;
   reviews: number;
   distance: string;
+  area?: string;
   price: number;
   unit: string;
+  phone?: string;
   image: string;
   images?: string[];
   highlights: string[];

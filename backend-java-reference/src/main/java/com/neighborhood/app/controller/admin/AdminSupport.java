@@ -31,6 +31,7 @@ import com.neighborhood.app.service.UserService;
 import com.neighborhood.app.util.JwtUtil;
 import com.neighborhood.app.utils.AuthTokenStore;
 import com.neighborhood.app.utils.CollectionStringUtil;
+import com.neighborhood.app.utils.MarketCategoryUtil;
 import com.neighborhood.app.utils.PasswordCodec;
 import com.neighborhood.app.utils.RequestClientUtil;
 import com.neighborhood.app.utils.RequestUserUtil;
@@ -802,8 +803,8 @@ public class AdminSupport {
             List<String> permissionCodes = parseStringArray(str(role.getPermissionCodes()));
             return new AdminRoleConfig(
                     emptyTo(str(role.getStatus()), "active"),
-                    menuIds.isEmpty() ? defaultMenuIds : menuIds,
-                    permissionCodes.isEmpty() ? defaultPermissionCodes : permissionCodes
+                    mergeBuiltInConfigItems(roleCode, menuIds, defaultMenuIds),
+                    mergeBuiltInConfigItems(roleCode, permissionCodes, defaultPermissionCodes)
             );
         } catch (Exception ignored) {
             return new AdminRoleConfig("active", defaultMenuIds, defaultPermissionCodes);
@@ -845,6 +846,25 @@ public class AdminSupport {
 
     private List<String> readonlyPermissionCodes() {
         return READONLY_PERMISSION_CODES;
+    }
+
+    private List<String> mergeBuiltInConfigItems(String roleCode, List<String> currentItems, List<String> defaultItems) {
+        if (currentItems.isEmpty()) {
+            return defaultItems;
+        }
+        if (!isBuiltInRole(roleCode) || defaultItems.isEmpty()) {
+            return currentItems;
+        }
+        LinkedHashSet<String> merged = new LinkedHashSet<>(currentItems);
+        merged.addAll(defaultItems);
+        return List.copyOf(merged);
+    }
+
+    private boolean isBuiltInRole(String roleCode) {
+        return ROLE_SUPER_ADMIN.equals(roleCode)
+                || ROLE_ADMIN.equals(roleCode)
+                || ROLE_READONLY_ADMIN.equals(roleCode)
+                || ROLE_USER.equals(roleCode);
     }
 
     private Map<String, Object> menu(String id, String parentId, String name, String path, String icon, int order, String type, String permission) {
@@ -998,13 +1018,7 @@ public class AdminSupport {
     }
 
     public String normalizeGoodsCategory(String category) {
-        if (category == null) return "other";
-        String lower = category.toLowerCase(Locale.ROOT);
-        if (lower.contains("elect")) return "electronics";
-        if (lower.contains("furn")) return "furniture";
-        if (lower.contains("cloth")) return "clothing";
-        if (lower.contains("book")) return "books";
-        return "other";
+        return MarketCategoryUtil.normalize(category);
     }
 
     public String normalizeOrderStatus(String status) {

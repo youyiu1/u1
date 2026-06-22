@@ -32,7 +32,7 @@ export const HomePostCard: React.FC<HomePostCardProps> = ({ post, idx, compact =
 
   return (
     <div
-      className={`group flex h-full cursor-pointer flex-col rounded-[16px] border border-stone-200/80 bg-white p-3 transition-shadow duration-300 content-visibility-auto hover:shadow-[0_12px_26px_rgba(15,23,42,0.08)] ${
+      className={`theme-card group flex h-full cursor-pointer flex-col rounded-[16px] p-3 transition-shadow duration-300 content-visibility-auto hover:shadow-[0_12px_26px_rgba(15,23,42,0.08)] ${
         compact ? '' : 'rounded-[48px] p-10'
       }`}
       onClick={() => navigate(`/news/${post.id}`)}
@@ -61,7 +61,7 @@ export const HomePostCard: React.FC<HomePostCardProps> = ({ post, idx, compact =
               className={`${compact ? 'h-7.5 w-7.5 ring-offset-2' : 'h-16 w-16 ring-offset-4'} rounded-full object-cover ring-2 ring-hairline transition-colors duration-300 group-hover:ring-primary/30`}
             />
           ) : (
-            <div className={`${compact ? 'h-7.5 w-7.5 text-[11px]' : 'h-16 w-16 text-xl'} flex items-center justify-center rounded-full bg-stone-200 font-bold text-stone-400`}>
+            <div className={`${compact ? 'h-7.5 w-7.5 text-[11px]' : 'h-16 w-16 text-xl'} theme-card-muted flex items-center justify-center rounded-full font-bold text-muted`}>
               {authorName.charAt(0)}
             </div>
           )}
@@ -84,11 +84,11 @@ export const HomePostCard: React.FC<HomePostCardProps> = ({ post, idx, compact =
       </p>
 
       {images.length > 0 && images[0] ? (
-        <div className={`${compact ? 'mb-2.5 rounded-[14px]' : 'mb-10 rounded-[32px]'} aspect-[16/9] overflow-hidden bg-stone-100 shadow-inner`}>
+        <div className={`${compact ? 'mb-2.5 rounded-[14px]' : 'mb-10 rounded-[32px]'} theme-card-muted aspect-[16/9] overflow-hidden shadow-inner`}>
           <img src={images[0]} alt="Post content" loading="lazy" decoding="async" className="h-full w-full object-cover" />
         </div>
       ) : (
-        <div className={`${compact ? 'mb-2.5 h-[84px] rounded-[14px]' : 'mb-10 h-[160px] rounded-[32px]'} bg-stone-50`} />
+        <div className={`${compact ? 'mb-2.5 h-[84px] rounded-[14px]' : 'mb-10 h-[160px] rounded-[32px]'} theme-card-muted`} />
       )}
 
       <div className={`${compact ? 'pt-2' : 'pt-10'} mt-auto flex items-center justify-between border-t border-hairline`} onClick={(e) => e.stopPropagation()}>
@@ -105,7 +105,7 @@ export const HomePostCard: React.FC<HomePostCardProps> = ({ post, idx, compact =
             {comments.map((comment, i) => (
               <div
                 key={i}
-                className={`${compact ? 'h-5 w-5' : 'h-8 w-8'} cursor-pointer overflow-hidden rounded-full border-2 border-white bg-stone-100 transition-all hover:ring-2 hover:ring-primary/50`}
+                className={`${compact ? 'h-5 w-5' : 'h-8 w-8'} theme-card-soft cursor-pointer overflow-hidden rounded-full border-2 transition-all hover:ring-2 hover:ring-primary/50`}
                 onClick={() =>
                   navigate(buildProfilePath(undefined, comment.userName), {
                     state: buildProfileRouteState({

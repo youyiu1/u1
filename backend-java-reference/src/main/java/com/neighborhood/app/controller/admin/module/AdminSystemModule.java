@@ -1,6 +1,7 @@
 package com.neighborhood.app.controller.admin.module;
 
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
+import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.baomidou.mybatisplus.core.conditions.update.LambdaUpdateWrapper;
 import com.neighborhood.app.common.Result;
 import com.neighborhood.app.controller.admin.AdminSupport;
@@ -16,14 +17,17 @@ import com.neighborhood.app.mapper.system.CategoryMapper;
 import com.neighborhood.app.mapper.user.UserMapper;
 import com.neighborhood.app.service.CategoryService;
 import com.neighborhood.app.service.MessageService;
-import com.neighborhood.app.service.NotificationService;
+import com.neighborhood.app.service.NotificationWriteService;
 import java.time.LocalDateTime;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
+import org.springframework.transaction.annotation.Transactional;
 
-/** 文件作用：管理端系统模块封装。 */
+/** 管理端系统模块封装。 */
 @Component
 @RequiredArgsConstructor
 public class AdminSystemModule {
@@ -35,7 +39,8 @@ public class AdminSystemModule {
     private final CategoryMapper categoryMapper;
     private final AdminRoleMapper adminRoleMapper;
     private final CategoryService categoryService;
-    private final NotificationService notificationService;
+    private final com.neighborhood.app.service.NotificationService notificationService;
+    private final NotificationWriteService notificationWriteService;
     private final MessageService messageService;
 
     public Result<List<Map<String, Object>>> categories() {
@@ -59,7 +64,9 @@ public class AdminSystemModule {
         category.setType(type);
         category.setStatus("normal");
         category.setSortOrder(lastCategory == null || lastCategory.getSortOrder() == null ? 1 : lastCategory.getSortOrder() + 1);
-        categoryService.save(category);
+        if (!categoryService.save(category)) {
+            return Result.fail("分类创建失败");
+        }
         return Result.ok();
     }
 
@@ -69,7 +76,9 @@ public class AdminSystemModule {
             return Result.fail("分类不存在");
         }
         category.setStatus("normal".equals(support.str(category.getStatus())) ? "disabled" : "normal");
-        categoryService.updateById(category);
+        if (!categoryService.updateById(category)) {
+            return Result.fail("分类状态更新失败");
+        }
         return Result.ok();
     }
 
@@ -80,10 +89,18 @@ public class AdminSystemModule {
         ));
     }
 
+    /** 发布系统通知。 */
+    @Transactional
     public Result<Void> addNotification(NotificationCreateRequest body) {
         String title = body == null ? "" : support.empty(body.title());
         String content = body == null ? "" : support.empty(body.content());
-        resolveTargetUserIds(body).forEach(userId -> notificationService.saveNotification(userId, title, content, PLATFORM_NOTICE));
+        List<String> userIds = resolveTargetUserIds(body);
+        if (userIds.isEmpty()) {
+            return Result.fail("未找到可通知的目标用户");
+        }
+        for (String userId : userIds) {
+            notificationWriteService.saveNotification(userId, title, content, PLATFORM_NOTICE);
+        }
         return Result.ok();
     }
 
@@ -93,7 +110,9 @@ public class AdminSystemModule {
             return Result.fail("通知不存在");
         }
         notification.setIsRead(!Boolean.TRUE.equals(notification.getIsRead()));
-        notificationService.updateById(notification);
+        if (!notificationService.updateById(notification)) {
+            return Result.fail("通知状态更新失败");
+        }
         return Result.ok();
     }
 
@@ -112,12 +131,16 @@ public class AdminSystemModule {
     }
 
     public Result<Void> markMessageRead(Long id) {
-        messageService.markRead(id);
+        if (!messageService.markRead(id)) {
+            return Result.fail("消息状态更新失败");
+        }
         return Result.ok();
     }
 
     public Result<Void> deleteMessage(Long id) {
-        messageService.removeById(id);
+        if (!messageService.removeById(id)) {
+            return Result.fail("消息删除失败");
+        }
         return Result.ok();
     }
 
@@ -151,7 +174,7 @@ public class AdminSystemModule {
         if (AdminSupport.ROLE_SUPER_ADMIN.equals(code)) {
             status = "active";
         }
-        adminRoleMapper.update(null, new LambdaUpdateWrapper<AdminRole>()
+        int updated = adminRoleMapper.update(null, new LambdaUpdateWrapper<AdminRole>()
                 .eq(AdminRole::getId, id)
                 .set(AdminRole::getName, name)
                 .set(AdminRole::getDescription, description)
@@ -159,15 +182,30 @@ public class AdminSystemModule {
                 .set(AdminRole::getMenuIds, support.stringifyArray(body == null ? List.of() : body.menuIds()))
                 .set(AdminRole::getPermissionCodes, support.stringifyArray(body == null ? List.of() : body.permissionCodes()))
                 .set(AdminRole::getUpdateTime, LocalDateTime.now()));
+        if (updated == 0) {
+            return Result.fail("角色更新失败");
+        }
         return Result.ok();
     }
 
     private List<String> resolveTargetUserIds(NotificationCreateRequest body) {
         String target = body == null ? "" : support.empty(body.target());
-        LambdaQueryWrapper<User> wrapper = new LambdaQueryWrapper<User>().select(User::getId);
-        if (!"all".equals(target)) {
-            wrapper.orderByDesc(User::getCreatedAt).last("LIMIT 1");
+        if ("all".equals(target)) {
+            return userMapper.selectObjs(new QueryWrapper<User>().select("id")).stream()
+                    .map(support::str)
+                    .filter(id -> !id.isBlank())
+                    .toList();
         }
-        return userMapper.selectObjs(wrapper).stream().map(support::str).toList();
+        Set<String> ids = new LinkedHashSet<>(body == null || body.userIds() == null ? List.of() : body.userIds());
+        return ids.stream()
+                .map(support::str)
+                .map(String::trim)
+                .filter(id -> !id.isEmpty())
+                .filter(this::userExists)
+                .toList();
+    }
+
+    private boolean userExists(String userId) {
+        return userMapper.selectCount(new QueryWrapper<User>().eq("id", userId)) > 0;
     }
 }

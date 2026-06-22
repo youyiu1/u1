@@ -83,7 +83,7 @@ export const CommentItem: React.FC<CommentItemProps> = ({
       onClick={() => onReply?.(comment)}
       className={`group cursor-pointer border border-transparent text-left transition-all hover:border-hairline ${
         compact
-          ? 'flex gap-2.5 rounded-2xl bg-surface-soft/70 px-3 py-2.5 hover:border-primary/10 hover:bg-white'
+          ? 'theme-card-soft flex gap-2.5 rounded-2xl px-3 py-2.5 hover:border-primary/10 hover:shadow-sm'
           : 'flex gap-5 rounded-[32px] px-6 pb-2 pt-5 hover:bg-surface-soft'
       }`}
     >

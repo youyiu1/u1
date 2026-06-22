@@ -59,7 +59,7 @@ export const PostMenu: React.FC<PostMenuProps> = ({ onDelete, onReport, isOwner 
       </button>
 
       {isOpen && (
-        <div className="absolute right-0 top-full z-50 mt-1 min-w-[120px] overflow-hidden rounded-xl border border-hairline bg-white shadow-lg">
+        <div className="theme-card absolute right-0 top-full z-50 mt-1 min-w-[120px] overflow-hidden rounded-xl shadow-lg">
           {isOwner && onDelete && (
             <button
               onClick={() => runAction(onDelete, '删除成功', '删除失败')}

@@ -638,7 +638,7 @@ export default function AdminApp() {
             onToggleCategoryStatus={(id) => runAction(adminApi.toggleCategoryStatus(id))}
             onAddCategory={(name, type) => runAction(adminApi.addCategory(name, type))}
             onToggleNotificationRead={(id) => runAction(adminApi.toggleNotificationRead(id))}
-            onAddNotification={(title, content, target, scheduled) => runAction(adminApi.addNotification(title, content, target, scheduled))}
+            onAddNotification={(payload) => runAction(adminApi.addNotification(payload))}
             vMode={currentPath === '/admin/notifications' ? 'notifications' : 'categories'}
           />
         );

@@ -22,7 +22,7 @@ export const ProfilePostCard: React.FC<ProfilePostCardProps> = ({ post, currentU
   return (
     <div
       onClick={() => navigate(`/news/${post.id}`, { state: { from: '/profile' } })}
-      className="group cursor-pointer rounded-2xl border border-hairline bg-white p-4 transition-all hover:border-primary/20 hover:shadow-md"
+      className="theme-card group cursor-pointer rounded-2xl p-4 transition-all hover:border-primary/20 hover:shadow-md"
     >
       <div className="flex items-center gap-4">
         <div className="min-w-0 flex-1">

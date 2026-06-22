@@ -163,8 +163,12 @@ public class UserController {
 
     /** 查询是否已关注用户。 */
     @GetMapping("/isfollowing")
-    public Result<Boolean> isFollowing(@RequestParam String followerId, @RequestParam String followingId) {
-        return ResultUtils.bool(userService.isFollowing(followerId, followingId));
+    public Result<Boolean> isFollowing(@RequestParam String followingId, HttpServletRequest request) {
+        String currentUserId = RequestUserUtil.currentUserId(request);
+        if (isBlank(currentUserId)) {
+            return ResultUtils.fail("璇峰厛鐧诲綍");
+        }
+        return ResultUtils.bool(userService.isFollowing(currentUserId, followingId));
     }
 
     /** 获取用户关注列表。 */
@@ -178,11 +182,10 @@ public class UserController {
     /** 获取推荐用户列表。 */
     @GetMapping("/suggested")
     public Result<List<PublicUserVO>> getSuggestedUsers(
-            @RequestParam(required = false) String currentUserId,
             @RequestParam(defaultValue = "5") String limit,
             HttpServletRequest request) {
         return ResultUtils.ok(userService.getSuggestedUsers(
-                effectiveUserId(request, currentUserId),
+                requestUserResolver.currentUserId(request),
                 safeLimit(limit, 5, 20)
         ).stream()
                 .map(PublicUserVO::fromUser)
@@ -273,10 +276,6 @@ public class UserController {
         UserVO userVO = buildUserVO(user);
         userVO.setIsOnline(true);
         return ResultUtils.ok(new AuthResponse(userVO, token));
-    }
-
-    private String effectiveUserId(HttpServletRequest request, String userId) {
-        return requestUserResolver.getEffectiveUserId(request, userId);
     }
 
     private UserVO buildUserVO(User user) {

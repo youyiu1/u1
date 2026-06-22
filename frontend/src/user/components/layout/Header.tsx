@@ -91,7 +91,7 @@ export default function Header() {
         className={`fixed inset-x-0 top-0 z-50 w-full border-b shadow-[0_10px_30px_rgba(15,23,42,0.08)] backdrop-blur-2xl transition-colors duration-500 ${
           isNight
             ? 'border-slate-800/80 bg-slate-950/76 supports-[backdrop-filter]:bg-slate-950/68'
-            : 'border-white/35 bg-white/55 supports-[backdrop-filter]:bg-white/45'
+            : 'theme-topbar border-white/35 supports-[backdrop-filter]:bg-white/45'
         }`}
       >
         <div
@@ -187,7 +187,7 @@ export default function Header() {
                 exit={{ opacity: 0, y: -20 }}
                 transition={{ type: 'spring', stiffness: 300, damping: 30 }}
                 className={`absolute left-0 right-0 top-full z-50 border-t shadow-2xl lg:hidden ${
-                  isNight ? 'border-slate-800 bg-slate-950 text-white' : 'border-hairline bg-white'
+                  isNight ? 'border-slate-800 bg-slate-950 text-white' : 'theme-card border-hairline'
                 }`}
               >
                 <nav className="space-y-1 p-4 md:p-6">

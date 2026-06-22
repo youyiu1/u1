@@ -25,7 +25,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
-/** 文件作用：用户端资讯接口。 */
+/** 用户端资讯接口。 */
 @RestController
 @RequestMapping("/api/news")
 @RequiredArgsConstructor
@@ -99,21 +99,17 @@ public class NewsController {
             @PathVariable Long id,
             @RequestParam(defaultValue = "20") int limit,
             @RequestParam(defaultValue = "0") int offset,
-            @RequestParam(required = false) String userId,
             HttpServletRequest request) {
         return Result.ok(newsService.getCommentsByNewsId(
                 id,
                 limit,
                 offset,
-                requestUserResolver.getEffectiveUserId(request, userId)
+                RequestUserUtil.currentUserId(request)
         ));
     }
 
     @PostMapping("/comment/{id}/like")
-    public Result<Boolean> likeComment(
-            @PathVariable Long id,
-            @RequestParam(required = false) String userId,
-            HttpServletRequest request) {
+    public Result<Boolean> likeComment(@PathVariable Long id, HttpServletRequest request) {
         String effectiveUserId = RequestUserUtil.currentUserId(request);
         if (effectiveUserId == null || effectiveUserId.isBlank()) {
             return Result.fail("请先登录");

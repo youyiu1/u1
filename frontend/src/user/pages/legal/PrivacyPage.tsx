@@ -37,7 +37,7 @@ export default function PrivacyPage() {
 
         <div className="space-y-5">
           {PRIVACY_SECTIONS.map((section) => (
-            <section key={section.title} className="rounded-[28px] border border-hairline bg-stone-50 p-6 md:p-8">
+            <section key={section.title} className="theme-card-muted rounded-[28px] p-6 md:p-8">
               <h2 className="mb-3 text-lg font-black text-ink">{section.title}</h2>
               <p className="text-sm leading-7 text-secondary">{section.content}</p>
             </section>

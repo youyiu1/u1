@@ -57,13 +57,13 @@ const EntryCard: React.FC<
       className={`group flex min-h-[198px] flex-col justify-between rounded-[26px] border px-5 py-5 transition-all duration-300 hover:-translate-y-0.5 md:min-h-[210px] md:px-6 md:py-6 ${
         isNight
           ? 'border-slate-800 bg-slate-900/92 shadow-[0_14px_30px_rgba(2,6,23,0.34)] hover:shadow-[0_18px_38px_rgba(2,6,23,0.42)]'
-          : 'border-stone-200 bg-white shadow-[0_10px_28px_rgba(15,23,42,0.045)] hover:shadow-[0_14px_34px_rgba(15,23,42,0.08)]'
+          : 'theme-card shadow-[0_10px_28px_rgba(15,23,42,0.045)] hover:shadow-[0_14px_34px_rgba(15,23,42,0.08)]'
       }`}
     >
       <div className="space-y-3">
         <span
           className={`inline-flex rounded-full px-2.5 py-1 text-[10px] font-black uppercase tracking-[0.16em] ${
-            isNight ? 'bg-slate-800 text-slate-300' : 'bg-stone-100 text-stone-500'
+            isNight ? 'bg-slate-800 text-slate-300' : 'theme-tag-soft'
           }`}
         >
           {eyebrow}
@@ -97,7 +97,7 @@ export default function HomePage() {
       className={
         isNight
           ? 'relative min-h-screen overflow-hidden bg-[linear-gradient(180deg,#08111f_0%,#0f172a_46%,#111827_100%)] text-white'
-          : 'relative min-h-screen overflow-hidden bg-white'
+          : 'theme-surface-panel relative min-h-screen overflow-hidden'
       }
     >
       <HeroSection mode={mode} />
@@ -110,7 +110,7 @@ export default function HomePage() {
               className={`rounded-[22px] border px-4 py-4 text-center ${
                 isNight
                   ? 'border-slate-800 bg-slate-900/72 shadow-[0_10px_24px_rgba(2,6,23,0.22)]'
-                  : 'border-stone-200 bg-stone-50/75 shadow-[0_8px_22px_rgba(15,23,42,0.03)]'
+                  : 'theme-card shadow-[0_8px_22px_rgba(15,23,42,0.03)]'
               }`}
             >
               <div className="mb-2 text-[16px] font-black tracking-tight text-primary">

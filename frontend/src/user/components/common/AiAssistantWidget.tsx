@@ -223,7 +223,7 @@ function AssistantBubble({ content }: { content: string }) {
       <div className="mt-1 flex h-8 w-8 shrink-0 items-center justify-center rounded-2xl bg-linear-to-br from-primary via-[#ff7b5f] to-[#ffb457] text-white shadow-lg shadow-primary/20">
         <Bot className="h-4 w-4" />
       </div>
-      <div className="max-w-[88%] rounded-[20px] rounded-tl-md border border-white/75 bg-white px-3.5 py-2.5 text-[13px] leading-6 text-ink shadow-sm shadow-stone-900/5">
+      <div className="theme-card-soft max-w-[88%] rounded-[20px] rounded-tl-md px-3.5 py-2.5 text-[13px] leading-6 text-ink shadow-sm shadow-stone-900/5">
         {content}
       </div>
     </div>
@@ -246,7 +246,7 @@ function TypingBubble() {
       <div className="mt-1 flex h-8 w-8 shrink-0 items-center justify-center rounded-2xl bg-linear-to-br from-primary via-[#ff7b5f] to-[#ffb457] text-white shadow-lg shadow-primary/20">
         <Bot className="h-4 w-4" />
       </div>
-      <div className="inline-flex items-center gap-2 rounded-[20px] rounded-tl-md border border-white/75 bg-white px-3.5 py-2.5 text-[13px] text-muted shadow-sm shadow-stone-900/5">
+      <div className="theme-card-soft inline-flex items-center gap-2 rounded-[20px] rounded-tl-md px-3.5 py-2.5 text-[13px] text-muted shadow-sm shadow-stone-900/5">
         <LoaderCircle className="h-4 w-4 animate-spin" />
         正在整理回复...
       </div>
@@ -513,7 +513,7 @@ export function AiAssistantWidget() {
           whileTap={{ scale: 0.98 }}
           aria-label="打开 AI 助手"
           style={{ left: activePosition.x, top: activePosition.y, touchAction: 'none' }}
-          className={`fixed z-[55] flex min-h-[72px] items-center gap-3 rounded-[26px] border border-primary/15 bg-white/96 px-3.5 py-3 text-left shadow-[0_18px_40px_rgba(15,23,42,0.14)] backdrop-blur sm:min-w-[220px] ${
+          className={`theme-card-soft fixed z-[55] flex min-h-[72px] items-center gap-3 rounded-[26px] border-primary/15 px-3.5 py-3 text-left shadow-[0_18px_40px_rgba(15,23,42,0.14)] backdrop-blur sm:min-w-[220px] ${
             isDragging ? 'cursor-grabbing' : 'cursor-grab'
           }`}
         >
@@ -536,7 +536,7 @@ export function AiAssistantWidget() {
             exit={{ opacity: 0, scale: 0.98 }}
             transition={{ duration: 0.2, ease: [0.22, 1, 0.36, 1] }}
             style={{ left: activePosition.x, top: activePosition.y }}
-            className="fixed z-[55] flex h-[min(72vh,40rem)] w-[calc(100vw-1rem)] max-w-[22rem] flex-col overflow-hidden rounded-[28px] border border-white/75 bg-[#fcfaf7] shadow-[0_28px_72px_rgba(15,23,42,0.16)]"
+            className="theme-card-soft fixed z-[55] flex h-[min(72vh,40rem)] w-[calc(100vw-1rem)] max-w-[22rem] flex-col overflow-hidden rounded-[28px] shadow-[0_28px_72px_rgba(15,23,42,0.16)]"
           >
             <div
               onPointerDown={(event) => handleDragStart(event, true)}
@@ -594,7 +594,7 @@ export function AiAssistantWidget() {
               {isSending ? <TypingBubble /> : null}
             </div>
 
-            <div className="border-t border-stone-200/80 bg-white/95 px-3.5 py-2.5 backdrop-blur">
+            <div className="theme-topbar border-t px-3.5 py-2.5 backdrop-blur">
               {!isAuthenticated ? (
                 <div className="rounded-[22px] border border-dashed border-primary/20 bg-primary/5 px-3.5 py-3">
                   <p className="text-sm font-black text-ink">登录后才能直接对话</p>
@@ -618,14 +618,14 @@ export function AiAssistantWidget() {
                         type="button"
                         onClick={() => void handleSend(question)}
                         disabled={isSending}
-                        className="shrink-0 rounded-full border border-stone-200 bg-stone-50 px-2.5 py-1 text-[11px] font-bold text-stone-600 transition-colors hover:border-primary/20 hover:bg-primary/5 hover:text-primary disabled:cursor-not-allowed disabled:opacity-60"
+                        className="theme-action-secondary shrink-0 rounded-full px-2.5 py-1 text-[11px] font-bold text-secondary hover:bg-primary/5 hover:text-primary disabled:cursor-not-allowed disabled:opacity-60"
                       >
                         {question}
                       </button>
                     ))}
                   </div>
 
-                  <div className="rounded-[24px] border border-stone-200 bg-stone-50/90 p-2.5 shadow-inner shadow-stone-100/70 focus-within:border-primary/25 focus-within:bg-white">
+                  <div className="theme-card-muted rounded-[24px] p-2.5 shadow-inner shadow-stone-100/70 focus-within:border-primary/25 focus-within:bg-[var(--color-surface-input-focus)]">
                     <div className="mb-1.5 flex items-center gap-2 px-1 text-[11px] font-bold text-muted">
                       <MessageCircleMore className="h-4 w-4" />
                       直接说需求，按回车发送
@@ -650,7 +650,7 @@ export function AiAssistantWidget() {
                         className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-full transition-all ${
                           canSend
                             ? 'bg-primary text-white shadow-lg shadow-primary/20 hover:bg-primary-hover'
-                            : 'bg-stone-200 text-stone-400'
+                            : 'theme-card-muted text-muted'
                         }`}
                       >
                         <Send className="h-4 w-4" />

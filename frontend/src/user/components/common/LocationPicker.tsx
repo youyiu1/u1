@@ -81,7 +81,7 @@ export function LocationPicker({ isOpen, onClose, onSelect }: LocationPickerProp
   return (
     <div className="fixed inset-0 z-[200] flex items-center justify-center px-6">
       <div className="absolute inset-0 bg-ink/50 backdrop-blur-sm" onClick={onClose} />
-      <div className="relative bg-white rounded-3xl w-full max-w-md overflow-hidden shadow-2xl">
+      <div className="theme-card relative w-full max-w-md overflow-hidden rounded-3xl shadow-2xl">
         {/* 顶部栏 */}
         <div className="flex items-center gap-3 p-4 border-b border-hairline">
           <button onClick={onClose} className="p-2 hover:bg-surface-soft rounded-xl transition-colors">
@@ -116,7 +116,7 @@ export function LocationPicker({ isOpen, onClose, onSelect }: LocationPickerProp
                 </button>
               </div>
               {openDropdown === 'province' && (
-                <div className="mt-2 bg-white border border-hairline rounded-xl shadow-lg max-h-48 overflow-y-auto">
+                <div className="theme-card mt-2 max-h-48 overflow-y-auto rounded-xl shadow-lg">
                   {provinces.map((p, idx) => (
                     <button
                       key={`province-${p.name || 'empty'}-${idx}`}
@@ -149,7 +149,7 @@ export function LocationPicker({ isOpen, onClose, onSelect }: LocationPickerProp
                 </button>
               </div>
               {openDropdown === 'city' && (
-                <div className="mt-2 bg-white border border-hairline rounded-xl shadow-lg max-h-48 overflow-y-auto">
+                <div className="theme-card mt-2 max-h-48 overflow-y-auto rounded-xl shadow-lg">
                   {cities.map((c, idx) => (
                     <button
                       key={`city-${c || 'empty'}-${idx}`}

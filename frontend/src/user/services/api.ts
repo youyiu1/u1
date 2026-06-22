@@ -241,11 +241,22 @@ function queryByUserId<T>(path: string, userId: string) {
 }
 
 export function getToken(): string | null {
-  return readStorageValue(localStorage, TOKEN_KEY);
+  const sessionToken = readStorageValue(sessionStorage, TOKEN_KEY);
+  if (sessionToken) {
+    return sessionToken;
+  }
+  const legacyToken = readStorageValue(localStorage, TOKEN_KEY);
+  if (legacyToken) {
+    writeStorageValue(sessionStorage, TOKEN_KEY, legacyToken);
+    removeStorageValue(localStorage, TOKEN_KEY);
+    return legacyToken;
+  }
+  return null;
 }
 
 export function setToken(token: string): void {
-  writeStorageValue(localStorage, TOKEN_KEY, token);
+  writeStorageValue(sessionStorage, TOKEN_KEY, token);
+  removeStorageValue(localStorage, TOKEN_KEY);
   authInvalidated = false;
   clearInflightGetRequests();
 }
@@ -254,6 +265,7 @@ export function removeToken(): void {
   if (!getToken()) {
     return;
   }
+  removeStorageValue(sessionStorage, TOKEN_KEY);
   removeStorageValue(localStorage, TOKEN_KEY);
   clearInflightGetRequests();
   dispatchAuthStateChange();
@@ -287,7 +299,7 @@ export const userApi = {
   }) => postFlag('/user/notification-settings', settings),
   follow: (followerId: string, followingId: string) => postFlag('/user/follow', { followerId, followingId }),
   unfollow: (followerId: string, followingId: string) => postFlag('/user/unfollow', { followerId, followingId }),
-  isFollowing: (followerId: string, followingId: string) => requestWithQuery<boolean>('/user/isfollowing', { followerId, followingId }),
+  isFollowing: (followingId: string) => requestWithQuery<boolean>('/user/isfollowing', { followingId }),
   getFollowingList: (userId: string) => request<User[]>(`/user/${userId}/following`),
   getSuggestedUsers: (limit = 5) => requestWithQuery<User[]>('/user/suggested', { limit }),
 };
@@ -324,6 +336,7 @@ export const serviceApi = {
   get: (id: string, lat?: number, lng?: number) => requestWithQuery<ServiceDetail>(`/service/${id}`, { lat, lng }),
   getByUserId: (userId: string) => request<Service[]>(`/service/user/${userId}`),
   getReviews: (id: string) => request<Review[]>(`/service/${id}/reviews`),
+  getBookingStatus: (id: string) => request<boolean>(`/service/${id}/booking-status`),
   create: (service: Partial<Service>) => postFlag('/service/create', service),
   book: (booking: {
     serviceId: string;

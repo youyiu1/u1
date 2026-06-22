@@ -51,7 +51,7 @@ export const ProfileCompletedItem: React.FC<ProfileCompletedItemProps> = ({
   };
 
   return (
-    <div className="rounded-3xl border border-hairline bg-white p-6 transition-all hover:shadow-lg">
+    <div className="theme-card rounded-3xl p-6 transition-all hover:shadow-lg">
       <div className="flex items-start justify-between gap-4">
         <div className="flex-1 cursor-pointer" onClick={handleOpenDetail}>
           <div className="mb-2 flex items-center gap-2">

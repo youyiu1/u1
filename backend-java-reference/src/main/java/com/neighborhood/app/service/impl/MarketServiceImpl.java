@@ -13,6 +13,7 @@ import com.neighborhood.app.service.CacheService;
 import com.neighborhood.app.service.MarketService;
 import com.neighborhood.app.utils.CacheLookupUtil;
 import com.neighborhood.app.utils.EntityDefaultsUtil;
+import com.neighborhood.app.utils.MarketCategoryUtil;
 import com.neighborhood.app.utils.StringValueUtil;
 import com.neighborhood.app.utils.UserLookupUtil;
 import com.neighborhood.app.vo.market.MarketItemVO;
@@ -115,6 +116,9 @@ public class MarketServiceImpl extends ServiceImpl<MarketMapper, MarketItem> imp
 
     @Override
     public boolean save(MarketItem item) {
+        if (item != null) {
+            item.setCategory(MarketCategoryUtil.normalize(item.getCategory()));
+        }
         EntityDefaultsUtil.initPendingMarketItem(item);
         boolean result = super.save(item);
         if (result) {
@@ -125,6 +129,9 @@ public class MarketServiceImpl extends ServiceImpl<MarketMapper, MarketItem> imp
 
     @Override
     public boolean updateById(MarketItem item) {
+        if (item != null && item.getCategory() != null) {
+            item.setCategory(MarketCategoryUtil.normalize(item.getCategory()));
+        }
         boolean result = super.updateById(item);
         if (result) {
             evictMarketCaches(item.getId(), true);
@@ -176,7 +183,7 @@ public class MarketServiceImpl extends ServiceImpl<MarketMapper, MarketItem> imp
                 .eq(MarketItem::getStatus, ACTIVE_STATUS)
                 .orderByDesc(MarketItem::getId);
         if (category != null && !category.isBlank() && !"all".equalsIgnoreCase(category)) {
-            wrapper.eq(MarketItem::getCategory, category);
+            wrapper.in(MarketItem::getCategory, MarketCategoryUtil.aliasesForQuery(category));
         }
         String normalizedKeyword = normalizeKeyword(keyword);
         if (!normalizedKeyword.isEmpty()) {

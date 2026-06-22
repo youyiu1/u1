@@ -29,6 +29,8 @@ public class ServiceEntity {
     private String distance;
     private String unit;
     private String highlights;
+    private String area;
+    private String phone;
     private String status;
     private String rejectReason;
     private Double latitude;

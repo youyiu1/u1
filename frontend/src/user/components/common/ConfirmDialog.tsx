@@ -31,7 +31,7 @@ export const ConfirmDialog: React.FC<ConfirmDialogProps> = ({
             initial={{ opacity: 0, scale: 0.9, y: position === 'button' ? -10 : 20 }}
             animate={{ opacity: 1, scale: 1, y: 0 }}
             exit={{ opacity: 0, scale: 0.9, y: position === 'button' ? -10 : 20 }}
-            className={`pointer-events-auto absolute z-[201] w-full max-w-sm rounded-[32px] bg-white p-8 shadow-2xl ${
+            className={`theme-card pointer-events-auto absolute z-[201] w-full max-w-sm rounded-[32px] p-8 shadow-2xl ${
               position === 'button'
                 ? 'right-0 top-full mt-2 -translate-x-16'
                 : 'left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2'
@@ -39,7 +39,7 @@ export const ConfirmDialog: React.FC<ConfirmDialogProps> = ({
           >
             <button
               onClick={onCancel}
-              className="absolute right-6 top-6 rounded-full p-2 transition-colors hover:bg-stone-100"
+              className="absolute right-6 top-6 rounded-full p-2 transition-colors hover:bg-surface-soft"
             >
               <X className="h-5 w-5 text-muted" />
             </button>

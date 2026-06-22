@@ -1,6 +1,5 @@
 package com.neighborhood.app.controller.admin.module;
 
-import com.baomidou.mybatisplus.core.conditions.update.LambdaUpdateWrapper;
 import com.neighborhood.app.common.Result;
 import com.neighborhood.app.controller.admin.AdminSupport;
 import com.neighborhood.app.dto.admin.AdminCommerceRequests.CancelOrderRequest;
@@ -9,7 +8,6 @@ import com.neighborhood.app.dto.admin.AdminCommonRequests.StatusRequest;
 import com.neighborhood.app.entity.market.MarketItem;
 import com.neighborhood.app.entity.service.Order;
 import com.neighborhood.app.entity.service.ServiceEntity;
-import com.neighborhood.app.mapper.service.ServiceMapper;
 import com.neighborhood.app.service.MarketService;
 import com.neighborhood.app.service.OrderService;
 import com.neighborhood.app.service.ServiceModuleService;
@@ -18,14 +16,14 @@ import java.util.List;
 import java.util.Map;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
+import org.springframework.transaction.annotation.Transactional;
 
-/** 文件作用：管理端交易模块封装。 */
+/** 管理端交易模块封装。 */
 @Component
 @RequiredArgsConstructor
 public class AdminCommerceModule {
 
     private final AdminSupport support;
-    private final ServiceMapper serviceMapper;
     private final MarketService marketService;
     private final ServiceModuleService serviceModuleService;
     private final OrderService orderService;
@@ -46,7 +44,9 @@ public class AdminCommerceModule {
         }
         item.setStatus(support.requestStatus(body, "active"));
         item.setRejectReason(support.requestRejectReason(body));
-        marketService.updateById(item);
+        if (!marketService.updateById(item)) {
+            return Result.fail("商品状态更新失败");
+        }
         support.evictMarketRelated(id);
         return Result.ok();
     }
@@ -60,6 +60,7 @@ public class AdminCommerceModule {
         return Result.ok(support.mapQueryList(sql, support::serviceItem));
     }
 
+    @Transactional
     public Result<Void> addService(ServiceCreateRequest body, String userId) {
         ServiceEntity service = new ServiceEntity();
         service.setTitle(body == null ? "" : support.empty(body.title()));
@@ -71,14 +72,14 @@ public class AdminCommerceModule {
         service.setReviews(0);
         service.setDistance("");
         service.setUnit(body == null ? "" : support.empty(body.unit()));
+        service.setArea(body == null ? "" : support.empty(body.area()));
+        service.setPhone(body == null ? "" : support.empty(body.phone()));
         service.setStatus(body == null ? "pending" : support.emptyTo(body.status(), "pending"));
         service.setRejectReason("");
         service.setHighlights("");
-        serviceModuleService.save(service);
-        serviceMapper.update(null, new LambdaUpdateWrapper<ServiceEntity>()
-                .eq(ServiceEntity::getId, service.getId())
-                .setSql("area = '" + support.escapeSql(body == null ? "" : support.empty(body.area()))
-                        + "', phone = '" + support.escapeSql(body == null ? "" : support.empty(body.phone())) + "'"));
+        if (!serviceModuleService.save(service)) {
+            return Result.fail("服务发布失败");
+        }
         return Result.ok();
     }
 
@@ -89,7 +90,9 @@ public class AdminCommerceModule {
         }
         service.setStatus(support.requestStatus(body, "active"));
         service.setRejectReason(support.requestRejectReason(body));
-        serviceModuleService.updateById(service);
+        if (!serviceModuleService.updateById(service)) {
+            return Result.fail("服务状态更新失败");
+        }
         support.evictServiceRelated(id);
         return Result.ok();
     }
@@ -118,7 +121,9 @@ public class AdminCommerceModule {
         order.setStatus("cancelled");
         order.setCancelReason(support.emptyTo(body == null ? null : body.reason(), "管理员强制取消"));
         order.setUpdateTime(LocalDateTime.now());
-        orderService.updateById(order);
+        if (!orderService.updateById(order)) {
+            return Result.fail("订单取消失败");
+        }
         return Result.ok();
     }
 }

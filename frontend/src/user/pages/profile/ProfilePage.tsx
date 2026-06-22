@@ -384,7 +384,7 @@ export default function ProfilePage() {
       <div className="relative h-48 overflow-hidden md:h-64">
         <button
           onClick={() => navigate('/news', { replace: true })}
-          className="absolute left-6 top-6 z-10 rounded-full bg-white/80 p-2 shadow-sm backdrop-blur-md transition-colors hover:bg-white"
+          className="theme-card-soft absolute left-6 top-6 z-10 rounded-full p-2 shadow-sm backdrop-blur-md transition-colors"
         >
           <ChevronLeft className="h-5 w-5 text-ink" />
         </button>
@@ -404,7 +404,7 @@ export default function ProfilePage() {
           />
 
           <div className="flex-1 space-y-6 pb-0">
-            <div className="bg-white p-0 md:rounded-2xl md:border md:border-hairline md:p-4 md:shadow-sm">
+            <div className="theme-surface-panel p-0 md:rounded-2xl md:border md:border-hairline md:p-4 md:shadow-sm">
               <div className="no-scrollbar flex items-center gap-6 overflow-x-auto border-b border-hairline px-4 scroll-smooth md:gap-8 md:px-4">
                 {tabs.map((tab) => (
                   <ProfileTabButton key={tab.id} tab={tab} activeTab={activeTab} onClick={handleTabChange} />
@@ -540,7 +540,7 @@ function MarketTab({
 }) {
   if (items.length === 0) {
     return (
-      <div className="col-span-2 rounded-[40px] border border-dashed border-hairline bg-stone-50 py-20 text-center">
+      <div className="theme-card-muted col-span-2 rounded-[40px] border border-dashed py-20 text-center">
         <ShoppingBag className="mx-auto mb-4 h-12 w-12 text-hairline" />
         <p className="text-sm font-bold text-muted">这里还没有发布闲置或服务</p>
         <button onClick={() => requireAuth(() => openPublish())} className="mt-6 rounded-2xl bg-primary px-8 py-3 text-[10px] font-black uppercase tracking-widest text-white">
@@ -578,7 +578,7 @@ function CompletedTab({
 }) {
   if (inProgressOrders.length === 0 && completedOrders.length === 0) {
     return (
-      <div className="col-span-2 rounded-[40px] border border-dashed border-hairline bg-stone-50 py-20 text-center">
+      <div className="theme-card-muted col-span-2 rounded-[40px] border border-dashed py-20 text-center">
         <CheckCircle2 className="mx-auto mb-4 h-12 w-12 text-hairline" />
         <p className="text-sm font-bold text-muted">这里还没有已完成的订单</p>
       </div>
@@ -642,7 +642,7 @@ function BookmarksTab({
 }) {
   if (favorites.length === 0) {
     return (
-      <div className="col-span-2 rounded-[40px] border border-dashed border-hairline bg-stone-50 py-20 text-center">
+      <div className="theme-card-muted col-span-2 rounded-[40px] border border-dashed py-20 text-center">
         <Bookmark className="mx-auto mb-4 h-12 w-12 text-hairline" />
         <p className="text-sm font-bold text-muted">这里还没有收藏内容</p>
       </div>
@@ -700,7 +700,7 @@ function FollowingTab({
         {following.map((user) => (
           <div
             key={user.id}
-            className="cursor-pointer rounded-2xl border border-hairline bg-white p-4 text-center transition-colors hover:border-primary/30"
+            className="theme-card cursor-pointer rounded-2xl p-4 text-center transition-colors hover:border-primary/30"
             onClick={() =>
               navigate(buildProfilePath(user.id, user.name), {
                 state: buildProfileRouteState(user),
@@ -730,7 +730,7 @@ function SettingsTab({
 }) {
   return (
     <div className="col-span-2 space-y-4">
-      <div className="rounded-[32px] border border-hairline bg-white p-6 shadow-sm">
+      <div className="theme-card rounded-[32px] p-6 shadow-sm">
         <div className="mb-5">
           <h4 className="text-sm font-black uppercase tracking-widest text-ink">资料与提醒</h4>
           <p className="mt-2 text-xs text-muted">保留常用设置入口，减少来回切换。</p>
@@ -748,7 +748,7 @@ function SettingsTab({
         </div>
       </div>
 
-      <div className="rounded-[32px] border border-hairline bg-stone-50 p-6">
+      <div className="theme-card-muted rounded-[32px] p-6">
         <div className="mb-5">
           <h4 className="text-sm font-black uppercase tracking-widest text-ink">账号与安全</h4>
           <p className="mt-2 text-xs text-muted">密码修改单独放置，和普通设置分开。</p>
@@ -796,7 +796,7 @@ function SettingsButton({
   onClick: () => void;
 }) {
   return (
-    <button onClick={onClick} className="group flex w-full items-center justify-between rounded-2xl border border-hairline bg-white p-4 transition-all hover:border-primary/30 hover:bg-primary/[0.02]">
+    <button onClick={onClick} className="theme-card group flex w-full items-center justify-between rounded-2xl p-4 transition-all hover:border-primary/30 hover:bg-primary/[0.02]">
       <div className="flex items-center gap-4">
         <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-surface-soft text-secondary transition-colors group-hover:text-primary">{icon}</div>
         <div className="text-left">

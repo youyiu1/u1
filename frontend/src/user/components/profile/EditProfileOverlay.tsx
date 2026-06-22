@@ -142,11 +142,11 @@ export const EditProfileOverlay: React.FC<EditProfileOverlayProps> = ({ isOpen, 
             transition={{ duration: 0.14, ease: 'easeOut' }}
             className="relative w-full max-w-lg my-auto z-10 will-change-transform"
           >
-            <div className="bg-white rounded-[40px] overflow-hidden shadow-2xl">
+            <div className="theme-card rounded-[40px] overflow-hidden shadow-2xl">
               <div className="p-8">
                 <div className="flex items-center justify-between mb-8">
                   <h2 className="text-2xl font-black text-ink">编辑个人资料</h2>
-                  <button onClick={onClose} className="p-3 hover:bg-stone-100 rounded-full transition-all">
+                  <button onClick={onClose} className="theme-action-secondary rounded-full p-3 transition-all">
                     <X className="w-5 h-5 text-ink" />
                   </button>
                 </div>
@@ -166,12 +166,12 @@ export const EditProfileOverlay: React.FC<EditProfileOverlayProps> = ({ isOpen, 
                         {avatarSrc ? (
                           <img
                             src={avatarSrc}
-                            className="w-24 h-24 rounded-full border-4 border-stone-100 shadow-lg object-cover"
+                            className="h-24 w-24 rounded-full border-4 border-hairline object-cover shadow-lg"
                             alt={form.name || 'avatar'}
                             decoding="async"
                           />
                         ) : (
-                          <div className="w-24 h-24 rounded-full border-4 border-stone-100 shadow-lg bg-surface-soft flex items-center justify-center text-2xl font-black text-primary">
+                          <div className="theme-surface-panel-soft flex h-24 w-24 items-center justify-center rounded-full border-4 border-hairline text-2xl font-black text-primary shadow-lg">
                             {(form.name || 'U').slice(0, 1).toUpperCase()}
                           </div>
                         )}
@@ -196,14 +196,14 @@ export const EditProfileOverlay: React.FC<EditProfileOverlayProps> = ({ isOpen, 
                           placeholder="介绍一下自己"
                           maxLength={100}
                           rows={3}
-                          className="w-full px-4 py-3.5 bg-stone-50 border border-hairline rounded-2xl text-sm font-medium placeholder:text-muted/40 focus:ring-2 focus:ring-primary/10 focus:border-primary/30 outline-none transition-all resize-none"
+                          className="theme-input-surface w-full rounded-2xl border border-hairline px-4 py-3.5 text-sm font-medium outline-none transition-all resize-none focus:border-primary/30 focus:ring-2 focus:ring-primary/10"
                         />
                       </div>
 
                       {error && <p className="text-red-500 text-xs font-medium">{error}</p>}
 
                       <div className="flex gap-3 pt-4">
-                        <button onClick={onClose} className="flex-1 py-3.5 bg-stone-100 text-ink rounded-2xl text-sm font-bold hover:bg-stone-200 transition-colors">
+                        <button onClick={onClose} className="theme-action-secondary flex-1 rounded-2xl py-3.5 text-sm font-bold transition-colors">
                           取消
                         </button>
                         <button
@@ -248,7 +248,7 @@ function TextField({
         onChange={(e) => onChange(e.target.value)}
         placeholder={placeholder}
         maxLength={maxLength}
-        className="w-full px-4 py-3.5 bg-stone-50 border border-hairline rounded-2xl text-sm font-medium placeholder:text-muted/40 focus:ring-2 focus:ring-primary/10 focus:border-primary/30 outline-none transition-all"
+        className="theme-input-surface w-full rounded-2xl border border-hairline px-4 py-3.5 text-sm font-medium outline-none transition-all focus:border-primary/30 focus:ring-2 focus:ring-primary/10"
       />
     </div>
   );

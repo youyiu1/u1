@@ -119,7 +119,7 @@ app:
     auto-run: ${APP_MIGRATION_AUTO_RUN:false}
   security:
     cors:
-      allowed-origin-patterns: ${CORS_ALLOWED_ORIGIN_PATTERNS:http://localhost:5173,http://localhost:8080}
+      allowed-origin-patterns: ${CORS_ALLOWED_ORIGIN_PATTERNS:http://localhost:5173,http://localhost:8080,http://127.0.0.1:5173,http://127.0.0.1:8080}
   perf:
     slow-threshold-ms: ${APP_SLOW_REQUEST_THRESHOLD_MS:400}
     slow-method-threshold-ms: ${APP_SLOW_METHOD_THRESHOLD_MS:600}
@@ -174,11 +174,13 @@ management:
         enabled: ${MANAGEMENT_PROMETHEUS_ENABLED:true}
 
 springdoc:
+  openapi:
+    enabled: ${SPRINGDOC_OPENAPI_ENABLED:false}
   api-docs:
-    enabled: ${SPRINGDOC_API_DOCS_ENABLED:true}
+    enabled: ${SPRINGDOC_API_DOCS_ENABLED:false}
     path: /v3/api-docs
   swagger-ui:
-    enabled: ${SPRINGDOC_SWAGGER_UI_ENABLED:true}
+    enabled: ${SPRINGDOC_SWAGGER_UI_ENABLED:false}
     path: /swagger-ui.html
     operations-sorter: method
     tags-sorter: alpha

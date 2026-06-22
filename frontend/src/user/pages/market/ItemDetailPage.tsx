@@ -252,7 +252,7 @@ export default function ItemDetailPage() {
   ];
 
   return (
-    <div className="min-h-screen bg-[#fcfdff] pb-20">
+    <div className="theme-surface-panel-soft min-h-screen pb-20">
       <AnimatePresence>
         {purchaseSuccess ? (
           <div className="fixed inset-0 z-[100] flex items-center justify-center px-6">
@@ -267,7 +267,7 @@ export default function ItemDetailPage() {
               initial={{ opacity: 0, scale: 0.9, y: 30 }}
               animate={{ opacity: 1, scale: 1, y: 0 }}
               exit={{ opacity: 0, scale: 0.9, y: 30 }}
-              className="relative w-full max-w-sm rounded-[48px] border border-white bg-white p-10 text-center shadow-2xl"
+              className="theme-card relative w-full max-w-sm rounded-[48px] p-10 text-center shadow-2xl"
             >
               <div className="mx-auto mb-8 flex h-24 w-24 items-center justify-center rounded-full bg-green-50 text-green-500 shadow-inner">
                 <CheckCircle2 className="h-12 w-12" />
@@ -292,7 +292,7 @@ export default function ItemDetailPage() {
         ) : null}
       </AnimatePresence>
 
-      <div className="sticky top-0 z-30 flex items-center justify-between border-b border-hairline bg-white/80 px-6 py-4 backdrop-blur-md md:hidden">
+      <div className="theme-topbar sticky top-0 z-30 flex items-center justify-between border-b px-6 py-4 backdrop-blur-md md:hidden">
         <button onClick={handleBack} className="rounded-xl bg-surface-soft p-2">
           <ChevronLeft className="h-5 w-5 text-ink" />
         </button>
@@ -306,7 +306,7 @@ export default function ItemDetailPage() {
         </div>
       </div>
 
-      <div className="hidden border-b border-hairline bg-white py-6 md:block">
+      <div className="theme-topbar hidden border-b py-6 md:block">
         <div className="mx-auto flex max-w-[1280px] items-center justify-between px-6">
           <div className="flex items-center gap-3">
             <button onClick={handleBack} className="rounded-xl p-2 transition-colors hover:bg-surface-soft">
@@ -393,7 +393,7 @@ export default function ItemDetailPage() {
               ))}
             </div>
 
-            <div className="rounded-[32px] border border-hairline bg-white p-6 md:p-8">
+            <div className="theme-card rounded-[32px] p-6 md:p-8">
               <div className="mb-6 flex items-center justify-between">
                 <h2 className="text-2xl font-black text-ink">商品详情</h2>
                 <div className="flex items-center gap-1.5 rounded-full bg-primary/5 px-3 py-1.5 text-xs font-black text-primary">
@@ -418,7 +418,7 @@ export default function ItemDetailPage() {
               </div>
             </div>
 
-            <div className="relative overflow-hidden rounded-[32px] border border-hairline bg-white p-6 md:p-8">
+            <div className="theme-card relative overflow-hidden rounded-[32px] p-6 md:p-8">
               <div className="mb-6 flex items-center justify-between">
                 <h2 className="text-2xl font-black text-ink">商品位置</h2>
                 <span className="flex items-center gap-1 text-sm font-bold text-muted">
@@ -439,7 +439,7 @@ export default function ItemDetailPage() {
           </div>
 
           <div className="sticky top-28 lg:col-span-4">
-            <div className="space-y-8 rounded-[32px] border border-hairline bg-white p-6 shadow-2xl shadow-ink/5">
+            <div className="theme-card space-y-8 rounded-[32px] p-6 shadow-2xl shadow-ink/5">
               <div className="flex flex-col gap-1">
                 <div className="flex items-center justify-between gap-3">
                   <span className="text-xs font-black uppercase tracking-widest text-muted">转让价格</span>
@@ -466,11 +466,11 @@ export default function ItemDetailPage() {
                       {sellerAvatar ? (
                         <img
                           src={sellerAvatar}
-                          className="h-12 w-12 rounded-2xl border-2 border-white object-cover shadow-md transition-transform group-hover:scale-105"
+                          className="h-12 w-12 rounded-2xl border-2 border-hairline object-cover shadow-md transition-transform group-hover:scale-105"
                           alt={sellerName}
                         />
                       ) : (
-                        <div className="flex h-12 w-12 items-center justify-center rounded-2xl border-2 border-white bg-white text-sm font-black text-primary shadow-md">
+                        <div className="theme-card flex h-12 w-12 items-center justify-center rounded-2xl border-2 text-sm font-black text-primary shadow-md">
                           {(sellerName || '?')[0]}
                         </div>
                       )}
@@ -490,7 +490,7 @@ export default function ItemDetailPage() {
                             <span className="rounded-md bg-primary/10 px-2 py-0.5 text-[10px] font-black text-primary">已认证</span>
                           ) : null}
                           {sellerMeta.map((meta) => (
-                            <span key={meta} className="rounded-md bg-white px-2 py-0.5 text-[10px] font-black text-secondary">
+                            <span key={meta} className="theme-tag-soft rounded-md px-2 py-0.5 text-[10px] font-black">
                               {meta}
                             </span>
                           ))}
@@ -524,7 +524,7 @@ export default function ItemDetailPage() {
               {!isOwnItem ? (
                 <div className="space-y-4">
                   {statusMeta?.description ? (
-                    <div className="rounded-2xl border border-hairline bg-surface-soft px-4 py-3 text-sm font-medium text-secondary">
+                    <div className="theme-card-muted rounded-2xl px-4 py-3 text-sm font-medium text-secondary">
                       {statusMeta.description}
                     </div>
                   ) : null}
@@ -594,7 +594,7 @@ function getStatusNotice(item: Item | null, isOwnItem: boolean) {
     return {
       title: '该商品已售出',
       description: isOwnItem ? '商品已经完成交易，详情仍会保留给你查看。' : '该商品已经完成交易，目前不能再次发起购买。',
-      className: 'border-stone-200 bg-stone-50 text-stone-700',
+      className: 'theme-card-muted text-secondary',
     };
   }
 
@@ -619,7 +619,7 @@ function getStatusNotice(item: Item | null, isOwnItem: boolean) {
 
 function InfoFeatureCard({ icon, title, desc }: { icon: React.ReactNode; title: string; desc: string }) {
   return (
-    <div className="group flex flex-col rounded-3xl border border-hairline bg-white p-4 transition-colors hover:border-primary/20">
+    <div className="theme-card group flex flex-col rounded-3xl p-4 transition-colors hover:border-primary/20">
       <div className="mb-3 w-fit rounded-xl bg-primary/5 p-2.5 text-primary transition-transform group-hover:scale-110">{icon}</div>
       <h4 className="mb-1 text-sm font-black text-ink">{title}</h4>
       <p className="text-[11px] font-bold text-muted">{desc}</p>
@@ -638,7 +638,7 @@ function DetailInfoItem({ label, value }: { label: string; value: string }) {
 
 function StatsCard({ label, value }: { label: string; value: React.ReactNode }) {
   return (
-    <div className="rounded-2xl border border-white/50 bg-white/80 p-3 text-center">
+    <div className="theme-card-soft rounded-2xl p-3 text-center">
       <p className="text-sm font-black text-ink">{value}</p>
       <p className="text-[10px] font-black uppercase tracking-wider text-muted">{label}</p>
     </div>

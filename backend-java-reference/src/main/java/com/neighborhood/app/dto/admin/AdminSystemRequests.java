@@ -24,6 +24,8 @@ public final class AdminSystemRequests {
             @NotBlank(message = "通知对象不能为空")
             String target,
 
+            List<String> userIds,
+
             @NotBlank(message = "通知标题不能为空")
             @Size(max = 80, message = "通知标题不能超过80个字符")
             String title,

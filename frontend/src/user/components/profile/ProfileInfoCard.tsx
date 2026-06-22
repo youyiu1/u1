@@ -61,7 +61,7 @@ export const ProfileInfoCard: React.FC<ProfileInfoCardProps> = ({
 
   return (
     <div className="md:w-[320px] space-y-4 md:space-y-6">
-      <div className="bg-white rounded-[32px] md:rounded-3xl p-6 md:p-8 shadow-xl border border-hairline relative">
+      <div className="theme-card relative rounded-[32px] p-6 shadow-xl md:rounded-3xl md:p-8">
         <div className="text-center">
           <div className="relative inline-block mb-4 md:mb-6">
             {userData.avatar && !imageError ? (
@@ -142,7 +142,7 @@ export const ProfileInfoCard: React.FC<ProfileInfoCardProps> = ({
         />
       )}
 
-      <div className="bg-white border border-hairline rounded-[24px] md:rounded-2xl p-5 md:p-6 space-y-4 shadow-sm">
+      <div className="theme-card space-y-4 rounded-[24px] p-5 shadow-sm md:rounded-2xl md:p-6">
         <h3 className="text-[10px] font-black uppercase tracking-widest text-muted border-b border-hairline pb-3 mb-2">个人资料</h3>
         <div className="flex items-center gap-3 text-xs text-secondary font-bold">
           <div className="w-8 h-8 rounded-lg bg-surface-soft flex items-center justify-center text-muted">

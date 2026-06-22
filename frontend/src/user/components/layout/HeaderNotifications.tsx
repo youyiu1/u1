@@ -176,7 +176,7 @@ export const HeaderNotifications: React.FC = () => {
               exit={{ opacity: 0, x: 24 }}
               transition={{ duration: 0.2, ease: 'easeOut' }}
               onClick={(event) => event.stopPropagation()}
-              className="absolute right-0 top-full z-20 mt-3 w-80 overflow-hidden rounded-[32px] border border-hairline bg-white shadow-premium"
+              className="theme-card absolute right-0 top-full z-20 mt-3 w-80 overflow-hidden rounded-[32px] shadow-premium"
               style={{ pointerEvents: 'auto' }}
             >
               <div className="flex items-center justify-between border-b border-hairline p-6">
@@ -230,7 +230,7 @@ export const HeaderNotifications: React.FC = () => {
                           <button
                             onClick={() => void handleProcessNotification(notification, false)}
                             disabled={processingId === notification.id}
-                            className="flex items-center gap-1 rounded-xl bg-stone-200 px-3 py-1.5 text-xs font-bold text-stone-600 transition-colors hover:bg-stone-300 disabled:opacity-50"
+                            className="theme-action-secondary flex items-center gap-1 rounded-xl px-3 py-1.5 text-xs font-bold disabled:opacity-50"
                           >
                             <X className="h-3 w-3" />
                             拒绝

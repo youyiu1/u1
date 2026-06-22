@@ -86,6 +86,9 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements Us
     @Override
     @Transactional
     public boolean follow(String followerId, String followingId) {
+        if (isInvalidFollowRelation(followerId, followingId)) {
+            return false;
+        }
         if (isFollowing(followerId, followingId)) {
             return false;
         }
@@ -97,6 +100,9 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements Us
     @Override
     @Transactional
     public boolean unfollow(String followerId, String followingId) {
+        if (isInvalidFollowRelation(followerId, followingId)) {
+            return false;
+        }
         if (followMapper.delete(followQuery(followerId, followingId)) == 0) {
             return false;
         }
@@ -229,6 +235,14 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements Us
 
     private QueryWrapper<Follow> followerQuery(String followerId) {
         return new QueryWrapper<Follow>().eq("follower_id", followerId);
+    }
+
+    private boolean isInvalidFollowRelation(String followerId, String followingId) {
+        return followerId == null
+                || followingId == null
+                || followerId.isBlank()
+                || followingId.isBlank()
+                || Objects.equals(followerId, followingId);
     }
 
     private List<String> listFollowingIds(String userId) {

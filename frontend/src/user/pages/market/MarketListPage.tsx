@@ -12,6 +12,7 @@ import { FavoriteButton } from '../../components/common/FavoriteButton';
 import { MarketStatusBadge } from '../../components/common/MarketStatusBadge';
 import { Pagination } from '../../components/common/Pagination';
 import { PublishOverlay } from '../../components/publish/PublishOverlay';
+import { MARKET_CATEGORIES } from '../../constants';
 import { useAuthCheck } from '../../context/useAuthCheck';
 import { marketApi } from '../../services/api';
 import { Item } from '../../types';
@@ -109,7 +110,7 @@ export default function MarketListPage() {
               <div className="flex flex-col gap-3 sm:flex-row lg:justify-end">
                 <button
                   type="button"
-                  className="flex items-center justify-center gap-2 rounded-2xl border border-hairline bg-white px-5 py-3 text-sm font-black text-secondary transition-all hover:border-primary/30 hover:text-primary"
+                  className="theme-card flex items-center justify-center gap-2 rounded-2xl px-5 py-3 text-sm font-black text-secondary transition-all hover:border-primary/30 hover:text-primary"
                 >
                   <MapPin className="h-4 w-4" />
                   默认同城展示
@@ -136,7 +137,7 @@ export default function MarketListPage() {
 
           <div className="mt-4 px-1 sm:px-2">
             <div className="no-scrollbar mt-5 flex items-center gap-3 overflow-x-auto pb-3 sm:gap-4">
-              {CATEGORIES.map((category) => (
+              {MARKET_CATEGORIES.map((category) => (
                 <button
                   key={category.id}
                   onClick={() => {
@@ -146,7 +147,7 @@ export default function MarketListPage() {
                   className={`flex shrink-0 items-center gap-2 rounded-2xl px-5 py-3 text-sm font-bold transition-all ${
                     activeCategory === category.id
                       ? 'bg-primary text-white'
-                      : 'border border-hairline bg-[#fcfaf7] text-secondary hover:border-primary/20 hover:bg-white'
+                      : 'theme-card-muted text-secondary hover:border-primary/20'
                   }`}
                 >
                   {category.icon}
@@ -157,12 +158,12 @@ export default function MarketListPage() {
           </div>
         </div>
         <div className="mx-auto mt-2 max-w-[1280px] px-4 sm:px-6 lg:px-20">
-          <div className="h-px w-full bg-stone-200/80" />
+          <div className="theme-divider h-px w-full" />
         </div>
       </div>
 
       <main className="mx-auto max-w-[1280px] px-4 py-8 sm:px-6 sm:py-10 lg:px-20">
-        <div className="rounded-[24px] border border-stone-200/80 bg-white/90 px-3 py-5 shadow-[0_12px_32px_rgba(15,23,42,0.04)] sm:px-5 sm:py-6">
+        <div className="theme-card-soft rounded-[24px] px-3 py-5 shadow-[0_12px_32px_rgba(15,23,42,0.04)] sm:px-5 sm:py-6">
           <div className="mb-6 flex items-center justify-between sm:mb-8">
             <h2 className="text-lg font-bold text-ink sm:text-xl">附近好物</h2>
           </div>

@@ -1,7 +1,10 @@
 import React from 'react';
 
 export const AUTH_INPUT_CLASS =
-  'w-full rounded-2xl border border-transparent bg-slate-100/90 px-4 py-3.5 text-[15px] text-ink outline-none transition-all placeholder:text-slate-400 focus:border-primary/20 focus:bg-white focus:ring-4 focus:ring-primary/8';
+  'theme-input-surface w-full rounded-2xl border border-transparent px-4 py-3.5 text-[15px] text-ink outline-none focus:border-primary/20 focus:ring-4 focus:ring-primary/8';
+
+export const AUTH_PRIMARY_ACTION_CLASS =
+  'flex h-12 w-full transform-gpu items-center justify-center gap-2 rounded-2xl bg-primary text-[15px] font-black text-white shadow-[0_10px_24px_rgba(15,23,42,0.12)] transition-[transform,background-color,box-shadow,opacity] duration-200 ease-[cubic-bezier(0.22,1,0.36,1)] hover:-translate-y-0.5 hover:bg-primary-hover hover:shadow-[0_16px_32px_rgba(15,23,42,0.16)] active:translate-y-0 active:scale-[0.985] active:shadow-[0_8px_18px_rgba(15,23,42,0.14)] disabled:transform-none disabled:shadow-none disabled:opacity-70';
 
 export function AuthPanelHeader({
   caption,

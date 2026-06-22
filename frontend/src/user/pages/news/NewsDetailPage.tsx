@@ -176,6 +176,10 @@ export default function NewsDetailPage() {
     fetchComments();
   }, [id, user?.id]);
 
+  useEffect(() => {
+    window.scrollTo({ top: 0, left: 0, behavior: 'auto' });
+  }, [id]);
+
   const handleCommentLikeChange = (commentId: string, isLiked: boolean, likes: number) => {
     setComments((current) => current.map((comment) => (comment.id === commentId ? { ...comment, isLiked, likes } : comment)));
   };
@@ -262,7 +266,7 @@ export default function NewsDetailPage() {
 
   if (error || !post) {
     return (
-      <div className="flex min-h-screen items-center justify-center bg-stone-50/30">
+      <div className="flex min-h-screen items-center justify-center bg-surface-soft">
         <div className="text-center">
           <p className="mb-4 font-bold text-muted">{error || '没有找到这条动态'}</p>
           <button onClick={handleBack} className="rounded-2xl bg-primary px-8 py-3 text-[10px] font-black uppercase tracking-widest text-white shadow-lg shadow-primary/20">
@@ -274,8 +278,8 @@ export default function NewsDetailPage() {
   }
 
   return (
-    <div className="min-h-screen bg-stone-50/30 pb-32">
-      <div className="sticky top-0 z-30 border-b border-hairline bg-white/80 backdrop-blur-xl transition-all">
+    <div className="min-h-screen bg-surface-soft pb-32">
+      <div className="theme-topbar sticky top-0 z-30 border-b backdrop-blur-xl transition-all">
         <div className="mx-auto flex h-20 max-w-[720px] items-center justify-between gap-4 px-6">
           <div className="flex items-center gap-4">
             <button onClick={handleBack} className="group rounded-2xl p-2.5 transition-all hover:bg-surface-soft">
@@ -297,7 +301,7 @@ export default function NewsDetailPage() {
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ type: 'spring', damping: 25, stiffness: 120 }}
-          className="overflow-hidden rounded-[40px] border border-hairline bg-white shadow-premium"
+          className="theme-card overflow-hidden rounded-[40px] shadow-premium"
         >
           <div className="p-8 md:p-12">
             <PostAuthorHeader
@@ -373,7 +377,7 @@ export default function NewsDetailPage() {
         </motion.div>
       </div>
 
-      <div className="fixed bottom-0 left-0 right-0 z-40 border-t border-hairline bg-white/90 backdrop-blur-xl">
+      <div className="theme-topbar fixed bottom-0 left-0 right-0 z-40 border-t backdrop-blur-xl">
         <div className="mx-auto max-w-[720px] px-6 py-4">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-6">
@@ -408,7 +412,7 @@ export default function NewsDetailPage() {
             </div>
           ) : null}
 
-          <div className="mt-4 flex items-center gap-3 rounded-2xl border border-hairline bg-surface-soft px-4 py-2.5 transition-all focus-within:border-primary/40 focus-within:bg-white">
+          <div className="theme-card-muted mt-4 flex items-center gap-3 rounded-2xl px-4 py-2.5 transition-all focus-within:border-primary/40 focus-within:bg-[var(--color-surface-input-focus)]">
             <textarea
               ref={commentInputRef}
               value={commentText}

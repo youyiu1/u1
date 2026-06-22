@@ -82,7 +82,7 @@ export const FavoriteButton: React.FC<FavoriteButtonProps> = ({
   };
 
   return (
-    <button onClick={toggleFavorite} className="absolute right-3 top-3 rounded-full bg-white/80 p-2 shadow-sm backdrop-blur-md transition-all hover:bg-white">
+    <button onClick={toggleFavorite} className="theme-card-soft absolute right-3 top-3 rounded-full p-2 shadow-sm backdrop-blur-md transition-all hover:bg-[var(--color-surface-input-focus)]">
       <div className="relative">
         <motion.div animate={favorited ? { scale: [1, 1.3, 1] } : {}} transition={{ duration: 0.3 }}>
           <Heart className={`${ICON_SIZES[size]} transition-all ${favorited ? 'fill-red-500 text-red-500' : 'text-secondary hover:text-red-500'}`} />

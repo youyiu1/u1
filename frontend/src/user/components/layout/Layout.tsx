@@ -27,7 +27,7 @@ export default function Layout() {
     <div className="flex min-h-screen min-w-0 flex-col overflow-x-hidden transition-colors duration-500">
       <div
         className={`flex min-h-0 flex-1 flex-col transition-colors duration-500 ${
-          isNight ? 'theme-night-shell bg-slate-950 text-white' : 'theme-day-shell bg-stone-50/30 text-ink'
+          isNight ? 'theme-night-shell bg-slate-950 text-white' : 'theme-day-shell bg-[var(--color-surface-panel-soft)] text-ink'
         }`}
       >
         <ThemePullSwitch />
@@ -36,10 +36,10 @@ export default function Layout() {
           <AnimatePresence mode="wait">
             <motion.div
               key={isAuthRoute ? 'auth-shell' : location.pathname}
-              initial={isAuthRoute ? { opacity: 0 } : { opacity: 0, y: 10 }}
-              animate={isAuthRoute ? { opacity: 1 } : { opacity: 1, y: 0 }}
-              exit={isAuthRoute ? { opacity: 0 } : { opacity: 0, y: -10 }}
-              transition={isAuthRoute ? { duration: 0.18, ease: [0.22, 1, 0.36, 1] } : { duration: 0.3 }}
+              initial={isAuthRoute ? false : { opacity: 0, y: 10 }}
+              animate={isAuthRoute ? undefined : { opacity: 1, y: 0 }}
+              exit={isAuthRoute ? undefined : { opacity: 0, y: -10 }}
+              transition={isAuthRoute ? undefined : { duration: 0.3 }}
               className="min-w-0"
             >
               <Outlet />

@@ -5,17 +5,7 @@
 
 import React, { useMemo, useState } from 'react';
 import { AnimatePresence, motion } from 'motion/react';
-import {
-  Calendar,
-  CheckCircle2,
-  Inbox,
-  Info,
-  Layers,
-  MailCheck,
-  Megaphone,
-  PlusCircle,
-  Send,
-} from 'lucide-react';
+import { Calendar, Inbox, Info, Layers, MailCheck, Megaphone, PlusCircle, Send } from 'lucide-react';
 import { CategoryItem, NotificationItem } from '../types';
 import { useToast } from '../hooks/useToast';
 import AdminToast from './common/AdminToast';
@@ -26,7 +16,13 @@ interface NoticeCategoryViewProps {
   onToggleCategoryStatus: (id: string) => void;
   onAddCategory: (name: string, type: 'dynamic' | 'goods' | 'service') => void;
   onToggleNotificationRead: (id: string) => void;
-  onAddNotification: (title: string, content: string, target: 'all' | 'specific', isScheduled: boolean) => void;
+  onAddNotification: (payload: {
+    title: string;
+    content: string;
+    target: 'all' | 'specific';
+    userIds: string[];
+    isScheduled: boolean;
+  }) => void;
   vMode?: 'notifications' | 'categories';
 }
 
@@ -37,6 +33,13 @@ const CATEGORY_TABS: { value: CategoryTab; label: string }[] = [
   { value: 'goods', label: '闲置商品' },
   { value: 'service', label: '生活服务' },
 ];
+
+function parseUserIds(value: string) {
+  return value
+    .split(/[\n,，\s]+/)
+    .map((item) => item.trim())
+    .filter(Boolean);
+}
 
 export default function NoticeCategoryView({
   categories,
@@ -54,6 +57,7 @@ export default function NoticeCategoryView({
   const [noticeTitle, setNoticeTitle] = useState('');
   const [noticeContent, setNoticeContent] = useState('');
   const [noticeTarget, setNoticeTarget] = useState<'all' | 'specific'>('all');
+  const [noticeUserIdsText, setNoticeUserIdsText] = useState('');
   const [isScheduled, setIsScheduled] = useState(false);
   const { toast, showToast } = useToast();
 
@@ -76,11 +80,23 @@ export default function NoticeCategoryView({
     event.preventDefault();
     const title = noticeTitle.trim();
     const content = noticeContent.trim();
+    const userIds = parseUserIds(noticeUserIdsText);
     if (!title || !content) return;
-    onAddNotification(title, content, noticeTarget, isScheduled);
+    if (noticeTarget === 'specific' && userIds.length === 0) {
+      showToast('请输入至少一个目标用户 ID', 'error');
+      return;
+    }
+    onAddNotification({
+      title,
+      content,
+      target: noticeTarget,
+      userIds,
+      isScheduled,
+    });
     setNoticeTitle('');
     setNoticeContent('');
     setNoticeTarget('all');
+    setNoticeUserIdsText('');
     setIsScheduled(false);
     setShowAddNoticeModal(false);
     showToast(isScheduled ? '定时公告已加入发送队列' : '公告已立即发送', 'success');
@@ -102,7 +118,7 @@ export default function NoticeCategoryView({
               <PanelHeader
                 icon={<Layers className="h-5 w-5 text-primary" />}
                 title="分类管理"
-                action={
+                action={(
                   <button
                     onClick={() => setShowAddCategoryModal(true)}
                     className="flex cursor-pointer items-center gap-1 rounded-xl border border-primary/30 px-3 py-1.5 text-xs font-bold text-primary transition-colors hover:bg-primary hover:text-white focus:outline-none"
@@ -110,7 +126,7 @@ export default function NoticeCategoryView({
                     <PlusCircle className="h-3.5 w-3.5" />
                     <span>新增分类</span>
                   </button>
-                }
+                )}
               />
 
               <div className="mb-5 flex rounded-xl border border-gray-100 bg-gray-50 p-1 select-none dark:border-gray-800/50 dark:bg-gray-800">
@@ -147,7 +163,8 @@ export default function NoticeCategoryView({
             <div className="mt-4 flex items-start gap-1.5 border-t border-gray-100 pt-4 text-[10px] leading-relaxed text-gray-400 select-none dark:border-gray-800/80">
               <Info className="mt-0.5 h-4 w-4 flex-shrink-0 text-primary" />
               <p>
-                <strong>说明：</strong>分类状态更新后会同步影响前端展示，停用分类后对应入口会自动隐藏。
+                <strong>说明：</strong>
+                分类状态更新后会同步影响前端展示，停用分类后对应入口会自动隐藏。
               </p>
             </div>
           </section>
@@ -159,7 +176,7 @@ export default function NoticeCategoryView({
               <PanelHeader
                 icon={<Megaphone className="h-5 w-5 text-primary" />}
                 title="公告通知"
-                action={
+                action={(
                   <button
                     onClick={() => setShowAddNoticeModal(true)}
                     className="flex cursor-pointer items-center gap-1 rounded-xl bg-primary px-3 py-1.5 text-xs font-bold text-white shadow-md shadow-primary/10 transition-colors hover:bg-primary-container focus:outline-none"
@@ -167,7 +184,7 @@ export default function NoticeCategoryView({
                     <Send className="h-3.5 w-3.5" />
                     <span>新建公告</span>
                   </button>
-                }
+                )}
               />
 
               <div className="max-h-[350px] space-y-4 overflow-y-auto pr-1">
@@ -302,6 +319,22 @@ export default function NoticeCategoryView({
                   </div>
                 </div>
               </div>
+
+              {noticeTarget === 'specific' ? (
+                <div className="space-y-1.5">
+                  <label className="block text-[9px] font-bold uppercase text-gray-500 select-none" htmlFor="notice-user-ids-input">目标用户 ID *</label>
+                  <textarea
+                    id="notice-user-ids-input"
+                    rows={3}
+                    placeholder="输入用户 ID，支持逗号、空格或换行分隔"
+                    value={noticeUserIdsText}
+                    onChange={(event) => setNoticeUserIdsText(event.target.value)}
+                    className="w-full resize-none rounded-xl border border-gray-200 bg-gray-50 p-3 text-xs font-medium text-gray-800 outline-none dark:border-gray-700 dark:bg-gray-800 dark:text-white"
+                    required
+                  />
+                  <p className="text-[10px] leading-relaxed text-gray-400">当前版本按用户 ID 定向发送，后端会自动过滤不存在的用户。</p>
+                </div>
+              ) : null}
 
               <ModalActions onCancel={() => setShowAddNoticeModal(false)} submitLabel="发布公告" submitIcon={<Send className="h-3.5 w-3.5" />} />
             </form>

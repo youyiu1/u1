@@ -192,9 +192,9 @@ export const ChatOverlay: React.FC = () => {
             animate={{ x: 0 }}
             exit={{ x: '100%' }}
             transition={{ type: 'tween', duration: 0.22, ease: [0.22, 1, 0.36, 1] }}
-            className="relative w-full sm:max-w-md h-[72vh] max-h-[580px] sm:h-[560px] bg-white rounded-[32px] sm:rounded-[40px] shadow-2xl overflow-hidden pointer-events-auto border border-hairline flex flex-col transform-gpu will-change-transform contain-layout"
+            className="theme-card relative flex h-[72vh] max-h-[580px] w-full flex-col overflow-hidden rounded-[32px] shadow-2xl pointer-events-auto sm:h-[560px] sm:max-w-md sm:rounded-[40px] transform-gpu will-change-transform contain-layout"
           >
-            <header className="p-6 border-b border-hairline flex items-center justify-between bg-white/90 backdrop-blur-md">
+            <header className="theme-topbar flex items-center justify-between border-b p-6 backdrop-blur-md">
               <div className="flex items-center gap-3">
                 {(!showContacts && activePartner) && (
                   <button
@@ -246,7 +246,7 @@ export const ChatOverlay: React.FC = () => {
                       value={searchText}
                       onChange={(e) => setSearchText(e.target.value)}
                       placeholder="搜索联系人..."
-                      className="w-full bg-stone-50 border-none rounded-2xl py-2.5 pl-10 pr-4 text-xs font-medium focus:ring-1 focus:ring-primary/20"
+                      className="theme-input-surface w-full rounded-2xl border-none py-2.5 pl-10 pr-4 text-xs font-medium focus:ring-1 focus:ring-primary/20"
                     />
                   </div>
                 </div>
@@ -297,12 +297,12 @@ export const ChatOverlay: React.FC = () => {
 
                 {showEmojiPicker && (
                   <div className="px-4 pb-2">
-                    <div className="grid grid-cols-7 gap-2 bg-stone-50 border border-hairline rounded-3xl p-3 max-h-44 overflow-y-auto">
+                    <div className="theme-card-muted grid max-h-44 grid-cols-7 gap-2 overflow-y-auto rounded-3xl p-3">
                       {EMOJIS.map(emoji => (
                         <button
                           key={emoji}
                           onClick={() => handleEmojiPick(emoji)}
-                          className="h-9 rounded-xl hover:bg-white transition-colors text-lg"
+                          className="h-9 rounded-xl text-lg transition-colors hover:bg-[var(--color-surface-panel-soft)]"
                         >
                           {emoji}
                         </button>
@@ -321,7 +321,7 @@ export const ChatOverlay: React.FC = () => {
                       }}
                     />
                   )}
-                  <div className="bg-stone-50 rounded-[32px] border border-hairline focus-within:bg-white focus-within:shadow-premium focus-within:border-primary/20 transition-all p-4">
+                  <div className="theme-card-muted rounded-[32px] p-4 transition-all focus-within:border-primary/20 focus-within:bg-[var(--color-surface-input-focus)] focus-within:shadow-premium">
                     <div className="flex items-center gap-2 mb-2 px-2">
                       {composerButtons.map((button) => (
                         <button
@@ -416,7 +416,7 @@ function ContactRow({
   onClick: () => void;
 }) {
   return (
-    <button onClick={onClick} className="w-full flex items-center gap-4 p-4 rounded-3xl transition-all hover:bg-stone-50">
+    <button onClick={onClick} className="w-full flex items-center gap-4 rounded-3xl p-4 transition-all hover:bg-surface-soft">
       <div className="relative">
         <img src={partner.avatar || undefined} className="w-12 h-12 rounded-2xl object-cover border border-hairline" alt="" />
         {partner.isOnline ? <div className="absolute -bottom-1 -right-1 w-4 h-4 bg-green-500 border-2 border-white rounded-full" /> : null}
@@ -453,7 +453,7 @@ function MessageBubble({
       <div className={`max-w-[80%] space-y-1 flex flex-col ${isMe ? 'items-end' : 'items-start'}`}>
         <div
           className={`px-4 py-3 rounded-[24px] text-sm font-medium shadow-sm leading-relaxed ${
-            isMe ? 'bg-primary text-white rounded-tr-none' : 'bg-stone-100 text-ink rounded-tl-none'
+            isMe ? 'bg-primary text-white rounded-tr-none' : 'theme-card-muted text-ink rounded-tl-none'
           }`}
         >
           {messageType === 'image' && mediaUrl ? <img src={mediaUrl} alt="chat" className="max-w-full rounded-2xl" /> : <span className="whitespace-pre-wrap">{text}</span>}
@@ -480,7 +480,7 @@ function PendingImageCard({
           <p className="text-[10px] text-muted font-medium truncate">发送前可继续输入文字</p>
         </div>
       </div>
-      <button onClick={onRemove} className="p-2 rounded-full hover:bg-white">
+      <button onClick={onRemove} className="rounded-full p-2 hover:bg-[var(--color-surface-panel-soft)]">
         <X className="w-4 h-4" />
       </button>
     </div>

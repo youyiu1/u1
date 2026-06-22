@@ -95,14 +95,14 @@ function FloatingStats({
             className={`absolute ${card.className} ${card.widthClassName} rounded-[22px] border px-4 py-3 backdrop-blur-xl ${
               isNight
                 ? 'border-slate-700/80 bg-slate-900/78 shadow-[0_18px_40px_rgba(2,6,23,0.28)]'
-                : 'border-white/70 bg-white/88 shadow-[0_18px_40px_rgba(15,23,42,0.08)]'
+                : 'theme-card-soft shadow-[0_18px_40px_rgba(15,23,42,0.08)]'
             }`}
           >
             <div className="mb-2 flex items-center justify-between">
               <span className={`text-[10px] font-black tracking-[0.08em] ${isNight ? 'text-slate-300' : 'text-stone-500'}`}>
                 {card.title}
               </span>
-              <div className={`rounded-full p-1.5 ${isNight ? 'bg-slate-800 text-primary-light' : 'bg-stone-100 text-primary'}`}>
+              <div className={`rounded-full p-1.5 ${isNight ? 'bg-slate-800 text-primary-light' : 'theme-tag-soft text-primary'}`}>
                 <Icon className="h-3.5 w-3.5" />
               </div>
             </div>
@@ -219,7 +219,7 @@ export const HeroSection: React.FC<{
               className={`group relative w-full overflow-hidden rounded-[20px] border px-7 py-3 text-center text-[10px] font-black uppercase tracking-[0.18em] transition-all duration-300 active:scale-95 sm:w-auto sm:px-8 sm:py-4 ${
                 isNight
                   ? 'border-slate-700 bg-slate-900/75 text-white hover:border-slate-500'
-                  : 'border-stone-200 bg-white text-ink hover:border-ink'
+                  : 'theme-card text-ink hover:border-ink'
               }`}
             >
               <span className="relative z-10">随便逛逛</span>

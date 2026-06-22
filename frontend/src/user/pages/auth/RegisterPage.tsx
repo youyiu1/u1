@@ -1,8 +1,7 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
-import { motion } from 'motion/react';
-import { AuthSplitLayout } from '../../components/auth/AuthSplitLayout';
-import { AUTH_INPUT_CLASS, AuthErrorBanner, AuthField, AuthPanelHeader } from '../../components/auth/AuthFormElements';
+import { Link, useNavigate, useOutletContext } from 'react-router-dom';
+import { AUTH_INPUT_CLASS, AUTH_PRIMARY_ACTION_CLASS, AuthErrorBanner, AuthField, AuthPanelHeader } from '../../components/auth/AuthFormElements';
+import type { AuthOutletContext } from '../../components/auth/AuthShell';
 import { userApi } from '../../services/api';
 import { useAuth } from '../../context/AuthContext';
 import { getErrorMessage } from '../../utils/error';
@@ -32,6 +31,7 @@ const preloadLoginPage = () => import('./LoginPage');
 
 export default function RegisterPage() {
   const navigate = useNavigate();
+  const { setAnimationState, setHeroBadge } = useOutletContext<AuthOutletContext>();
   const { register } = useAuth();
   const [formData, setFormData] = useState<RegisterFormState>({
     username: '',
@@ -66,6 +66,19 @@ export default function RegisterPage() {
     const timer = window.setTimeout(() => setHasErrorExpression(false), 1200);
     return () => window.clearTimeout(timer);
   }, [error]);
+
+  useEffect(() => {
+    setAnimationState({
+      isTyping,
+      showPassword: false,
+      passwordLength: formData.password.length,
+      hasError: hasErrorExpression,
+    });
+  }, [formData.password.length, hasErrorExpression, isTyping, setAnimationState]);
+
+  useEffect(() => {
+    setHeroBadge({ label: '创建账号', to: '/login' });
+  }, [setHeroBadge]);
 
   const handleChange = (field: keyof RegisterFormState) => (event: React.ChangeEvent<HTMLInputElement>) => {
     setFormData((current) => ({ ...current, [field]: event.target.value }));
@@ -120,25 +133,16 @@ export default function RegisterPage() {
   };
 
   return (
-    <AuthSplitLayout
-      sideAction={null}
-      animationState={{
-        isTyping,
-        showPassword: false,
-        passwordLength: formData.password.length,
-        hasError: hasErrorExpression,
-      }}
-    >
-      <motion.div initial={{ opacity: 0, y: 18 }} animate={{ opacity: 1, y: 0 }} className="w-full">
-        <AuthPanelHeader
+    <div className="w-full">
+      <AuthPanelHeader
           caption="填写基本信息后即可开始使用"
           title="创建账号"
           description="完成注册后即可发布动态、预约服务和加入社区互动。"
         />
 
-        <AuthErrorBanner message={error} />
+      <AuthErrorBanner message={error} />
 
-        <form onSubmit={handleSubmit} className="space-y-5">
+      <form onSubmit={handleSubmit} className="space-y-5">
           {primaryFields.map((field) => (
             <React.Fragment key={field.key}>
               <FormField
@@ -167,7 +171,7 @@ export default function RegisterPage() {
                 type="button"
                 onClick={handleSendCode}
                 disabled={codeLoading || countdown > 0 || !formData.email}
-                className="rounded-2xl border border-transparent bg-slate-100 px-5 py-2 text-sm font-bold transition-colors hover:bg-slate-200 disabled:opacity-50"
+                className="theme-action-secondary rounded-2xl px-5 py-2 text-sm font-bold disabled:opacity-50"
               >
                 {countdown > 0 ? `${countdown}s` : codeLoading ? '发送中...' : '获取验证码'}
               </button>
@@ -209,7 +213,7 @@ export default function RegisterPage() {
           <button
             type="submit"
             disabled={isLoading}
-            className="flex h-12 w-full items-center justify-center gap-2 rounded-2xl bg-primary text-[15px] font-black text-white transition-all hover:bg-primary-hover disabled:opacity-70"
+            className={AUTH_PRIMARY_ACTION_CLASS}
           >
             {isLoading ? <div className="h-5 w-5 animate-spin rounded-full border-2 border-white/30 border-t-white" /> : '立即注册'}
           </button>
@@ -220,9 +224,8 @@ export default function RegisterPage() {
               去登录
             </Link>
           </div>
-        </form>
-      </motion.div>
-    </AuthSplitLayout>
+      </form>
+    </div>
   );
 }
 

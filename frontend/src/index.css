@@ -10,8 +10,14 @@
   --color-secondary: #5f5e5e;
   --color-muted: #6a6a6a;
   --color-hairline: #dddddd;
+  --color-hairline-strong: #cbd5e1;
   --color-surface-soft: #f7f7f7;
   --color-surface-bright: #fff8f7;
+  --color-surface-panel: #ffffff;
+  --color-surface-panel-soft: #f8fafc;
+  --color-surface-panel-muted: #f1f5f9;
+  --color-surface-input: rgba(241, 245, 249, 0.92);
+  --color-surface-input-focus: #ffffff;
 
   --color-accent-blue: #4a90e2;
   --color-accent-green: #50c38e;
@@ -50,11 +56,18 @@
 
   .theme-night-shell {
     color-scheme: dark;
+    --color-ink: #f8fafc;
     --color-secondary: #cbd5e1;
     --color-muted: #94a3b8;
     --color-hairline: #334155;
+    --color-hairline-strong: #475569;
     --color-surface-soft: #0f172a;
     --color-surface-bright: #111827;
+    --color-surface-panel: #0f172a;
+    --color-surface-panel-soft: #111827;
+    --color-surface-panel-muted: #162033;
+    --color-surface-input: rgba(30, 41, 59, 0.92);
+    --color-surface-input-focus: #1e293b;
   }
 
   .theme-day-shell {
@@ -62,8 +75,14 @@
     --color-secondary: #5f5e5e;
     --color-muted: #6a6a6a;
     --color-hairline: #dddddd;
+    --color-hairline-strong: #cbd5e1;
     --color-surface-soft: #f7f7f7;
     --color-surface-bright: #fff8f7;
+    --color-surface-panel: #ffffff;
+    --color-surface-panel-soft: #f8fafc;
+    --color-surface-panel-muted: #f1f5f9;
+    --color-surface-input: rgba(241, 245, 249, 0.92);
+    --color-surface-input-focus: #ffffff;
   }
 
   body {
@@ -318,6 +337,91 @@
   textarea,
   select {
     font: inherit;
+  }
+}
+
+@layer components {
+  .theme-surface-panel {
+    background-color: var(--color-surface-panel);
+    color: var(--color-ink);
+  }
+
+  .theme-surface-panel-soft {
+    background-color: var(--color-surface-panel-soft);
+    color: var(--color-ink);
+  }
+
+  .theme-surface-panel-muted {
+    background-color: var(--color-surface-panel-muted);
+    color: var(--color-ink);
+  }
+
+  .theme-input-surface {
+    background-color: var(--color-surface-input);
+    color: var(--color-ink);
+    transition:
+      background-color 0.18s ease,
+      border-color 0.18s ease,
+      box-shadow 0.18s ease,
+      color 0.18s ease;
+  }
+
+  .theme-input-surface::placeholder {
+    color: var(--color-muted);
+    opacity: 0.72;
+  }
+
+  .theme-input-surface:focus {
+    background-color: var(--color-surface-input-focus);
+  }
+
+  .theme-action-secondary {
+    background-color: var(--color-surface-panel-muted);
+    color: var(--color-ink);
+    border: 1px solid var(--color-hairline);
+    transition:
+      background-color 0.18s ease,
+      border-color 0.18s ease,
+      color 0.18s ease,
+      opacity 0.18s ease;
+  }
+
+  .theme-action-secondary:hover {
+    background-color: var(--color-surface-panel-soft);
+    border-color: color-mix(in srgb, var(--color-primary) 20%, var(--color-hairline));
+  }
+
+  .theme-card {
+    background-color: var(--color-surface-panel);
+    color: var(--color-ink);
+    border: 1px solid var(--color-hairline);
+  }
+
+  .theme-card-soft {
+    background-color: color-mix(in srgb, var(--color-surface-panel) 90%, transparent);
+    color: var(--color-ink);
+    border: 1px solid color-mix(in srgb, var(--color-hairline) 82%, transparent);
+  }
+
+  .theme-card-muted {
+    background-color: var(--color-surface-panel-muted);
+    color: var(--color-ink);
+    border: 1px solid var(--color-hairline);
+  }
+
+  .theme-topbar {
+    background-color: color-mix(in srgb, var(--color-surface-panel) 84%, transparent);
+    border-color: var(--color-hairline);
+    color: var(--color-ink);
+  }
+
+  .theme-divider {
+    background-color: color-mix(in srgb, var(--color-hairline) 78%, transparent);
+  }
+
+  .theme-tag-soft {
+    background-color: var(--color-surface-soft);
+    color: var(--color-secondary);
   }
 }
 

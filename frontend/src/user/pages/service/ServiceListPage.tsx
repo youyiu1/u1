@@ -5,7 +5,7 @@
 
 import React from 'react';
 import { keepPreviousData, useQuery } from '@tanstack/react-query';
-import { Brush, CheckCircle2, Dumbbell, MapPin, Plus, Scissors, Sparkles, Star, Wrench } from 'lucide-react';
+import { Brush, CheckCircle2, Dumbbell, MapPin, MoreHorizontal, Plus, Scissors, Sparkles, Star, Wrench } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { BackToTop } from '../../components/common/BackToTop';
 import { FavoriteButton } from '../../components/common/FavoriteButton';
@@ -30,6 +30,7 @@ const CATEGORIES: ServiceCategory[] = [
   { id: 'repair', name: '家庭维修', icon: <Wrench className="h-4 w-4" /> },
   { id: 'pet', name: '宠物生活', icon: <Scissors className="h-4 w-4" /> },
   { id: 'sports', name: '运动私教', icon: <Dumbbell className="h-4 w-4" /> },
+  { id: 'other', name: '鍏朵粬鏈嶅姟', icon: <MoreHorizontal className="h-4 w-4" /> },
 ];
 
 const DEFAULT_PAGE_SIZE = 10;
@@ -44,6 +45,9 @@ function getDistanceLabel(distance?: string) {
 }
 
 function getCategoryLabel(categoryId: string) {
+  if (categoryId === 'pets') {
+    return CATEGORIES.find((category) => category.id === 'pet')?.name || categoryId;
+  }
   return CATEGORIES.find((category) => category.id === categoryId)?.name || categoryId;
 }
 
@@ -149,7 +153,7 @@ export default function ServiceListPage() {
                   className={`flex items-center justify-center gap-2 rounded-2xl px-5 py-3 text-sm font-black transition-all ${
                     nearbyEnabled
                       ? 'border border-primary/15 bg-primary/5 text-primary'
-                      : 'border border-hairline bg-white text-secondary hover:border-primary/30 hover:text-primary'
+                      : 'theme-card text-secondary hover:border-primary/30 hover:text-primary'
                   } disabled:opacity-60`}
                 >
                   <MapPin className="h-4 w-4" />
@@ -185,7 +189,7 @@ export default function ServiceListPage() {
                   className={`flex shrink-0 items-center gap-2 rounded-2xl px-5 py-3 text-sm font-bold transition-all ${
                     activeCategory === category.id
                       ? 'bg-primary text-white'
-                      : 'border border-hairline bg-[#fcfaf7] text-secondary hover:border-primary/20 hover:bg-white'
+                      : 'theme-card-muted text-secondary hover:border-primary/20'
                   }`}
                 >
                   {category.icon}
@@ -196,12 +200,12 @@ export default function ServiceListPage() {
           </div>
         </div>
         <div className="mx-auto mt-2 max-w-[1280px] px-4 sm:px-6 lg:px-20">
-          <div className="h-px w-full bg-stone-200/80" />
+          <div className="theme-divider h-px w-full" />
         </div>
       </div>
 
       <main className="mx-auto max-w-[1280px] px-4 py-10 sm:px-6 sm:py-12 lg:px-20">
-        <div className="rounded-[28px] border border-stone-200/80 bg-white/90 px-4 py-6 shadow-[0_12px_32px_rgba(15,23,42,0.04)] sm:px-6 sm:py-8">
+        <div className="theme-card-soft rounded-[28px] px-4 py-6 shadow-[0_12px_32px_rgba(15,23,42,0.04)] sm:px-6 sm:py-8">
           <div className="mb-6 flex flex-col justify-between gap-4 sm:mb-8 md:flex-row md:items-end">
             <div>
               <h2 className="text-lg font-bold text-ink sm:text-xl">精选服务商</h2>
@@ -277,7 +281,7 @@ function ServiceCard({
           <div className="flex h-full w-full items-center justify-center text-xs text-stone-400">暂无图片</div>
         )}
 
-        <div className="absolute left-3 top-3 flex items-center gap-1 rounded bg-white/90 px-2 py-1 text-[10px] font-bold text-ink backdrop-blur-md">
+        <div className="theme-card-soft absolute left-3 top-3 flex items-center gap-1 rounded px-2 py-1 text-[10px] font-bold text-ink backdrop-blur-md">
           <Star className="h-3 w-3 fill-current text-yellow-400" />
           <span>{service.rating}</span>
         </div>
@@ -297,7 +301,7 @@ function ServiceCard({
 
         <div className="mb-3 flex flex-wrap gap-1.5">
           {highlights.map((highlight, index) => (
-            <span key={index} className="rounded bg-surface-soft px-2 py-0.5 text-[10px] text-secondary">
+            <span key={index} className="theme-tag-soft rounded px-2 py-0.5 text-[10px]">
               {highlight}
             </span>
           ))}

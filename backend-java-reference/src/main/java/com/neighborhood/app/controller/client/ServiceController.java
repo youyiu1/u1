@@ -132,12 +132,20 @@ public class ServiceController {
         service.setCategory(RequestValueUtil.str(body.get("category")));
         service.setUnit(RequestValueUtil.str(body.get("unit")));
         service.setDistance(RequestValueUtil.str(body.get("distance")));
+        service.setArea(RequestValueUtil.str(body.get("area")));
+        service.setPhone(RequestValueUtil.str(body.get("phone")));
         service.setPrice(RequestValueUtil.toBigDecimal(body.get("price")));
         service.setHighlights(RequestValueUtil.normalizeJsonArray(body.get("highlights")));
         service.setImages(RequestValueUtil.toStringList(body.get("images")));
         service.setLatitude(RequestValueUtil.toDouble(body.get("latitude")));
         service.setLongitude(RequestValueUtil.toDouble(body.get("longitude")));
         return ResultUtils.bool(serviceModuleService.save(service));
+    }
+
+    /** 获取当前用户对服务的预约状态。 */
+    @GetMapping("/{id}/booking-status")
+    public Result<Boolean> getBookingStatus(@PathVariable Long id, HttpServletRequest request) {
+        return Result.ok(serviceModuleService.hasActiveBooking(RequestUserUtil.currentUserId(request), id));
     }
 
     /** 提交服务预约。 */
@@ -150,6 +158,9 @@ public class ServiceController {
         }
         String buyerId = RequestUserUtil.currentUserId(httpRequest);
         String sellerId = service.getSellerId();
+        if (serviceModuleService.hasActiveBooking(buyerId, serviceId)) {
+            return ResultUtils.fail("褰撳墠鏈嶅姟宸叉湁寰呭鐞嗘垨杩涜涓殑棰勭害");
+        }
         Long bookingId = serviceModuleService.book(
                 serviceId,
                 buyerId,

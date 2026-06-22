@@ -59,7 +59,7 @@ export function Pagination({
               <select
                 value={pageSize}
                 onChange={(event) => onPageSizeChange(Number(event.target.value))}
-                className="rounded-xl border border-hairline bg-white px-3 py-2 text-sm font-bold text-ink outline-none transition-colors focus:border-primary"
+                className="theme-card rounded-xl px-3 py-2 text-sm font-bold text-ink outline-none transition-colors focus:border-primary"
                 aria-label="选择每页显示数量"
               >
                 {normalizedPageSizeOptions.map((option) => (
@@ -89,7 +89,7 @@ export function Pagination({
                       className={`min-w-10 rounded-xl px-3 py-2 text-sm font-bold transition-all ${
                         page === currentPage
                           ? 'bg-primary text-white shadow-md'
-                          : 'border border-hairline bg-white text-secondary hover:border-primary/30 hover:text-primary'
+                          : 'theme-card text-secondary hover:border-primary/30 hover:text-primary'
                       }`}
                       aria-current={page === currentPage ? 'page' : undefined}
                     >
@@ -131,7 +131,7 @@ function PaginationArrow({
       type="button"
       onClick={onClick}
       disabled={disabled}
-      className="flex min-w-10 items-center justify-center rounded-xl border border-hairline bg-white px-3 py-2 text-secondary transition-all hover:border-primary/30 hover:text-primary disabled:cursor-not-allowed disabled:opacity-40"
+      className="theme-card flex min-w-10 items-center justify-center rounded-xl px-3 py-2 text-secondary transition-all hover:border-primary/30 hover:text-primary disabled:cursor-not-allowed disabled:opacity-40"
       aria-label={direction === 'prev' ? '上一页' : '下一页'}
     >
       <Icon className="h-4 w-4" />

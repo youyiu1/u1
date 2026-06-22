@@ -39,6 +39,8 @@ public class ServiceModuleServiceImpl extends ServiceImpl<ServiceMapper, Service
 
     private static final String ACTIVE_STATUS = "active";
     private static final String COMPLETED_STATUS = "completed";
+    private static final String CONFIRMED_STATUS = "confirmed";
+    private static final String IN_PROGRESS_STATUS = "in_progress";
     private static final String PENDING_STATUS = "pending";
     private static final String UNKNOWN_DISTANCE = "距离未知";
 
@@ -131,6 +133,9 @@ public class ServiceModuleServiceImpl extends ServiceImpl<ServiceMapper, Service
 
     @Override
     public Long book(Long serviceId, String buyerId, String sellerId, String bookingDate, String bookingTime, Integer duration) {
+        if (hasActiveBooking(buyerId, serviceId)) {
+            return null;
+        }
         Booking booking = buildBooking(serviceId, buyerId, sellerId, bookingDate, bookingTime, duration);
         return bookingMapper.insert(booking) > 0 ? booking.getId() : null;
     }
@@ -155,6 +160,26 @@ public class ServiceModuleServiceImpl extends ServiceImpl<ServiceMapper, Service
         list.forEach(service -> applyDistance(service, buyerLat, buyerLng, distanceMap));
         list.sort(Comparator.comparingDouble(service -> sortDistance(service, distanceMap)));
         return list;
+    }
+
+    @Override
+    public boolean hasActiveBooking(String buyerId, Long serviceId) {
+        if (buyerId == null || buyerId.isBlank() || serviceId == null) {
+            return false;
+        }
+
+        boolean hasPendingBooking = bookingMapper.selectCount(new LambdaQueryWrapper<Booking>()
+                .eq(Booking::getBuyerId, buyerId)
+                .eq(Booking::getServiceId, serviceId)
+                .eq(Booking::getStatus, PENDING_STATUS)) > 0;
+        if (hasPendingBooking) {
+            return true;
+        }
+
+        return orderMapper.selectCount(new LambdaQueryWrapper<Order>()
+                .eq(Order::getBuyerId, buyerId)
+                .eq(Order::getServiceId, serviceId)
+                .in(Order::getStatus, CONFIRMED_STATUS, IN_PROGRESS_STATUS)) > 0;
     }
 
     private Booking buildBooking(Long serviceId, String buyerId, String sellerId, String bookingDate, String bookingTime, Integer duration) {

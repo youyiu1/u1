@@ -23,7 +23,7 @@ export const ProfileMarketItem: React.FC<ProfileMarketItemProps> = ({ item }) =>
   return (
     <div
       onClick={() => navigate(itemType ? `/item/${item.id}` : `/service/${item.id}`, { state: { from: '/profile' } })}
-      className="group cursor-pointer overflow-hidden rounded-2xl border border-hairline bg-white transition-all hover:border-primary/20 hover:shadow-lg"
+      className="theme-card group cursor-pointer overflow-hidden rounded-2xl transition-all hover:border-primary/20 hover:shadow-lg"
     >
       <div className="relative aspect-square bg-surface-soft">
         {primaryImage ? (

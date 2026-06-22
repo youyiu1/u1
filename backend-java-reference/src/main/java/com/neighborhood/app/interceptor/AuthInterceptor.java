@@ -9,6 +9,7 @@ import com.neighborhood.app.utils.CollectionStringUtil;
 import com.neighborhood.app.utils.UserLookupUtil;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import lombok.RequiredArgsConstructor;
@@ -29,6 +30,58 @@ public class AuthInterceptor implements HandlerInterceptor {
     private static final String ROLE_ADMIN = "ADMIN";
     private static final String ROLE_READONLY_ADMIN = "READONLY_ADMIN";
     private static final String ROLE_SUPER_ADMIN = "SUPER_ADMIN";
+    private static final List<String> BUILT_IN_ADMIN_DEFAULT_PERMISSIONS = List.of(
+            "user:view", "user:ban", "user:verify",
+            "blacklist:view", "blacklist:edit",
+            "posts:view", "posts:audit",
+            "comments:view", "comments:manage",
+            "messages:view", "messages:manage",
+            "images:view", "images:audit",
+            "goods:view", "goods:audit",
+            "services:view", "services:manage",
+            "orders:view", "orders:cancel",
+            "notifications:view", "notifications:create",
+            "categories:view", "categories:edit",
+            "menus:view",
+            "roles:view",
+            "permissions:view",
+            "logs:login", "logs:operation"
+    );
+    private static final List<String> BUILT_IN_READONLY_DEFAULT_PERMISSIONS = List.of(
+            "user:view",
+            "posts:view",
+            "goods:view",
+            "services:view",
+            "orders:view",
+            "categories:view",
+            "notifications:view",
+            "menus:view",
+            "messages:view",
+            "comments:view",
+            "images:view",
+            "blacklist:view",
+            "logs:login",
+            "logs:operation",
+            "roles:view",
+            "permissions:view"
+    );
+    private static final List<String> BUILT_IN_SUPER_DEFAULT_PERMISSIONS = List.of(
+            "user:view", "user:ban", "user:verify", "user:role",
+            "blacklist:view", "blacklist:edit",
+            "posts:view", "posts:audit",
+            "comments:view", "comments:manage",
+            "messages:view", "messages:manage",
+            "images:view", "images:audit",
+            "goods:view", "goods:audit",
+            "services:view", "services:manage",
+            "orders:view", "orders:cancel",
+            "notifications:view", "notifications:create",
+            "categories:view", "categories:edit",
+            "menus:view",
+            "roles:view", "roles:manage",
+            "permissions:view",
+            "logs:login", "logs:operation", "logs:retention"
+    );
     private static final String MESSAGE_LOGIN_REQUIRED = "{\"success\":false,\"message\":\"未登录\"}";
     private static final String MESSAGE_TOKEN_INVALID = "{\"success\":false,\"message\":\"Token无效\"}";
     private static final String MESSAGE_TOKEN_EXPIRED = "{\"success\":false,\"message\":\"Token已过期\"}";
@@ -155,15 +208,18 @@ public class AuthInterceptor implements HandlerInterceptor {
                     role
             );
             if (rows.isEmpty()) {
-                return new RoleMeta(null, List.of());
+                return new RoleMeta(null, defaultPermissionsForRole(role));
             }
             Map<String, Object> row = rows.get(0);
+            List<String> currentPermissions = CollectionStringUtil.parseStringArray(
+                    row.get("permission_codes") == null ? null : String.valueOf(row.get("permission_codes"))
+            );
             return new RoleMeta(
                     row.get("status") == null ? null : String.valueOf(row.get("status")),
-                    CollectionStringUtil.parseStringArray(row.get("permission_codes") == null ? null : String.valueOf(row.get("permission_codes")))
+                    mergeBuiltInRolePermissions(role, currentPermissions)
             );
         } catch (Exception ignored) {
-            return new RoleMeta(null, List.of());
+            return new RoleMeta(null, defaultPermissionsForRole(role));
         }
     }
 
@@ -184,6 +240,28 @@ public class AuthInterceptor implements HandlerInterceptor {
         return roleMeta.permissionCodes().contains(requiredPermission);
     }
 
+    private List<String> mergeBuiltInRolePermissions(String role, List<String> currentPermissions) {
+        List<String> defaults = defaultPermissionsForRole(role);
+        if (currentPermissions.isEmpty()) {
+            return defaults;
+        }
+        if (defaults.isEmpty()) {
+            return currentPermissions;
+        }
+        LinkedHashSet<String> merged = new LinkedHashSet<>(currentPermissions);
+        merged.addAll(defaults);
+        return List.copyOf(merged);
+    }
+
+    private List<String> defaultPermissionsForRole(String role) {
+        return switch (role) {
+            case ROLE_SUPER_ADMIN -> BUILT_IN_SUPER_DEFAULT_PERMISSIONS;
+            case ROLE_ADMIN -> BUILT_IN_ADMIN_DEFAULT_PERMISSIONS;
+            case ROLE_READONLY_ADMIN -> BUILT_IN_READONLY_DEFAULT_PERMISSIONS;
+            default -> List.of();
+        };
+    }
+
     private String resolveRequiredPermission(String path, String method) {
         if (path.equals("/api/admin/me") || path.equals("/api/admin/dashboard/stats")) return null;
         if (path.equals("/api/admin/users")) return "user:view";
@@ -195,16 +273,20 @@ public class AuthInterceptor implements HandlerInterceptor {
         if (path.matches("/api/admin/dynamics/[^/]+/comments(/[^/]+)?")) return "comments:manage";
         if (path.equals("/api/admin/goods")) return "goods:view";
         if (path.matches("/api/admin/goods/[^/]+/status")) return "goods:audit";
+        if (path.equals("/api/admin/services") && isPost(method)) return "services:manage";
         if (path.equals("/api/admin/services")) return "services:view";
         if (path.matches("/api/admin/services/[^/]+/status")) return "services:manage";
         if (path.equals("/api/admin/orders")) return "orders:view";
         if (path.matches("/api/admin/orders/[^/]+/cancel")) return "orders:cancel";
+        if (path.equals("/api/admin/notifications") && isPost(method)) return "notifications:create";
         if (path.equals("/api/admin/notifications")) return "notifications:view";
         if (path.matches("/api/admin/notifications/[^/]+/toggle")) return "notifications:create";
+        if (path.equals("/api/admin/categories") && isPost(method)) return "categories:edit";
         if (path.equals("/api/admin/categories")) return "categories:view";
         if (path.matches("/api/admin/categories/[^/]+/toggle")) return "categories:edit";
         if (path.equals("/api/admin/comments")) return "comments:view";
         if (path.matches("/api/admin/comments/[^/]+(/status)?")) return "comments:manage";
+        if (path.equals("/api/admin/blacklist") && isPost(method)) return "blacklist:edit";
         if (path.equals("/api/admin/blacklist")) return "blacklist:view";
         if (path.matches("/api/admin/blacklist/[^/]+")) return "blacklist:edit";
         if (path.equals("/api/admin/images")) return "images:view";
@@ -246,8 +328,6 @@ public class AuthInterceptor implements HandlerInterceptor {
                 || (isGet(method) && path.startsWith("/api/user/name/"))
                 || (isGet(method) && isPublicUserDetailPath(path))
                 || (isGet(method) && path.matches("/api/user/[^/]+/following"))
-                || (isGet(method) && path.equals("/api/user/isfollowing"))
-                || (isGet(method) && path.equals("/api/user/suggested"))
                 || (isGet(method) && path.startsWith("/api/home"))
                 || (isGet(method) && path.equals("/api/search"))
                 || (isGet(method) && path.startsWith("/api/category"))

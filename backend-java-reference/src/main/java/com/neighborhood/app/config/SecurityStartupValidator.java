@@ -61,6 +61,15 @@ public class SecurityStartupValidator {
     @Value("${spring.ai.zhipuai.api-key:" + DEFAULT_ZHIPUAI_API_KEY + "}")
     private String zhipuAiApiKey;
 
+    @Value("${springdoc.openapi.enabled:false}")
+    private boolean springdocOpenapiEnabled;
+
+    @Value("${springdoc.api-docs.enabled:false}")
+    private boolean springdocApiDocsEnabled;
+
+    @Value("${springdoc.swagger-ui.enabled:false}")
+    private boolean springdocSwaggerUiEnabled;
+
     @PostConstruct
     public void validate() {
         if (isProductionMode()) {
@@ -74,6 +83,7 @@ public class SecurityStartupValidator {
             requireSafeValue(rustfsAccessKey, DEFAULT_RUSTFS_ACCESS_KEY, "RUSTFS_ACCESS_KEY");
             requireSafeValue(rustfsSecretKey, DEFAULT_RUSTFS_SECRET_KEY, "RUSTFS_SECRET_KEY");
             requireAiSecretIfEnabled();
+            requireSpringdocDisabledInProduction();
             return;
         }
         warnIfUnsafe(jwtSecret, DEFAULT_JWT_SECRET, "JWT_SECRET");
@@ -86,6 +96,7 @@ public class SecurityStartupValidator {
         warnIfUnsafe(rustfsAccessKey, DEFAULT_RUSTFS_ACCESS_KEY, "RUSTFS_ACCESS_KEY");
         warnIfUnsafe(rustfsSecretKey, DEFAULT_RUSTFS_SECRET_KEY, "RUSTFS_SECRET_KEY");
         warnAiSecretIfEnabled();
+        warnIfSpringdocEnabled();
     }
 
     private boolean isProductionMode() {
@@ -123,6 +134,18 @@ public class SecurityStartupValidator {
     private void warnAiSecretIfEnabled() {
         if (aiEnabled) {
             warnIfUnsafe(zhipuAiApiKey, DEFAULT_ZHIPUAI_API_KEY, "ZHIPUAI_API_KEY");
+        }
+    }
+
+    private void requireSpringdocDisabledInProduction() {
+        if (springdocOpenapiEnabled || springdocApiDocsEnabled || springdocSwaggerUiEnabled) {
+            throw new IllegalStateException("生产环境禁止开启 Swagger / OpenAPI 文档");
+        }
+    }
+
+    private void warnIfSpringdocEnabled() {
+        if (springdocOpenapiEnabled || springdocApiDocsEnabled || springdocSwaggerUiEnabled) {
+            log.warn("当前环境已开启 Swagger / OpenAPI 文档，发布到生产前请关闭");
         }
     }
 }

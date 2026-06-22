@@ -27,7 +27,7 @@ export function setFollowState(key: string, value: boolean): void {
 export async function resolveFollowState(
   currentUserId: string | undefined,
   targetUserId: string | undefined,
-  fetchFollowState: (currentUserId: string, targetUserId: string) => Promise<boolean>
+  fetchFollowState: ((currentUserId: string, targetUserId: string) => Promise<boolean>) | ((targetUserId: string) => Promise<boolean>)
 ): Promise<boolean> {
   if (!currentUserId || !targetUserId || currentUserId === targetUserId) {
     return false;
@@ -39,7 +39,9 @@ export async function resolveFollowState(
   }
 
   try {
-    const following = await fetchFollowState(currentUserId, targetUserId);
+    const following = await (fetchFollowState.length >= 2
+      ? (fetchFollowState as (currentUserId: string, targetUserId: string) => Promise<boolean>)(currentUserId, targetUserId)
+      : (fetchFollowState as (targetUserId: string) => Promise<boolean>)(targetUserId));
     setFollowState(targetUserId, following);
     return following;
   } catch {

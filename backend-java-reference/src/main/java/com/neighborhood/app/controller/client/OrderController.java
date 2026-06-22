@@ -4,7 +4,6 @@ import com.neighborhood.app.common.Result;
 import com.neighborhood.app.common.ResultUtils;
 import com.neighborhood.app.entity.service.Order;
 import com.neighborhood.app.service.OrderService;
-import com.neighborhood.app.utils.RequestUserResolver;
 import com.neighborhood.app.utils.RequestUserUtil;
 import jakarta.servlet.http.HttpServletRequest;
 import java.util.List;
@@ -15,10 +14,9 @@ import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
-/** 文件作用：用户端订单接口。 */
+/** 用户端订单接口。 */
 @RestController
 @RequestMapping("/api/order")
 @RequiredArgsConstructor
@@ -30,21 +28,20 @@ public class OrderController {
     private static final String STATUS_CANCELLED = "cancelled";
 
     private final OrderService orderService;
-    private final RequestUserResolver requestUserResolver;
 
     @GetMapping("/list")
-    public Result<List<Order>> list(@RequestParam(required = false) String userId, HttpServletRequest request) {
-        return Result.ok(orderService.listByUserId(requestUserResolver.getEffectiveUserId(request, userId)));
+    public Result<List<Order>> list(HttpServletRequest request) {
+        return Result.ok(orderService.listByUserId(RequestUserUtil.currentUserId(request)));
     }
 
     @GetMapping("/list/completed")
-    public Result<List<Order>> completedList(@RequestParam(required = false) String userId, HttpServletRequest request) {
-        return Result.ok(orderService.listCompletedByUserId(requestUserResolver.getEffectiveUserId(request, userId)));
+    public Result<List<Order>> completedList(HttpServletRequest request) {
+        return Result.ok(orderService.listCompletedByUserId(RequestUserUtil.currentUserId(request)));
     }
 
     @GetMapping("/list/in_progress")
-    public Result<List<Order>> inProgressList(@RequestParam(required = false) String userId, HttpServletRequest request) {
-        return Result.ok(orderService.listInProgressByUserId(requestUserResolver.getEffectiveUserId(request, userId)));
+    public Result<List<Order>> inProgressList(HttpServletRequest request) {
+        return Result.ok(orderService.listInProgressByUserId(RequestUserUtil.currentUserId(request)));
     }
 
     @GetMapping("/{id}")

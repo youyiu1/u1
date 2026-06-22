@@ -19,6 +19,7 @@ public interface ServiceModuleService extends IService<ServiceEntity> {
     IPage<ServiceEntity> listPage(String category, String keyword, Double buyerLat, Double buyerLng, long pageNum, long pageSize);
     List<ServiceEntity> listByUserId(String userId);  // 获取用户服务
     List<ServiceEntity> listWithDistance(Double buyerLat, Double buyerLng);  // 带距离的服务列表
+    boolean hasActiveBooking(String buyerId, Long serviceId);
     boolean save(ServiceEntity service);
     boolean updateById(ServiceEntity service);
     Long book(Long serviceId, String buyerId, String sellerId, String bookingDate, String bookingTime, Integer duration);

@@ -67,7 +67,11 @@ type AdminStatus = 'success' | 'failed';
 type AdminStatusPayload = { status: string; rejectReason?: string };
 
 function headers(): HeadersInit {
-  const token = readStorageValue(localStorage, TOKEN_KEY);
+  const token = readStorageValue(sessionStorage, TOKEN_KEY) || readStorageValue(localStorage, TOKEN_KEY);
+  if (!readStorageValue(sessionStorage, TOKEN_KEY) && token) {
+    writeStorageValue(sessionStorage, TOKEN_KEY, token);
+    removeStorageItems(localStorage, SESSION_STORAGE_KEYS);
+  }
   return {
     'Content-Type': 'application/json',
     ...(token ? { Authorization: `Bearer ${token}` } : {}),
@@ -126,17 +130,20 @@ function postStatus<T>(path: string, status: string, rejectReason?: string) {
 }
 
 function setAuth(token: string, username: string) {
-  writeStorageValue(localStorage, TOKEN_KEY, token);
-  writeStorageValue(localStorage, USERNAME_KEY, username);
+  writeStorageValue(sessionStorage, TOKEN_KEY, token);
+  writeStorageValue(sessionStorage, USERNAME_KEY, username);
+  removeStorageItems(localStorage, SESSION_STORAGE_KEYS);
 }
 
 function setSessionMeta(data: Partial<AdminSessionResponse>) {
-  writeStorageValue(localStorage, ROLE_KEY, data.adminRole || 'USER');
-  writeStorageValue(localStorage, READONLY_KEY, data.readonly || 'false');
-  writeStorageJson(localStorage, PERMISSIONS_KEY, data.permissionCodes || []);
+  writeStorageValue(sessionStorage, ROLE_KEY, data.adminRole || 'USER');
+  writeStorageValue(sessionStorage, READONLY_KEY, data.readonly || 'false');
+  writeStorageJson(sessionStorage, PERMISSIONS_KEY, data.permissionCodes || []);
+  removeStorageItems(localStorage, SESSION_STORAGE_KEYS);
 }
 
 function clearAuth() {
+  removeStorageItems(sessionStorage, SESSION_STORAGE_KEYS);
   removeStorageItems(localStorage, SESSION_STORAGE_KEYS);
 }
 
@@ -160,7 +167,7 @@ export const adminApi = {
 
   async logout(): Promise<Result<void>> {
     try {
-      if (readStorageValue(localStorage, TOKEN_KEY)) {
+      if (readStorageValue(sessionStorage, TOKEN_KEY) || readStorageValue(localStorage, TOKEN_KEY)) {
         await post<void>('/logout');
       }
     } finally {
@@ -178,23 +185,23 @@ export const adminApi = {
   },
 
   getStoredAdminRole(): string {
-    return readStorageValue(localStorage, ROLE_KEY) || 'USER';
+    return readStorageValue(sessionStorage, ROLE_KEY) || readStorageValue(localStorage, ROLE_KEY) || 'USER';
   },
 
   getStoredUsername(): string {
-    return readStorageValue(localStorage, USERNAME_KEY) || 'admin';
+    return readStorageValue(sessionStorage, USERNAME_KEY) || readStorageValue(localStorage, USERNAME_KEY) || 'admin';
   },
 
   hasStoredSession(): boolean {
-    return Boolean(readStorageValue(localStorage, TOKEN_KEY));
+    return Boolean(readStorageValue(sessionStorage, TOKEN_KEY) || readStorageValue(localStorage, TOKEN_KEY));
   },
 
   isReadonlyAdmin(): boolean {
-    return readStorageValue(localStorage, READONLY_KEY) === 'true';
+    return (readStorageValue(sessionStorage, READONLY_KEY) || readStorageValue(localStorage, READONLY_KEY)) === 'true';
   },
 
   getStoredPermissionCodes(): string[] {
-    return readStorageJson<string[]>(localStorage, PERMISSIONS_KEY, []);
+    return readStorageJson<string[]>(sessionStorage, PERMISSIONS_KEY, readStorageJson<string[]>(localStorage, PERMISSIONS_KEY, []));
   },
 
   async getDashboardStats(): Promise<Result<DashboardStats>> {
@@ -281,8 +288,14 @@ export const adminApi = {
     return postById<void>('notifications', id, 'toggle');
   },
 
-  async addNotification(title: string, content: string, target: 'all' | 'specific', isScheduled: boolean): Promise<Result<void>> {
-    return post<void>('/notifications', { title, content, target, isScheduled });
+  async addNotification(payload: {
+    title: string;
+    content: string;
+    target: 'all' | 'specific';
+    userIds: string[];
+    isScheduled: boolean;
+  }): Promise<Result<void>> {
+    return post<void>('/notifications', payload);
   },
 
   async getManagedComments(): Promise<Result<ManagedComment[]>> {

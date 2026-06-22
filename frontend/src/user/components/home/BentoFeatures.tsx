@@ -43,7 +43,7 @@ export const BentoFeatures: React.FC = () => {
             viewport={{ once: true }}
             transition={{ delay: idx * 0.05 }}
             onClick={() => navigate(item.path)}
-            className="group cursor-pointer flex items-center gap-4 p-4 rounded-2xl hover:bg-white hover:shadow-sm transition-all border border-transparent hover:border-hairline"
+            className="group flex cursor-pointer items-center gap-4 rounded-2xl border border-transparent p-4 transition-all hover:border-hairline hover:bg-[var(--color-surface-panel)] hover:shadow-sm"
           >
             <div className={`w-10 h-10 ${item.color} rounded-xl flex items-center justify-center shrink-0`}>
               {item.icon}

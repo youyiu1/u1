@@ -58,7 +58,7 @@ export const HeaderUserMenu: React.FC = () => {
               initial={{ opacity: 0, y: 10, scale: 0.95 }}
               animate={{ opacity: 1, y: 0, scale: 1 }}
               exit={{ opacity: 0, y: 10, scale: 0.95 }}
-              className="absolute right-0 z-20 mt-3 w-56 overflow-hidden rounded-[32px] border border-hairline bg-white p-3 shadow-premium"
+              className="theme-card absolute right-0 z-20 mt-3 w-56 overflow-hidden rounded-[32px] p-3 shadow-premium"
             >
               <div className="mb-2 border-b border-hairline px-4 py-3">
                 <p className="mb-1 text-[10px] font-black uppercase tracking-widest text-muted">Account</p>

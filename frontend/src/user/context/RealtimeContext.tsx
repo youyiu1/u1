@@ -21,7 +21,8 @@ const RealtimeContext = createContext<RealtimeContextValue>({ connected: false }
 
 function createWebSocketUrl(token: string): string {
   const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
-  return `${protocol}//${window.location.host}/ws?token=${encodeURIComponent(token)}`;
+  void token;
+  return `${protocol}//${window.location.host}/ws`;
 }
 
 function parseMessage<T>(frame: IMessage): RealtimeEvent<T> | null {

@@ -63,7 +63,7 @@ export const ReviewDialog: React.FC<ReviewDialogProps> = ({
             exit={{ opacity: 0, scale: 0.95, y: 20 }}
             className="fixed inset-0 z-50 flex items-center justify-center p-4"
           >
-            <div className="w-full max-w-md rounded-[32px] bg-white p-8 shadow-2xl" onClick={(event) => event.stopPropagation()}>
+            <div className="theme-card w-full max-w-md rounded-[32px] p-8 shadow-2xl" onClick={(event) => event.stopPropagation()}>
               <div className="mb-6 flex items-center justify-between">
                 <h3 className="text-xl font-black text-ink">{title}</h3>
                 <button onClick={onClose} className="p-2 text-muted transition-colors hover:text-ink" aria-label="关闭评价弹窗">
