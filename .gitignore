@@ -17,6 +17,8 @@ frontend/dist/
 uploads/
 .idea/
 .claude/settings.local.json
+AGENTS.md
+CLAUDE.md
 deploy/exports/
 backend-java-reference/sql/backup_*.sql
 backend-java-reference/sql/neighborhood_db_*.sql
